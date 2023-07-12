@@ -1,0 +1,236 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Hyperparameter Tuning and Noise
+
+This chapter demonstrates how noisy functions can be handled by `Spot`.
+
+## Example: `Spot` and the Noisy Sphere Function
+
+```{python}
+import numpy as np
+from math import inf
+from spotPython.fun.objectivefunctions import analytical
+from spotPython.spot import spot
+import matplotlib.pyplot as plt
+from spotPython.utils.file import get_experiment_name
+from spotPython.utils.init import fun_control_init
+from spotPython.utils.file import get_spot_tensorboard_path
+
+PREFIX = "08"
+experiment_name = get_experiment_name(prefix=PREFIX)
+print(experiment_name)
+```
+
+
+### The Objective Function: Noisy Sphere
+
+* The `spotPython` package provides several classes of objective functions.
+* We will use an analytical objective function with noise, i.e., a function that can be described by a (closed) formula:
+   $$f(x) = x^2 + \epsilon$$
+
+* Since `sigma` is set to `0.1`, noise is added to the function:
+
+```{python}
+fun = analytical().fun_sphere
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+    sigma=0.02,
+    seed=123,)
+```
+
+* A plot illustrates the noise:
+
+```{python}
+x = np.linspace(-1,1,100).reshape(-1,1)
+y = fun(x, fun_control=fun_control)
+plt.figure()
+plt.plot(x,y, "k")
+plt.show()
+```
+
+`Spot` is adopted as follows to cope with noisy functions:
+
+1. `fun_repeats` is set to a value larger than 1 (here: 2)
+2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix
+3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 2)
+
+```{python}
+spot_1_noisy = spot.Spot(fun=fun,
+                   lower = np.array([-1]),
+                   upper = np.array([1]),
+                   fun_evals = 20,
+                   fun_repeats = 2,
+                   noise = True,
+                   seed=123,
+                   show_models=True,
+                   design_control={"init_size": 3,
+                                   "repeats": 2},
+                   surrogate_control={"noise": True},
+                   fun_control=fun_control,)
+```
+
+```{python}
+spot_1_noisy.run()
+```
+
+## Print the Results
+
+```{python}
+spot_1_noisy.print_results()
+```
+
+```{python}
+#| fig-label: fig-progress
+#| fig-cap: "Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization."
+spot_1_noisy.plot_progress(log_y=False,
+    filename="./figures/" + experiment_name+"_progress.png")
+```
+
+##  Noise and Surrogates: The Nugget Effect
+
+### The Noisy Sphere
+
+#### The Data
+
+* We prepare some data first:
+
+```{python}
+import numpy as np
+import spotPython
+from spotPython.fun.objectivefunctions import analytical
+from spotPython.spot import spot
+from spotPython.design.spacefilling import spacefilling
+from spotPython.build.kriging import Kriging
+import matplotlib.pyplot as plt
+
+gen = spacefilling(1)
+rng = np.random.RandomState(1)
+lower = np.array([-10])
+upper = np.array([10])
+fun = analytical().fun_sphere
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+    sigma=2,
+    seed=123,)
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+y = fun(X, fun_control=fun_control)
+X_train = X.reshape(-1,1)
+y_train = y
+```
+
+* A surrogate without nugget is fitted to these data:
+
+```{python}
+S = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            noise=False)
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression on noisy dataset")
+```
+
+* In comparison to the surrogate without nugget, we fit a surrogate with nugget to the data:
+
+```{python}
+S_nug = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            noise=True)
+S_nug.fit(X_train, y_train)
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S_nug.predict(X_axis, return_val="all")
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression with nugget on noisy dataset")
+```
+
+* The value of the nugget term can be extracted from the model as follows:
+
+```{python}
+S.Lambda
+```
+
+```{python}
+S_nug.Lambda
+```
+
+* We see:
+    * the first model `S` has no nugget, 
+    * whereas the second model has a nugget value (`Lambda`) larger than zero.
+
+## Exercises
+
+### Noisy `fun_cubed`
+
+* Analyse the effect of noise on the `fun_cubed` function with the following settings:
+
+```{python}
+fun = analytical().fun_cubed
+fun_control = fun_control_init(
+    sigma=10,
+    seed=123,)
+lower = np.array([-10])
+upper = np.array([10])
+```
+
+###  `fun_runge`
+
+* Analyse the effect of noise on the `fun_runge` function with the following settings:
+
+```{python}
+lower = np.array([-10])
+upper = np.array([10])
+fun = analytical().fun_runge
+fun_control = fun_control_init(
+    sigma=0.25,
+    seed=123,)
+```
+
+
+###  `fun_forrester`
+
+* Analyse the effect of noise on the `fun_forrester` function with the following settings: 
+
+```{python}
+lower = np.array([0])
+upper = np.array([1])
+fun = analytical().fun_forrester
+fun_control = fun_control_init(
+    sigma=5,
+    seed=123,)
+```
+
+
+###  `fun_xsin`
+
+* Analyse the effect of noise on the `fun_xsin` function with the following settings: 
+
+```{python}
+lower = np.array([-1.])
+upper = np.array([1.])
+fun = analytical().fun_xsin
+fun_control = fun_control_init(    
+    sigma=0.5,
+    seed=123,)
+```
+

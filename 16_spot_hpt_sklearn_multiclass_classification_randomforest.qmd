@@ -1,0 +1,640 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# HPT: sklearn RandomForestClassifier VBDP Data
+
+`spotPython` can be installed via pip. Alternatively, the source code can be downloaded from gitHub: [https://github.com/sequential-parameter-optimization/spotPython](https://github.com/sequential-parameter-optimization/spotPython).
+
+```{raw}
+!pip install spotPython
+```
+
+* Uncomment the following lines if you want to for (re-)installation the latest version of `spotPython` from gitHub.
+
+```{python}
+# import sys
+# !{sys.executable} -m pip install --upgrade build
+# !{sys.executable} -m pip install --upgrade --force-reinstall spotPython
+```
+
+
+## Step 1: Setup {#sec-setup-16}
+
+Before we consider the detailed experimental setup, we select the parameters that affect run time and the initial design size.
+```{python}
+MAX_TIME = 1
+INIT_SIZE = 5
+ORIGINAL = False
+PREFIX = "16"
+```
+
+
+```{python}
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+
+## Step 2: Initialization of the Empty `fun_control` Dictionary
+
+```{python}
+from spotPython.utils.init import fun_control_init
+from spotPython.utils.file import get_experiment_name, get_spot_tensorboard_path
+from spotPython.utils.device import getDevice
+
+experiment_name = get_experiment_name(prefix=PREFIX)
+
+fun_control = fun_control_init(
+    task="classification",
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name))
+```
+
+
+## Step 3: PyTorch Data Loading
+
+### Load Data: Classification VBDP
+
+```{python}
+import pandas as pd
+if ORIGINAL == True:
+    train_df = pd.read_csv('./data/VBDP/trainn.csv')
+    test_df = pd.read_csv('./data/VBDP/testt.csv')
+else:
+    train_df = pd.read_csv('./data/VBDP/train.csv')
+    # remove the id column
+    train_df = train_df.drop(columns=['id'])
+```
+
+```{python}
+from sklearn.preprocessing import OrdinalEncoder
+n_samples = train_df.shape[0]
+n_features = train_df.shape[1] - 1
+target_column = "prognosis"
+# Encoder our prognosis labels as integers for easier decoding later
+enc = OrdinalEncoder()
+train_df[target_column] = enc.fit_transform(train_df[[target_column]])
+train_df.columns = [f"x{i}" for i in range(1, n_features+1)] + [target_column]
+print(train_df.shape)
+train_df.head()
+```
+
+The full data set `train_df` 64 features. The target column is labeled as `prognosis`.
+
+### Holdout Train and Test Data
+
+We split out a hold-out test set (25% of the data) so we can calculate an example MAP@K
+
+```{python}
+import numpy as np
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(train_df.drop(target_column, axis=1), train_df[target_column],
+                                                    random_state=42,
+                                                    test_size=0.25,
+                                                    stratify=train_df[target_column])
+train = pd.DataFrame(np.hstack((X_train, np.array(y_train).reshape(-1, 1))))
+test = pd.DataFrame(np.hstack((X_test, np.array(y_test).reshape(-1, 1))))
+train.columns = [f"x{i}" for i in range(1, n_features+1)] + [target_column]
+test.columns = [f"x{i}" for i in range(1, n_features+1)] + [target_column]
+print(train.shape)
+print(test.shape)
+train.head()
+```
+
+```{python}
+# add the dataset to the fun_control
+fun_control.update({"data": train_df, # full dataset,
+               "train": train,
+               "test": test,
+               "n_samples": n_samples,
+               "target_column": target_column})
+```
+
+## Step 4: Specification of the Preprocessing Model {#sec-specification-of-preprocessing-model-16}
+
+Data preprocesssing can be very simple, e.g., you can ignore it. Then you would choose the `prep_model` "None":
+
+```{python}
+prep_model = None
+fun_control.update({"prep_model": prep_model})
+```
+
+A default approach for numerical data is the `StandardScaler` (mean 0, variance 1).  This can be selected as follows:
+
+```{python}
+# prep_model = StandardScaler()
+# fun_control.update({"prep_model": prep_model})
+```
+
+Even more complicated pre-processing steps are possible, e.g., the follwing pipeline:
+
+```{python}
+# categorical_columns = []
+# one_hot_encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+# prep_model = ColumnTransformer(
+#         transformers=[
+#             ("categorical", one_hot_encoder, categorical_columns),
+#         ],
+#         remainder=StandardScaler(),
+#     )
+```
+
+## Step 5: Select Model (`algorithm`) and `core_model_hyper_dict`
+
+The selection of the algorithm (ML model) that should be tuned is done by specifying the its name from the `sklearn` implementation.  For example, the `SVC` support vector machine classifier is selected as follows:
+
+`add_core_model_to_fun_control(SVC, fun_control, SklearnHyperDict)`
+
+Other core_models are, e.g.,:
+
+* RidgeCV
+* GradientBoostingRegressor
+* ElasticNet
+* RandomForestClassifier
+* LogisticRegression
+* KNeighborsClassifier
+* RandomForestClassifier
+* GradientBoostingClassifier
+* HistGradientBoostingClassifier
+
+We will use the `RandomForestClassifier` classifier in this example.
+
+```{python}
+from sklearn.linear_model import RidgeCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import ElasticNet
+from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotPython.data.sklearn_hyper_dict import SklearnHyperDict
+from spotPython.fun.hypersklearn import HyperSklearn
+```
+
+```{python}
+# core_model  = RidgeCV
+# core_model = GradientBoostingRegressor
+# core_model = ElasticNet
+core_model = RandomForestClassifier
+# core_model = SVC
+# core_model = LogisticRegression
+# core_model = KNeighborsClassifier
+# core_model = GradientBoostingClassifier
+add_core_model_to_fun_control(core_model=core_model,
+                              fun_control=fun_control,
+                              hyper_dict=SklearnHyperDict,
+                              filename=None)
+```
+
+Now `fun_control` has the information from the JSON file. The available hyperparameters are:
+
+```{python}
+print(*fun_control["core_model_hyper_dict"].keys(), sep="\n")
+```
+
+## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model`
+
+### Modify hyperparameter of type numeric and integer (boolean)
+
+Numeric and boolean values can be modified using the `modify_hyper_parameter_bounds` method.  For example, to change the `tol` hyperparameter of the `SVC` model to the interval [1e-3, 1e-2], the following code can be used:
+
+`modify_hyper_parameter_bounds(fun_control, "tol", bounds=[1e-3, 1e-2])`
+
+```{python}
+from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+# modify_hyper_parameter_bounds(fun_control, "tol", bounds=[1e-3, 1e-2])
+```
+
+### Modify hyperparameter of type factor
+
+ `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-14.
+
+Factors can be modified with the `modify_hyper_parameter_levels` function.  For example, to exclude the `sigmoid` kernel from the tuning, the `kernel` hyperparameter of the `SVC` model can be modified as follows:
+
+`modify_hyper_parameter_levels(fun_control, "kernel", ["linear", "rbf"])`
+
+The new setting can be controlled via:
+
+`fun_control["core_model_hyper_dict"]["kernel"]`
+
+```{python}
+from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+# XGBoost:
+# modify_hyper_parameter_levels(fun_control, "loss", ["log_loss"])
+```
+
+
+::: {.callout-note}
+### Note: RandomForestClassifier and Out-of-bag Estimation
+
+Since `oob_score` requires the `bootstrap` hyperparameter to `True`, we set the `oob_score` parameter to `False`. The `oob_score` is later discussed in @sec-oob-score-16.
+
+:::
+
+```{python}
+modify_hyper_parameter_bounds(fun_control, "bootstrap", bounds=[0, 1])
+modify_hyper_parameter_bounds(fun_control, "oob_score", bounds=[0, 0])
+```
+
+### Optimizers {#sec-optimizers-16}
+
+Optimizers are described in @sec-optimizers-14.
+
+### Selection of the Objective: Metric and Loss Functions
+
+* Machine learning models are optimized with respect to a metric, for example, the `accuracy` function.
+* Deep learning, e.g., neural networks are optimized with respect to a loss function, for example, the `cross_entropy` function and evaluated with respect to a metric, for example, the `accuracy` function.
+
+## Step 7: Selection of the Objective (Loss) Function
+
+The loss function, that is usually used in deep learning for optimizing the weights of the net, is stored in the `fun_control` dictionary as `"loss_function"`.
+
+### Metric Function
+
+There are two different types of metrics in `spotPython`:
+
+1. `"metric_river"` is used for the river based evaluation via `eval_oml_iter_progressive`.
+2. `"metric_sklearn"` is used for the sklearn based evaluation.
+
+We will consider multi-class classification metrics, e.g., `mapk_score` and `top_k_accuracy_score`.
+
+::: {.callout-note}
+#### Predict Probabilities
+In this multi-class classification example the machine learning algorithm should return the probabilities of the specific classes (`"predict_proba"`) instead  of the  predicted values.
+:::
+
+We set `"predict_proba"` to `True` in the `fun_control` dictionary.
+
+#### The MAPK Metric
+
+To select the MAPK metric, the following two entries can be added to the `fun_control` dictionary:
+
+`"metric_sklearn": mapk_score"`
+
+`"metric_params": {"k": 3}`.
+
+#### Other Metrics
+
+Alternatively, other metrics for multi-class classification can be used, e.g.,:
+* top_k_accuracy_score or
+* roc_auc_score
+
+The metric `roc_auc_score` requires the parameter `"multi_class"`, e.g., 
+
+`"multi_class": "ovr"`.
+
+This is set in the `fun_control` dictionary.
+
+::: {.callout-note}
+#### Weights
+
+`spotPython` performs a minimization, therefore, metrics that should be maximized have to be multiplied by -1.  This is done by setting `"weights"` to `-1`.
+
+:::
+
+* The complete setup for the metric in our example is:
+
+```{python}
+from spotPython.utils.metrics import mapk_score
+fun_control.update({
+               "weights": -1,
+               "metric_sklearn": mapk_score,
+               "predict_proba": True,
+               "metric_params": {"k": 3},
+               })
+```
+
+### Evaluation on Hold-out Data
+
+* The default method for computing the performance is `"eval_holdout"`.
+* Alternatively, cross-validation can be used for every machine learning model.
+* Specifically for RandomForests, the OOB-score can be used.
+
+```{python}
+fun_control.update({
+    "eval": "train_hold_out",
+})
+```
+
+### OOB Score {#sec-oob-score-16}
+
+Using the OOB-Score is a very efficient way to estimate the performance of a random forest classifier.  The OOB-Score is calculated on the training data and does not require a hold-out test set.  If the OOB-Score is used, the key "eval" in the `fun_control` dictionary should be set to `"oob_score"` as shown below.
+
+:::{.callout-note}
+#### OOB-Score
+In addition to setting the key `"eval"` in the `fun_control` dictionary to `"oob_score"`, the keys `"oob_score"` and `"bootstrap"` have to be set to `True`, because the OOB-Score requires the bootstrap method.
+:::
+
+* Uncomment the following lines to use the OOB-Score:
+
+```{python}
+fun_control.update({
+    "eval": "eval_oob_score",
+})
+modify_hyper_parameter_bounds(fun_control, "bootstrap", bounds=[1, 1])
+modify_hyper_parameter_bounds(fun_control, "oob_score", bounds=[1, 1])
+```
+
+#### Cross Validation
+
+Instead of using the OOB-score, the classical cross validation can be used.  The number of folds is set by the key `"k_folds"`.  For example, to use 5-fold cross validation, the key `"k_folds"` is set to `5`.
+Uncomment the following line to use cross validation:
+
+```{python}
+# fun_control.update({
+#      "eval": "train_cv",
+#      "k_folds": 10,
+# })
+```
+
+## Step 8: Calling the SPOT Function
+
+### Preparing the SPOT Call {#sec-prepare-spot-call-16}
+
+* Get types and variable names as well as lower and upper bounds for the hyperparameters.
+
+
+```{python}
+# extract the variable types, names, and bounds
+from spotPython.hyperparameters.values import (get_bound_values,
+    get_var_name,
+    get_var_type,)
+var_type = get_var_type(fun_control)
+var_name = get_var_name(fun_control)
+lower = get_bound_values(fun_control, "lower")
+upper = get_bound_values(fun_control, "upper")
+```
+
+```{python}
+#| fig-label: tbl-design
+#| fig-cap: "Experimental design for the hyperparameter tuning."
+from spotPython.utils.eda import gen_design_table
+print(gen_design_table(fun_control))
+```
+
+### The Objective Function {#sec-the-objective-function-16}
+
+The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotPython`.
+
+```{python}
+from spotPython.fun.hypersklearn import HyperSklearn
+fun = HyperSklearn().fun_sklearn
+```
+
+### Run the `Spot` Optimizer
+
+* Run SPOT for approx. x mins (`max_time`).
+* Note: the run takes longer, because the evaluation time of initial design (here: `initi_size`, 20 points) is not considered.
+
+```{python}
+from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+X_start = get_default_hyperparameters_as_array(fun_control)
+X_start
+```
+
+```{python}
+import numpy as np
+from spotPython.spot import spot
+from math import inf
+spot_tuner = spot.Spot(fun=fun,
+                   lower = lower,
+                   upper = upper,
+                   fun_evals = inf,
+                   fun_repeats = 1,
+                   max_time = MAX_TIME,
+                   noise = False,
+                   tolerance_x = np.sqrt(np.spacing(1)),
+                   var_type = var_type,
+                   var_name = var_name,
+                   infill_criterion = "y",
+                   n_points = 1,
+                   seed=123,
+                   log_level = 50,
+                   show_models= False,
+                   show_progress= True,
+                   fun_control = fun_control,
+                   design_control={"init_size": INIT_SIZE,
+                                   "repeats": 1},
+                   surrogate_control={"noise": True,
+                                      "cod_type": "norm",
+                                      "min_theta": -4,
+                                      "max_theta": 3,
+                                      "n_theta": len(var_name),
+                                      "model_fun_evals": 10_000,
+                                      "log_level": 50
+                                      })
+spot_tuner.run(X_start=X_start)
+```
+
+## Step 9: Tensorboard {#sec-tensorboard-16}
+
+The textual output shown in the console (or code cell) can be visualized with Tensorboard as described in @sec-tensorboard-14, see also the description in the documentation: [Tensorboard.](https://sequential-parameter-optimization.github.io/spotPython/14_spot_ray_hpt_torch_cifar10.html#sec-tensorboard-14)
+
+## Step 10: Results {#sec-results-tuning-16}
+
+After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The following code generates the progress plot from @fig-progress.
+
+```{python}
+#| fig-label: fig-progress
+#| fig-cap: "Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization."
+spot_tuner.plot_progress(log_y=False,
+    filename="./figures/" + experiment_name+"_progress.png")
+```
+
+* Print the results
+```{python}
+#| fig-label: tbl-results
+#| fig-cap: "Results of the hyperparameter tuning."
+print(gen_design_table(fun_control=fun_control,
+    spot=spot_tuner))
+```
+
+### Show variable importance
+
+```{python}
+#| fig-label: fig-importance
+#| fig-cap: "Variable importance plot, threshold 0.025."
+spot_tuner.plot_importance(threshold=0.025, filename="./figures/" + experiment_name+"_importance.png")
+```
+
+### Get Default Hyperparameters
+
+```{python}
+from spotPython.hyperparameters.values import get_default_values, transform_hyper_parameter_values
+values_default = get_default_values(fun_control)
+values_default = transform_hyper_parameter_values(fun_control=fun_control, hyper_parameter_values=values_default)
+values_default
+```
+
+```{python}
+from sklearn.pipeline import make_pipeline
+model_default = make_pipeline(fun_control["prep_model"], fun_control["core_model"](**values_default))
+model_default
+```
+
+### Get SPOT Results
+
+```{python}
+X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
+print(X)
+```
+
+```{python}
+from spotPython.hyperparameters.values import assign_values, return_conf_list_from_var_dict
+v_dict = assign_values(X, fun_control["var_name"])
+return_conf_list_from_var_dict(var_dict=v_dict, fun_control=fun_control)
+```
+
+```{python}
+from spotPython.hyperparameters.values import get_one_sklearn_model_from_X
+model_spot = get_one_sklearn_model_from_X(X, fun_control)
+model_spot
+```
+
+
+### Evaluate SPOT Results
+
+* Fetch the data.
+
+```{python}
+from spotPython.utils.convert import get_Xy_from_df
+X_train, y_train = get_Xy_from_df(fun_control["train"], fun_control["target_column"])
+X_test, y_test = get_Xy_from_df(fun_control["test"], fun_control["target_column"])
+X_test.shape, y_test.shape
+```
+
+* Fit the model with the tuned hyperparameters. This gives one result:
+
+```{python}
+model_spot.fit(X_train, y_train)
+y_pred = model_spot.predict_proba(X_test)
+res = mapk_score(y_true=y_test, y_pred=y_pred, k=3)
+res
+```
+
+```{python}
+def repeated_eval(n, model):
+    res_values = []
+    for i in range(n):
+        model.fit(X_train, y_train)
+        y_pred = model.predict_proba(X_test)
+        res = mapk_score(y_true=y_test, y_pred=y_pred, k=3)
+        res_values.append(res)
+    mean_res = np.mean(res_values)
+    print(f"mean_res: {mean_res}")
+    std_res = np.std(res_values)
+    print(f"std_res: {std_res}")
+    min_res = np.min(res_values)
+    print(f"min_res: {min_res}")
+    max_res = np.max(res_values)
+    print(f"max_res: {max_res}")
+    median_res = np.median(res_values)
+    print(f"median_res: {median_res}")
+    return mean_res, std_res, min_res, max_res, median_res
+```
+
+### Handling Non-deterministic Results
+
+* Because the model is non-determinstic, we perform $n=30$ runs and calculate the mean and standard deviation of the performance metric.
+
+```{python}
+_ = repeated_eval(30, model_spot)
+```
+
+### Evalution of the Default Hyperparameters
+
+```{python}
+model_default.fit(X_train, y_train)["randomforestclassifier"]
+```
+
+* One evaluation of the default hyperparameters is performed on the hold-out test set.
+
+```{python}
+y_pred = model_default.predict_proba(X_test)
+mapk_score(y_true=y_test, y_pred=y_pred, k=3)
+```
+
+Since one single evaluation is not meaningful, we perform, similar to the evaluation of the SPOT results,  $n=30$ runs of the default setting and and calculate the mean and standard deviation of the performance metric.
+
+```{python}
+_ = repeated_eval(30, model_default)
+```
+
+### Plot: Compare Predictions
+
+```{python}
+from spotPython.plot.validation import plot_confusion_matrix
+plot_confusion_matrix(model_default, fun_control, title = "Default")
+```
+
+```{python}
+plot_confusion_matrix(model_spot, fun_control, title="SPOT")
+```
+
+```{python}
+min(spot_tuner.y), max(spot_tuner.y)
+```
+
+### Cross-validated Evaluations
+
+```{python}
+from spotPython.sklearn.traintest import evaluate_cv
+fun_control.update({
+     "eval": "train_cv",
+     "k_folds": 10,
+})
+evaluate_cv(model=model_spot, fun_control=fun_control, verbose=0)
+```
+
+```{python}
+fun_control.update({
+     "eval": "test_cv",
+     "k_folds": 10,
+})
+evaluate_cv(model=model_spot, fun_control=fun_control, verbose=0)
+```
+
+* This is the evaluation that will be used in the comparison:
+
+```{python}
+fun_control.update({
+     "eval": "data_cv",
+     "k_folds": 10,
+})
+evaluate_cv(model=model_spot, fun_control=fun_control, verbose=0)
+```
+
+### Detailed Hyperparameter Plots
+
+
+```{python}
+filename = "./figures/" + experiment_name
+spot_tuner.plot_important_hyperparameter_contour(filename=filename)
+```
+
+### Parallel Coordinates Plot
+
+```{python}
+spot_tuner.parallel_plot()
+```
+
+### Plot all Combinations of Hyperparameters
+
+* Warning: this may take a while.
+
+```{python}
+PLOT_ALL = False
+if PLOT_ALL:
+    n = spot_tuner.k
+    for i in range(n-1):
+        for j in range(i+1, n):
+            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)
+```
+
+

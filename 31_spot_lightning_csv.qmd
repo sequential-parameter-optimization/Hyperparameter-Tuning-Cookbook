@@ -1,0 +1,527 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# HPT PyTorch Lightning: VBDP {#sec-hyperparameter-tuning-lightning-31}
+
+In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
+training workflow for a classification task.
+
+::: {.callout-caution}
+### Caution: Data must be downloaded manually
+
+* Ensure that the corresponding data is available as `./data/VBDP/train.csv`.
+
+:::
+
+This document refers to the latest `spotPython` version, which can be installed via pip. Alternatively, the source code can be downloaded from gitHub: [https://github.com/sequential-parameter-optimization/spotPython](https://github.com/sequential-parameter-optimization/spotPython).
+
+* Uncomment the following lines if you want to for (re-)installation the latest version of `spotPython` from GitHub.
+
+```{python}
+# import sys
+# !{sys.executable} -m pip install --upgrade build
+# !{sys.executable} -m pip install --upgrade --force-reinstall spotPython
+```
+
+## Step 1: Setup {#sec-setup-31}
+
+* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. 
+* The parameter `MAX_TIME` specifies the maximum run time in seconds.
+* The parameter `INIT_SIZE` specifies the initial design size.
+* The parameter `WORKERS` specifies the number of workers. 
+* The prefix `PREFIX` is used for the experiment name and the name of the log file.
+
+
+```{python}
+MAX_TIME = 1
+INIT_SIZE = 5
+WORKERS = 0
+PREFIX="31"
+```
+
+```{python}
+
+```
+
+::: {.callout-caution}
+### Caution: Run time and initial design size should be increased for real experiments
+
+* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.
+* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.
+* `WORKERS` is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.
+
+:::
+
+::: {.callout-note}
+### Note: Device selection
+
+* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see 
+[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. 
+* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.
+:::
+
+
+## Step 2: Initialization of the `fun_control` Dictionary
+
+`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process, which was described in @sec-initialization-fun-control-14, see [Initialization of the fun_control Dictionary](https://sequential-parameter-optimization.github.io/spotPython/14_spot_ray_hpt_torch_cifar10.html#sec-initialization-fun-control-14) in the documentation.
+
+```{python}
+from spotPython.utils.init import fun_control_init
+from spotPython.utils.file import get_experiment_name, get_spot_tensorboard_path
+from spotPython.utils.device import getDevice
+
+experiment_name = get_experiment_name(prefix=PREFIX)
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+    num_workers=WORKERS,
+    device=getDevice(),
+    _L_in=64,
+    _L_out=11)
+```
+
+```{python}
+fun_control["device"]
+```
+
+## Step 3: PyTorch Data Loading {#sec-data-loading-31}
+
+### Lightning Dataset and DataModule
+
+The data loading and preprocessing is handled by `Lightning` and `PyTorch`.
+It comprehends the following classes:
+
+*   `CSVDataset`: A class that loads the data from a CSV file. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/csvdataset.py)
+*   `CSVDataModule`: A class that prepares the data for training and testing. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/csvdatamodule.py)
+
+
+Section @sec-taking-a-look-at-the-data-31 illustrates how to access the data.
+
+## Step 4: Preprocessing {#sec-preprocessing-31}
+
+Preprocessing is handled by `Lightning` and `PyTorch`. It can be implemented in the `CSVDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/csvdatamodule.py) and is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.
+
+
+
+## Step 5: Select the NN Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-31}
+
+`spotPython` includes the `NetLightBase` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightbase.py) for configurable neural networks. 
+The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
+
+* Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:
+
+```{python}
+from spotPython.light.netlightbase import NetLightBase 
+from spotPython.data.light_hyper_dict import LightHyperDict
+from spotPython.hyperparameters.values import add_core_model_to_fun_control
+add_core_model_to_fun_control(core_model=NetLightBase,
+                              fun_control=fun_control,
+                              hyper_dict= LightHyperDict)
+```
+
+The `NetLightBase` is a configurable neural network. The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/light_hyper_dict.json).
+
+## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-31}
+
+ `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-14.
+
+::: {.callout-caution}
+### Caution: Small number of epochs for demonstration purposes
+
+* `epochs` and `patience` are set to small values for demonstration purposes. These values are too small for a real application.
+* More resonable values are, e.g.:
+  * `modify_hyper_parameter_bounds(fun_control, "epochs", bounds=[7, 9])` and
+  * `modify_hyper_parameter_bounds(fun_control, "patience", bounds=[2, 7])`
+:::
+
+```{python}
+from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+
+modify_hyper_parameter_bounds(fun_control, "l1", bounds=[5,8])
+modify_hyper_parameter_bounds(fun_control, "epochs", bounds=[6,13])
+modify_hyper_parameter_bounds(fun_control, "batch_size", bounds=[2, 8])
+```
+
+```{python}
+from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+modify_hyper_parameter_levels(fun_control, "optimizer",["Adam", "AdamW", "Adamax", "NAdam"])
+# modify_hyper_parameter_levels(fun_control, "optimizer", ["Adam"])
+```
+
+
+Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:
+
+```{python}
+#| fig-cap: Experimental design for the hyperparameter tuning.
+#| fig-label: tbl-design-31
+from spotPython.utils.eda import gen_design_table
+print(gen_design_table(fun_control))
+```
+
+This allows to check if all information is available and if the information is correct.
+
+::: {.callout-note}
+### Note: Hyperparameters of the Tuned Model and the `fun_control` Dictionary
+The updated `fun_control` dictionary can be shown with the command `fun_control["core_model_hyper_dict"]`.
+:::
+
+
+## Step 7: Data Splitting, the Objective (Loss) Function and the Metric
+
+### Evaluation  {#sec-selection-of-target-function-31}
+
+The evaluation procedure requires the specification of two elements:
+
+1. the way how the data is split into a train and a test set (see @sec-data-splitting-14)
+2. the loss function (and a metric).
+
+::: {.callout-caution}
+### Caution: Data Splitting in Lightning
+
+* The data splitting is handled by `Lightning`.
+
+:::
+
+### Loss Functions and Metrics {#sec-loss-functions-and-metrics-31}
+
+The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightbase.py)
+We will use CrossEntropy loss for the multiclass-classification task.
+
+### Metric {#sec-metric-31}
+
+* We will use the MAP@k metric [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/torch/mapk.py) for the evaluation of the model. 
+* An example, how this metric works, is shown in the Appendix, see Section {@sec-the-mapk-metric-31}.
+
+Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightbase.py).
+
+::: {.callout-caution}
+### Caution: Loss Function and Metric in Lightning
+
+* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.
+* They are handled by `Lightning`.
+
+:::
+
+## Step 8: Calling the SPOT Function
+
+### Preparing the SPOT Call {#sec-prepare-spot-call-31}
+
+The following code passes the information about the parameter ranges and bounds to `spot`.
+It extracts the variable types, names, and bounds
+
+```{python}
+from spotPython.hyperparameters.values import (get_bound_values,
+    get_var_name,
+    get_var_type,)
+var_type = get_var_type(fun_control)
+var_name = get_var_name(fun_control)
+lower = get_bound_values(fun_control, "lower")
+upper = get_bound_values(fun_control, "upper")
+```
+
+
+
+### The Objective Function `fun` {#sec-the-objective-function-31}
+
+The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
+
+```{python}
+from spotPython.fun.hyperlight import HyperLight
+fun = HyperLight().fun
+```
+
+### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}
+
+The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) as described in @sec-call-the-hyperparameter-tuner-14.
+
+```{python}
+import numpy as np
+from spotPython.spot import spot
+from math import inf
+spot_tuner = spot.Spot(fun=fun,
+                   lower = lower,
+                   upper = upper,
+                   fun_evals = inf,
+                   max_time = MAX_TIME,
+                   tolerance_x = np.sqrt(np.spacing(1)),
+                   var_type = var_type,
+                   var_name = var_name,
+                   show_progress= True,
+                   fun_control = fun_control,
+                   design_control={"init_size": INIT_SIZE},
+                   surrogate_control={"noise": True,
+                                      "min_theta": -4,
+                                      "max_theta": 3,
+                                      "n_theta": len(var_name),
+                                      "model_fun_evals": 10_000,
+                                      })
+spot_tuner.run()
+```
+
+## Step 9: Tensorboard {#sec-tensorboard-31}
+
+The textual output shown in the console (or code cell) can be visualized with Tensorboard.
+
+```{raw}
+tensorboard --logdir="runs/"
+```
+
+Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.
+
+## Step 10: Results {#sec-results-31}
+
+After the hyperparameter tuning run is finished, the results can be analyzed as described in @sec-results-14.
+
+```{python}
+#| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.
+#| fig-label: fig-progress-31
+spot_tuner.plot_progress(log_y=False,
+    filename="./figures/" + experiment_name+"_progress.png")
+```
+
+```{python}
+#| fig-cap: Results of the hyperparameter tuning.
+#| fig-label: tbl-results-31
+from spotPython.utils.eda import gen_design_table
+print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
+```
+
+```{python}
+#| fig-cap: 'Variable importance plot, threshold 0.025.'
+#| fig-label: fig-importance-31
+spot_tuner.plot_importance(threshold=0.025,
+    filename="./figures/" + experiment_name+"_importance.png")
+```
+
+### Get the Tuned Architecture {#sec-get-spot-results-31}
+
+```{python}
+from spotPython.light.utils import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner, fun_control)
+```
+
+* Test on the full data set
+
+```{python}
+from spotPython.light.traintest import test_model
+test_model(config, fun_control)
+```
+
+```{python}
+from spotPython.light.traintest import load_light_from_checkpoint
+
+model_loaded = load_light_from_checkpoint(config, fun_control)
+```
+
+### Cross Validation With Lightning
+
+* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
+* These mechanism is used to generate the folds for the final evaluation of the model.
+* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/crossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
+* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/traintest.py).
+
+```{python}
+from spotPython.light.traintest import cv_model
+# set the number of folds to 10
+fun_control["k_folds"] = 10
+cv_model(config, fun_control)
+```
+
+::: {.callout-note}
+### Note: Evaluation for the Final Comaprison
+
+* This is the evaluation that will be used in the comparison.
+
+:::
+
+
+### Detailed Hyperparameter Plots
+
+```{python}
+#| fig-cap: Contour plots.
+#| fig-label: fig-contour-31
+filename = "./figures/" + experiment_name
+spot_tuner.plot_important_hyperparameter_contour(filename=filename)
+```
+
+### Parallel Coordinates Plot
+
+```{python}
+#| fig-cap: Parallel coordinates plots
+#| fig-label: fig-parallel-31
+spot_tuner.parallel_plot()
+```
+
+### Plot all Combinations of Hyperparameters
+
+* Warning: this may take a while.
+
+```{python}
+PLOT_ALL = False
+if PLOT_ALL:
+    n = spot_tuner.k
+    for i in range(n-1):
+        for j in range(i+1, n):
+            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)
+```
+
+### Visualizing the Activation Distribution
+
+::: {.callout-note}
+### Reference:
+
+* The following code is based on [[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]](https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html), Author: Phillip Lippe, License: [[CC BY-SA]](https://creativecommons.org/licenses/by-sa/3.0/), Generated: 2023-03-15T09:52:39.179933.
+
+:::
+
+After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:
+
+```{python}
+from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
+act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
+```
+
+```{python}
+from spotPython.hyperparameters.values import get_one_config_from_X
+X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
+config = get_one_config_from_X(X, fun_control)
+model = fun_control["core_model"](**config, _L_in=64, _L_out=11)
+model
+```
+
+```{python}
+from spotPython.utils.eda import visualize_activations
+visualize_activations(model, color=f"C{0}")
+```
+
+## Submission
+
+```{python}
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
+```
+
+```{python}
+import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
+train_df = pd.read_csv('./data/VBDP/train.csv', index_col=0)
+# remove the id column
+# train_df = train_df.drop(columns=['id'])
+n_samples = train_df.shape[0]
+n_features = train_df.shape[1] - 1
+target_column = "prognosis"
+# Encode our prognosis labels as integers for easier decoding later
+enc = OrdinalEncoder()
+y = enc.fit_transform(train_df[[target_column]])
+test_df = pd.read_csv('./data/VBDP/test.csv', index_col=0)
+test_df
+```
+
+```{python}
+import torch
+X_tensor = torch.Tensor(test_df.values)
+X_tensor = X_tensor.to(fun_control["device"])
+```
+
+```{python}
+y = model_loaded(X_tensor)
+y.shape
+```
+
+```{python}
+# convert the predictions to a numpy array
+y = y.cpu().detach().numpy()
+y
+```
+
+```{python}
+test_sorted_prediction_ids = np.argsort(-y, axis=1)
+test_top_3_prediction_ids = test_sorted_prediction_ids[:,:3]
+original_shape = test_top_3_prediction_ids.shape
+test_top_3_prediction = enc.inverse_transform(test_top_3_prediction_ids.reshape(-1, 1))
+test_top_3_prediction = test_top_3_prediction.reshape(original_shape)
+test_df['prognosis'] = np.apply_along_axis(lambda x: np.array(' '.join(x), dtype="object"), 1, test_top_3_prediction)
+test_df['prognosis'].reset_index().to_csv('./data/VBDP/submission.csv', index=False)
+```
+
+## Appendix
+
+### Differences to the spotPython Approaches for `torch`, `sklearn` and `river`
+
+::: {.callout-caution}
+#### Caution: Data Loading in Lightning
+
+* Data loading is handled independently from the `fun_control` dictionary by `Lightning` and `PyTorch`.
+* In contrast to `spotPython` with `torch`, `river` and `sklearn`, the data sets are not added to the `fun_control` dictionary.
+:::
+
+#### Specification of the Preprocessing Model {#sec-specification-of-preprocessing-model-31}
+
+The `fun_control` dictionary, the `torch`, `sklearn`and `river` versions of `spotPython` allow the specification of a data preprocessing pipeline, e.g., for the scaling of the data or for the one-hot encoding of categorical variables, see @sec-specification-of-preprocessing-model-14. This feature is not used in the `Lightning` version.
+
+:::{.callout-caution}
+#### Caution: Data preprocessing in Lightning
+
+Lightning allows the data preprocessing to be specified in the `LightningDataModule` class. It is not considered here, because it should be computed at one location only.
+:::
+
+### Taking a Look at the Data {#sec-taking-a-look-at-the-data-31}
+
+```{python}
+import torch
+from spotPython.light.csvdataset import CSVDataset
+from torch.utils.data import DataLoader
+from torchvision.transforms import ToTensor
+
+# Create an instance of CSVDataset
+dataset = CSVDataset(csv_file="./data/VBDP/train.csv", train=True)
+# show the dimensions of the input data
+print(dataset[0][0].shape)
+# show the first element of the input data
+print(dataset[0][0])
+# show the size of the dataset
+print(f"Dataset Size: {len(dataset)}")
+```
+
+```{python}
+# Set batch size for DataLoader
+batch_size = 3
+# Create DataLoader
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+### The MAPK Metric {#sec-the-mapk-metric-31}
+
+Here is an example how the MAPK metric is calculated.
+
+```{python}
+from spotPython.torch.mapk import MAPK
+import torch
+mapk = MAPK(k=2)
+target = torch.tensor([0, 1, 2, 2])
+preds = torch.tensor(
+    [
+        [0.5, 0.2, 0.2],  # 0 is in top 2
+        [0.3, 0.4, 0.2],  # 1 is in top 2
+        [0.2, 0.4, 0.3],  # 2 is in top 2
+        [0.7, 0.2, 0.1],  # 2 isn't in top 2
+    ]
+)
+mapk.update(preds, target)
+print(mapk.compute()) # tensor(0.6250)
+```

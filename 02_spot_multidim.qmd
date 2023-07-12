@@ -1,0 +1,193 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Multi-dimensional Functions
+
+This notebook illustrates how high-dimensional functions can be analyzed.
+
+## Example: `Spot` and the 3-dim Sphere Function
+
+```{python}
+import numpy as np
+from spotPython.fun.objectivefunctions import analytical
+from spotPython.spot import spot
+```
+
+### The Objective Function: 3-dim Sphere
+
+* The `spotPython` package provides several classes of objective functions.
+* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+   $$f(x) = \sum_i^n x_i^2 $$
+
+* Here we will use $n=3$.
+
+```{python}
+fun = analytical().fun_sphere
+```
+
+* The size of the `lower` bound vector determines the problem dimension.
+* Here we will use `-1.0 * np.ones(3)`, i.e., a three-dim function.
+* We will use three different `theta` values (one for each dimension), i.e., we set
+  
+  `surrogate_control={"n_theta": 3}`.
+
+:::{.callout-note}
+#### TensorBoard
+
+Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:
+
+```{python}
+from spotPython.utils.file import get_experiment_name
+from spotPython.utils.init import fun_control_init
+from spotPython.utils.file import get_spot_tensorboard_path
+
+PREFIX = "02"
+experiment_name = get_experiment_name(prefix=PREFIX)
+print(experiment_name)
+
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name))
+```
+
+:::
+
+
+```{python}
+spot_3 = spot.Spot(fun=fun,
+                   lower = -1.0*np.ones(3),
+                   upper = np.ones(3),
+                   var_name=["Pressure", "Temp", "Lambda"],
+                   show_progress=True,
+                   surrogate_control={"n_theta": 3},
+                   fun_control=fun_control,)
+
+spot_3.run()
+```
+
+Now we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+
+We can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+
+
+### Results
+
+```{python}
+spot_3.print_results()
+```
+
+```{python}
+spot_3.plot_progress()
+```
+
+### A Contour Plot
+
+* We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.
+  * Note: We have specified identical `min_z` and `max_z` values to generate comparable plots!
+
+```{python}
+spot_3.plot_contour(i=0, j=1, min_z=0, max_z=2.25)
+```
+
+* In a similar manner, we can plot dimension $i=0$ and $j=2$:
+
+```{python}
+spot_3.plot_contour(i=0, j=2, min_z=0, max_z=2.25)
+```
+
+* The final combination is $i=1$ and $j=2$:
+
+```{python}
+spot_3.plot_contour(i=1, j=2, min_z=0, max_z=2.25)
+```
+
+* The three plots look very similar, because the `fun_sphere` is symmetric.
+* This can also be seen from the variable importance:
+
+```{python}
+spot_3.print_importance()
+```
+
+
+### TensorBoard
+
+![TensorBoard visualization of the spotPython process. Objective function values plotted against wall time.](figures_static/02_tensorboard_01.png)
+
+The second TensorBoard visualization shows the input values, i.e., $x_0, \ldots, x_2$, plotted against the wall time.
+![TensorBoard visualization of the spotPython process.](figures_static/02_tensorboard_02.png)
+
+The third TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
+
+![TensorBoard visualization of the spotPython surrogate model.](figures_static/02_tensorboard_03.png){width="100%"}
+
+
+## Conclusion
+
+Based on this quick analysis, we can conclude that all three dimensions are equally important (as expected, because the analytical function is known).
+
+## Exercises
+
+* Important:
+    * Results from these exercises should be added to this document, i.e., you should submit an updated version of this notebook.
+    * Please combine your results using this notebook.
+    * Only one notebook from each group!
+    * Presentation is based on this notebook. No addtional slides are required!
+    * spotPython version `0.16.11` (or greater) is required 
+
+### The Three Dimensional `fun_cubed`
+
+* The input dimension is `3`. The search range is  $-1 \leq x \leq 1$ for all dimensions.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+
+### The Ten Dimensional `fun_wing_wt`
+
+* The input dimension is `10`. The search range is  $0 \leq x \leq 1$ for all dimensions.
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+  * Generate contour plots for the three most important variables. Do they confirm your selection?
+
+### The Three Dimensional `fun_runge`
+
+* The input dimension is `3`. The search range is  $-5 \leq x \leq 5$ for all dimensions.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+
+### The Three Dimensional `fun_linear`
+
+* The input dimension is `3`. The search range is  $-5 \leq x \leq 5$ for all dimensions.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+
+

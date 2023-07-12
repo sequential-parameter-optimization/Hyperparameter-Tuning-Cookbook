@@ -1,0 +1,180 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Isotropic and Anisotropic Kriging
+
+## Example: Isotropic `Spot` Surrogate and the 2-dim Sphere Function
+
+```{python}
+import numpy as np
+from math import inf
+from spotPython.fun.objectivefunctions import analytical
+from spotPython.spot import spot
+```
+
+### The Objective Function: 2-dim Sphere
+
+* The `spotPython` package provides several classes of objective functions.
+* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+   $$f(x, y) = x^2 + y^2$$
+
+```{python}
+fun = analytical().fun_sphere
+fun_control = {"sigma": 0,
+               "seed": 123}
+```
+
+* The size of the `lower` bound vector determines the problem dimension.
+* Here we will use `np.array([-1, -1])`, i.e., a two-dim function.
+
+```{python}
+spot_2 = spot.Spot(fun=fun,
+                   lower = np.array([-1, -1]),
+                   upper = np.array([1, 1]))
+
+spot_2.run()
+```
+
+### Results
+
+```{python}
+spot_2.print_results()
+```
+
+```{python}
+spot_2.plot_progress(log_y=True)
+```
+
+## Example With Anisotropic Kriging
+
+* The default parameter setting of `spotPython`'s Kriging surrogate uses the same `theta` value for every dimension.
+* This is referred to as "using an isotropic kernel". 
+* If different `theta` values are used for each dimension, then an anisotropic kernel is used
+* To enable anisotropic models in `spotPython`, the number of `theta` values should be larger than one.
+* We can use `surrogate_control={"n_theta": 2}` to enable this behavior (`2` is the problem dimension).
+
+:::{.callout-note}
+#### TensorBoard
+
+Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:
+
+```{python}
+from spotPython.utils.file import get_experiment_name
+from spotPython.utils.init import fun_control_init
+from spotPython.utils.file import get_spot_tensorboard_path
+
+PREFIX = "03"
+experiment_name = get_experiment_name(prefix=PREFIX)
+print(experiment_name)
+
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name))
+```
+
+:::
+
+
+```{python}
+spot_2_anisotropic = spot.Spot(fun=fun,
+                   lower = np.array([-1, -1]),
+                   upper = np.array([1, 1]),
+                   surrogate_control={"n_theta": 2},
+                   fun_control=fun_control)
+spot_2_anisotropic.run()
+```
+
+
+* The search progress of the optimization with the anisotropic model can be visualized:
+
+```{python}
+spot_2_anisotropic.plot_progress(log_y=True)
+```
+
+```{python}
+spot_2_anisotropic.print_results()
+```
+
+```{python}
+spot_2_anisotropic.surrogate.plot()
+```
+
+### Taking a Look at the `theta` Values
+
+#### `theta` Values from the `spot` Model
+
+* We can check, whether one or several `theta` values were used.
+* The `theta` values from the surrogate can be printed as follows:
+
+```{python}
+spot_2_anisotropic.surrogate.theta
+```
+
+* Since the surrogate from the isotropic setting was stored as `spot_2`, we can also take a look at the `theta` value from this model:
+
+```{python}
+spot_2.surrogate.theta
+```
+
+#### TensorBoard
+
+Now we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+
+We can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+
+The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
+
+![TensorBoard visualization of the spotPython surrogate model.](figures_static/03_tensorboard_03.png){width="100%"}
+
+
+
+## Exercises
+
+
+###  `fun_branin`
+
+* Describe the function.
+  * The input dimension is `2`. The search range is  $-5 \leq x_1 \leq 10$ and $0 \leq x_2 \leq 15$.
+* Compare the results from `spotPython` run a) with isotropic and b) anisotropic surrogate models.
+* Modify the termination criterion: instead of the number of evaluations (which is specified via `fun_evals`), the time should be used as the termination criterion. This can be done as follows (`max_time=1` specifies a run time of one minute):
+
+```{python}
+fun_evals=inf,
+max_time=1,
+```
+
+### `fun_sin_cos`
+
+* Describe the function.
+  *  The input dimension is `2`. The search range is  $-2\pi \leq x_1 \leq 2\pi$ and $-2\pi \leq x_2 \leq 2\pi$.
+* Compare the results from `spotPython` run a) with isotropic and b) anisotropic surrogate models.
+* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.
+
+###  `fun_runge`
+
+* Describe the function.
+  *  The input dimension is `2`. The search range is  $-5 \leq x_1 \leq 5$ and $-5 \leq x_2 \leq 5$.
+* Compare the results from `spotPython` run a) with isotropic and b) anisotropic surrogate models.
+* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.
+
+###  `fun_wingwt`
+
+* Describe the function.
+  *  The input dimension is `10`. The search ranges are between 0 and 1 (values are mapped internally to their natural bounds).
+* Compare the results from `spotPython` run a) with isotropic and b) anisotropic surrogate models.
+* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.
+
+
+
