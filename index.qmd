@@ -1,12 +1,82 @@
-# Preface {.unnumbered}
+# Preface: Optimization and Hyperparameter Tuning  {.unnumbered}
 
-The goal of hyperparameter tuning (or hyperparameter optimization) is to optimize the hyperparameters to improve the performance of the machine or deep learning model. 
- 
+The goal of hyperparameter tuning is to optimize the hyperparameters in a way that improves the performance of the machine learning or deep learning model.
+Hyperparameters are parameters that are not learned during the training process, but are set before the training process begins.
+Hyperparameter tuning is an important, but often difficult and computationally intensive task.
+Changing the architecture of a neural network or the learning rate of an optimizer can have a significant impact on the performance.
+
+Hyperparameter tuning is referred to as "hyperparameter optimization" (HPO) in the literature.
+However, since we do not consider the optimization, but also the understanding of the hyperparameters, we use the term "hyperparameter tuning" in this book. See also the discussion in Chapter 2 of [@bart21i], which lays the groundwork and presents an introduction to the process of tuning Machine Learning and Deep Learning hyperparameters and the respective methodology. Since the key elements such as the hyperparameter tuning process and measures of tunability and performance are presented in [@bart21i], we refer to this chapter for details.
+
+The simplest, but also most computationally expensive, hyperparameter tuning approach uses manual search (or trial-and-error [@Meignan:2015vp]).
+Commonly encountered is simple random search, i.e., random and repeated selection of hyperparameters for evaluation, and lattice search ("grid search").
+In addition, methods that perform directed search  and other model-free algorithms, i.e., algorithms that do not explicitly rely on a model, e.g., evolution strategies [@Bart13j] or pattern search [@Torczon00] play an important role.
+Also, "hyperband", i.e., a multi-armed bandit strategy that dynamically allocates resources to a set of random configurations and uses successive bisections to stop configurations with poor performance [@Li16a], is very common in hyperparameter tuning.
+The most sophisticated and efficient approaches are the Bayesian optimization and surrogate model based optimization methods, which are based on the optimization of cost functions determined by simulations or experiments.
+
+We consider below a surrogate model based optimization-based hyperparameter tuning approach based on the Python version of the SPOT ("Sequential Parameter Optimization Toolbox") [@BLP05], which is suitable for situations where only limited resources are available. This may be due to limited availability and cost of hardware, or due to the fact that confidential data may only be processed locally, e.g., due to legal requirements.
+Furthermore, in our approach, the understanding of algorithms is seen as a key tool for enabling transparency and explainability. This can be enabled, for example, by quantifying the contribution of machine learning and deep learning components (nodes, layers, split decisions, activation functions, etc.).
+Understanding the importance of hyperparameters and the interactions between multiple hyperparameters plays a major role in the interpretability and explainability of machine learning models.
+SPOT provides statistical tools for understanding hyperparameters and their interactions. Last but not least, it should be noted that the SPOT software code is available in the open source `spotPython` package on github^[[https://github.com/sequential-parameter-optimization](https://github.com/sequential-parameter-optimization)], allowing replicability of the results.
+This tutorial descries the Python variant of SPOT, which is called `spotPython`. The R implementation is described in @bart21i.
+SPOT is an established open source software that has been maintained for more than 15 years [@BLP05] [@bart21i].
+
+## Book Structure {.unnunmbered}
+
+This document is structured in two parts. The first part describes the surrogate model based optimization process and the second part describes the hyperparameter tuning.
+The first part is structured as follows:
+
+The concept of the hyperparameter tuning software `spotPython` is described in @sec-spot. This introduction is based on one-dimensional examples. Higher-dimensional examples are presented in @sec-multi-dim. @sec-iso-aniso-kriging describes isotropic and anisotorpic kriging.
+How different surrogate models from `scikit-learn` can be used as surrogates in `spotPython` optimization runs is explained in @sec-sec-sklearn-surrogates.
+@sec-scipy-optimizers describes how different optimizers from the `scipy optimize` package can be used on the surrogate. The differences between the `Kriging` implementation in `spotPython` and the `GaussianProcessRegressor` in `scikit-learn` are explained in @sec-sec-gaussian-process-models. @sec-expected-improvement describes the expected improvement approach. How noisy functions can be handled is described in @sec-noise.
+@sec-ocba demonstrates how noisy functions can be handled with Optimal Computational Budget Allocation (OCBA) by `Spot`.
+
+The second part is structured as follows:
+
+@sec-hpt-sklearn-svc describes the hyperparameter tuning of a support vector classifier from `scikit-learn` [@scikit-learn] with `spotPython`.
+@sec-sec-river-hpt illustrates the hyperparameter tuning of a Hoeffding Adaptive Tree Regressor from `river` [@river] with `spotPython`.
+
+@sec-hyperparameter-tuning-for-pytorch-14 describes the execution of the example from the tutorial "Hyperparameter Tuning with Ray Tune" [@pyto23a]. The integration of `spotPython` into the ``PyTorch`` training workflow is described in detail in the following sections.
+@sec-setup-14 describes the setup of the tuners.
+@sec-data-loading-14 describes the data loading.
+@sec-selection-of-the-algorithm-14 describes the model to be tuned.
+The search space is introduced in @sec-search-space-14.
+Optimizers are presented in @sec-optimizers-14.
+How to split the data in train, validation, and test sets is described in @sec-data-splitting-14.
+The selection of the loss function and metrics is described in @sec-loss-functions-14.
+@sec-prepare-spot-call-14 describes the preparation of the `spotPython` call.
+The objective function is described in @sec-the-objective-function-14.
+How to use results from previous runs and default hyperparameter configurations is described in @sec-default-hyperparameters.
+Starting the tuner is shown in @sec-call-the-hyperparameter-tuner-14.
+TensorBoard can be used to visualize the results as shown in  @sec-tensorboard-14.
+Results are discussed and explained in @sec-results-14.
+@sec-hpt-random-forest-classifier describes the hyperparameter tuning of a random forest classifier from `scikit-learn` [@scikit-learn] with `spotPython`.
+@sec-hpt-sklearn-xgb-classifier-vbdp-data describes the hyperparameter tuning of a XGBoost classifier from `scikit-learn` [@scikit-learn] with `spotPython`.
+@sec-hpt-sklearn-svc-vbdp-data describes the hyperparameter tuning of a support vector classifier from `scikit-learn` [@scikit-learn] with `spotPython`.
+@sec-hpt-sklearn-knn-classifier-vbdp-data describes the hyperparameter tuning of a k-nearest neighbors classifier from `scikit-learn` [@scikit-learn] with `spotPython`.
+
+@sec-hyperparameter-tuning-lightning-31 shows the integration of `spotPython` into the ``PyTorch Lightning`` training workflow.
+
+@sec-summary presents a summary and an outlook.
+
+
+::: {.callout-tip}
+#### Hyperparameter Tuning Reference
+* The open access book @bart21i provides a comprehensive overview of hyperparameter tuning. It can be downloaded from [https://link.springer.com/book/10.1007/978-981-19-5170-1](https://link.springer.com/book/10.1007/978-981-19-5170-1).
+:::
+
+::: {.callout-note}
+The ` .ipynb` notebook [@bart23e] is updated regularly and reflects updates and changes in the `spotPython` package.
+It can be downloaded from [https://github.com/sequential-parameter-optimization/spotPython/blob/main/notebooks/14_spot_ray_hpt_torch_cifar10.ipynb](https://github.com/sequential-parameter-optimization/spotPython/blob/main/notebooks/14_spot_ray_hpt_torch_cifar10.ipynb).
+:::
+
+## Software Used in this Book {.unnumbered}
+
 [spotPython](https://github.com/sequential-parameter-optimization/spotPython) ("Sequential Parameter Optimization Toolbox in Python") is the Python version of the well-known hyperparameter tuner SPOT, which has been developed in the R programming environment for statistical analysis for over a decade. The related open-access book is available here: [Hyperparameter Tuning for Machine and Deep Learning with R---A Practical Guide](https://link.springer.com/book/10.1007/978-981-19-5170-1).
- 
+
 [scikit-learn](https://scikit-learn.org) is a Python module for machine learning built on top of SciPy and is distributed under the 3-Clause BSD license. The project was started in 2007 by David Cournapeau as a Google Summer of Code project, and since then many volunteers have contributed.
 
-[PyTorch](https://pytorch.org) is an optimized tensor library for deep learning using GPUs and CPUs. 
+[PyTorch](https://pytorch.org) is an optimized tensor library for deep learning using GPUs and CPUs.
 
 [River](https://riverml.xyz) is a Python library for online machine learning. It is designed to be used in real-world environments, where not all data is available at once, but streaming in.
 

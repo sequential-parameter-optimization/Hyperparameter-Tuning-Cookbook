@@ -6,77 +6,12 @@ execute:
   warning: false
 ---
 
-
-# Introduction: Hyperparameter Tuning {#sec-hyperparameter-tuning}
-
-Hyperparameter tuning is an important, but often difficult and computationally intensive task.
-Changing the architecture of a neural network or the learning rate of an optimizer can have a significant impact on the performance.
-
-The goal of hyperparameter tuning is to optimize the hyperparameters in a way that improves the performance of the machine learning or deep learning model.
-The simplest, but also most computationally expensive, approach uses manual search (or trial-and-error [@Meignan:2015vp]).
-Commonly encountered is simple random search, i.e., random and repeated selection of hyperparameters for evaluation, and lattice search ("grid search").
-In addition, methods that perform directed search  and other model-free algorithms, i.e., algorithms that do not explicitly rely on a model, e.g., evolution strategies [@Bart13j] or pattern search [@Torczon00] play an important role.
-Also, "hyperband", i.e., a multi-armed bandit strategy that dynamically allocates resources to a set of random configurations and uses successive bisections to stop configurations with poor performance [@Li16a], is very common in hyperparameter tuning.
-The most sophisticated and efficient approaches are the Bayesian optimization and surrogate model based optimization methods, which are based on the optimization of cost functions determined by simulations or experiments.
-
-We consider below a surrogate model based optimization-based hyperparameter tuning approach based on the Python version of the SPOT ("Sequential Parameter Optimization Toolbox") [@BLP05], which is suitable for situations where only limited resources are available. This may be due to limited availability and cost of hardware, or due to the fact that confidential data may only be processed locally, e.g., due to legal requirements.
-Furthermore, in our approach, the understanding of algorithms is seen as a key tool for enabling transparency and explainability. This can be enabled, for example, by quantifying the contribution of machine learning and deep learning components (nodes, layers, split decisions, activation functions, etc.).
-Understanding the importance of hyperparameters and the interactions between multiple hyperparameters plays a major role in the interpretability and explainability of machine learning models.
-SPOT provides statistical tools for understanding hyperparameters and their interactions. Last but not least, it should be noted that the SPOT software code is available in the open source `spotPython` package on github^[[https://github.com/sequential-parameter-optimization](https://github.com/sequential-parameter-optimization)], allowing replicability of the results.
-This tutorial descries the Python variant of SPOT, which is called `spotPython`. The R implementation is described in @bart21i.
-SPOT is an established open source software that has been maintained for more than 15 years [@BLP05] [@bart21i].
-
-This document is structured as follows. 
-The concept of the hyperparameter tuning software `spotPython` is described in @sec-spot. 
-@sec-hyperparameter-tuning-for-pytorch-14 describes the execution of the example from the tutorial "Hyperparameter Tuning with Ray Tune" [@pyto23a]. The integration of `spotPython` into the ``PyTorch`` training workflow is described in detail in the following sections.
-@sec-setup-14 describes the setup of the tuners.
-@sec-data-loading-14 describes the data loading.
-@sec-selection-of-the-algorithm-14 describes the model to be tuned.
-The search space is introduced in @sec-search-space-14.
-Optimizers are presented in @sec-optimizers-14.
-How to split the data in train, validation, and test sets is described in @sec-data-splitting-14.
-The selection of the loss function and metrics is described in @sec-loss-functions-14.
-@sec-prepare-spot-call-14 describes the preparation of the `spotPython` call.
-The objective function is described in @sec-the-objective-function-14.
-How to use results from previous runs and default hyperparameter configurations is described in @sec-default-hyperparameters.
-Starting the tuner is shown in @sec-call-the-hyperparameter-tuner-14.
-TensorBoard can be used to visualize the results as shown in  @sec-tensorboard-14.
-Results are discussed and explained in @sec-results-14.
-
-@sec-hyperparameter-tuning-lightning-31 shows the integration of `spotPython` into the ``PyTorch Lightning`` training workflow.
-
-@sec-summary presents a summary and an outlook.
-
-::: {.callout-note}
-The corresponding ` .ipynb` notebook [@bart23e] is updated regularly and reflects updates and changes in the `spotPython` package.
-It can be downloaded from [https://github.com/sequential-parameter-optimization/spotPython/blob/main/notebooks/14_spot_ray_hpt_torch_cifar10.ipynb](https://github.com/sequential-parameter-optimization/spotPython/blob/main/notebooks/14_spot_ray_hpt_torch_cifar10.ipynb).
-:::
-
-
-## The Hyperparameter Tuning Software SPOT {#sec-spot}
+# Introduction to `spotPython` {#sec-spot}
 
 Surrogate model based optimization methods are common approaches in simulation and optimization. SPOT was developed because there is a great need for sound statistical analysis of simulation and optimization algorithms. SPOT includes methods for tuning based on classical regression and analysis of variance techniques.
 It presents tree-based models such as classification and regression trees and random forests as well as Bayesian optimization (Gaussian process models, also known as Kriging). Combinations of different meta-modeling approaches are possible. SPOT comes with a sophisticated surrogate model based optimization method, that can handle discrete and continuous inputs. Furthermore, any model implemented in `scikit-learn` can be used out-of-the-box as a surrogate in `spotPython`.
 
 SPOT implements key techniques such as exploratory fitness landscape analysis and sensitivity analysis. It can be used to understand the performance of various algorithms, while simultaneously giving insights into their algorithmic behavior.
-In addition, SPOT can be used as an optimizer and for automatic and interactive tuning. Details on SPOT and its use in practice are given by @bart21i.
-
-A typical hyperparameter tuning process with `spotPython` consists of the following steps:
-
-1. Loading the data (training and test datasets), see @sec-data-loading-14.
-2. Specification of the preprocessing model, see @sec-specification-of-preprocessing-model-14. This model is called `prep_model` ("preparation" or pre-processing).
-The information required for the hyperparameter tuning is stored in the dictionary `fun_control`. Thus, the information needed for the execution of the hyperparameter tuning is available in a readable form.
-3. Selection of the machine learning or deep learning model to be tuned, see @sec-selection-of-the-algorithm-14. This is called the `core_model`. Once the `core_model` is defined, then the associated hyperparameters are stored in the `fun_control` dictionary. First, the hyperparameters of the `core_model` are initialized with the default values of the `core_model`.
-As default values we use the default values contained in the `spotPython` package for the algorithms of the `torch` package.
-4. Modification of the default values for the hyperparameters used in `core_model`, see @sec-modification-of-default-values. This step is optional.
-   1. numeric parameters are modified by changing the bounds.
-   2. categorical parameters are modified by changing the categories ("levels").
-5. Selection of target function (loss function) for the optimizer, see @sec-loss-functions-14.
-6. Calling SPOT with the corresponding parameters, see @sec-call-the-hyperparameter-tuner-14. The results are stored in a dictionary and are available for further analysis.
-7. Presentation, visualization and interpretation of the results, see @sec-results-14.
-
-
-## Spot as an Optimizer
 
 The `spot` loop consists of the following steps:
 
@@ -179,7 +114,7 @@ spot_1.plot_progress()
 ```
 
 
-## Visualizing the Hyperparameter Tuning Process with TensorBoard {#sec-visualizing-tensorboard-01}
+## Visualizing the Optimization and Hyperparameter Tuning Process with TensorBoard {#sec-visualizing-tensorboard-01}
 
 `spotPython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotPython`.
 
@@ -237,3 +172,4 @@ The second TensorBoard visualization shows the input values, i.e., $x_0$, plotte
 The third TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
 
 ![TensorBoard visualization of the spotPython process.](figures_static/01_tensorboard_03.png){width="50%"}
+
