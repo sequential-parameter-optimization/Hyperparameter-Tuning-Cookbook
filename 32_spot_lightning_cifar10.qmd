@@ -7,37 +7,18 @@ execute:
 jupyter: python3
 ---
 
-# HPT PyTorch Lightning: VBDP {#sec-hyperparameter-tuning-lightning-31}
+# HPT PyTorch Lightning With `spotPython` and Ray Tune on CIFAR10 {#sec-hyperparameter-tuning-for-pytorch-32}
 
 In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
 training workflow for a classification task.
 
-This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Vector Borne Disease Prediction (VBDP) data set.
-
-:::{.callout-important}
-### Vector Borne Disease Prediction Data Set
-This chapter uses the Vector Borne Disease Prediction data set from Kaggle. It is a categorical dataset for eleven Vector Borne Diseases with associated symptoms.
-
-> The person who associated a work with this deed has dedicated the work to the public domain by waiving all of his or her rights to the work worldwide under copyright law, including all related and neighboring rights, to the extent allowed by law.You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission. See Other Information below, see [https://creativecommons.org/publicdomain/zero/1.0/](https://creativecommons.org/publicdomain/zero/1.0/).
-
-The data set is available at:
-[https://www.kaggle.com/datasets/richardbernat/vector-borne-disease-prediction](https://www.kaggle.com/datasets/richardbernat/vector-borne-disease-prediction),
-
-The data should be downloaded and stored in the `data/VBDP` subfolder. The data set is not available as a part of the `spotPython` package.
-:::
+This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the CIFAR10 data set.
+It is based on the tutorial "Hyperparameter Tuning with Ray Tune" from the `PyTorch` documentation [@pyto23a], which is an extension of the tutorial "Training a Classifier" [@pyto23b] for training a CIFAR10 image classifier.
+Results that refer to the `Ray Tune` package are taken from [https://PyTorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html](https://PyTorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html)^[We were not able to install `Ray Tune` on our system. Therefore, we used the results from the `PyTorch` tutorial.].
 
 
-This document refers to the latest `spotPython` version, which can be installed via pip. Alternatively, the source code can be downloaded from gitHub: [https://github.com/sequential-parameter-optimization/spotPython](https://github.com/sequential-parameter-optimization/spotPython).
 
-* Uncomment the following lines if you want to for (re-)installation the latest version of `spotPython` from GitHub.
-
-```{python}
-# import sys
-# !{sys.executable} -m pip install --upgrade build
-# !{sys.executable} -m pip install --upgrade --force-reinstall spotPython
-```
-
-## Step 1: Setup {#sec-setup-31}
+## Step 1: Setup {#sec-setup-32}
 
 * Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. 
 * The parameter `MAX_TIME` specifies the maximum run time in seconds.
@@ -50,7 +31,7 @@ This document refers to the latest `spotPython` version, which can be installed 
 MAX_TIME = 1
 INIT_SIZE = 5
 WORKERS = 0
-PREFIX="31"
+PREFIX="32"
 ```
 
 
@@ -66,15 +47,15 @@ PREFIX="31"
 ::: {.callout-note}
 ### Note: Device selection
 
-* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see 
-[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. 
+* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see
+[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device.
 * The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.
 :::
 
 
 ## Step 2: Initialization of the `fun_control` Dictionary
 
-`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process, which was described in @sec-initialization-fun-control-14, see [Initialization of the fun_control Dictionary](https://sequential-parameter-optimization.github.io/spotPython/14_spot_ray_hpt_torch_cifar10.html#sec-initialization-fun-control-14) in the documentation.
+`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
 ```{python}
 from spotPython.utils.init import fun_control_init
@@ -86,8 +67,8 @@ fun_control = fun_control_init(
     spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
     num_workers=WORKERS,
     device=getDevice(),
-    _L_in=64,
-    _L_out=11,
+    _L_in=16 * 5 * 5,
+    _L_out=10,
     TENSORBOARD_CLEAN=True)
 ```
 
