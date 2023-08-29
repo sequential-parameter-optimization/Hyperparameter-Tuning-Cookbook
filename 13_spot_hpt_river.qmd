@@ -33,19 +33,22 @@ Before we consider the detailed experimental setup, we select the parameters tha
 ```{python}
 MAX_TIME = 1
 INIT_SIZE = 5
-PREFIX="10-river"
-K = .1
+PREFIX="13-river"
+K = 0.1
 ```
 
 ```{python}
+#| echo: false
 import os
-from spotPython.utils.file import get_experiment_name
-experiment_name = get_experiment_name(prefix=PREFIX)
-print(experiment_name)
+import warnings
+if not os.path.exists('./figures'):
+    os.makedirs('./figures')
+warnings.filterwarnings("ignore")
 ```
 
+
 * This notebook exemplifies hyperparameter tuning with SPOT (spotPython and spotRiver).
-* The hyperparameter software SPOT was developed in R (statistical programming language), see Open Access book "Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide", available here: [https://link.springer.com/book/10.1007/978-981-19-5170-1](https://link.springer.com/book/10.1007/978-981-19-5170-1).
+* The hyperparameter software SPOT is available in Python. It was developed in R (statistical programming language), see Open Access book "Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide", available here: [https://link.springer.com/book/10.1007/978-981-19-5170-1](https://link.springer.com/book/10.1007/978-981-19-5170-1).
 * This notebook demonstrates hyperparameter tuning for `river`. It is based on the notebook "Incremental decision trees in river: the Hoeffding Tree case", see: [https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters](https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters).
 * Here we will use the river `HTR` and `HATR` functions as in "Incremental decision trees in river: the Hoeffding Tree case", see: [https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters](https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters).
 
@@ -58,11 +61,13 @@ First, we define an "experiment name" to identify the hyperparameter tuning proc
 ```{python}
 from spotPython.utils.init import fun_control_init
 from spotPython.utils.file import get_spot_tensorboard_path
-
+import os
+from spotPython.utils.file import get_experiment_name
 experiment_name = get_experiment_name(prefix=PREFIX)
 fun_control = fun_control_init(
     spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
     TENSORBOARD_CLEAN=True)
+print(experiment_name)
 ```
 
 ::: {.callout-tip}
@@ -187,7 +192,7 @@ print(gen_design_table(fun_control))
 ```
 
 
-## Selection of the Objective Function
+## Selection of the Objective (Loss) Function
 
 The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.
 
