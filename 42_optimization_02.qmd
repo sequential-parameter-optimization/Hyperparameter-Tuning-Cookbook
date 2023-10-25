@@ -1,0 +1,352 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+<!-- bart21mSlides2022Lec04 -->
+
+# Lecture 04: DACE and Aircraft Wing Example
+
+## Design and Analysis of Computer Experiments
+
+* Mathematical models implemented in computer codes to avoid expensive field data collection
+* Highly nonlinear response surfaces, high signal-to-noise ratios (often deterministic evaluations) and global scope:  new approach required  compared to RSM
+* Improved computing power and simulation fidelity result in higher confidence:
+  * better understanding of physical, biological, social dynamics 
+* Expansion of configuration spaces and increasing input dimension yearn for bigger designs
+* High performance computing (HPC) allowing thousands of runs where only tens possible before
+* Shifts the burden to big models, big training data:  new computational challenges
+
+## Research Questions for DACE
+
+* Research questions include:
+  * how to *design computer experiments* that spend on computation judiciously, and 
+  * how to *meta-model* computer codes to save on simulation effort
+* Choice of surrogate model for computer codes has substantial effect on the optimal design of the experiment
+* Depending on your goal, different model-design pairs may be preferred
+* Combining computer simulation, design, and modeling with field data from similar, real-world experiments leads to a new class of computer model tuning problems
+* Goal: to **automate** to the extent possible so that HPC can be deployed with minimal human intervention
+
+## Remaining Differences Between RSM and DACE: Noise
+
+* Replication, which would never feature in a deterministic setting, is used to separate signal from noise
+* Traditional RSM is intended for situations in which a substantial proportion of variability in the data is just noise and the number of data values that can be acquired can sometimes be severely limited
+*  Consequently, RSM is intended for a somewhat different class of problems, and is indeed well-suited for their purposes
+
+## DACE Literature
+
+* Two very good texts on computer experiments and surrogate modeling:
+  1. The Design and Analysis of Computer Experiments, by Santner, Williams, and Notz (2018) is the canonical reference in the statistics literature
+  2. Engineering Design via Surrogate Modeling by Forrester, Sobester, and Keane (2008) is perhaps more popular in engineering
+    * We will analyze an example from the latter.
+
+
+# Aircraft Wing Weight Example
+
+## AWWE Equation
+
+* Example from Forrester et al. 
+* Understand the **weight** of an unpainted light aircraft wing as a function of nine design and operational parameters:
+
+$$ W = 0.036 S_W^{0.758} \times W_{fw}^{0.0035} \left( \frac{A}{\cos^2 \Lambda} \right)^{0.6} \times  q^{0.006}  \times \lambda^{0.04} $$
+$$ \times \left( \frac{100 R_{tc}}{\cos \Lambda} \right)^{-0.3} \times (N_z W_{dg})^{0.49}$$
+
+
+## AWWE Parameters (Part 1)
+
+| Symbol    | Parameter                              | Baseline | Minimum | Maximum |
+|-----------|----------------------------------------|----------|---------|---------|
+| $S_W$     | Wing area ($ft^2$)                     | 174      | 150     | 200     |
+| $W_{fw}$  | Weight of fuel in wing (lb)            | 252      | 220     | 300     |
+| $A$       | Aspect ratio                          | 7.52     | 6       | 10      |
+| $\Lambda$ | Quarter-chord sweep (deg)              | 0        | -10     | 10      |
+| $q$       | Dynamic pressure at cruise ($lb/ft^2$) | 34       | 16      | 45      |
+| $\lambda$ | Taper ratio                            | 0.672    | 0.5     | 1       |
+| $R_{tc}$  | Aerofoil thickness to chord ratio      | 0.12     | 0.08    | 0.18    |
+| $N_z$     | Ultimate load factor                   | 3.8      | 2.5     | 6       |
+| $W_{dg}$  | Flight design gross weight (lb)         | 2000     | 1700    | 2500    |
+| $W_p$     | paint weight (lb/ft^2)                   | 0.064 |   0.025  | 0.08    |
+: Aircraft Wing Weight Parameters {#tbl-awwe}
+
+## Discussing the AWWE Parameters and Equations
+
+* Baseline Cessna C172 Skyhawk Aircraft
+* Effect of wing area and fuel weight on weight is obvious
+* Aspect ratio $A$: the length of the wing divided by the average chord (thickness of the airfoil)
+* Taper ratio $\lambda$: the ratio of the maximum to the minimum thickness of the airfoil (or the maximum to minimum chord).
+* Note: Eq. is not a computer simulation, although we'll use it as one for the purposes of this illustration
+  * Utilizing a true form, but treating it as unknown: helpful tool for synthesizing realistic settings in order to test methodology
+  * That functional form was derived by "calibrating" known physical relationships to curves obtained from existing aircraft data (Raymer 2012)
+  * It is in a sense itself a surrogate for actual measurements of the weight of aircrafts
+
+## Mathematical Properties of the AWWE Equation
+
+* Although we won't presume to know that functional form in any of our analysis below, observe that the response is highly nonlinear in its inputs
+* Typical trick: Apply the logarithm to simplify the equation with complicated exponents 
+  * But: even when modeling the logarithm, which turns powers into slope coefficients and products into sums, the response would still be nonlinear owing to the trigonometric terms
+* Considering the nonlinearity and high input dimension, simple linear and quadratic response surface approximations will likely be insufficient
+
+## Goals: Understanding and Optimization
+
+1. **Understanding**: The most straightforward might simply be to understand input-output relationships:
+  * Given the global purview implied by that context, a fancier model is all but essential
+  * For now, let us concentrate on that setting to fix ideas
+2. **Optimization**: Another application might be optimization:
+  * There might be interest in minimizing weight, but probably not without some constraints
+  * Constraints: wings with nonzero area are needed if the airplane is going to fly
+  * A global perspective, and thus flexible modeling, is essential in (constrained) optimization settings
+
+## AWWE: Python Code
+
+ * Python code below serves as a genuine computer implementation "solving" a mathematical model
+   * It takes arguments coded in the unit cube
+   * Defaults are used to encode baseline settings from @tbl-awwe, also mapped to coded units:
+   * To map values from the interval $[a,b]$ to the interval $[0,1]$, the following formula can be used:
+ $$ y = f(x) = \frac{x - a}{b-a}. $$ 
+   * To revert this mapping, we can use:
+$$  g(y) = a + (b-a) y $$
+
+## AWWE: Python Code
+
+```{python}
+import numpy as np
+
+def wingwt(Sw=0.48, Wfw=0.4, A=0.38, L=0.5, q=0.62, l=0.344,  Rtc=0.4, Nz=0.37, Wdg=0.38):
+    # put coded inputs back on natural scale
+    Sw = Sw * (200 - 150) + 150 
+    Wfw = Wfw * (300 - 220) + 220 
+    A = A * (10 - 6) + 6 
+    L = (L * (10 - (-10)) - 10) * np.pi/180
+    q = q * (45 - 16) + 16 
+    l = l * (1 - 0.5) + 0.5  
+    Rtc = Rtc * (0.18 - 0.08) + 0.08
+    Nz = Nz * (6 - 2.5) + 2.5
+    Wdg = Wdg*(2500 - 1700) + 1700
+    # calculation on natural scale
+    W = 0.036 * Sw**0.758 * Wfw**0.0035 * (A/np.cos(L)**2)**0.6 * q**0.006 
+    W = W * l**0.04 * (100*Rtc/np.cos(L))**(-0.3) * (Nz*Wdg)**(0.49)
+    return(W)
+```
+
+## Properties of the Python "Solver"
+
+* Compute time required by the `wingwt` “solver” is trivial
+* Approximation error is minuscule---essentially machine precision
+* Simulation of time consuming evaluation by adding a `sleep(3600)` command to synthesize a one-hour execution time
+
+
+## AWWE Visualization
+
+* Plotting in 2d is lots easier than 9d: code below makes a grid in the unit square to facilitate sliced visuals
+* We generate a `meshgrid` as follows:
+
+```{python}
+import numpy as np
+x = np.linspace(0, 1, 3)
+y = np.linspace(0, 1, 3)
+X, Y = np.meshgrid(x, y)
+zp = zip(np.ravel(X), np.ravel(Y))
+list(zp)
+```
+
+* The coding used to transform inputs from natural units is largely a matter of taste, so long as it’s easy to undo for reporting back on original scales
+
+```{python}
+%matplotlib inline
+import matplotlib.pyplot as plt
+# plt.style.use('seaborn-white')
+import numpy as np
+x = np.linspace(0, 1, 100)
+y = np.linspace(0, 1, 100)
+X, Y = np.meshgrid(x, y)
+```
+
+## Plot 1: Load Factor ($N_z$) and Aspect Ratio ($A$)
+
+* Vary $N_z$ and $A$, with other inputs fixed at their baseline values
+
+```{python}
+z = wingwt(A = X, Nz = Y)
+fig = plt.figure(figsize=(7., 5.))
+plt.contourf(X, Y, z, 20, cmap='jet')
+plt.xlabel("A")
+plt.ylabel("Nz")
+plt.title("Load factor (Nz) vs. Aspect Ratio (A)")
+plt.colorbar()
+```
+
+## Variations of the Contour Plots
+
+* Contour plots can be refined, e.g., by adding explicit contour lines as shown in the following figure.
+
+```{python}
+contours = plt.contour(X, Y, z, 4, colors='black')
+plt.clabel(contours, inline=True, fontsize=8)
+plt.xlabel("A")
+plt.ylabel("Nz")
+
+plt.imshow(z, extent=[0, 1, 0, 1], origin='lower',
+           cmap='jet', alpha=0.9)
+plt.colorbar()
+```
+
+## Plot 1: Interpretation of the AWWE Plot
+
+* Figure shows the weight response as a function of  $N_z$ and $A$   with an image–contour plot
+* Slight curvature in the contours indicates an interaction between these two variables
+* Actually, this output range (160–320 approximately) nearly covers the entire span of outputs observed from settings of inputs in the full, 9d input space
+* Apparently an aircraft wing is heavier when aspect ratios $A$ are high
+* Wings are designed to cope with large  $g$-forces (large  $N_z$), with a compounding effect
+* Perhaps this is because fighter jets cannot have efficient (light) glider-like wings
+
+## Plot 2: Taper Ratio and Fuel Weight
+
+* The same experiment for two other inputs, e.g., taper ratio  $\lambda$ and fuel weight $W_{fw}$
+
+```{python}
+z = wingwt(Wfw = X,  Nz = Y)
+contours = plt.contour(X, Y, z, 4, colors='black')
+plt.clabel(contours, inline=True, fontsize=8)
+plt.xlabel("WfW")
+plt.ylabel("l")
+
+plt.imshow(z, extent=[0, 1, 0, 1], origin='lower',
+           cmap='jet', alpha=0.9)
+plt.colorbar();
+```
+
+## Plot 2: Interpretation of Taper Ratio ($l$) and Fuel Weight ($W_{fw}$)
+
+* Apparently, neither input has much effect on wing weight:
+  * with $\lambda$  having a marginally greater effect, covering less than 4 percent of the span of weights observed in the  $A \times N_z$ plane 
+* There’s no interaction evident in  $\lambda \times W_{fw}$
+
+# The Big Picture
+
+## Combining all Variables
+
+```{python}
+pl = ["Sw", "Wfw", "A", "L", "q", "l",  "Rtc", "Nz", "Wdg"]
+```
+
+```{python}
+import math
+
+Z = []
+Zlab = []
+l = len(pl)
+# lc = math.comb(l,2)
+for i in range(l):
+    for j in range(i+1, l):
+    # for j in range(l):
+        # print(pl[i], pl[j])
+        d = {pl[i]: X, pl[j]: Y}
+        Z.append(wingwt(**d))
+        Zlab.append([pl[i],pl[j]])
+```
+
+* Now we can generate all 36 combinations, e.g., our first example is combination `p = 19`.
+
+```{python}
+p = 19
+Zlab[p]
+```
+
+* To help interpret outputs from experiments such as this one---to level the playing field when comparing outputs from other pairs of inputs---code below sets up a color palette that can be re-used from one experiment to the next
+  * We use the arguments `vmin=180` and `vmax =360` to implement comparibility
+
+```{python}
+plt.contourf(X, Y, Z[p], 20, cmap='jet', vmin=180, vmax=360)
+plt.xlabel(Zlab[p][0])
+plt.ylabel(Zlab[p][1])
+plt.colorbar()
+```
+
+* Let's plot the second example, taper ratio  $\lambda$ and fuel weight $W_{fw}$
+* This is combination `11`:
+
+```{python}
+p = 11
+Zlab[p]
+```
+
+```{python}
+plt.contourf(X, Y, Z[p], 20, cmap='jet', vmin=180, vmax=360)
+plt.xlabel(Zlab[p][0])
+plt.ylabel(Zlab[p][1])
+plt.colorbar()
+```
+
+* Using a global colormap indicates that these variables have minor effects on the wing weight.
+* Important factors can be detected by visual inspection
+
+## Plotting the Big Picture
+
+* We can plot all 36 combinations in one figure.
+
+```{python}
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
+import numpy as np
+
+fig = plt.figure(figsize=(20., 20.))
+grid = ImageGrid(fig, 111,  # similar to subplot(111)
+                 nrows_ncols=(6,6),  # creates 2x2 grid of axes
+                 axes_pad=0.5,  # pad between axes in inch.
+                 share_all=True,
+                 label_mode="0",
+                 ) 
+i = 0
+for ax, im in zip(grid, Z):
+    # Iterating over the grid returns the Axes.
+    ax.set_xlabel(Zlab[i][0])
+    ax.set_ylabel(Zlab[i][1])
+    # ax.set_title(Zlab[i][1] + " vs. " + Zlab[i][0])
+    ax.contourf(X, Y, im, 30, cmap = "jet",  vmin = 180, vmax = 360)
+    i = i + 1
+       
+plt.show()
+```
+
+## AWWE Landscape
+
+### Our Observations
+
+1. The load factor $N_z$, which determines the magnitude of the maximum aerodynamic load on the wing, is very active and involved in interactions with other variables.
+  * Classic example: the interaction of $N_z$ with the aspect ratio $A$ indicates a heavy wing for high aspect ratios and large $g$-forces 
+  * This is the reaon why highly manoeuvrable fighter jets cannot have very efficient, glider wings)
+2. Aspect ratio $A$ and airfoil thickness to chord ratio $R_{tc}$ have nonlinear interactions.
+3. Most important variables: 
+  * Ultimate load factor $N_z$, wing area $S_w$, and flight design gross weight$W_{dg}$.
+4. Little impact: dynamic pressure $q$, taper ratio $l$, and quarter-chord sweep $L$. 
+
+### Expert Knowledge
+
+* Aircraft designers know that the overall weight of the aircraft and the wing area must be kept to a minimum
+  * the latter usually dictated by constraints such as required stall speed, landing distance, turn rate, etc.
+
+## Summary of the First Experiments
+
+* First, we considered  two pairs of inputs, out of 36 total pairs 
+* Then, the "Big Picture":
+  *  For each pair we evaluated `wingwt` 10,000 times 
+* Doing the same for all pairs would require 360K evaluations:
+  * not a reasonable number with a real computer simulation that takes any non-trivial amount of time to evaluate 
+  * Only 1s per evaluation:  $>100$ hours 
+* Many solvers take minutes/hours/days to execute a single run
+* And: three-way interactions? 
+* Consequence: a different strategy is needed
+
+# Exercise 1
+
+### Adding Paint Weight
+
+* Paint weight is not considered.
+* Add Paint Weight $W_p$ to formula (the updated formula is shown below) and update the functions and plots in the notebook.
+
+$$ W = 0.036S_W^{0.758} \times W_{fw}^{0.0035} \times \left( \frac{A}{\cos^2 \Lambda} \right)^{0.6} \times q^{0.006} \times \lambda^{0.04} $$
+$$ \times \left( \frac{100 R_{tc}}{\cos \Lambda} \right)^{-0.3} \times (N_z W_{dg})^{0.49} + S_w W_p$$
+

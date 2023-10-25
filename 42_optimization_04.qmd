@@ -1,0 +1,321 @@
+---
+execute:
+  cache: false
+  eval: false
+  echo: true
+  warning: false
+---
+
+<!-- doe1 -->
+
+# DOE 1
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels
+```
+
+
+
+In this article I want to explore the topic of Design of Experiments. First of all we should ask ourselves how do we know more about a system?
+
+The only way to know more or learn something about a system is to disturb it and then observe it. 
+This is the basis of machine learning actually.
+
+Ideally you want your algorithm to learn patterns in your data after all possible disturbances you may have, and with all variables you can find for your experiments.
+
+But if you are to design a new experiment to learn from your system you probably can't afford to wait one year to collect enough data or explore all possible variables combinations in a random manner. There is a scientific way to do it which is proved to give you the best result. This approach or system is called Design of Experiment.
+
+
+
+Imagine you want to understand which configuration is better for boiling water, with some parameters which you are free to control:
+
+1) Heater Settings (Low/High)
+2) Pot Type (Metal/Glass)
+3) LID (with/without)
+4) Heater Kind (gas/electric)
+
+this very simple system, of which you may already know the answer, has 4 parameters, each with 2 possible states. So the total number of experiments you can do to explore all of them is 2^4 = 16 experiments.
+
+But what I mean with "better" ? We have to define the objective which might be:
+
+A) the faster way for boiling water -> I want to minimize it
+B) the cheaper way for boiling water -> I want to minimize the cost
+
+The outcome of our experiment is therefore either PRICE or TIME.
+
+I said "parameters" above: Parameters, variables, factors, features in data science / statistics / research there are a lot of synonyms. They can be numerical or categorical.
+We will explore a simple basic example doing the calculation by hand and getting a bit of help with python to display some data, and then we will try to do the same in a more automatic way in a more complicated system.
+In the second part we will try to apply some powerful statistical tools to explore our data and make the first regressions, starting with OLS and then trying to explore more of our data with PCA/PCR and PLS. Finally we will try to apply some machine learning algorithm to the very same data.
+
+## Two factors experiment
+
+```{python}
+Light = ['On','Off']
+Watering = ['Low','High']
+# create combinations for all parameters
+experiments = [(x,y) for x in Light for y in Watering]
+exp_df = pd.DataFrame(experiments,columns=['A','B'])
+```
+
+```{python}
+exp_df
+```
+
+```{python}
+# map the variable and encode them to ±1 
+from sklearn.preprocessing import OrdinalEncoder
+enc = OrdinalEncoder(categories=[['On','Off'],['Low','High']])
+
+encoded_df = pd.DataFrame(enc.fit_transform(exp_df[['A','B']]),columns=['A','B'])
+#define the experiments order which must be random
+encoded_df['exp_order'] = np.random.choice(np.arange(4),4,replace=False)
+encoded_df['outcome'] = [25,37,55,65]
+encoded_df
+```
+
+```{python}
+plt.scatter(encoded_df['A'],encoded_df['B'], marker='o', s=80, c=encoded_df['outcome'], cmap='coolwarm')
+plt.xlabel('A')
+plt.ylabel('B')
+for i, txt in enumerate(encoded_df['outcome']):
+    plt.annotate(txt, (encoded_df['A'].iloc[i], encoded_df['B'].iloc[i]),xytext=(encoded_df['A'].iloc[i]*0.9, encoded_df['B'].iloc[i]*1.1), fontsize=16)
+```
+
+```{python}
+average_response = encoded_df['outcome'].mean()
+```
+
+```{python}
+def Pars_effect(data = encoded_df, par='A', effect='B'):
+    data_1 = data[data[par] == data[par].min()]
+    data_2 = data[data[par] == data[par].max()]
+    
+    eff_1 = (data_1[data_1[effect] == data_1[effect].max()].outcome.max() - data_1[data_1[effect] == data_1[effect].min()].outcome.max())
+    eff_2 = (data_2[data_2[effect] == data_2[effect].max()].outcome.max() - data_2[data_2[effect] == data_2[effect].min()].outcome.max())
+    return (eff_2+eff_1)/2
+
+def predict_outcome(baseline, A, Ax, B, Bx):
+    if A == 0:
+        A = -1
+    if B == 0:
+        B = -1
+    print(f'y ~ {baseline}+1/2 {Ax}*A + 1/2 {Bx}*B')
+    pred_y = baseline + 1/2*Ax*A + 1/2*Bx*B
+    print(f'{pred_y}')
+    return pred_y
+```
+
+```{python}
+Ax = Pars_effect(data = encoded_df, par='B', effect='A')
+Bx = Pars_effect(data = encoded_df, par='A', effect='B')
+```
+
+```{python}
+y_pred_11 = predict_outcome(average_response,1,Ax,1,Bx)
+```
+
+```{python}
+y_pred_00 = predict_outcome(average_response,0,Ax,0,Bx)
+```
+
+```{python}
+average_response
+```
+
+```{python}
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+```
+
+```{python}
+results = smf.ols('outcome ~ A + B', data=encoded_df).fit()
+```
+
+```{python}
+print(results.summary())
+```
+
+```{python}
+sns.lineplot(x='A',y='outcome',hue='B',data=encoded_df)
+```
+
+```{python}
+encoded_df
+```
+
+```{python}
+A = np.matrix(encoded_df[['A','B']])
+A = np.c_[ A, np.ones(len(A))]
+b = np.array(encoded_df['outcome'])
+print(np.linalg.lstsq(A,b, rcond=None))
+print((np.linalg.inv(A.T*A)*A.T)*b.reshape(-1,1))
+```
+
+```{python}
+encoded_df['A'].replace(0, -1, inplace=True)
+encoded_df['B'].replace(0, -1, inplace=True)
+```
+
+```{python}
+encoded_df
+```
+
+```{python}
+A = np.matrix(encoded_df[['A','B']])
+A = np.c_[ A, np.ones(len(A))]
+b = np.array(encoded_df['outcome'])
+print(np.linalg.lstsq(A,b, rcond=None))
+print((np.linalg.inv(A.T*A)*A.T)*b.reshape(-1,1))
+```
+
+## Negative Interaction
+
+```{python}
+encoded_df_int = pd.DataFrame(enc.fit_transform(exp_df[['A','B']]),columns=['A','B'])
+encoded_df_int['exp_order'] = np.random.choice(np.arange(4),4,replace=False)
+encoded_df_int['outcome'] = [21,23,25,44]
+average_int_resp = encoded_df_int['outcome'].mean()
+Ax = Pars_effect(data = encoded_df_int, par='B', effect='A')
+Bx = Pars_effect(data = encoded_df_int, par='A', effect='B')
+y_pred_11 = predict_outcome(average_response,1,Ax,1,Bx)
+y_pred_00 = predict_outcome(average_response,0,Ax,0,Bx)
+```
+
+```{python}
+results = smf.ols('outcome ~ A + B', data=encoded_df_int).fit()
+print(results.summary())
+```
+
+```{python}
+A = np.matrix(encoded_df_int[['A','B']])
+A = np.c_[np.ones(len(A)), A ]
+b = np.array(encoded_df_int['outcome'])
+print(np.linalg.lstsq(A,b, rcond=None))
+```
+
+```{python}
+# print((np.linalg.inv(A.T*A)*A.T)*b.reshape(-1,1))
+# print((np.linalg.inv(A.T*A)*A.T)*b.reshape(-1,1))
+encoded_df_int['A*B'] = encoded_df_int['A']*encoded_df_int['B']
+encoded_df_int
+```
+
+```{python}
+A = np.matrix(encoded_df_int[['A','B','A*B']])
+A = np.c_[np.ones(len(A)), A ]
+b = np.array(encoded_df_int['outcome'])
+print(np.linalg.lstsq(A,b, rcond=None,)[:2])
+```
+
+```{python}
+results = smf.ols('outcome ~ A + B + A*B', data=encoded_df_int).fit()
+print(results.summary())
+```
+
+```{python}
+results = smf.ols('outcome ~ A*B', data=encoded_df_int).fit()
+print(results.summary())
+```
+
+```{python}
+plt.scatter(encoded_df['A'],encoded_df['B'], marker='o', s=80, c=encoded_df['outcome'], cmap='coolwarm')
+plt.xlabel('A')
+plt.ylabel('B')
+for i, txt in enumerate(encoded_df['outcome']):
+    plt.annotate(txt, (encoded_df['A'].iloc[i], encoded_df['B'].iloc[i]),xytext=(encoded_df['A'].iloc[i]*0.9, encoded_df['B'].iloc[i]*1.1), fontsize=16)
+```
+
+```{python}
+sns.lineplot(x='A',y='outcome',hue='B',data=encoded_df_int)
+```
+
+```{python}
+def Pars_effect_interaction(data = encoded_df, par='A', effect='B', verbose=True):
+    
+    data_1 = data[data[par] == data[par].min()].copy()
+    data_2 = data[data[par] == data[par].max()].copy()
+    if verbose:
+        display(data_1)
+        display(data_2)
+        
+    eff_1 = (data_1[data_1[effect] == data_1[effect].max()].outcome.max() - data_1[data_1[effect] == data_1[effect].min()].outcome.max())
+    eff_2 = (data_2[data_2[effect] == data_2[effect].max()].outcome.max() - data_2[data_2[effect] == data_2[effect].min()].outcome.max())
+    
+    return (max(eff_1,eff_2)-min(eff_1,eff_2))/2
+
+def predict_outcome_int(baseline, A, Ax, B, Bx, *args):
+    if A == 0:
+        A = -1
+    if B == 0:
+        B = -1
+        
+    if args:
+        ABx = args[0]
+        print(f'y ~ {baseline}+1/2 {Ax}*A + 1/2 {Bx}*B + 1/2 {ABx} *A*B')
+    else:
+        ABx=0
+        print(f'y ~ {baseline}+1/2 {Ax}*A + 1/2 {Bx}*B')
+        
+    pred_y = baseline + 1/2*Ax*A + 1/2*Bx*B +1/2 *A*B*ABx
+    print(f'{pred_y}')
+    return pred_y
+```
+
+```{python}
+max(2,5)
+```
+
+```{python}
+Ax_int = Pars_effect_interaction(data = encoded_df_int, par='B', effect='A', verbose=False)
+Bx_int = Pars_effect_interaction(data = encoded_df_int, par='A', effect='B', verbose=True)
+Ax_int,Bx_int
+```
+
+```{python}
+encoded_df_int
+```
+
+```{python}
+predict_outcome_int(average_int_resp,1,Ax,1,Bx,Ax_int)
+```
+
+```{python}
+predict_outcome_int(average_int_resp,0,Ax,0,Bx,Ax_int)
+```
+
+```{python}
+df2 = pd.DataFrame(enc.fit_transform(exp_df[['A','B']]),columns=['A','B'])
+df2['exp_order'] = np.random.choice(np.arange(4),4,replace=False)
+df2['outcome'] = [20,23.5,25.5,44.5]
+df2['A*B'] = df2['A']*df2['B']
+df2
+```
+
+```{python}
+df2[df2.A!=df2.B]
+```
+
+```{python}
+df_all = pd.concat([encoded_df_int,df2[df2.A!=df2.B]]).drop('exp_order',1)
+df_all
+```
+
+```{python}
+sns.lineplot(x='A',y='outcome',hue='B',data=df_all)
+```
+
+```{python}
+results = smf.ols('outcome ~ A*B', data=df_all).fit()
+print(results.summary())
+```
+
+```{python}
+df_all = pd.concat([encoded_df_int,df2[df2.A==df2.B]]).drop('exp_order',1)
+results = smf.ols('outcome ~ A*B', data=df_all).fit()
+print(results.summary())
+```
+

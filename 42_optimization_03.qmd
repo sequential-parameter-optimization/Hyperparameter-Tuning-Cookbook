@@ -1,0 +1,732 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+<!-- bart21mSlides2022Lec-05 -->
+
+
+# Lecture 05: Kriging 
+
+```{python}
+import numpy as np
+from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy.linalg import cholesky, solve
+from numpy.random import multivariate_normal
+def build_Psi(X, theta):
+    n = X.shape[0]
+    k = X.shape[1]
+    D = zeros((k, n, n))
+    for l in range(k):
+        for i in range(n):
+            for j in range(i, n):
+                D[l, i, j] = theta[l]*(X[i,l] - X[j,l])**2
+    D = sum(D)
+    D = D + D.T
+    return exp(-D)  
+```
+
+![Overview](./comic.png)
+
+## Introduction
+
+* GP regression: simple extension of linear modeling
+* Many names and acronyms:
+  * kriging, comes from geostatistics (Matheron 1963)
+  * Gaussian spatial modeling or a Gaussian stochastic process
+  * Machine learning (ML) researchers like Gaussian process regression (GPR)
+* All of these instances are about regression: 
+  * training on inputs and outputs with the ultimate goal of prediction and uncertainty quantification (UQ)
+* Warning: 
+  * GPs are no panacea
+  * Specialized tools can work better in less generic contexts
+  * And GPs have their limitations
+
+
+# Gaussian Process Basics
+
+## Gaussian Process Prior
+- Any finite collection of realizations (i.e., $n$ observations) is modeled as having a multivariate normal (MVN) distribution
+- Characteristics of those realizations are completely described by 
+  - their mean $n$-vector $\mu$ and 
+  - their $n \times n$  covariance matrix  $\Sigma$. 
+
+
+## Covariance
+- Covariance function defined by inverse exponentiated squared Euclidean distance:
+$$\Sigma(x, x') = \exp\{ - || x - x '||^2 \}.$$
+- Covariance decays exponentially fast as $x$ and $x'$ become farther apart
+- Observe that 
+  - $\Sigma(x,x) = 1$ and 
+  - $\Sigma(x, x') < 1$ for  $x \neq x'$ 
+- The function $\Sigma(x,x')$ must be positive definite. 
+
+
+## Positive Definiteness
+- Pos. definite: Covariance matrix $\Sigma_n$, based on evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values $x_1,\ldots, x_n$, we must have that $$x^\top \Sigma_n x > 0 \quad \text{ for all } x \ne 0.$$
+- We intend to use $\Sigma_n$ as a covariance matrix in an MVN, and a positive (semi-) definite covariance matrix is required for MVN analysis. 
+- Positive definiteness is the multivariate extension of requiring that a univariate Gaussian have positive variance parameter, $\sigma^2$. 
+
+
+## Generating GP Random Functions
+- GPs can be used to generate random data following a smooth functional relationship:
+  - Take a set of $x$-values $x_1,\ldots, x_n$,
+  - define $\Sigma_n$ via $\Sigma_n^{ij} = \Sigma(x_i, x_j)$, for $i,j = 1, \ldots, n$, 
+  - then draw an $n$-variate realization $Y \sim \mathcal{N}_n(0, \Sigma_n),$,
+  - and plot the result in the $x$-$y$ plane
+
+
+# Example in 1 Dimension
+
+
+## Input Grid
+- Use $x$-values in 1d
+- First create an input grid with 100 elements
+
+```{python}
+n = 100
+X = np.linspace(0, 10, n, endpoint=False).reshape(-1,1)
+```
+
+
+## Covariance Matrix
+- Build up covariance matrix $\Sigma_n$ as inverse exponentiated squared Euclidean distances
+- Notice: later we will augments the diagonal with a small number eps $\equiv \epsilon$
+  - Although inverse exponentiated distances guarantee a positive definite matrix in theory, sometimes in practice the matrix is numerically ill-conditioned
+  - Augmenting the diagonal a tiny bit prevents ill-conditioned matrices
+  - $\epsilon$ can be called the jitter in this context.
+
+```{python}
+theta = np.array([1.0])
+Psi = build_Psi(X, theta)
+```
+
+
+## Multivariate Normal Distribution
+
+* Plug that covariance matrix into an MVN random generator
+* The function `multivariate_normal` provides a random number generator for the multivariate normal distribution with mean equal to `mean` and covariance matrix `Psi`.
+* The argument `size` denotes the number of realizations, which is in our case one.
+* The default value of the mean vector is zero.
+  * We will use the argument `zeros(n)`, where `n` is the number of samples (identical to the number of rows in the `X`  and `Psi` matrices).
+
+```{python}
+Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size = 1).reshape(-1,1)
+```
+
+## Plot the Results
+- Finite realization of a random function under a GP prior with a particular covariance structure. 
+- Plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
+
+```{python}
+import matplotlib.pyplot as plt
+plt.plot(X, Y)
+plt.title("Realization of Random Functions under a GP prior.\n theta: {}".format(theta[0]))
+plt.show()
+```
+
+# Properties of the 1d Example
+
+## Several Bumps
+
+* Observe  several bumps in the $x$-range of $[0,10]$ because short distances are highly correlated and long distances are essentially uncorrelated.
+
+## Smooth Look
+
+* Function plotted above is only a finite realization, meaning that we really only have 100 pairs of points.
+* Those points look smooth, in a tactile sense, because they’re close together and because the plot function can be used for connecting the dots with lines.
+* The full surface, which you might conceptually extend to an infinite realization over a compact domain, is extremely smooth in a calculus sense because the covariance function is infinitely differentiable.
+
+## Scale of Two
+
+* $Y$ values have range of about $[-2,2]$, with 95% probability, because the scale of the covariance is 1, ignoring the jitter $\epsilon$ added to the diagonal
+* 95% lie within two standard deviations of the mean
+
+ 
+## Background: Expectation, Mean
+
+* The distribution of a random vector is characterized by some indexes.
+* One of them is the expected value, which is defined as
+$$
+E[X] = \sum_{x \in D_X} xp_X(x)  \qquad \text{if $X$ is discrete}
+$$
+$$
+E[X] = \int\limits_{x \in D_X} xf_X(x)\mathrm{d}x  \quad  \text{if $X$ is continuous.}
+$$
+
+* The mean, $\mu$, of a probability distribution is a measure of its central tendency or location.
+* That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
+
+
+## Example 
+- Let $X$ denote the number produced by rolling a fair die.
+Then
+$$
+E(X) = 1 \times 1/6 + 2 \times 1/6 + 3 \times 1/6 + 4 \times 1/6 + 5 \times 1/6 + 6\times 1/6 = 3.5 
+$$
+
+
+## Sample Mean
+
+* The sample mean is an important estimate of the population mean.
+* The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
+$$\overline{x}  = \frac{1}{n} \sum_i x_i.$$
+
+## Variance and Standard Deviation
+
+* If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$.
+* In many situations it is useful to have an idea how large this deviation or error is. 
+* Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$). 
+* The squared error is the first choice, because the derivatives are easier to calculate. 
+* These considerations motivate the definition of the variance. 
+
+## Variance
+
+The variance of a random variable $X$ is the mean squared deviation of $X$ from its expected value $\mu = E(X)$.
+
+\begin{equation}
+Var(X) = E[ (X-\mu)^2].
+\end{equation}
+
+## Standard Deviation
+
+* Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation.
+* The standard deviation of $X$ is the square root of the variance of $X$.
+\begin{equation}
+sd(X) = \sqrt{Var(X)}.
+\end{equation}
+
+## Calculation of the Standard Deviation with Python
+
+* The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements. 
+* The standard deviation is computed for the flattened array by default, otherwise over the specified axis.
+  * The argument `ddof` specifies the Delta Degrees of Freedom.
+  * The divisor used in calculations is `N - ddof`, where `N` represents the number of elements. 
+  * By default `ddof` is zero, i.e., `std` uses the formula 
+  \begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
+
+* If no `axis` is specified, `std` uses the flattened array (which is the default.)
+* Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
+
+```{python}
+import numpy as np
+a = np.array([[1, 2, 3]])
+np.std(a)
+```
+
+```{python}
+np.std(a, axis = 0)
+```
+
+* The empirical standard deviation (which uses N-1),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
+
+```{python}
+np.std(a, ddof=1)
+```
+
+```{python}
+np.std(a, axis = 1)
+```
+
+```{python}
+A = np.array([[1, 2], [3, 4]])
+A
+```
+
+```{python}
+np.std(A)
+```
+
+```{python}
+np.std(A, axis=0)
+```
+
+```{python}
+np.std(A, axis=1)
+```
+
+### Single Versus Double Precision
+
+* In single precision, `std()` can be inaccurate:
+
+```{python}
+a = np.zeros((2, 4*4), dtype=np.float32)
+```
+
+```{python}
+a[0, :] = 1.0
+a[1, :] = 0.1
+a 
+```
+
+```{python}
+np.std(a)
+```
+
+* Computing the standard deviation in float64 is more accurate (result may vary):
+
+```{python}
+np.std(a, dtype=np.float64)
+```
+
+## Visualization of the Standard Deviation
+
+* Standard deviation of normal distributed can be visualized in terms of the histogram of $X$: 
+  * about 68\% of the values will lie in the interval within one standard deviation of the mean
+  * 95% lie within two standard deviation of the mean
+  * and 99.9% lie within 3 standard deviations of the mean. 
+
+```{python}
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+# example data
+mu = 0.0  # mean of distribution
+sigma = 1  # standard deviation of distribution
+x = mu + sigma * np.random.randn(2000)
+num_bins = 33
+fig, ax = plt.subplots()
+# the histogram of the data
+n, bins, patches = ax.hist(x, num_bins, density=1)
+# add a 'best fit' line
+y = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (bins - mu))**2))
+ax.plot(bins, y, '--')
+ax.set_xlabel('x')
+ax.set_ylabel('Probability density')
+ax.set_title(r'Histogram: $\mu=0$, $\sigma=1$')
+ax.vlines(-1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (-1.0 - mu))**2)), colors="orange", linestyles="-.")
+ax.vlines(1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (1.0 - mu))**2)), colors="orange", linestyles="-.")
+# Tweak spacing to prevent clipping of ylabel
+fig.tight_layout()
+plt.show()
+```
+
+## Standardization
+
+* To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
+* If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
+$$  X^{\ast} = (X-\mu)/\sigma$$ 
+is called $X$ in standard units. 
+* It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
+
+
+## Random Numbers in Python
+
+* Results from computers are deterministic, so it sounds like a contradiction 
+in terms to generate random numbers on a computer.
+* Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
+* To generate ten random numbers from a normal distribution, the following command can be used.
+
+
+```{python}
+import numpy as np
+rng = np.random.default_rng()
+n = 10
+mu, sigma = 2, 0.1
+x = rng.normal(mu, sigma, n)
+```
+
+* Verify the mean:
+
+```{python}
+abs(mu - np.mean(x))
+```
+
+* Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
+
+```{python}
+abs(sigma - np.std(x, ddof=1))
+```
+
+## The Multivariate Normal Distribution
+
+* The multivariate normal, multinormal, or Gaussian distribution is a generalization of the one-dimensional normal distribution to higher dimensions. 
+* Such a distribution is specified by its mean and covariance matrix. 
+  * These parameters are analogous to the mean (average or "center") and variance (squared standard deviation or "width") of the one-dimensional normal distribution.
+* The mean is a coordinate in $n$-dimensional space, which represents the location where samples are most likely to be generated. 
+  * This is analogous to the peak of the bell curve for the one-dimensional or univariate normal distribution.
+* The covariance indicates the level to which two variables vary together. 
+  * From the multivariate normal distribution, we draw $n$-dimensional samples, $X = [x_1, x_2, \ldots, x_n]$.
+* The covariance matrix element $C_{ij}$ is the covariance of $x_i$ and $x_j$. 
+
+```{python}
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[9, 0], [0, 4]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title("Bivariate Normal. Mean zero and covariance: {}".format(cov))
+plt.show()
+```
+
+## Kriging
+### The Kriging Covariance Matrix 
+
+* Basis functions of the form \begin{equation} \psi^{(i)} = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l} | ^{p_l} \right) \end{equation} are used in a method known as Kriging.
+* Although the Kriging basis function is related to the Gaussian basis function, there are some differences:
+  * Where the Gaussian basis function has $1/\sigma^2$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
+  * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
+  * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent to vary (typically from 1 to 2).
+
+
+### Building the Kriging Model
+
+* Consider a set of $k$-dimensional sample data $$X = [x_1, x_2, \ldots, x_n],$$ i.e., $X$ is a $(n,k)$-matrix, with related responses $$y = [y_1, y_2, \ldots, y_n].$$
+* We are interested in finding an expression for the predicted value at a new point $x$.
+* We are going to interpret the observed responses as if they are generated by a stochastic process, which will be denoted as follows: \begin{equation} Y = [Y(x_1), \ldots, Y(x_n) ]^T. \end{equation}
+* The random process has a mean of $\mu$ (which is a (n,1)-dimensional vector). The random variables are correlated with each other using the basis function expression \begin{equation} \text{cor} [Y(x_i), Y(x_j)] =  \exp \left( - \sum_{l=1}^k \theta_l | x_{il} - x_{jl} | ^{p_l} \right). \end{equation}
+* From this, the $(n,n)$ correlation matrix $\Psi$ of the observed data can be computed: \begin{equation} \Psi = \begin{pmatrix} \text{cor} [Y(x_1), Y(x_1)] & \ldots & \text{cor} [Y(x_1), Y(x_n)] \\  \vdots & \ddots & \vdots \\ \text{cor} [Y(x_n), Y(x_1)] &  \ldots & \text{cor} [Y(x_n), Y(x_n)] \end{pmatrix} .\end{equation}
+
+### Example: Correlation Matrix
+
+* Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
+$$X = \begin{pmatrix} x_{11} & x_{12} & x_{13}\\ x_{21} & x_{22} & x_{23}\\ x_{31} & x_{32} & x_{33}\\ x_{41} & x_{42} & x_{43}\\ \end{pmatrix}$$
+
+
+* To compute the elements of the matrix $\Psi$, the following $k$ $(n,n)$-matrices have to be computed:
+  $$ D_1 = \begin{pmatrix} x_{11} - x_{11} & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  x_{21} - x_{11} & x_{21} - x_{21} & x_{21} -x_{31} & x_{21} - x_{41} \\ x_{31} - x_{11} & x_{31} - x_{21} & x_{31} -x_{31} & x_{31} - x_{41} \\ x_{41} - x_{11} & x_{41} - x_{21} & x_{41} -x_{31} & x_{41} - x_{41} \\\end{pmatrix}$$
+  $$ D_2 = \begin{pmatrix} x_{12} - x_{12} & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  x_{22} - x_{12} & x_{22} - x_{22} & x_{22} -x_{32} & x_{22} - x_{42} \\ x_{32} - x_{12} & x_{32} - x_{22} & x_{32} -x_{32} & x_{32} - x_{42} \\ x_{42} - x_{12} & x_{42} - x_{22} & x_{42} -x_{32} & x_{42} - x_{42} \\\end{pmatrix}$$
+  $$ D_3 = \begin{pmatrix} x_{13} - x_{13} & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  x_{23} - x_{13} & x_{23} - x_{23} & x_{23} -x_{33} & x_{23} - x_{43} \\ x_{33} - x_{13} & x_{33} - x_{23} & x_{33} -x_{33} & x_{33} - x_{43} \\ x_{43} - x_{13} & x_{43} - x_{23} & x_{43} -x_{33} & x_{43} - x_{43} \\\end{pmatrix}$$
+
+* Since the matrices are symmetric and the main diagonals are zero, it is sufficient to compute the following matrices:
+$$D_1 = \begin{pmatrix} 0 & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  0 &  0 & x_{21} -x_{31} & x_{21} - x_{41} \\ 0 & 0 & 0 & x_{31} - x_{41} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+  $$ D_2 = \begin{pmatrix} 0 & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  0 & 0 & x_{22} -x_{32} & x_{22} - x_{42} \\ 0 & 0 & 0 & x_{32} - x_{42} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+  $$ D_3 = \begin{pmatrix} 0 & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  0 & 0 & x_{23} -x_{33} & x_{23} - x_{43} \\ 0 & 0 & 0 & x_{33} - x_{43} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+
+* We will consider $p_l=2$.
+* The differences will be squared and multiplied by $\theta_i$, i.e.:
+$$ D_1 = \theta_1 \begin{pmatrix} 0 & (x_{11} - x_{21})^2 & (x_{11} -x_{31})^2 & (x_{11} - x_{41})^2 \\  0 &  0 & (x_{21} -x_{31})^2 & (x_{21} - x_{41})^2 \\ 0 & 0 & 0 & (x_{31} - x_{41})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+  $$ D_2 = \theta_2 \begin{pmatrix} 0 & (x_{12} - x_{22})^2 & (x_{12} -x_{32})^2 & (x_{12} - x_{42})^2 \\  0 & 0 & (x_{22} -x_{32})^2 & (x_{22} - x_{42})^2 \\ 0 & 0 & 0 & (x_{32} - x_{42})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+  $$ D_3 = \theta_3 \begin{pmatrix} 0 & (x_{13} - x_{23})^2 & (x_{13} -x_{33})^2 & (x_{13} - x_{43})^2 \\  0 & 0 & (x_{23} -x_{33})^2 & (x_{23} - x_{43})^2 \\ 0 & 0 & 0 & (x_{33} - x_{43})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+
+* The sum of the three matrices $D=D_1+ D_2 + D_3$ will be calculated next: 
+$$ \begin{pmatrix} 0 & 
+\theta_1  (x_{11} - x_{21})^2 + \theta_2 (x_{12} - x_{22})^2 + \theta_3  (x_{13} - x_{23})^2  &
+\theta_1 (x_{11} -x_{31})^2 + \theta_2  (x_{12} -x_{32})^2 + \theta_3  (x_{13} -x_{33})^2 &
+\theta_1  (x_{11} - x_{41})^2 + \theta_2  (x_{12} - x_{42})^2 + \theta_3 (x_{13} - x_{43})^2
+\\  0 &  0 & 
+\theta_1  (x_{21} -x_{31})^2 + \theta_2 (x_{22} -x_{32})^2 + \theta_3  (x_{23} -x_{33})^2 &
+\theta_1  x_{21} - x_{41})^2 + \theta_2  (x_{22} - x_{42})^2 + \theta_3 (x_{23} - x_{43})^2
+\\ 0 & 0 & 0 & 
+\theta_1 (x_{31} - x_{41})^2 + \theta_2 (x_{32} - x_{42})^2 + \theta_3 (x_{33} - x_{43})^2
+\\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+
+* Finally, $$ \Psi = \exp(-D)$$ is computed.
+
+* Next, we will demonstrate how this computation can be implemented in Python.
+
+```{python}
+from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy.linalg import cholesky, solve
+theta = np.array([1,2,3])
+X = np.array([ [1,0,0], [0,1,0], [0,0,1], [0,0,0]])
+X
+```
+
+```{python}
+def build_Psi(X, theta):
+    n = X.shape[0]
+    k = X.shape[1]
+    D = zeros((k, n, n))
+    for l in range(k):
+        for i in range(n):
+            for j in range(i, n):
+                D[l, i, j] = theta[l]*(X[i,l] - X[j,l])**2
+    D = sum(D)
+    D = D + D.T
+    return exp(-D)  
+```
+
+```{python}
+Psi = build_Psi(X, theta)
+Psi
+```
+
+* The same result can be obtained with existing python functions, e.g., from the package `scipy`.
+  * Note: A small value, `eps`,  can be passed to the function `build_Psi` to improve the condition number.
+
+```{python}
+from scipy.spatial.distance import squareform
+from scipy.spatial.distance import pdist
+
+def build_Psi(X, theta, eps=sqrt(spacing(1))):
+    return exp(- squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))) +  multiply(eye(X.shape[0]), eps)
+
+Psi = build_Psi(X, theta, eps=.0)
+Psi
+```
+
+### Generate sample from N($\mu$, $\Psi$)
+
+* The following block of code generates 5 draws from a bivariate normal distribution with zero mean and covariance matrix $\Psi$.
+* Because our input space is three dimensional, the results cannot be visualized in a simple way.
+* The next examples will use a one-dimensional input space, so that our results can be easily visualized in 2d.
+
+```{python}
+import numpy as np
+from numpy.random import multivariate_normal
+m = 5
+rng = np.random.default_rng()
+Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size=m)
+```
+
+# Kriging in a Nutshell
+
+* We will use the Kriging correlation $\Psi$ to predict new values based on the observed data.
+* The matrix algebra involved i calculating the likelihood is the most computationally intensive part of the Kriging process
+  * Care must be taken that the computer code is as efficient as possible.
+
+* Basic elements of the Kriging based surrogate optimization 
+such as interpolation,  expected improvement, and regression
+are presented. 
+* The presentation follows the approach described in Forr08a and Bart21i.
+
+### The Kriging Model
+
+* Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
+$\vec{X}$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
+$\vec{y}$ is a $(n\times 1)$ vector.
+
+* The observed responses $\vec{y}$ are considered as if they are from a stochastic
+process, which will be denoted as
+\begin{equation*}
+\begin{pmatrix}
+\vec{Y}(\vec{x}^{(1)})\\
+\vdots\\
+\vec{Y}(\vec{x}^{(n)})\\
+\end{pmatrix}.
+\end{equation*}
+
+* The set of random vectors (also referred to as a *random field*) has a 
+mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
+
+### Correlations
+
+* The random vectors are correlated with each other using the basis function expression
+$$\text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\left\{ - \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right\}.$$
+
+* The $(n \times n)$ correlation matrix of the observed sample data is $$\vec{\Psi} = \begin{pmatrix}
+\text{cor}\left(
+\vec{Y}(\vec{x}^{(i)}),
+\vec{Y}(\vec{x}^{(l)}) 
+\right) & \ldots &
+\text{cor}\left(
+\vec{Y}(\vec{x}^{(i)}),
+\vec{Y}(\vec{x}^{(l)}) 
+\right)\\
+\vdots  & \vdots &  \vdots\\
+ \text{cor}\left(
+\vec{Y}(\vec{x}^{(i)}),
+\vec{Y}(\vec{x}^{(l)}) 
+\right)&
+\ldots &
+\text{cor}\left(
+\vec{Y}(\vec{x}^{(i)}),
+\vec{Y}(\vec{x}^{(l)}) 
+\right)
+\end{pmatrix}.$$
+
+* Note: correlations depend on the absolute distances between sample points
+$|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$.
+
+* Correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
+* $\theta$ can be seen as a width parameter:
+  * low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample
+  * high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s
+* $\theta_j$ is a measure of how active the function we are approximating is
+* High $\theta_j$ indicate important parameters
+
+### MLE to estimate $\theta$ and $p$
+
+* We know what the correlations mean, but how do we estimate the values of $\theta_j$ amd where does our observed data $y$ come in?
+* To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
+which can be expressed in terms of the sample data 
+$$L\left(\vec{Y}(\vec{x}^{(1)}), \ldots, \vec{Y}(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left\{ \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right\},$$ 
+and formulated as the log-likelihood:
+$$\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.$$
+* Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
+$$\hat{\mu} = \frac{\vec{1}^T \vec{\Psi}^{-1} \vec{y}^T}{\vec{1}^T \vec{\Psi}^{-1} \vec{1}^T}$$ 
+and 
+$$\hat{\sigma} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.$$
+* Combining the equations leads to the concentrated log-likelihood: 
+$$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
+* Note: 
+  * The first term requires information about the measured point (observations) $y_i$.
+  * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the equation  is not differentiable.
+
+## Tuning $\theta$ and $p$
+
+* Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
+* After the optimization, the correlation matrix is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. 
+* We will skip the optimization step here and use $\theta = 1$ and $p=2$.
+
+## Kriging Prediction
+
+* Main idea for prediction:
+  * The new $Y(x)$ should be consistent with the old sample data $X$. 
+* For a new prediction $\hat{y}$ at $\vec{x}$, the value of $\hat{y}$ is chosen so that it maximizes the likelihood of the sample data $\vec{X}$ and the prediction, given the (optimized) correlation parameter $\vec{\theta}$ and $\vec{p}$ from above.
+* The observed data $\vec{y}$ is augmented with the new prediction $\hat{y}$ which results in the augmented vector $\vec{\tilde{y}} = ( \vec{y}^T, \hat{y})^T$.
+* A vector of correlations between the observed data and the new prediction is defined as
+\begin{equation*}
+\vec{\psi} = 
+\begin{pmatrix}
+\text{cor}\left(
+\vec{Y}(\vec{x}^{(1)}),
+\vec{Y}(\vec{x}) 
+\right) \\
+\vdots  \\
+\text{cor}\left(
+\vec{Y}(\vec{x}^{(n)}),
+\vec{Y}(\vec{x}) 
+\right)
+\end{pmatrix}
+=
+\begin{pmatrix}
+\vec{\psi}^{(1)}\\
+\vdots\\
+\vec{\psi}^{(n)}
+\end{pmatrix}.
+\end{equation*}
+* The augmented correlation matrix is constructed as
+\begin{equation*}
+\tilde{\vec{\Psi}} =
+\begin{pmatrix}
+\vec{\Psi} & \vec{\psi} \\
+\vec{\psi}^T & 1
+\end{pmatrix}.
+\end{equation*}
+
+* The log-likelihood of the augmented data is
+$$\ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2}.$$
+
+* The MLE for $\hat{y}$ can be calculated as 
+$$\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).$$
+
+### Properties of the Predictor
+
+* This Equation reveals two important properties of the Kriging predictor:
+  * **Basis functions**: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
+  * **Interpolation**: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
+
+## Example: Sinusoid Function  
+
+* Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
+
+## Calculating the Correlation Matrix $\Psi$
+
+* The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations
+* Here we will use $n=8$ sample locations
+* $\theta$ is set to 1.0
+
+```{python}
+n = 8
+X = np.linspace(0, 2*np.pi, n, endpoint=False).reshape(-1,1)
+# theta should be an array (of one value, for the moment, will be changed later)
+theta = np.array([1.0])
+Psi = build_Psi(X, theta)
+```
+
+* Evaluate at sample points
+
+```{python}
+y = np.sin(X)
+```
+
+```{python}
+import matplotlib.pyplot as plt
+plt.plot(X, y, "bo")
+plt.title("Sin(x) evaluated at {} points".format(n))
+plt.show()
+```
+
+## Computing the $\psi$ Vector
+### Based on Distances Between Testing and Training Data Locations
+
+* Distances between testing locations $x$ and training data locations $X$.
+
+```{python}
+from scipy.spatial.distance import cdist
+
+def build_psi(X, x, theta, eps=sqrt(spacing(1))):
+    n = X.shape[0]
+    k = X.shape[1]
+    m = x.shape[0]
+    psi = zeros((n, m))
+    theta = theta * ones(k)
+    D = zeros((n, m))
+    D = cdist(x.reshape(-1, k),
+              X.reshape(-1, k),
+              metric='sqeuclidean',
+              out=None,
+              w=theta)
+    print(D.shape)
+    psi = exp(-D)
+    # return psi transpose to be consistent with the literature
+    return(psi.T)
+```
+
+* We would like to predict at $m = 100$ new locations:
+
+```{python}
+m = 100
+x = np.linspace(0, 2*np.pi, m, endpoint=False).reshape(-1,1)
+psi = build_psi(X, x, theta)
+```
+
+## Predictive Equations 
+
+```{python}
+U = cholesky(Psi).T
+```
+
+```{python}
+one = np.ones(n).reshape(-1,1)
+mu = (one.T.dot(solve(U, solve(U.T, y)))) / one.T.dot(solve(U, solve(U.T, one)))
+```
+
+```{python}
+f = mu * ones(m).reshape(-1,1) + psi.T.dot(solve(U, solve(U.T, y - one * mu)))
+```
+
+```{python}
+import matplotlib.pyplot as plt
+plt.plot(x, f, color = "orange", label="Fitted")
+plt.plot(x, np.sin(x), color = "grey", label="Original")
+plt.plot(X, y, "bo", label="Measurements")
+plt.title("Kriging prediction of sin(x) with {} points.\n theta: {}".format(n, theta[0]))
+plt.legend(loc='upper right')
+plt.show()
+```
+
+# Exercises
+
+## 1 Number of Sample Points
+
+* The example uses $n=8$ sample points to fit the sin function.
+  * What happens, if less than 8 samples are available?
+
+## 2 Modified $\theta$ values
+
+* The example uses a $\theta$ value of $1.0$.
+  * What happens if $\theta$ is modified?
+  * Can get better predictions with smaller or larger $\theta$ values?
+
+## 3 Prediction Interval
+
+* The prediction interval was identical to the measurement interval, i.e., in the range from $0$ to $2\pi$. This is referred to as "interpolation".
+  * What happens if this interval is increased (which is referred to as "extrapolation")?
+
+
