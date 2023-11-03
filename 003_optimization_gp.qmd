@@ -9,7 +9,7 @@ execute:
 <!-- bart21mSlides2022Lec-05 -->
 
 
-# Lecture 05: Kriging 
+# Kriging (Gaussian Process Regression)
 
 ```{python}
 import numpy as np
@@ -30,95 +30,83 @@ def build_Psi(X, theta):
 ```
 
 
-## Introduction
+## Introduction to Gaussian Processes
 
-* GP regression: simple extension of linear modeling
-* Many names and acronyms:
-  * kriging, comes from geostatistics (Matheron 1963)
-  * Gaussian spatial modeling or a Gaussian stochastic process
-  * Machine learning (ML) researchers like Gaussian process regression (GPR)
-* All of these instances are about regression: 
-  * training on inputs and outputs with the ultimate goal of prediction and uncertainty quantification (UQ)
-* Warning: 
-  * GPs are no panacea
-  * Specialized tools can work better in less generic contexts
-  * And GPs have their limitations
+The concept of GP (Gaussian Process) regression can be understood as a simple extension of linear modeling. It is worth noting that this approach goes by various names and acronyms, including "kriging," a term derived from geostatistics, as introduced by Matheron in 1963. Additionally, it is referred to as Gaussian spatial modeling or a Gaussian stochastic process, and machine learning (ML) researchers often use the term Gaussian process regression (GPR).
+In all of these instances, the central focus is on regression. This involves training on both inputs and outputs, with the ultimate objective of making predictions and quantifying uncertainty (referred to as uncertainty quantification or UQ).
 
+However, it's important to emphasize that GPs are not a universal solution for every problem. Specialized tools may outperform GPs in specific, non-generic contexts, and GPs have their own set of limitations that need to be considered.
 
-# Gaussian Process Basics
+### Gaussian Process Prior
 
-## Gaussian Process Prior
-- Any finite collection of realizations (i.e., $n$ observations) is modeled as having a multivariate normal (MVN) distribution
-- Characteristics of those realizations are completely described by 
-  - their mean $n$-vector $\mu$ and 
-  - their $n \times n$  covariance matrix  $\Sigma$. 
+In this context, any finite collection of realizations, which is represented by $n$ observations, is modeled as having a multivariate normal (MVN) distribution. The characteristics of these realizations can be fully described by two key parameters:
+
+1. Their mean, denoted as an $n$-vector $\mu$.
+2. The covariance matrix, denoted as an $n \times n$ matrix $\Sigma$. This covariance matrix encapsulates the relationships and variability between the individual realizations within the collection.
 
 
-## Covariance
-- Covariance function defined by inverse exponentiated squared Euclidean distance:
+### Covariance Function
+
+The covariance function is defined by inverse exponentiated squared Euclidean distance:
 $$\Sigma(x, x') = \exp\{ - || x - x '||^2 \}.$$
-- Covariance decays exponentially fast as $x$ and $x'$ become farther apart
-- Observe that 
-  - $\Sigma(x,x) = 1$ and 
-  - $\Sigma(x, x') < 1$ for  $x \neq x'$ 
-- The function $\Sigma(x,x')$ must be positive definite. 
 
+Covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
+$$\Sigma(x,x) = 1$$ and 
+$$\Sigma(x, x') < 1$$ for  $x \neq x'$ 
+The function $\Sigma(x,x')$ must be positive definite.
 
-## Positive Definiteness
-- Pos. definite: Covariance matrix $\Sigma_n$, based on evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values $x_1,\ldots, x_n$, we must have that $$x^\top \Sigma_n x > 0 \quad \text{ for all } x \ne 0.$$
-- We intend to use $\Sigma_n$ as a covariance matrix in an MVN, and a positive (semi-) definite covariance matrix is required for MVN analysis. 
-- Positive definiteness is the multivariate extension of requiring that a univariate Gaussian have positive variance parameter, $\sigma^2$. 
+Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement.
+It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values, denoted as $x_1, x_2, \ldots, x_n$.
+The condition for positive definiteness is that for all $x$ vectors that are not equal to zero, the expression $x^\top \Sigma_n x$ must be greater than zero. This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis. It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
 
+Gaussian Processes (GPs) can be effectively utilized to generate random data that follows a smooth functional relationship. The process involves the following steps:
 
-## Generating GP Random Functions
-- GPs can be used to generate random data following a smooth functional relationship:
-  - Take a set of $x$-values $x_1,\ldots, x_n$,
-  - define $\Sigma_n$ via $\Sigma_n^{ij} = \Sigma(x_i, x_j)$, for $i,j = 1, \ldots, n$, 
-  - then draw an $n$-variate realization $Y \sim \mathcal{N}_n(0, \Sigma_n),$,
-  - and plot the result in the $x$-$y$ plane
+1. Select a set of $x$-values, denoted as $x_1, x_2, \ldots, x_n$.
+2. Define the covariance matrix $\Sigma_n$ by evaluating $\Sigma_n^{ij} = \Sigma(x_i, x_j)$ for $i, j = 1, 2, \ldots, n$.
+3. Generate an $n$-variate realization $Y$ that follows a multivariate normal distribution with a mean of zero and a covariance matrix $\Sigma_n$, expressed as $Y \sim \mathcal{N}_n(0, \Sigma_n)$.
+4. Visualize the result by plotting it in the $x$-$y$ plane.
 
+### Construction of the Covariance Matrix
 
-# Example in 1 Dimension
-
-
-## Input Grid
-- Use $x$-values in 1d
-- First create an input grid with 100 elements
+Here is an one-dimensional example. The process begins by creating an input grid using $x$-values. This grid consists of 100 elements, providing the basis for further analysis and visualization.
 
 ```{python}
 n = 100
 X = np.linspace(0, 10, n, endpoint=False).reshape(-1,1)
 ```
 
+In the context of this discussion, the construction of the covariance matrix, denoted as $\Sigma_n$, relies on the concept of inverse exponentiated squared Euclidean distances. However, it's important to note that a modification is introduced later in the process. Specifically, the diagonal of the covariance matrix is augmented with a small value, represented as "eps" or $\epsilon$.
 
-## Covariance Matrix
-- Build up covariance matrix $\Sigma_n$ as inverse exponentiated squared Euclidean distances
-- Notice: later we will augments the diagonal with a small number eps $\equiv \epsilon$
-  - Although inverse exponentiated distances guarantee a positive definite matrix in theory, sometimes in practice the matrix is numerically ill-conditioned
-  - Augmenting the diagonal a tiny bit prevents ill-conditioned matrices
-  - $\epsilon$ can be called the jitter in this context.
+The reason for this augmentation is that while inverse exponentiated distances theoretically ensure the covariance matrix's positive definiteness, in practical applications, the matrix can sometimes become numerically ill-conditioned. By adding a small value to the diagonal, such as $\epsilon$, this ill-conditioning issue is mitigated. In this context, $\epsilon$ is often referred to as "jitter."
+
 
 ```{python}
 theta = np.array([1.0])
 Psi = build_Psi(X, theta)
+np.round(Psi, 3)
 ```
 
+```{python}
+import matplotlib.pyplot as plt
+plt.imshow(Psi, cmap='hot', interpolation='nearest')
+plt.colorbar()
+plt.show()
+```
 
-## Multivariate Normal Distribution
+### Generation of Random Samples and Plotting the Realizations of the Random Function
 
-* Plug that covariance matrix into an MVN random generator
-* The function `multivariate_normal` provides a random number generator for the multivariate normal distribution with mean equal to `mean` and covariance matrix `Psi`.
-* The argument `size` denotes the number of realizations, which is in our case one.
-* The default value of the mean vector is zero.
-  * We will use the argument `zeros(n)`, where `n` is the number of samples (identical to the number of rows in the `X`  and `Psi` matrices).
+In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Psi`. It is used as an essential component in generating random samples from the multivariate normal distribution.
+
+The function `multivariate_normal` is employed for this purpose. It serves as a random number generator specifically designed for the multivariate normal distribution. In this case, the mean of the distribution is set equal to `mean`, and the covariance matrix is provided as `Psi`. The argument `size` specifies the number of realizations, which, in this specific scenario, is set to one.
+
+By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Psi` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples.
 
 ```{python}
 Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size = 1).reshape(-1,1)
+Y.shape
 ```
 
-## Plot the Results
-- Finite realization of a random function under a GP prior with a particular covariance structure. 
-- Plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
+Now we can plot the results, i.e., a finite realization of the random function $Y()$ under a GP prior with a particular covariance structure. We will plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
 
 ```{python}
 import matplotlib.pyplot as plt
@@ -127,28 +115,22 @@ plt.title("Realization of Random Functions under a GP prior.\n theta: {}".format
 plt.show()
 ```
 
-# Properties of the 1d Example
+### Properties of the 1d Example
 
-## Several Bumps
+#### Several Bumps:
+In this analysis, we observe several bumps in the $x$-range of $[0,10]$.
+These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior.
 
-* Observe  several bumps in the $x$-range of $[0,10]$ because short distances are highly correlated and long distances are essentially uncorrelated.
+#### Smoothness:
+The function plotted in the above figure represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
 
-## Smooth Look
-
-* Function plotted above is only a finite realization, meaning that we really only have 100 pairs of points.
-* Those points look smooth, in a tactile sense, because they’re close together and because the plot function can be used for connecting the dots with lines.
-* The full surface, which you might conceptually extend to an infinite realization over a compact domain, is extremely smooth in a calculus sense because the covariance function is infinitely differentiable.
-
-## Scale of Two
-
-* $Y$ values have range of about $[-2,2]$, with 95% probability, because the scale of the covariance is 1, ignoring the jitter $\epsilon$ added to the diagonal
-* 95% lie within two standard deviations of the mean
+#### Scale of Two:
+Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. This range is influenced by the scale of the covariance, which is set to 1, without considering the small value, $\epsilon$, added to the diagonal. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
 
  
 ## Background: Expectation, Mean
 
-* The distribution of a random vector is characterized by some indexes.
-* One of them is the expected value, which is defined as
+The distribution of a random vector is characterized by some indexes. One of them is the expected value, which is defined as
 $$
 E[X] = \sum_{x \in D_X} xp_X(x)  \qquad \text{if $X$ is discrete}
 $$
@@ -156,59 +138,44 @@ $$
 E[X] = \int\limits_{x \in D_X} xf_X(x)\mathrm{d}x  \quad  \text{if $X$ is continuous.}
 $$
 
-* The mean, $\mu$, of a probability distribution is a measure of its central tendency or location.
-* That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
+The mean, $\mu$, of a probability distribution is a measure of its central tendency or location. That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
 
+### Example 
 
-## Example 
-- Let $X$ denote the number produced by rolling a fair die.
+Let $X$ denote the number produced by rolling a fair die.
 Then
 $$
 E(X) = 1 \times 1/6 + 2 \times 1/6 + 3 \times 1/6 + 4 \times 1/6 + 5 \times 1/6 + 6\times 1/6 = 3.5 
 $$
 
 
-## Sample Mean
+### Sample Mean
 
-* The sample mean is an important estimate of the population mean.
-* The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
+The sample mean is an important estimate of the population mean. The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
 $$\overline{x}  = \frac{1}{n} \sum_i x_i.$$
 
-## Variance and Standard Deviation
+### Variance and Standard Deviation
 
-* If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$.
-* In many situations it is useful to have an idea how large this deviation or error is. 
-* Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$). 
-* The squared error is the first choice, because the derivatives are easier to calculate. 
-* These considerations motivate the definition of the variance. 
-
-## Variance
+If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$. In many situations it is useful to have an idea how large this deviation or error is.  Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$).  The squared error is the first choice, because the derivatives are easier to calculate.  These considerations motivate the definition of the variance:
 
 The variance of a random variable $X$ is the mean squared deviation of $X$ from its expected value $\mu = E(X)$.
-
 \begin{equation}
 Var(X) = E[ (X-\mu)^2].
 \end{equation}
 
-## Standard Deviation
+### Standard Deviation
 
-* Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation.
-* The standard deviation of $X$ is the square root of the variance of $X$.
+Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation. The standard deviation of $X$ is the square root of the variance of $X$.
 \begin{equation}
 sd(X) = \sqrt{Var(X)}.
 \end{equation}
 
-## Calculation of the Standard Deviation with Python
+### Calculation of the Standard Deviation with Python
 
-* The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements. 
-* The standard deviation is computed for the flattened array by default, otherwise over the specified axis.
-  * The argument `ddof` specifies the Delta Degrees of Freedom.
-  * The divisor used in calculations is `N - ddof`, where `N` represents the number of elements. 
-  * By default `ddof` is zero, i.e., `std` uses the formula 
-  \begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
+The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements.  The standard deviation is computed for the flattened array by default, otherwise over the specified axis. The argument `ddof` specifies the Delta Degrees of Freedom. The divisor used in calculations is `N - ddof`, where `N` represents the number of elements.  By default `ddof` is zero, i.e., `std` uses the formula 
+\begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
 
-* If no `axis` is specified, `std` uses the flattened array (which is the default.)
-* Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
+If no `axis` is specified, `std` uses the flattened array (which is the default.) Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
 
 ```{python}
 import numpy as np
@@ -220,7 +187,7 @@ np.std(a)
 np.std(a, axis = 0)
 ```
 
-* The empirical standard deviation (which uses N-1),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
+The empirical standard deviation (which uses N-1),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
 
 ```{python}
 np.std(a, ddof=1)
@@ -249,7 +216,7 @@ np.std(A, axis=1)
 
 ### Single Versus Double Precision
 
-* In single precision, `std()` can be inaccurate:
+In single precision, `std()` can be inaccurate:
 
 ```{python}
 a = np.zeros((2, 4*4), dtype=np.float32)
@@ -265,18 +232,19 @@ a
 np.std(a)
 ```
 
-* Computing the standard deviation in float64 is more accurate (result may vary):
+Computing the standard deviation in float64 is more accurate (result may vary):
 
 ```{python}
 np.std(a, dtype=np.float64)
 ```
 
-## Visualization of the Standard Deviation
+### Visualization of the Standard Deviation
 
-* Standard deviation of normal distributed can be visualized in terms of the histogram of $X$: 
-  * about 68\% of the values will lie in the interval within one standard deviation of the mean
-  * 95% lie within two standard deviation of the mean
-  * and 99.9% lie within 3 standard deviations of the mean. 
+The standard deviation of normal distributed can be visualized in terms of the histogram of $X$:
+
+* about 68\% of the values will lie in the interval within one standard deviation of the mean
+* 95% lie within two standard deviation of the mean
+* and 99.9% lie within 3 standard deviations of the mean. 
 
 ```{python}
 import matplotlib
@@ -311,19 +279,20 @@ plt.show()
 
 ## Standardization
 
-* To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
-* If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
-$$  X^{\ast} = (X-\mu)/\sigma$$ 
+To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
+If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
+$$
+X^{\ast} = (X-\mu)/\sigma
+$$ 
 is called $X$ in standard units. 
-* It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
+It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
 
 
 ## Random Numbers in Python
 
-* Results from computers are deterministic, so it sounds like a contradiction 
-in terms to generate random numbers on a computer.
-* Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
-* To generate ten random numbers from a normal distribution, the following command can be used.
+Results from computers are deterministic, so it sounds like a contradiction in terms to generate random numbers on a computer.
+Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
+To generate ten random numbers from a normal distribution, the following command can be used.
 
 
 ```{python}
@@ -334,13 +303,13 @@ mu, sigma = 2, 0.1
 x = rng.normal(mu, sigma, n)
 ```
 
-* Verify the mean:
+Verify the mean:
 
 ```{python}
 abs(mu - np.mean(x))
 ```
 
-* Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
+Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
 
 ```{python}
 abs(sigma - np.std(x, ddof=1))
@@ -348,14 +317,13 @@ abs(sigma - np.std(x, ddof=1))
 
 ## The Multivariate Normal Distribution
 
-* The multivariate normal, multinormal, or Gaussian distribution is a generalization of the one-dimensional normal distribution to higher dimensions. 
-* Such a distribution is specified by its mean and covariance matrix. 
-  * These parameters are analogous to the mean (average or "center") and variance (squared standard deviation or "width") of the one-dimensional normal distribution.
-* The mean is a coordinate in $n$-dimensional space, which represents the location where samples are most likely to be generated. 
-  * This is analogous to the peak of the bell curve for the one-dimensional or univariate normal distribution.
-* The covariance indicates the level to which two variables vary together. 
-  * From the multivariate normal distribution, we draw $n$-dimensional samples, $X = [x_1, x_2, \ldots, x_n]$.
-* The covariance matrix element $C_{ij}$ is the covariance of $x_i$ and $x_j$. 
+The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. To fully define this distribution, it is necessary to specify its mean and covariance matrix. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution.
+
+In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an n-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
+
+On the other hand, the covariance within the multivariate normal distribution denotes the extent to which two variables vary together. When drawing n-dimensional samples from this distribution, it results in a set of values represented as $X = [x_1, x_2, \ldots, x_n]$.
+The elements of the covariance matrix, such as $C_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
+
 
 ```{python}
 import numpy as np
@@ -729,3 +697,325 @@ plt.show()
   * What happens if this interval is increased (which is referred to as "extrapolation")?
 
 
+
+## Exercise RBF
+
+
+### Package Loading
+
+```{python}
+%matplotlib inline
+import numpy as np
+from numpy.matlib import eye
+import scipy.linalg
+from numpy import linalg as LA
+from spotPython.design.spacefilling import spacefilling
+from spotPython.fun.objectivefunctions import analytical
+import matplotlib.pyplot as plt
+
+```
+
+### Define a small number
+
+```{python}
+eps = np.sqrt(np.spacing(1))
+```
+
+### The Sampling Plan (X)
+
+* We will use 256 points.
+* The first 10 points are shown below.
+
+```{python}
+gen = spacefilling(2)
+rng = np.random.RandomState(1)
+lower = np.array([-1,-1])
+upper = np.array([2,2])
+X = gen.scipy_lhd(256, lower=lower, upper = upper)
+X[1:10]
+```
+
+### The Objective Function
+
+* Here we use $\sum_{i=1}^n (x_i-1)^2$.
+* `f_map()` is a helper function that maps $f$ to the entries (points) in the matrix $X$.
+
+```{python}
+def f(x):
+    return np.sum((x-1.0)**2)
+
+def f_map(x):
+    return np.array(list(map(f, x)))
+```
+
+```{python}
+y = f_map(X)
+y[1:10]
+```
+
+* Alternatively, we can use pre-defined functions from the `pyspot` package:
+
+```{python}
+# fun = analytical(sigma=0).fun_branin
+# fun = analytical(sigma=0).fun_sphere
+```
+
+```{python}
+XX, YY = np.meshgrid(np.linspace(-1, 2, 128), np.linspace(-1, 2, 128))
+zz = np.array([f_map(np.array([xi, yi]).reshape(-1,2)) for xi, yi in zip(np.ravel(XX), np.ravel(YY))]).reshape(128,128)
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 10))
+```
+
+### The Gram Matrix
+
+```{python}
+def build_Gram(X):
+        """
+        Construction of the Gram matrix.
+        """
+        n = X.shape[0]
+        G = np.zeros((n, n))
+        for i in range(n):
+            for j in range(i, n):
+                G[i, j] = np.linalg.norm(X[i] - X[j])
+        G = G + G.T    
+        return G
+```
+
+```{python}
+G = build_Gram(X)
+np.round(G,2)
+```
+
+### The Radial Basis Functions
+
+```{python}
+def basis_linear(r):
+    return r*r*r
+```
+
+```{python}
+def basis_gauss(r, sigma = 1e-1):
+    return np.exp(-r**2/sigma)
+```
+
++ We select the Gaussian basis function for the following examples:
+
+```{python}
+basis = basis_gauss
+```
+
+### The $\Psi$ Matrix
+
+```{python}
+def build_Phi(G, basis, eps=np.sqrt(np.spacing(1))):
+    n = G.shape[0]
+    Phi = np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            Phi[i,j] = basis(G[i,j])
+    Phi = Phi +  np.multiply(np.mat(eye(n)), eps)
+    return Phi
+```
+
+```{python}
+Phi = build_Phi(G, basis=basis)
+Phi[0:3,0:3]
+```
+
+### Inverting $\Psi$ via Cholesky Factorization
+
+* There a two different implementations of the Cholesky factorization oin Python:
+  * `numpy`'s  `linalg.cholesky()` and
+  * `scipy`'s  `linalg.cholesky()`
+* We will use `numpy`'s version.
+
+```{python}
+def get_rbf_weights(Phi, y):
+    """ 
+    Calculating the weights of the radial basis function surrogate.
+    Cholesky factorization used.
+    LU decomposition otherwise (not implemented yet).
+    """
+    # U = scipy.linalg.cholesky(Phi, lower=True)
+    U = np.linalg.cholesky(Phi)
+    U = U.T
+    # w = U\(U'\ModelInfo.y)
+    w = np.linalg.solve(U, np.linalg.solve(U.T, y))
+    return w
+```
+
+```{python}
+w = get_rbf_weights(Phi, y)
+w[0:3]
+```
+
+### Predictions
+
+#### The Predictor
+
+```{python}
+def pred_rbf(x, X, basis, w):
+    n = X.shape[0]
+    d = np.zeros((n))
+    phi = np.zeros((n))
+    for i in range(n):
+        d[i] = np.linalg.norm(x - X[i])
+    for i in range(n):
+        phi[i] = basis(d[i])
+    return w @ phi    
+```
+
+#### Testing some Example Points
+
+```{python}
+x = X[0]
+x
+```
+
+#### The RBF Prediction $\hat{f}$
+
+```{python}
+pred_rbf(x=x, X=X, basis=basis, w=w)
+```
+
+#### The Original (True) Value $f$
+
+```{python}
+f_map(np.array(x).reshape(1,-1))
+```
+
+#### Visualizations
+
+```{python}
+XX, YY = np.meshgrid(np.linspace(-1, 2, 128), np.linspace(-1, 2, 128))
+zz = np.array([pred_rbf(x=np.array([xi, yi]), X=X, basis=basis,w=w) for xi, yi in zip(np.ravel(XX), np.ravel(YY))]).reshape(128,128)
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 5))
+```
+
+#### Note
+
+The original function $f$ is cheaper than the surrogate $\hat{f}$ in this example, because we have chosen a simple analytical function as the ground truth. This is not the case in real-world settings.
+
+### Cholesky Factorization
+
+##### $A = U^T U$
+
+* $U$ is an upper triangular matrix
+
+```{python}
+def cholesky_U(A):
+    N = A.shape[0]
+    U = np.zeros((N,N))
+    for k in range(0,N):
+         # compute diagonal entry
+         U[k,k] = A[k,k]
+         for j in range(0,k):
+             U[k,k] = U[k,k] - U[j,k]*U[j,k]
+         U[k,k] = np.sqrt(U[k,k])
+         # compute remaining column
+         for i in range(k+1,N):
+             U[k,i] = A[k,i]
+             for j in range(0,k):
+                 U[k,i] = U[k,i] - U[j,i]*U[j,k]
+             U[k,i] = U[k,i] / U[k,k]
+    return U
+```
+
+#### $A = L L^T$
+
+$L$ is a lower triangular matrix
+
+```{python}
+def cholesky_L(A):
+    N = A.shape[0]
+    L = np.zeros((N,N))
+    for k in range(0,N):
+         # compute diagonal entry
+         L[k,k] = A[k,k]
+         for j in range(0,k):
+             L[k,k] = L[k,k] - L[k,j]*L[k,j]
+         L[k,k] = np.sqrt(L[k,k])
+         # compute remaining column
+         for i in range(k+1,N):
+             L[i,k] = A[i,k]
+             for j in range(0,k):
+                 L[i,k] = L[i,k] - L[i,j]*L[k,j]
+             L[i,k] = L[i,k] / L[k,k]
+    return L
+```
+
+#### Example
+
+```{python}
+A = np.array([[4, 2, 4, 4], [2, 10, 5, 2], [4, 5, 9, 6], [4, 2, 6, 9]])
+A
+```
+
+#### Check: Is $A$ positive definite?
+
+```{python}
+assert(np.all(np.linalg.eigvals(A) > 0))
+```
+
+####  $A = U^T U$
+
+Perform Cholesky Factorization
+
+```{python}
+U = cholesky_U(A)
+U
+```
+
+Test Result
+
+```{python}
+U.T @ U
+```
+
+####  $A = L L^T$
+
+```{python}
+L = cholesky_L(A)
+L
+```
+
+Test Result
+
+```{python}
+L @ L.T
+```
+
+## Exercises
+
+### Gaussian Basis Function
+
+* Plot the Gaussian Basis Function `basis_gauss` in the range from -2 to 2 using `matplotlib.pyplot`
+  * Hint: Check the [matplotlib documentation](https://matplotlib.org/stable/tutorials/introductory/pyplot.html) for examples.
+  * Generate a plot with several `sigma` values, e.g., 0.1, 1.0, and 10.
+* What is the meaning of the `sigma` parameter: Can you explain its influence / effect on the model quality?
+  * Is the `sigma` value important?
+
+### Linear Basis Function
+
+* Select the linear basis function?
+* What errors occur?
+* Do you have any ideas how to fix this error?
