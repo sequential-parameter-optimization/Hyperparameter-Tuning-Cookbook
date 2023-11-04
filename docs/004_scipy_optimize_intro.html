@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hyperparameter Tuning Cookbook - 4&nbsp; Introduction to scipy.optimize</title>
+<title>Hyperparameter Tuning Cookbook - 3&nbsp; Introduction to scipy.optimize</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -30,8 +64,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./01_spot_intro.html" rel="next">
-<link href="./003_optimization_gp.html" rel="prev">
+<link href="./05_spot_sklearn_optimization.html" rel="next">
+<link href="./002_awwe.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -62,10 +96,13 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
-<meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 4&nbsp; Introduction to scipy.optimize">
+<meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 3&nbsp; Introduction to scipy.optimize">
 <meta name="twitter:description" content="">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="004_scipy_optimize_intro_files/figure-html/cell-9-output-1.png">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 
 <body class="nav-sidebar docked">
@@ -77,7 +114,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./001_optimization_rsm.html">Optimization</a></li><li class="breadcrumb-item"><a href="./004_scipy_optimize_intro.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Introduction to `scipy.optimize`</span></a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./00000_optimization_surrogate.html">Optimization</a></li><li class="breadcrumb-item"><a href="./004_scipy_optimize_intro.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to `scipy.optimize`</span></a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -140,26 +177,26 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./001_optimization_rsm.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Response Surface Methods</span></span></a>
+  <a href="./00000_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./002_optimization_dace.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Design and Analysis of Computer Experiments</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./003_optimization_gp.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./004_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
   </div>
 </li>
       </ul>
@@ -167,7 +204,7 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
- <span class="menu-text">Spot as an Optimizer</span></a>
+ <span class="menu-text">Numerical Methods</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -175,56 +212,62 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./001_optimization_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_optimization_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./01_spot_intro.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./02_spot_multidim.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./03_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./04_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./05_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./06_spot_gaussian.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  <a href="./06_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./07_spot_ei.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./08_spot_noisy.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning and Noise</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning and Noise</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_spot_ocba.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise: Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Handling Noise: Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +284,31 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_spot_hpt_sklearn_classification.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC on Moons Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC on Moons Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_spot_hpt_sklearn_multiclass_classification_randomforest.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">HPT: sklearn RandomForestClassifier VBDP Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">HPT: sklearn RandomForestClassifier VBDP Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_spot_hpt_sklearn_multiclass_classification_xgb.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">HPT: sklearn XGB Classifier VBDP Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">HPT: sklearn XGB Classifier VBDP Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_spot_hpt_sklearn_multiclass_classification_svc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC VBDP Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC VBDP Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_spot_hpt_sklearn_multiclass_classification_knn.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">HPT: sklearn KNN Classifier VBDP Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">HPT: sklearn KNN Classifier VBDP Data</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,25 +325,25 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./0000spot_river_gui.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">The spotriver GUI</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">The spotriver GUI</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_spot_hpt_river_friedman_hatr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./51_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./52_spot_hpt_river_bananas_amfc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Classifier with Bananas Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Classifier with Bananas Data</span></span></a>
   </div>
 </li>
       </ul>
@@ -317,13 +360,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_spot_ray_hpt_torch_cifar10.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">HPT: PyTorch With <code>spotPython</code> and Ray Tune on CIFAR10</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">HPT: PyTorch With <code>spotPython</code> and Ray Tune on CIFAR10</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./31_spot_lightning_csv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: VBDP</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: VBDP</span></span></a>
   </div>
 </li>
       </ul>
@@ -363,14 +406,34 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#nelder-mead-simplex-algorithm" id="toc-nelder-mead-simplex-algorithm" class="nav-link active" data-scroll-target="#nelder-mead-simplex-algorithm"><span class="header-section-number">3.1</span> Nelder-Mead Simplex Algorithm</a></li>
+  <li><a href="#powells-method" id="toc-powells-method" class="nav-link" data-scroll-target="#powells-method"><span class="header-section-number">3.2</span> Powell’s Method</a></li>
+  <li><a href="#broyden-fletcher-goldfarb-shanno-algorithm-bfgs" id="toc-broyden-fletcher-goldfarb-shanno-algorithm-bfgs" class="nav-link" data-scroll-target="#broyden-fletcher-goldfarb-shanno-algorithm-bfgs"><span class="header-section-number">3.3</span> Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</a>
+  <ul class="collapse">
+  <li><a href="#using-bfgs-with-the-rosenbrock-function" id="toc-using-bfgs-with-the-rosenbrock-function" class="nav-link" data-scroll-target="#using-bfgs-with-the-rosenbrock-function"><span class="header-section-number">3.3.1</span> Using BFGS with the Rosenbrock Function</a></li>
+  </ul></li>
+  <li><a href="#global-optimization" id="toc-global-optimization" class="nav-link" data-scroll-target="#global-optimization"><span class="header-section-number">3.4</span> Global Optimization</a></li>
+  <li><a href="#optimization-algorithms-in-detail" id="toc-optimization-algorithms-in-detail" class="nav-link" data-scroll-target="#optimization-algorithms-in-detail"><span class="header-section-number">3.5</span> Optimization Algorithms in Detail</a>
+  <ul class="collapse">
+  <li><a href="#dual_annealing" id="toc-dual_annealing" class="nav-link" data-scroll-target="#dual_annealing"><span class="header-section-number">3.5.1</span> dual_annealing</a></li>
+  <li><a href="#differential-evolution" id="toc-differential-evolution" class="nav-link" data-scroll-target="#differential-evolution"><span class="header-section-number">3.5.2</span> Differential Evolution</a></li>
+  <li><a href="#direct" id="toc-direct" class="nav-link" data-scroll-target="#direct"><span class="header-section-number">3.5.3</span> direct</a></li>
+  <li><a href="#shgo" id="toc-shgo" class="nav-link" data-scroll-target="#shgo"><span class="header-section-number">3.5.4</span> shgo</a></li>
+  <li><a href="#basinhopping" id="toc-basinhopping" class="nav-link" data-scroll-target="#basinhopping"><span class="header-section-number">3.5.5</span> basinhopping</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></h1>
+<h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></h1>
 </div>
 
 
@@ -386,8 +449,311 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <p>In this notebook, we will learn how to use the <code>scipy.optimize</code> module to solve optimization problems. See: <a href="https://docs.scipy.org/doc/scipy/tutorial/optimize.html">https://docs.scipy.org/doc/scipy/tutorial/optimize.html</a></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>This content is based on information from the scipy.optimize package.</li>
+<li>The <code>scipy.optimize</code> package provides several commonly used optimization algorithms. A detailed listing is available in <code>scipy.optimize</code> (can also be found by <code>help(scipy.optimize)</code>).</li>
+</ul>
+</div>
+</div>
+<p>We will introduce unconstrained minimization of multivariate scalar functions in this chapter. The <code>minimize</code> function provides a common interface to unconstrained and constrained minimization algorithms for multivariate scalar functions in <code>scipy.optimize</code>. To demonstrate the minimization function, consider the problem of minimizing the Rosenbrock function of <em>N</em> variables:</p>
+<p><span class="math display">\[
+f(\mathbf{x}) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
+\]</span></p>
+<p>The minimum value of this function is 0, which is achieved when (x_i = 1).</p>
+<p>Note that the Rosenbrock function and its derivatives are included in <code>scipy.optimize</code>. The implementations shown in the following sections provide examples of how to define an objective function as well as its Jacobian and Hessian functions. Objective functions in <code>scipy.optimize</code> expect a numpy array as their first parameter, which is to be optimized and must return a float value. The exact calling signature must be <code>f(x, *args)</code>, where <code>x</code> represents a numpy array, and <code>args</code> is a tuple of additional arguments supplied to the objective function.</p>
+<section id="nelder-mead-simplex-algorithm" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="nelder-mead-simplex-algorithm"><span class="header-section-number">3.1</span> Nelder-Mead Simplex Algorithm</h2>
+<p><code>method='Nelder-Mead'</code>: In the example below, the <code>minimize</code> routine is used with the <em>Nelder-Mead</em> simplex algorithm (selected through the <code>method</code> parameter):</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> minimize</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosen(x):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""The Rosenbrock function"""</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(<span class="fl">100.0</span> <span class="op">*</span> (x[<span class="dv">1</span>:] <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>]<span class="op">**</span><span class="fl">2.0</span>)<span class="op">**</span><span class="fl">2.0</span> <span class="op">+</span> (<span class="dv">1</span> <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>])<span class="op">**</span><span class="fl">2.0</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> np.array([<span class="fl">1.3</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">1.9</span>, <span class="fl">1.2</span>])</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> minimize(rosen, x0, method<span class="op">=</span><span class="st">'nelder-mead'</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>               options<span class="op">=</span>{<span class="st">'xatol'</span>: <span class="fl">1e-8</span>, <span class="st">'disp'</span>: <span class="va">True</span>})</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(res.x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimization terminated successfully.
+         Current function value: 0.000000
+         Iterations: 339
+         Function evaluations: 571
+[1. 1. 1. 1. 1.]</code></pre>
+</div>
+</div>
+<p>The simplex algorithm is probably the simplest way to minimize a well-behaved function. It requires only function evaluations and is a good choice for simple minimization problems. However, because it does not use any gradient evaluations, it may take longer to find the minimum.</p>
+</section>
+<section id="powells-method" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="powells-method"><span class="header-section-number">3.2</span> Powell’s Method</h2>
+<p>Another optimization algorithm that needs only function calls to find the minimum is <em>Powell</em>’s method, which can be selected by setting the <code>method</code> parameter to <code>'powell'</code> in the <code>minimize</code> function.</p>
+<p>To demonstrate how to supply additional arguments to an objective function, let’s consider minimizing the Rosenbrock function with an additional scaling factor <em>a</em> and an offset <em>b</em>:</p>
+<p><span class="math display">\[
+f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
+\]</span></p>
+<p>You can achieve this using the <code>minimize</code> routine with the example parameters <em>a=0.5</em> and <em>b=1</em>:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosen_with_args(x, a, b):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""The Rosenbrock function with additional arguments"""</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(a <span class="op">*</span> (x[<span class="dv">1</span>:] <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>]<span class="op">**</span><span class="fl">2.0</span>)<span class="op">**</span><span class="fl">2.0</span> <span class="op">+</span> (<span class="dv">1</span> <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>])<span class="op">**</span><span class="fl">2.0</span>) <span class="op">+</span> b</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> np.array([<span class="fl">1.3</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">1.9</span>, <span class="fl">1.2</span>])</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> minimize(rosen_with_args, x0, method<span class="op">=</span><span class="st">'nelder-mead'</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>               args<span class="op">=</span>(<span class="fl">0.5</span>, <span class="fl">1.</span>), options<span class="op">=</span>{<span class="st">'xatol'</span>: <span class="fl">1e-8</span>, <span class="st">'disp'</span>: <span class="va">True</span>})</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(res.x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimization terminated successfully.
+         Current function value: 1.000000
+         Iterations: 319
+         Function evaluations: 525
+[1.         1.         1.         1.         0.99999999]</code></pre>
+</div>
+</div>
+<p>As an alternative to using the <code>args</code> parameter of <code>minimize</code>, you can wrap the objective function in a new function that accepts only <code>x</code>. This approach is also useful when it is necessary to pass additional parameters to the objective function as keyword arguments.</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosen_with_args(x, a, <span class="op">*</span>, b):  <span class="co"># b is a keyword-only argument</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(a <span class="op">*</span> (x[<span class="dv">1</span>:] <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>]<span class="op">**</span><span class="fl">2.0</span>)<span class="op">**</span><span class="fl">2.0</span> <span class="op">+</span> (<span class="dv">1</span> <span class="op">-</span> x[:<span class="op">-</span><span class="dv">1</span>])<span class="op">**</span><span class="fl">2.0</span>) <span class="op">+</span> b</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> wrapped_rosen_without_args(x):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> rosen_with_args(x, <span class="fl">0.5</span>, b<span class="op">=</span><span class="fl">1.</span>)  <span class="co"># pass in `a` and `b`</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> np.array([<span class="fl">1.3</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">1.9</span>, <span class="fl">1.2</span>])</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> minimize(wrapped_rosen_without_args, x0, method<span class="op">=</span><span class="st">'nelder-mead'</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>               options<span class="op">=</span>{<span class="st">'xatol'</span>: <span class="fl">1e-8</span>,})</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(res.x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1.         1.         1.         1.         0.99999999]</code></pre>
+</div>
+</div>
+<p>Another alternative is to use <code>functools.partial</code>.</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>partial_rosen <span class="op">=</span> partial(rosen_with_args, a<span class="op">=</span><span class="fl">0.5</span>, b<span class="op">=</span><span class="fl">1.</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> minimize(partial_rosen, x0, method<span class="op">=</span><span class="st">'nelder-mead'</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>               options<span class="op">=</span>{<span class="st">'xatol'</span>: <span class="fl">1e-8</span>,})</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(res.x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1.         1.         1.         1.         0.99999999]</code></pre>
+</div>
+</div>
+</section>
+<section id="broyden-fletcher-goldfarb-shanno-algorithm-bfgs" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="broyden-fletcher-goldfarb-shanno-algorithm-bfgs"><span class="header-section-number">3.3</span> Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</h2>
+<p>The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm (selected by setting <code>method='BFGS'</code>) is an optimization algorithm that aims to converge quickly to the solution. This algorithm uses the gradient of the objective function. If the gradient is not provided by the user, it is estimated using first-differences. The BFGS method typically requires fewer function calls compared to the simplex algorithm, even when the gradient needs to be estimated.</p>
+<section id="using-bfgs-with-the-rosenbrock-function" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="using-bfgs-with-the-rosenbrock-function"><span class="header-section-number">3.3.1</span> Using BFGS with the Rosenbrock Function</h3>
+<p>To demonstrate the BFGS algorithm, let’s use the Rosenbrock function again. The gradient of the Rosenbrock function is a vector described by the following mathematical expression:</p>
+<p><span class="math display">\[\begin{align}
+\frac{\partial f}{\partial x_j} = \sum_{i=1}^{N} 200(x_i - x_{i-1}^2)(\delta_{i,j} - 2x_{i-1}\delta_{i-1,j}) - 2(1 - x_{i-1})\delta_{i-1,j} \\
+= 200(x_j - x_{j-1}^2) - 400x_j(x_{j+1} - x_j^2) - 2(1 - x_j)
+\end{align}\]</span></p>
+<p>This expression is valid for interior derivatives, but special cases are:</p>
+<p><span class="math display">\[
+\frac{\partial f}{\partial x_0} = -400x_0(x_1 - x_0^2) - 2(1 - x_0)
+\]</span></p>
+<p><span class="math display">\[
+\frac{\partial f}{\partial x_{N-1}} = 200(x_{N-1} - x_{N-2}^2)
+\]</span></p>
+<p>Here’s a Python function that computes this gradient:</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosen_der(x):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    xm <span class="op">=</span> x[<span class="dv">1</span>:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    xm_m1 <span class="op">=</span> x[:<span class="op">-</span><span class="dv">2</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    xm_p1 <span class="op">=</span> x[<span class="dv">2</span>:]</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    der <span class="op">=</span> np.zeros_like(x)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    der[<span class="dv">1</span>:<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> <span class="dv">200</span><span class="op">*</span>(xm<span class="op">-</span>xm_m1<span class="op">**</span><span class="dv">2</span>) <span class="op">-</span> <span class="dv">400</span><span class="op">*</span>(xm_p1 <span class="op">-</span> xm<span class="op">**</span><span class="dv">2</span>)<span class="op">*</span>xm <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>xm)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    der[<span class="dv">0</span>] <span class="op">=</span> <span class="op">-</span><span class="dv">400</span><span class="op">*</span>x[<span class="dv">0</span>]<span class="op">*</span>(x[<span class="dv">1</span>]<span class="op">-</span>x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span>) <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>x[<span class="dv">0</span>])</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    der[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> <span class="dv">200</span><span class="op">*</span>(x[<span class="op">-</span><span class="dv">1</span>]<span class="op">-</span>x[<span class="op">-</span><span class="dv">2</span>]<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> der</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>You can specify this gradient information in the minimize function using the jac parameter as illustrated below:</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> minimize(rosen, x0, method<span class="op">=</span><span class="st">'BFGS'</span>, jac<span class="op">=</span>rosen_der,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>               options<span class="op">=</span>{<span class="st">'disp'</span>: <span class="va">True</span>})</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(res.x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimization terminated successfully.
+         Current function value: 0.000000
+         Iterations: 25
+         Function evaluations: 30
+         Gradient evaluations: 30
+[1.00000004 1.0000001  1.00000021 1.00000044 1.00000092]</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="global-optimization" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="global-optimization"><span class="header-section-number">3.4</span> Global Optimization</h2>
+<p>Global optimization aims to find the global minimum of a function within given bounds, in the presence of potentially many local minima. Typically, global minimizers efficiently search the parameter space, while using a local minimizer (e.g., minimize) under the hood. SciPy contains a number of good global optimizers. Here, we’ll use those on the same objective function, namely the (aptly named) eggholder function:</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eggholder(x):</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="op">-</span>(x[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">47</span>) <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>))))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>            <span class="op">-</span>x[<span class="dv">0</span>] <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>] <span class="op">-</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>)))))</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [(<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>), (<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.mplot3d <span class="im">import</span> Axes3D</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>xgrid, ygrid <span class="op">=</span> np.meshgrid(x, y)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>xy <span class="op">=</span> np.stack([xgrid, ygrid])</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>, projection<span class="op">=</span><span class="st">'3d'</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>ax.view_init(<span class="dv">45</span>, <span class="op">-</span><span class="dv">45</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ax.plot_surface(xgrid, ygrid, eggholder(xy), cmap<span class="op">=</span><span class="st">'terrain'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>ax.set_zlabel(<span class="st">'eggholder(x, y)'</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="004_scipy_optimize_intro_files/figure-html/cell-9-output-1.png" width="427" height="398"></p>
+</div>
+</div>
+<p>We now use the global optimizers to obtain the minimum and the function value at the minimum. We’ll store the results in a dictionary so we can compare different optimization results later.</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> optimize</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="bu">dict</span>()</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="68">
+<pre><code> message: Optimization terminated successfully.
+ success: True
+     fun: -935.3379515605789
+    funl: [-9.353e+02]
+       x: [ 4.395e+02  4.540e+02]
+      xl: [[ 4.395e+02  4.540e+02]]
+     nit: 1
+    nfev: 45
+   nlfev: 40
+   nljev: 10
+   nlhev: 0</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>] <span class="op">=</span> optimize.dual_annealing(eggholder, bounds)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="69">
+<pre><code> message: ['Maximum number of iteration reached']
+ success: True
+  status: 0
+     fun: -935.3379515585161
+       x: [ 4.395e+02  4.540e+02]
+     nit: 1000
+    nfev: 4121
+    njev: 40
+    nhev: 0</code></pre>
+</div>
+</div>
+<p>All optimizers return an <code>OptimizeResult</code>, which in addition to the solution contains information on the number of function evaluations, whether the optimization was successful, and more. For brevity, we won’t show the full output of the other optimizers:</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>] <span class="op">=</span> optimize.differential_evolution(eggholder, bounds)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="70">
+<pre><code> message: Optimization terminated successfully.
+ success: True
+     fun: -894.5789003904963
+       x: [-4.657e+02  3.857e+02]
+     nit: 13
+    nfev: 438
+     jac: [ 0.000e+00  0.000e+00]</code></pre>
+</div>
+</div>
+<p><code>shgo</code> has a second method, which returns all local minima rather than only what it thinks is the global minimum:</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds, n<span class="op">=</span><span class="dv">200</span>, iters<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                                      sampling_method<span class="op">=</span><span class="st">'sobol'</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="71">
+<pre><code> message: Optimization terminated successfully.
+ success: True
+     fun: -959.640662720831
+    funl: [-9.596e+02 -9.353e+02 ... -6.591e+01 -6.387e+01]
+       x: [ 5.120e+02  4.042e+02]
+      xl: [[ 5.120e+02  4.042e+02]
+           [ 4.395e+02  4.540e+02]
+           ...
+           [ 3.165e+01 -8.523e+01]
+           [ 5.865e+01 -5.441e+01]]
+     nit: 5
+    nfev: 3529
+   nlfev: 2327
+   nljev: 634
+   nlhev: 0</code></pre>
+</div>
+</div>
+<p>We’ll now plot all found minima on a heatmap of the function:</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>im <span class="op">=</span> ax.imshow(eggholder(xy), interpolation<span class="op">=</span><span class="st">'bilinear'</span>, origin<span class="op">=</span><span class="st">'lower'</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>               cmap<span class="op">=</span><span class="st">'gray'</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_point(res, marker<span class="op">=</span><span class="st">'o'</span>, color<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">0</span>], <span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">1</span>], marker<span class="op">=</span>marker, color<span class="op">=</span>color, ms<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DE'</span>], color<span class="op">=</span><span class="st">'c'</span>)  <span class="co"># differential_evolution - cyan</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DA'</span>], color<span class="op">=</span><span class="st">'w'</span>)  <span class="co"># dual_annealing.        - white</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co"># SHGO produces multiple minima, plot them all (with a smaller marker size)</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'+'</span>)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo_sobol'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'x'</span>)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(results[<span class="st">'shgo_sobol'</span>].xl.shape[<span class="dv">0</span>]):</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">0</span>],</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>            <span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">1</span>],</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">'ro'</span>, ms<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>ax.set_xlim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="004_scipy_optimize_intro_files/figure-html/cell-14-output-1.png" width="457" height="429"></p>
+</div>
+</div>
+</section>
+<section id="optimization-algorithms-in-detail" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="optimization-algorithms-in-detail"><span class="header-section-number">3.5</span> Optimization Algorithms in Detail</h2>
+<section id="dual_annealing" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="dual_annealing"><span class="header-section-number">3.5.1</span> dual_annealing</h3>
+</section>
+<section id="differential-evolution" class="level3" data-number="3.5.2">
+<h3 data-number="3.5.2" class="anchored" data-anchor-id="differential-evolution"><span class="header-section-number">3.5.2</span> Differential Evolution</h3>
+</section>
+<section id="direct" class="level3" data-number="3.5.3">
+<h3 data-number="3.5.3" class="anchored" data-anchor-id="direct"><span class="header-section-number">3.5.3</span> direct</h3>
+</section>
+<section id="shgo" class="level3" data-number="3.5.4">
+<h3 data-number="3.5.4" class="anchored" data-anchor-id="shgo"><span class="header-section-number">3.5.4</span> shgo</h3>
+</section>
+<section id="basinhopping" class="level3" data-number="3.5.5">
+<h3 data-number="3.5.5" class="anchored" data-anchor-id="basinhopping"><span class="header-section-number">3.5.5</span> basinhopping</h3>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -625,13 +991,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./003_optimization_gp.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span>
+      <a href="./002_awwe.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./01_spot_intro.html" class="pagination-link">
-        <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./05_spot_sklearn_optimization.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

@@ -11,3 +11,243 @@ execute:
 In this notebook, we will learn how to use the `scipy.optimize` module to solve optimization problems.
 See: [https://docs.scipy.org/doc/scipy/tutorial/optimize.html](https://docs.scipy.org/doc/scipy/tutorial/optimize.html)
 
+::: {.callout-note}
+* This content is based on information from the scipy.optimize package.
+* The `scipy.optimize` package provides several commonly used optimization algorithms. A detailed listing is available in `scipy.optimize` (can also be found by `help(scipy.optimize)`).
+:::
+
+We will introduce unconstrained minimization of multivariate scalar functions in this chapter.
+The `minimize` function provides a common interface to unconstrained and constrained minimization algorithms for multivariate scalar functions in `scipy.optimize`. To demonstrate the minimization function, consider the problem of minimizing the Rosenbrock function of *N* variables:
+
+$$
+f(\mathbf{x}) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
+$$
+
+The minimum value of this function is 0, which is achieved when \(x_i = 1\).
+
+Note that the Rosenbrock function and its derivatives are included in `scipy.optimize`. The implementations shown in the following sections provide examples of how to define an objective function as well as its Jacobian and Hessian functions. Objective functions in `scipy.optimize` expect a numpy array as their first parameter, which is to be optimized and must return a float value. The exact calling signature must be `f(x, *args)`, where `x` represents a numpy array, and `args` is a tuple of additional arguments supplied to the objective function.
+
+## Nelder-Mead Simplex Algorithm 
+
+`method='Nelder-Mead'`: In the example below, the `minimize` routine is used with the *Nelder-Mead* simplex algorithm (selected through the `method` parameter):
+
+```{python}
+import numpy as np
+from scipy.optimize import minimize
+
+def rosen(x):
+    """The Rosenbrock function"""
+    return sum(100.0 * (x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0)
+
+x0 = np.array([1.3, 0.7, 0.8, 1.9, 1.2])
+res = minimize(rosen, x0, method='nelder-mead',
+               options={'xatol': 1e-8, 'disp': True})
+
+print(res.x)
+```
+
+The simplex algorithm is probably the simplest way to minimize a well-behaved function. It requires only function evaluations and is a good choice for simple minimization problems. However, because it does not use any gradient evaluations, it may take longer to find the minimum.
+
+## Powell's Method
+
+Another optimization algorithm that needs only function calls to find the minimum is *Powell*'s method, which can be selected by setting the `method` parameter to `'powell'` in the `minimize` function.
+
+To demonstrate how to supply additional arguments to an objective function, let's consider minimizing the Rosenbrock function with an additional scaling factor *a* and an offset *b*:
+
+$$
+f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
+$$
+
+You can achieve this using the `minimize` routine with the example parameters *a=0.5* and *b=1*:
+
+```{python}
+def rosen_with_args(x, a, b):
+    """The Rosenbrock function with additional arguments"""
+    return sum(a * (x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0) + b
+
+x0 = np.array([1.3, 0.7, 0.8, 1.9, 1.2])
+res = minimize(rosen_with_args, x0, method='nelder-mead',
+               args=(0.5, 1.), options={'xatol': 1e-8, 'disp': True})
+
+print(res.x)
+```
+
+As an alternative to using the `args` parameter of `minimize`, you can wrap the objective function in a new function that accepts only `x`. This approach is also useful when it is necessary to pass additional parameters to the objective function as keyword arguments.
+
+```{python}
+def rosen_with_args(x, a, *, b):  # b is a keyword-only argument
+    return sum(a * (x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0) + b
+
+def wrapped_rosen_without_args(x):
+    return rosen_with_args(x, 0.5, b=1.)  # pass in `a` and `b`
+
+x0 = np.array([1.3, 0.7, 0.8, 1.9, 1.2])
+res = minimize(wrapped_rosen_without_args, x0, method='nelder-mead',
+               options={'xatol': 1e-8,})
+
+print(res.x)
+```
+
+Another alternative is to use `functools.partial`.
+
+```{python}
+from functools import partial
+
+partial_rosen = partial(rosen_with_args, a=0.5, b=1.)
+res = minimize(partial_rosen, x0, method='nelder-mead',
+               options={'xatol': 1e-8,})
+
+print(res.x)
+```
+
+## Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)
+
+The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm (selected by setting `method='BFGS'`) is an optimization algorithm that aims to converge quickly to the solution. This algorithm uses the gradient of the objective function. If the gradient is not provided by the user, it is estimated using first-differences. The BFGS method typically requires fewer function calls compared to the simplex algorithm, even when the gradient needs to be estimated.
+
+### Using BFGS with the Rosenbrock Function
+
+To demonstrate the BFGS algorithm, let's use the Rosenbrock function again. The gradient of the Rosenbrock function is a vector described by the following mathematical expression:
+
+\begin{align}
+\frac{\partial f}{\partial x_j} = \sum_{i=1}^{N} 200(x_i - x_{i-1}^2)(\delta_{i,j} - 2x_{i-1}\delta_{i-1,j}) - 2(1 - x_{i-1})\delta_{i-1,j} \\
+= 200(x_j - x_{j-1}^2) - 400x_j(x_{j+1} - x_j^2) - 2(1 - x_j)
+\end{align}
+
+This expression is valid for interior derivatives, but special cases are:
+
+$$
+\frac{\partial f}{\partial x_0} = -400x_0(x_1 - x_0^2) - 2(1 - x_0)
+$$
+
+$$
+\frac{\partial f}{\partial x_{N-1}} = 200(x_{N-1} - x_{N-2}^2)
+$$
+
+Here's a Python function that computes this gradient:
+
+```{python}
+def rosen_der(x):
+    xm = x[1:-1]
+    xm_m1 = x[:-2]
+    xm_p1 = x[2:]
+    der = np.zeros_like(x)
+    der[1:-1] = 200*(xm-xm_m1**2) - 400*(xm_p1 - xm**2)*xm - 2*(1-xm)
+    der[0] = -400*x[0]*(x[1]-x[0]**2) - 2*(1-x[0])
+    der[-1] = 200*(x[-1]-x[-2]**2)
+    return der
+```
+
+You can specify this gradient information in the minimize function using the jac parameter as illustrated below:
+
+```{python}
+res = minimize(rosen, x0, method='BFGS', jac=rosen_der,
+               options={'disp': True})
+
+print(res.x)
+```
+
+## Global Optimization
+
+Global optimization aims to find the global minimum of a function within given bounds, in the presence of potentially many local minima. Typically, global minimizers efficiently search the parameter space, while using a local minimizer (e.g., minimize) under the hood. SciPy contains a number of good global optimizers. Here, we’ll use those on the same objective function, namely the (aptly named) eggholder function:
+
+```{python}
+def eggholder(x):
+    return (-(x[1] + 47) * np.sin(np.sqrt(abs(x[0]/2 + (x[1]  + 47))))
+            -x[0] * np.sin(np.sqrt(abs(x[0] - (x[1]  + 47)))))
+
+bounds = [(-512, 512), (-512, 512)]
+```
+
+```{python}
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+x = np.arange(-512, 513)
+y = np.arange(-512, 513)
+xgrid, ygrid = np.meshgrid(x, y)
+xy = np.stack([xgrid, ygrid])
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.view_init(45, -45)
+ax.plot_surface(xgrid, ygrid, eggholder(xy), cmap='terrain')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('eggholder(x, y)')
+plt.show()
+```
+
+We now use the global optimizers to obtain the minimum and the function value at the minimum. We’ll store the results in a dictionary so we can compare different optimization results later.
+
+
+```{python}
+from scipy import optimize
+results = dict()
+results['shgo'] = optimize.shgo(eggholder, bounds)
+results['shgo']
+```
+
+
+```{python}
+results['DA'] = optimize.dual_annealing(eggholder, bounds)
+results['DA']
+```
+
+
+All optimizers return an `OptimizeResult`,
+which in addition to the solution contains information on the number of function evaluations, whether the optimization was successful, and more. For brevity, we won’t show the full output of the other optimizers:
+
+```{python}
+results['DE'] = optimize.differential_evolution(eggholder, bounds)
+results['DE']
+```
+
+`shgo` has a second method, which returns all local minima rather than only what it thinks is the global minimum:
+
+```{python}
+results['shgo_sobol'] = optimize.shgo(eggholder, bounds, n=200, iters=5,
+                                      sampling_method='sobol')
+results['shgo_sobol']
+```
+
+We’ll now plot all found minima on a heatmap of the function:
+
+```{python}
+fig = plt.figure()
+ax = fig.add_subplot(111)
+im = ax.imshow(eggholder(xy), interpolation='bilinear', origin='lower',
+               cmap='gray')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+
+def plot_point(res, marker='o', color=None):
+    ax.plot(512+res.x[0], 512+res.x[1], marker=marker, color=color, ms=10)
+
+plot_point(results['DE'], color='c')  # differential_evolution - cyan
+plot_point(results['DA'], color='w')  # dual_annealing.        - white
+
+# SHGO produces multiple minima, plot them all (with a smaller marker size)
+plot_point(results['shgo'], color='r', marker='+')
+plot_point(results['shgo_sobol'], color='r', marker='x')
+for i in range(results['shgo_sobol'].xl.shape[0]):
+    ax.plot(512 + results['shgo_sobol'].xl[i, 0],
+            512 + results['shgo_sobol'].xl[i, 1],
+            'ro', ms=2)
+
+ax.set_xlim([-4, 514*2])
+ax.set_ylim([-4, 514*2])
+plt.show()
+```
+
+## Optimization Algorithms in Detail
+
+### dual_annealing
+
+### Differential Evolution
+
+### direct
+
+### shgo
+
+### basinhopping
+
