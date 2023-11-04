@@ -1,0 +1,519 @@
+---
+title: "Git Introduction"
+author: "Thomas Bartz-Beielstein, Richard Schulz"
+date: last-modified
+date-format: long
+lang: en
+format:
+    html:
+        theme: cosmo
+toc: true
+highlight-style: pygments
+number-sections: true
+title-block-banner: true
+title-block-author-single: "Autor"
+---
+
+## Learning Objectives
+
+In this learning unit, you will learn how to set up Git as a version control system for a project. The most important Git commands will be explained. You will learn how to track and manage changes to your projects with Git. Specifically:
+
+  * Initializing a repository: `git init`
+  * Ignoring files: `.gitignore`
+  * Adding files to the staging area: `git add`
+  * Checking status changes: `git status`
+  * Reviewing history: `git log`
+  * Creating a new branch: `git branch`
+  * Switching to the current branch: `git switch` and `git checkout`
+  * Merging two branches: `git merge`
+  * Resolving conflicts
+  * Reverting changes: `git revert`
+  * Uploading changes to GitLab: `git push`
+  * Downloading changes from GitLab: `git pull`
+  * Advanced: `git rebase`
+
+## Basics of Git
+
+### Initializing a Repository: `git init`
+
+To set up Git as a version control system for your project, you need to initialize a new Git repository at the top-level folder, which is the working directory of your project.
+This is done using the `git init` command.
+
+All files in this folder and its subfolders will automatically become part of the repository.
+Creating a Git repository is similar to adding an all-powerful passive observer of all things to your project.
+Git sits there, observes, and takes note of even the smallest changes, such as a single character in a file within a repository with hundreds of files.
+And it will tell you where these changes occurred if you forget.
+Once Git is initialized, it monitors all changes made within the working directory,
+and it tracks the history of events from that point forward.
+For this purpose, a historical timeline is created for your project, referred to as a "branch," and the initial branch is named `main`.
+So, when someone says they are on the `main branch` or working on the `main branch`, it means they are in the historical main timeline of the project.
+The Git repository, often abbreviated as `repo`, is a virtual representation of your project, including its history and branches, a book, if you will, where you can look up and retrieve the entire history of the project: you work in your working directory, and the Git repository tracks and stores your work.
+
+
+
+### Ignoring Files: `.gitignore`
+
+It's useful that Git watches and keeps an eye on everything in your project.
+However, in most projects, there are files and folders that you don't need or want to keep an eye on.
+These may include system files, local project settings, libraries with dependencies, and so on.
+
+You can exclude any file or folder from your Git repository by including them in the `.gitignore` file.
+In the `.gitignore` file, you create a list of file names, folder names, and other items that Git should not track, and Git will ignore these items.
+Hence the name "gitignore."
+Do you want to track a file that you previously ignored?
+Simply remove the mention of the file in the gitignore file, and Git will start tracking it again.
+
+### Adding Changes to the Staging Area: `git add`
+
+The interesting thing about Git as an all-powerful, passive observer of all things is that it's very passive.
+As long as you don't tell Git what to remember, it will passively observe the changes in the project folder but do nothing.
+
+When you make a change to your project that you want Git to include in the project's history to take a snapshot of so you can refer back to it later, your personal checkpoint, if you will, you need to first stage the changes in the staging area. What is the staging area? The staging area is where you collect changes to files that you want to include in the project's history.
+
+This is done using the `git add` command. You can specify which files you want to add by naming them, or you can add all of them using `-A`.
+By doing this, you're telling Git that you've made changes and want it to remember these particular changes so you can recall them later if needed. This is important because you can choose which changes you want to stage, and those are the changes that will eventually be transferred to the history.
+
+:::{.alert .alert-info}
+**Note:** When you run `git add`, the changes are not transferred to the project's history. They are only transferred to the staging area.
+:::
+
+:::{.callout-note}
+#### Example of git add from the beginning
+
+```{.bash}
+# Create a new directory for your
+# repository and navigate to that directory:
+
+mkdir my-repo
+cd my-repo
+
+# Initialize the repository with git init:
+
+git init
+
+# Create a .gitignore file for Python code.
+# You can use a template from GitHub:
+
+curl https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore -o .gitignore
+
+# Add your files to the repository using git add:
+
+git add .
+
+```
+This adds all files in the current directory to the repository, except for the files listed in the .gitignore file.
+
+:::
+
+### Transferring Changes to Memory: `git commit`
+
+The power of Git becomes evident when you start transferring changes to the project history. This is done using the `git commit` command. When you run `git commit`, you inform Git that the changes in the staging area should be added to the history of the project so that they can be referenced or retrieved later.
+
+Additionally, you can add a commit message with the `-m` option to explain what changes were made. So when you look back at the project history, you can see that you added a new feature.
+
+`git commit` creates a snapshot, an image of the current state of your project at that specific time, and adds it to the branch you are currently working on.
+
+As you work on your project and transfer more snapshots, the branch grows and forms a timeline of events. This means you can now look back at every transfer in the branch and see what your code looked like at that time.
+
+You can compare any phase of your code with any other phase of your code to find errors, restore deleted code, or do things that would otherwise not be possible, such as resetting the project to a previous state or creating a new timeline from any point.
+
+So how often should you add these commits? My rule of thumb is not to commit too often. It's better to have a Git repository with too many commits than one with too few commits.
+
+:::{.callout-note}
+#### Continuing the example from above:
+After adding your files with `git add`, you can create a commit to save your changes. Use the `git commit` command with the `-m` option to specify your commit message:
+
+```{.bash}
+git commit -m "My first commit message"
+```
+This creates a new commit with the added files and the specified commit message.
+:::
+
+### Check the Status of Your Repository: `git status`
+
+If you're wondering what you've changed in your project since the last commit snapshot, you can always check the Git status. Git will list every modified file and the current status of each file.
+
+This status can be either:
+
+* Unchanged (`unmodified`), meaning nothing has changed since you last transferred it, or
+* It's been changed (`changed`) but not staged (`staged`) to be transferred into the history, or
+* Something has been added to staging (`staged`) and is ready to be transferred into the history.
+
+When you run `git status`, you get an overview of the current state of your project.
+
+:::{.callout-note}
+#### Continuing the example from above:
+The `git status` command displays the status of your working directory and the staging area. It shows you which files have been modified, which files are staged for commit, and which files are not yet being tracked:
+
+```{.bash}
+git status
+```
+
+`git status` is a useful tool to keep track of your changes and ensure that you have added all the desired files for commit.
+:::
+
+### Review Your Repository's History: `git log`
+
+:::{.callout-note}
+#### Continuing the example from above:
+You can view the history of your commits with the `git log` command. This command displays a list of all the commits in the current branch, along with information such as the author, date, and commit message:
+
+```{.bash}
+git log
+```
+
+There are many options to customize the output of `git log`. For example, you can use the `--pretty` option to change the format of the output:
+
+```{.bash}
+git log --pretty=oneline
+```
+
+This displays each commit in a single line.
+:::
+
+
+## Branches (Timelines)
+
+### Creating an Alternative Timeline: `git branch`
+
+In the course of developing a project, you often reach a point where you want to add a new feature, but doing so might require changing the existing code in a way that could be challenging to undo later.
+
+Or maybe you just want to experiment and be able to discard your work if the experiment fails. In such cases, Git allows you to create an alternative timeline called a `branch` to work in.
+
+This new `branch` has its own name and exists in parallel with the `main branch` and all other branches in your project.
+
+During development, you can switch between branches and work on different versions of your code concurrently. This way, you can have a stable codebase in the `main branch` while developing an experimental feature in a separate `branch`. When you switch from one `branch` to another, the code you're working on is automatically reset to the latest commit of the branch you're currently in.
+
+If you're working in a team, different team members can work on their own branches, creating an entire universe of alternative timelines for your project. When features are completed, they can be seamlessly merged back into the `main branch`.
+
+:::{.callout-note}
+#### Continuing the example from above:
+To create a new `branch`, you can use the `git branch` command with the name of the new `branch` as an argument:
+
+```{.bash}
+git branch my-tests
+```
+:::
+
+### The Pointer to the Current Branch: `HEAD`
+
+How does Git know where you are on the timeline, and how can you keep track of your position?
+
+You're always working at the tip (`HEAD`) of the currently active branch. The `HEAD` pointer points there quite literally. In a new project archive with just a single `main branch` and only new commits being added, `HEAD` always points to the latest commit in the `main branch`. That's where you are.
+
+However, if you're in a repository with multiple branches, meaning multiple alternative timelines, `HEAD` will point to the latest commit in the branch you're currently working on.
+
+### Switching to an Alternative Timeline: `git switch`
+
+As your project grows, and you have multiple branches, you need to be able to switch between these branches. This is where the `switch` command comes into play.
+
+At any time, you can use the `git switch` command with the name of the branch you want to switch to, and `HEAD` moves from your current branch to the one you specified.
+
+If you've made changes to your code before switching, Git will attempt to carry those changes over to the branch you're switching to. However, if these changes conflict with the target branch, the switch will be canceled.
+
+To resolve this issue without losing your changes, return to the original branch, add and commit your recent changes, and then perform the `switch`.
+
+### Switching to an Alternative Timeline and Making Changes: `git checkout`
+
+To switch between branches, you can also use the `git checkout` command. It works similarly to `git switch` for this purpose: you pass the name of the branch you want to switch to, and `HEAD` moves to the beginning of that branch.
+
+But `checkout` can do more than just switch to another timeline. With `git checkout`, you can also move to any commit point in any timeline. In other words, you can travel back in time and work on code from the past.
+
+To do this, use `git checkout` and provide the commit ID. This is an automatically generated, random combination of letters and numbers that identifies each commit. You can retrieve the commit ID using `git log`. When you run `git log`, you get a list of all the commits in your repository, starting with the most recent ones.
+
+When you use `git checkout` with an older commit ID, you check out a commit in the middle of a branch. This disrupts the timeline, as you're actively attempting to change history. Git doesn't want you to do that because, much like in a science fiction movie, altering the past might also alter the future. In our case, it would break the version control branch's coherence.
+
+To prevent you from accidentally disrupting time and altering history, checking out an earlier commit in any branch results in the warning "Detached Head," which sounds rather ominous. The "Detached Head" warning is appropriate because it accurately describes what's happening. Git literally detaches the head from the branch and sets it aside.
+
+Now, you're working outside of time in a space unbound to any timeline, which again sounds rather threatening but is perfectly fine in reality.
+
+To continue working on this past code, all you need to do is reattach it to the timeline. You can use `git branch` to create a new branch, and the detached head will automatically attach to this new branch.
+
+Instead of breaking the history, you've now created a new alternative timeline that starts in the past, allowing you to work safely. You can continue working on the branch as usual.
+
+
+:::{.callout-note}
+#### Continuing the example from above:
+To switch to a new branch, you can use the `git checkout` command:
+
+```{.bash}
+git checkout meine-tests
+```
+
+Now you're using the new branch and can make changes independently from the original branch.
+:::
+
+### The Difference Between `checkout` and `switch`
+
+What is the difference between `git switch` and `git checkout`?
+`git switch` and `git checkout` are two different commands that both serve the purpose of switching between branches. You can use both to switch between branches, but they have an important distinction. `git switch` is a new command introduced with Git 2.23. `git checkout` is an older command that has existed since Git 1.6.0. So, `git switch` and `git checkout` have different origins. `git switch` was introduced to separate the purposes of `git checkout`. `git checkout` has two different purposes: 1. It can be used to switch between branches, and 2. It can be used to reset files to the state of the last commit.
+
+Here's an example: In my project, I made a change since the last commit, but I haven't staged it yet. Then, I realized that I actually don't want this change. I want to reset the file to the state before the last commit. As long as I haven't committed my changes, I can do this with `git checkout` by targeting the specific file. So, if that file is named `main.js`, I can say: `git checkout main.js`. And the file will be reset to the state of the last commit, which makes sense. I'm checking out the file from the last commit.
+
+But that's quite different from switching between the beginning of one branch to another. `git switch` and `git restore` were introduced to separate these two operations. `git switch` is for switching between branches, and `git restore` is for resetting the specified file to the state of the last commit. If you try to restore a file with `git switch`, it simply won't work. It's not intended for that. As I mentioned earlier, it's about separating concerns.
+
+:::{.callout-note}
+#### Difference Between `checkout` and `switch`
+`git checkout` and `git switch` are both commands for switching between branches in a Git repository. The main difference between the two commands is that `git switch` is a newer command specifically designed for branch switching, while `git checkout` is an older command that can be used for various tasks, including branch switching.
+
+Here's an example demonstrating how to initialize a repository and switch between branches:
+
+
+```{.bash}
+# Create a new directory for your repository
+# and navigate to that directory:
+mkdir my-repo
+cd my-repo
+
+# Initialize the repository with git init:
+git init
+
+# Create a new branch with git branch:
+git branch my-new-branch
+
+# Switch to the new branch using git switch:
+git switch my-new-branch
+
+# Alternatively, you can also use git checkout
+# to switch to the new branch:
+
+git checkout my-new-branch
+```
+
+Both commands lead to the same result: You are now on the new branch.
+
+
+## Merging Branches and Resolving Conflicts
+
+### git `merge`: Merging Two Timelines
+
+Git allows you to split your development work into as many branches or alternative timelines as you like, enabling you to work on many different versions of your code simultaneously without losing or overwriting any of your work.
+
+This is all well and good, but at some point, you need to bring those various versions of your code back together into one branch. That's where `git merge` comes in.
+
+Consider an example where you have two branches, a `main branch` and an experimental branch called `experimental-branch`. In the experimental branch, there is a new feature. To merge these two branches, you set `HEAD` to the branch where you want to incorporate the code and execute `git merge` followed by the name of the branch you want to merge. `HEAD` is a special pointer that points to the current branch. When you run `git merge`, it combines the code from the branch associated with `HEAD` with the code from the branch specified by the branch name you provide.
+
+
+```{.bash}
+# Initialize the repository
+git init
+
+# Create a new branch called "experimental-branch"
+git branch experimental-branch
+
+# Switch to the "experimental-branch"
+git checkout experimental-branch
+
+# Add the new feature here and
+# make a commit
+# ...
+
+# Switch back to the "main" branch
+git checkout main
+
+# Perform the merge
+git merge experimental-branch
+```
+
+During the merge, matching pieces of code in the branches overlap, and any new code from the branch being merged is added to the project. So now, the main branch also contains the code from the experimental branch, and the events of the two separate timelines have been merged into a single one. What's interesting is that even though the experimental branch was merged with the main branch, the last commit of the experimental branch remains intact, allowing you to continue working on the experimental branch separately if you wish.
+
+### Resolving Conflicts When Merging
+
+Merging branches where there are no code changes at the same place in both branches is a straightforward process. It's also a rare process. In most cases, there will be some form of conflict between the branches – the same code or the same code area has been modified differently in the different branches. Merging two branches with such conflicts will not work, at least not automatically.
+
+In this case, Git doesn't know how to merge this code. So, when such a situation occurs, it's marked as a conflict, and the merging process is halted. This might sound more dramatic than it is. When you get a conflict warning, Git is saying there are two different versions here, and Git needs to know which one you want to keep. To help you figure out the conflict, Git combines all the code into a single file and automatically marks the conflicting code as the current change, which is the original code from the branch you're working on, or as the incoming change, which is the code from the file you're trying to merge.
+
+To resolve this conflict, you'll edit the file to literally resolve the code conflict. This might mean accepting either the current or incoming change and discarding the other. It could mean combining both changes or something else entirely. It's up to you. So, you edit the code to resolve the conflict. Once you've resolved the conflict by editing the code, you add the new conflict-free version to the staging area with `git add` and then commit the merged code with `git commit`. That's how the conflict is resolved.
+
+A merge conflict occurs when Git struggles to automatically merge changes from two different branches. This usually happens when changes were made to the same line in the same file in both branches. To resolve a merge conflict, you must manually edit the affected files and choose the desired changes. Git marks the conflict areas in the file with special markings like `<<<<<<<`, `=======`, and `>>>>>>>`. You can search for these markings and manually select the desired changes. After resolving the conflicts, you can add the changes with `git add` and create a new commit with `git commit` to complete the merge.
+
+
+Here's an example:
+
+```bash
+# Perform the merge (this will cause a conflict)
+git merge experimenteller-branch
+
+# Open the affected file in an editor and manually resolve the conflicts
+# ...
+
+# Add the modified file
+git add <filename>
+
+# Create a new commit
+git commit -m "Resolved conflicts"
+```
+
+### git `revert`: Undoing Something
+
+One of the most powerful features of any software tool is the "Undo" button. Make a mistake, press "Undo," and it's as if it never happened. However, that's not quite as simple when an all-powerful, passive observer is watching and recording your project's history. How do you undo something that you've added to the history without rewriting the history?
+
+The answer is that you can overwrite the history with the `git reset` command, but that's quite risky and not a good practice.
+
+A better solution is to work with the historical timeline and simply place an older version of your code at the top of the branch. This is done with `git revert`. To make this work, you need to know the commit ID of the commit you want to go back to.
+
+The commit ID is a machine-generated set of random numbers and letters, also known as a hash. To get a list of all the commits in the repository, including the commit ID and commit message, you can run `git log`.
+
+
+```{bash}
+# Show the list of all operations in the repository
+git log
+```
+
+By the way, it's a good idea to leave clear and informative commit messages for this reason. This way, you know what happened in your previous commits. Once you've found the commit you want to revert to, call that commit ID with `git revert`, and then the ID. This will create a new commit at the top of the branch with the code from the reference commit. To transfer the code to the branch, add a commit message and save it. Now, the last commit in your branch matches the commit you're reverting to, and your project's history remains intact.
+
+:::{.callout-note}
+#### An example with `git revert`
+```{bash}
+# Initialize a new repository
+git init
+
+# Create a new file
+echo "Hello, World" > file.txt
+
+# Add the file to the repository
+git add file.txt
+
+# Create a new commit
+git commit -m "First commit"
+
+# Modify the file
+echo "Goodbye, World" > file.txt
+
+# Add the modified file
+git add file.txt
+
+# Create a new commit
+git commit -m "Second commit"
+
+# Use git log to find the commit ID of the second commit
+git log
+
+# Use git revert to undo the changes from the second commit
+git revert <commit-id>
+```
+:::
+
+To download the `students` branch from the repository `git@git-ce.rwth-aachen.de:spotseven-lab/numerische-mathematik-sommersemester2023.git` to your local machine, add a file, and upload the changes, you can follow these steps:
+
+:::{.callout-note}
+#### An example with `git clone`, `git checkout`, `git add`, `git commit`, `git push`
+
+```{.bash}
+# Clone the repository to your local machine:
+git clone git@git-ce.rwth-aachen.de:spotseven-lab/numerische-mathematik-sommersemester2023.git
+
+# Change to the cloned repository:
+cd numerische-mathematik-sommersemester2023
+
+# Switch to the students branch:
+git checkout students
+
+# Create the Test folder if it doesn't exist:
+mkdir Test
+
+# Create the Testdatei.txt file in the Test folder:
+touch Test/Testdatei.txt
+
+# Add the file with git add:
+git add Test/Testdatei.txt
+
+# Commit the changes with git commit:
+git commit -m "Added Testdatei.txt"
+
+# Push the changes with git push:
+git push origin students
+```
+This will upload the changes to the server and update the students branch in the repository.
+
+:::
+
+## Downloading from GitLab
+
+To download changes from a GitLab repository to your local machine, you can use the `git pull` command. This command downloads the latest changes from the specified remote repository and merges them with your local repository.
+
+Here is an example:
+
+:::{.callout-note}
+#### An example with `git pull`
+
+```{.bash}
+
+# Navigate to the local repository
+# linked to the GitHub repository:
+cd my-local-repository
+
+# Make sure you are in the correct branch:
+git checkout main
+
+# Download the latest changes from GitHub:
+git pull origin main
+```
+This downloads the latest changes from the main branch of the remote repository named "origin" and merges them with your local repository.
+:::
+
+:::{.alert .alert-info}
+If there are conflicts between the downloaded changes and your local changes, you will need to resolve them manually before proceeding.
+:::
+
+## Advanced
+
+### git `rebase`: Moving the Base of a Branch
+
+In some cases, you may need to "rewrite history." A common scenario is that you've been working on a new feature in a feature branch, and you realize that the work should have actually happened in the `main branch`.
+
+To resolve this issue and make it appear as if the work occurred in the `main branch`, you can reset the experimental branch. "Rebase" literally means detaching the base of the experimental branch and moving it to the beginning of another branch, giving the branch a new base, thus "rebasing."
+
+This operation is performed from the branch you want to "rebase." You use `git rebase` and specify the branch you want to use as the new base. If there are no conflicts between the experimental branch and the branch you want to rebase onto, this process happens automatically.
+
+If there are conflicts, Git will guide you through the conflict resolution process for each commit from the rebase branch.
+
+This may sound like a lot, but there's a good reason for it. You are literally rewriting history by transferring commits from one branch to another. To maintain the coherence of the new version history, there should be no conflicts within the commits. So, you need to resolve them one by one until the history is clean. It goes without saying that this can be a fairly labor-intensive process. Therefore, you should not use `git rebase` frequently.
+
+:::{.callout-note}
+#### An example with `git rebase`
+
+`git rebase` is a command used to change the base of a branch. This means that commits from the branch are applied to a new base, which is usually another branch. It can be used to clean up the repository history and avoid merge conflicts.
+
+Here is an example showing how to use `git rebase`:
+
+* In this example, we initialize a new Git repository and create a new file. We add the file to the repository and make an initial commit. Then, we create a new branch called "feature" and switch to that branch. We make changes to the file in the feature branch and create a new commit.
+
+* Then, we switch back to the main branch and make changes to the file again. We add the modified file and make another commit.
+
+* To rebase the feature branch onto the main branch, we first switch to the feature branch and then use the `git rebase` command with the name of the main branch as an argument. This applies the commits from the feature branch to the main branch and changes the base of the feature branch.
+
+
+```{.bash}
+# Initialize a new repository
+git init
+# Create a new file
+echo "Hello World" > file.txt
+# Add the file to the repository
+git add file.txt
+# Create an initial commit
+git commit -m "Initial commit"
+# Create a new branch called "feature"
+git branch feature
+# Switch to the "feature" branch
+git checkout feature
+# Make changes to the file in the "feature" branch
+echo "Hello Feature World" > file.txt
+# Add the modified file
+git add file.txt
+# Create a new commit in the "feature" branch
+git commit -m "Feature commit"
+# Switch back to the "main" branch
+git checkout main
+# Make changes to the file in the "main" branch
+echo "Hello Main World" > file.txt
+# Add the modified file
+git add file.txt
+# Create a new commit in the "main" branch
+git commit -m "Main commit"
+# Use git rebase to rebase the "feature" branch
+# onto the "main" branch
+git checkout feature
+git rebase main
+```
+:::
