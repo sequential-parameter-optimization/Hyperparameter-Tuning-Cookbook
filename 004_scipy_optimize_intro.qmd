@@ -8,6 +8,12 @@ execute:
 
 # Introduction to `scipy.optimize`
 
+[SciPy](https://scipy.org) provides algorithms for optimization, integration, interpolation, eigenvalue problems, algebraic equations, differential equations, statistics and many other classes of problems.
+SciPy is a collection of mathematical algorithms and convenience functions built on NumPy. It adds significant power to Python by providing the user with high-level commands and classes for manipulating and visualizing data.
+
+[SciPy optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html#module-scipy.optimize) provides functions for minimizing (or maximizing) objective functions, possibly subject to constraints. It includes solvers for nonlinear problems (with support for both local and global optimization algorithms), linear programing, constrained and nonlinear least-squares, root finding, and curve fitting.
+
+
 In this notebook, we will learn how to use the `scipy.optimize` module to solve optimization problems.
 See: [https://docs.scipy.org/doc/scipy/tutorial/optimize.html](https://docs.scipy.org/doc/scipy/tutorial/optimize.html)
 
@@ -16,8 +22,17 @@ See: [https://docs.scipy.org/doc/scipy/tutorial/optimize.html](https://docs.scip
 * The `scipy.optimize` package provides several commonly used optimization algorithms. A detailed listing is available in `scipy.optimize` (can also be found by `help(scipy.optimize)`).
 :::
 
+Common functions and objects, shared across different SciPy optimize solvers, are shown in @tbl-shared-functions.
+
+| Function or Object | Description |
+| --- | --- |
+| [show_options([solver, method, disp])](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.show_options.html#scipy.optimize.show_options) | Show documentation for additional options of optimization solvers. |
+| [OptimizeResult](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult) | Represents the optimization result. |
+| [OptimizeWarning](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeWarning.html#scipy.optimize.OptimizeWarning) | Warning issued by solvers. |
+: Common functions and objects, shared across different SciPy optimize solvers {#tbl-shared-functions}
+
 We will introduce unconstrained minimization of multivariate scalar functions in this chapter.
-The `minimize` function provides a common interface to unconstrained and constrained minimization algorithms for multivariate scalar functions in `scipy.optimize`. To demonstrate the minimization function, consider the problem of minimizing the Rosenbrock function of *N* variables:
+The [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize) function provides a common interface to unconstrained and constrained minimization algorithms for multivariate scalar functions in `scipy.optimize`. To demonstrate the minimization function, consider the problem of minimizing the Rosenbrock function of *N* variables:
 
 $$
 f(\mathbf{x}) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
@@ -27,7 +42,11 @@ The minimum value of this function is 0, which is achieved when \(x_i = 1\).
 
 Note that the Rosenbrock function and its derivatives are included in `scipy.optimize`. The implementations shown in the following sections provide examples of how to define an objective function as well as its Jacobian and Hessian functions. Objective functions in `scipy.optimize` expect a numpy array as their first parameter, which is to be optimized and must return a float value. The exact calling signature must be `f(x, *args)`, where `x` represents a numpy array, and `args` is a tuple of additional arguments supplied to the objective function.
 
-## Nelder-Mead Simplex Algorithm 
+##  Derivative-free Optimization Algorithms
+
+@sec-nelder-mead-simplex-algorithm and @sec-powells-method present two approaches that do not need gradient information to find the minimum. They use function evaluations to find the minimum.
+
+### Nelder-Mead Simplex Algorithm {#sec-nelder-mead-simplex-algorithm}
 
 `method='Nelder-Mead'`: In the example below, the `minimize` routine is used with the *Nelder-Mead* simplex algorithm (selected through the `method` parameter):
 
@@ -48,7 +67,7 @@ print(res.x)
 
 The simplex algorithm is probably the simplest way to minimize a well-behaved function. It requires only function evaluations and is a good choice for simple minimization problems. However, because it does not use any gradient evaluations, it may take longer to find the minimum.
 
-## Powell's Method
+### Powell's Method {#sec-powells-method}
 
 Another optimization algorithm that needs only function calls to find the minimum is *Powell*'s method, which can be selected by setting the `method` parameter to `'powell'` in the `minimize` function.
 
@@ -100,11 +119,16 @@ res = minimize(partial_rosen, x0, method='nelder-mead',
 print(res.x)
 ```
 
-## Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)
+## Gradient-based optimization algorithms
+
+@sec-bfgs presents an optimization algorithm that uses gradient information to find the minimum.
+
+
+### Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS) {#sec-bfgs}
 
 The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm (selected by setting `method='BFGS'`) is an optimization algorithm that aims to converge quickly to the solution. This algorithm uses the gradient of the objective function. If the gradient is not provided by the user, it is estimated using first-differences. The BFGS method typically requires fewer function calls compared to the simplex algorithm, even when the gradient needs to be estimated.
 
-### Using BFGS with the Rosenbrock Function
+#### Using BFGS with the Rosenbrock Function
 
 To demonstrate the BFGS algorithm, let's use the Rosenbrock function again. The gradient of the Rosenbrock function is a vector described by the following mathematical expression:
 
@@ -145,6 +169,25 @@ res = minimize(rosen, x0, method='BFGS', jac=rosen_der,
 
 print(res.x)
 ```
+
+## Gradient- and Hessian-based optimization algorithms
+
+@sec-newton-cg presents an optimization algorithm that uses gradient and Hessian information to find the minimum.
+@sec-trust-region-newton presents an optimization algorithm that uses gradient and Hessian information to find the minimum.
+@sec-trust-region-truncated presents an optimization algorithm that uses gradient and Hessian information to find the minimum.
+
+The methods Newton-CG, trust-ncg and trust-krylov are suitable for dealing with large-scale problems (problems with thousands of variables). That is because the conjugate gradient algorithm approximately solve the trust-region subproblem (or invert the Hessian) by iterations without the explicit Hessian factorization. Since only the product of the Hessian with an arbitrary vector is needed, the algorithm is specially suited for dealing with sparse Hessians, allowing low storage requirements and significant time savings for those sparse problems.
+
+
+### Newton-Conjugate-Gradient Algorithm {#sec-newton-cg}
+
+Newton-Conjugate Gradient algorithm is a modified Newton’s method and uses a conjugate gradient algorithm to (approximately) invert the local Hessian.
+
+
+### Trust-Region Newton-Conjugate-Gradient Algorithm {#sec-trust-region-newton}
+
+
+### Trust-Region Truncated Generalized Lanczos / Conjugate Gradient Algorithm {#sec-trust-region-truncated}
 
 ## Global Optimization
 
@@ -239,15 +282,25 @@ ax.set_ylim([-4, 514*2])
 plt.show()
 ```
 
-## Optimization Algorithms in Detail
 
-### dual_annealing
+### Dual Annealing Optimization
+
+This function implements the Dual Annealing optimization.
 
 ### Differential Evolution
 
-### direct
+Differential Evolution is an algorithm used for finding the global minimum of multivariate functions. It is stochastic in nature (does not use gradient methods), and can search large areas of candidate space, but often requires larger numbers of function evaluations than conventional gradient based techniques.
 
-### shgo
+### DIRECT
 
-### basinhopping
+DIviding RECTangles (DIRECT) is a deterministic global optimization algorithm capable of minimizing a black box function with its variables subject to lower and upper bound constraints by sampling potential solutions in the search space
 
+### SHGO
+
+SHGO stands for "simplicial homology global optimization".
+It is considered appropriate for solving general purpose NLP and blackbox optimization problems to global optimality (low-dimensional problems).
+
+
+### Basin-hopping
+
+Basin-hopping is a two-phase method that combines a global stepping algorithm with local minimization at each step. Designed to mimic the natural process of energy minimization of clusters of atoms, it works well for similar problems with “funnel-like, but rugged” energy landscapes
