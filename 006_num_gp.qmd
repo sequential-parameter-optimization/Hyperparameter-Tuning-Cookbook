@@ -28,8 +28,293 @@ One of the remaining differences between RSM and DACE lies in how they handle no
 * Two very good texts on computer experiments and surrogate modeling:
   1. The Design and Analysis of Computer Experiments, by Santner, Williams, and Notz (2018) is the canonical reference in the statistics literature
   2. Engineering Design via Surrogate Modeling by Forrester, Sobester, and Keane (2008) is perhaps more popular in engineering
-    * We will analyze an example from the latter.
 
+* We will analyze an example from the latter.
+
+
+## Background: Expectation, Mean
+
+The distribution of a random vector is characterized by some indexes. One of them is the expected value, which is defined as
+$$
+E[X] = \sum_{x \in D_X} xp_X(x)  \qquad \text{if $X$ is discrete}
+$$
+$$
+E[X] = \int\limits_{x \in D_X} xf_X(x)\mathrm{d}x  \quad  \text{if $X$ is continuous.}
+$$
+
+The mean, $\mu$, of a probability distribution is a measure of its central tendency or location. That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
+
+### Example 
+
+Let $X$ denote the number produced by rolling a fair die.
+Then
+$$
+E(X) = 1 \times 1/6 + 2 \times 1/6 + 3 \times 1/6 + 4 \times 1/6 + 5 \times 1/6 + 6\times 1/6 = 3.5 
+$$
+
+
+### Sample Mean
+
+The sample mean is an important estimate of the population mean. The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
+$$\overline{x}  = \frac{1}{n} \sum_i x_i.$$
+
+### Variance and Standard Deviation
+
+If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$. In many situations it is useful to have an idea how large this deviation or error is.  Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$).  The squared error is the first choice, because the derivatives are easier to calculate.  These considerations motivate the definition of the variance:
+
+The variance of a random variable $X$ is the mean squared deviation of $X$ from its expected value $\mu = E(X)$.
+\begin{equation}
+Var(X) = E[ (X-\mu)^2].
+\end{equation}
+
+### Standard Deviation
+
+Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation. The standard deviation of $X$ is the square root of the variance of $X$.
+\begin{equation}
+sd(X) = \sqrt{Var(X)}.
+\end{equation}
+
+### Calculation of the Standard Deviation with Python
+
+The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements.  The argument `ddof` specifies the Delta Degrees of Freedom. The divisor used in calculations is `N - ddof`, where `N` represents the number of elements.  By default `ddof` is zero, i.e., `std` uses the formula 
+\begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
+
+
+#### Example
+
+Consider the array $[1,2,3]$:
+Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
+
+```{python}
+import numpy as np
+a = np.array([[1, 2, 3]])
+np.std(a)
+```
+
+### The Empirical Standard Deviation
+
+The empirical standard deviation (which uses $N-1$),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
+
+```{python}
+np.std(a, ddof=1)
+```
+
+
+### The Argument "axis" 
+
+::: {.callout-note}
+### Axes along which the standard deviation is computed
+
+* When you compute np.std with axis=0, it calculates the standard deviation along the vertical axis, meaning it computes the standard deviation for each column of the array.
+* On the other hand, when you compute np.std with axis=1, it calculates the standard deviation along the horizontal axis, meaning it computes the standard deviation for each row of the array.
+* If the axis parameter is not specified, np.std computes the standard deviation of the flattened array.
+
+:::
+
+```{python}
+A = np.array([[1, 2], [3, 4]])
+A
+```
+
+```{python}
+np.std(A)
+```
+
+```{python}
+np.std(A, axis=0)
+```
+
+```{python}
+np.std(A, axis=1)
+```
+
+### Single Versus Double Precision
+
+In single precision, `std()` can be inaccurate:
+
+```{python}
+a = np.zeros((2, 4*4), dtype=np.float32)
+a[0, :] = 1.0
+a[1, :] = 0.1
+a 
+```
+
+
+
+```{python}
+np.std(a, axis=0)
+```
+
+
+```{python}
+np.std(a, axis=1)
+```
+
+
+
+```{python}
+abs(0.45 - np.std(a))
+```
+
+
+::: {.callout-note}
+### Float data types
+
+* float32 and float64 are data types in numpy that specify the precision of floating point numbers.
+* float32 is a single-precision floating point number that occupies 32 bits of memory. It has a precision of about 7 decimal digits.
+* float64 is a double-precision floating point number that occupies 64 bits of memory. It has a precision of about 15 decimal digits.
+* The main difference between float32 and float64 is the precision and memory usage. float64 provides a higher precision but uses more memory, while float32 uses less memory but has a lower precision. 
+:::
+
+Computing the standard deviation in float64 is more accurate (result may vary), see [https://numpy.org/devdocs/reference/generated/numpy.std.html](https://numpy.org/devdocs/reference/generated/numpy.std.html).
+
+```{python}
+abs(0.45 - np.std(a, dtype=np.float64))
+```
+
+
+#### Example: 32 versus 64 bit
+
+```{python}
+import numpy as np
+
+# Define a number
+num = 0.123456789123456789
+
+# Convert to float32 and float64
+num_float32 = np.float32(num)
+num_float64 = np.float64(num)
+
+# Print the number in both formats
+print("float32: ", num_float32)
+print("float64: ", num_float64)
+```
+
+The float32 data type in numpy represents a single-precision floating point number. It uses 32 bits of memory, which gives it a precision of about 7 decimal digits. On the other hand, float64 represents a double-precision floating point number. It uses 64 bits of memory, which gives it a precision of about 15 decimal digits.
+
+The reason float32 shows fewer digits is because it has less precision due to using less memory. The bits of memory are used to store the sign, exponent, and fraction parts of the floating point number, and with fewer bits, you can represent fewer digits accurately.
+
+
+## The Normal Distribution
+
+A normally distributed random variable is a random variable whose associated probability distribution is the normal (or Gaussian) distribution. The normal distribution is a continuous probability distribution characterized by a symmetric bell-shaped curve.
+
+The distribution is defined by two parameters: the mean $\mu$  and the standard deviation $\sigma$. The mean indicates the center of the distribution, while the standard deviation measures the spread or dispersion of the distribution.
+
+This distribution is widely used in statistics and the natural and social sciences as a simple model for random variables with unknown distributions.
+
+```{python}
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+def generate_normal_data(mu, sigma, num_samples):
+    return mu + sigma * np.random.randn(num_samples)
+
+def plot_normal_distribution(mu, sigma, num_samples):
+    # Generate normally distributed data
+    data = generate_normal_data(mu, sigma, num_samples)
+    
+    # Plot histogram
+    count, bins, ignored = plt.hist(data, 30, density=True)
+    
+    # Plot normal distribution curve
+    plt.plot(bins, norm.pdf(bins, mu, sigma), linewidth=2, color='r')
+    plt.show()
+```
+
+```{python}
+plot_normal_distribution(mu=0, sigma=1, num_samples=10000)
+```
+
+### Visualization of the Standard Deviation
+
+The standard deviation of normal distributed can be visualized in terms of the histogram of $X$:
+
+* about 68\% of the values will lie in the interval within one standard deviation of the mean
+* 95% lie within two standard deviation of the mean
+* and 99.9% lie within 3 standard deviations of the mean. 
+
+```{python}
+#| echo: false
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+# example data
+mu = 0.0  # mean of distribution
+sigma = 1  # standard deviation of distribution
+x = mu + sigma * np.random.randn(2000)
+num_bins = 33
+fig, ax = plt.subplots()
+# the histogram of the data
+n, bins, patches = ax.hist(x, num_bins, density=1)
+# add a 'best fit' line
+y = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (bins - mu))**2))
+ax.plot(bins, y, '--')
+ax.set_xlabel('x')
+ax.set_ylabel('Probability density')
+ax.set_title(r'Histogram: $\mu=0$, $\sigma=1$')
+ax.vlines(-1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (-1.0 - mu))**2)), colors="orange", linestyles="-.")
+ax.vlines(1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
+     np.exp(-0.5 * (1 / sigma * (1.0 - mu))**2)), colors="orange", linestyles="-.")
+# Tweak spacing to prevent clipping of ylabel
+fig.tight_layout()
+plt.show()
+```
+
+## Standardization
+
+To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
+If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
+$$
+X^{\ast} = (X-\mu)/\sigma
+$$ 
+is called $X$ in standard units. 
+It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
+
+
+## Random Numbers in Python
+
+Results from computers are deterministic, so it sounds like a contradiction in terms to generate random numbers on a computer.
+Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
+
+::: {.callout-note}
+### Deterministic Random Numbers
+
+* Idea: Generate deterministically numbers that **look** (behave) as if they were drawn randomly.
+
+
+:::
+
+
+To generate ten random numbers from a normal distribution, the following command can be used.
+
+
+```{python}
+import numpy as np
+rng = np.random.default_rng()
+n = 10
+mu, sigma = 2, 0.1
+x = rng.normal(mu, sigma, n)
+```
+
+Verify the mean:
+
+```{python}
+abs(mu - np.mean(x))
+```
+
+Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
+
+```{python}
+abs(sigma - np.std(x, ddof=1))
+```
 
 
 ## Introduction to Gaussian Processes
@@ -50,16 +335,89 @@ In this context, any finite collection of realizations, which is represented by 
 ### Covariance Function
 
 The covariance function is defined by inverse exponentiated squared Euclidean distance:
-$$\Sigma(x, x') = \exp\{ - || x - x '||^2 \}.$$
+$$\Sigma(x, x') = \exp\{ - || x - x'||^2 \}.$$
 
-Covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
+An 1-d example is shown in @fig-exp2euclid. A 2-d example in @fig-exp2euclid2d.
+
+```{python}
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
+
+def squared_euclidean_distance(point1, point2):
+    return (point1 - point2)**2
+
+def inverse_exp_squared_distance(point1, point2):
+    return np.exp(-squared_euclidean_distance(point1, point2))
+
+def generate_line(distance, step=0.01):
+    return np.arange(0, distance+step, step)
+
+def visualize_inverse_exp_squared_distance(distance, point):
+    line = generate_line(distance)
+    distances = [inverse_exp_squared_distance(p, point) for p in line]
+    
+    plt.plot(line, distances)
+    plt.show()
+```
+
+```{python}
+#| label: fig-exp2euclid
+#| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
+visualize_inverse_exp_squared_distance(3, 0.0)
+```
+
+
+```{python}
+#| echo: false
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def squared_euclidean_distance(point1, point2):
+    return np.sum((np.array(point1) - np.array(point2))**2)
+
+def inverse_exp_squared_distance(point1, point2):
+    return np.exp(-squared_euclidean_distance(point1, point2))
+
+def generate_grid(n):
+    return [(x/n, y/n) for x in range(n+1) for y in range(n+1)]
+
+def visualize_inverse_exp_squared_distance_3d(n, point):
+    grid = generate_grid(n)
+    distances = [inverse_exp_squared_distance(p, point) for p in grid]
+    distances_matrix = np.array(distances).reshape((n+1, n+1))
+    
+    plt.imshow(distances_matrix, cmap='cool', interpolation='nearest')
+    plt.colorbar()
+    plt.show()
+```
+
+```{python}
+#| label: fig-exp2euclid2d
+#| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
+
+visualize_inverse_exp_squared_distance_3d(100, (0.5, 0.5))
+```
+
+The covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
+
 $$\Sigma(x,x) = 1$$ and 
+
 $$\Sigma(x, x') < 1$$ for  $x \neq x'$ 
+
 The function $\Sigma(x,x')$ must be positive definite.
 
-Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement.
-It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values, denoted as $x_1, x_2, \ldots, x_n$.
-The condition for positive definiteness is that for all $x$ vectors that are not equal to zero, the expression $x^\top \Sigma_n x$ must be greater than zero. This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis. It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
+:::{.callout-note}
+#### Positive Definiteness
+
+* Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement.
+* It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values, denoted as $x_1, x_2, \ldots, x_n$.
+* The condition for positive definiteness is that for all $x$ vectors that are not equal to zero, the expression $x^\top \Sigma_n x$ must be greater than zero.
+* This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis.
+* It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
+
+::: 
 
 Gaussian Processes (GPs) can be effectively utilized to generate random data that follows a smooth functional relationship. The process involves the following steps:
 
@@ -149,193 +507,6 @@ The function plotted in the above figure represents only a finite realization, w
 #### Scale of Two:
 Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. This range is influenced by the scale of the covariance, which is set to 1, without considering the small value, $\epsilon$, added to the diagonal. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
 
- 
-## Background: Expectation, Mean
-
-The distribution of a random vector is characterized by some indexes. One of them is the expected value, which is defined as
-$$
-E[X] = \sum_{x \in D_X} xp_X(x)  \qquad \text{if $X$ is discrete}
-$$
-$$
-E[X] = \int\limits_{x \in D_X} xf_X(x)\mathrm{d}x  \quad  \text{if $X$ is continuous.}
-$$
-
-The mean, $\mu$, of a probability distribution is a measure of its central tendency or location. That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
-
-### Example 
-
-Let $X$ denote the number produced by rolling a fair die.
-Then
-$$
-E(X) = 1 \times 1/6 + 2 \times 1/6 + 3 \times 1/6 + 4 \times 1/6 + 5 \times 1/6 + 6\times 1/6 = 3.5 
-$$
-
-
-### Sample Mean
-
-The sample mean is an important estimate of the population mean. The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
-$$\overline{x}  = \frac{1}{n} \sum_i x_i.$$
-
-### Variance and Standard Deviation
-
-If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$. In many situations it is useful to have an idea how large this deviation or error is.  Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$).  The squared error is the first choice, because the derivatives are easier to calculate.  These considerations motivate the definition of the variance:
-
-The variance of a random variable $X$ is the mean squared deviation of $X$ from its expected value $\mu = E(X)$.
-\begin{equation}
-Var(X) = E[ (X-\mu)^2].
-\end{equation}
-
-### Standard Deviation
-
-Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation. The standard deviation of $X$ is the square root of the variance of $X$.
-\begin{equation}
-sd(X) = \sqrt{Var(X)}.
-\end{equation}
-
-### Calculation of the Standard Deviation with Python
-
-The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements.  The standard deviation is computed for the flattened array by default, otherwise over the specified axis. The argument `ddof` specifies the Delta Degrees of Freedom. The divisor used in calculations is `N - ddof`, where `N` represents the number of elements.  By default `ddof` is zero, i.e., `std` uses the formula 
-\begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
-
-If no `axis` is specified, `std` uses the flattened array (which is the default.) Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
-
-```{python}
-import numpy as np
-a = np.array([[1, 2, 3]])
-np.std(a)
-```
-
-```{python}
-np.std(a, axis = 0)
-```
-
-The empirical standard deviation (which uses N-1),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
-
-```{python}
-np.std(a, ddof=1)
-```
-
-```{python}
-np.std(a, axis = 1)
-```
-
-```{python}
-A = np.array([[1, 2], [3, 4]])
-A
-```
-
-```{python}
-np.std(A)
-```
-
-```{python}
-np.std(A, axis=0)
-```
-
-```{python}
-np.std(A, axis=1)
-```
-
-### Single Versus Double Precision
-
-In single precision, `std()` can be inaccurate:
-
-```{python}
-a = np.zeros((2, 4*4), dtype=np.float32)
-```
-
-```{python}
-a[0, :] = 1.0
-a[1, :] = 0.1
-a 
-```
-
-```{python}
-np.std(a)
-```
-
-Computing the standard deviation in float64 is more accurate (result may vary):
-
-```{python}
-np.std(a, dtype=np.float64)
-```
-
-### Visualization of the Standard Deviation
-
-The standard deviation of normal distributed can be visualized in terms of the histogram of $X$:
-
-* about 68\% of the values will lie in the interval within one standard deviation of the mean
-* 95% lie within two standard deviation of the mean
-* and 99.9% lie within 3 standard deviations of the mean. 
-
-```{python}
-import matplotlib
-import numpy as np
-import matplotlib.pyplot as plt
-
-np.random.seed(1)
-
-# example data
-mu = 0.0  # mean of distribution
-sigma = 1  # standard deviation of distribution
-x = mu + sigma * np.random.randn(2000)
-num_bins = 33
-fig, ax = plt.subplots()
-# the histogram of the data
-n, bins, patches = ax.hist(x, num_bins, density=1)
-# add a 'best fit' line
-y = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-     np.exp(-0.5 * (1 / sigma * (bins - mu))**2))
-ax.plot(bins, y, '--')
-ax.set_xlabel('x')
-ax.set_ylabel('Probability density')
-ax.set_title(r'Histogram: $\mu=0$, $\sigma=1$')
-ax.vlines(-1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-     np.exp(-0.5 * (1 / sigma * (-1.0 - mu))**2)), colors="orange", linestyles="-.")
-ax.vlines(1, ymin=0, ymax = ((1 / (np.sqrt(2 * np.pi) * sigma)) *
-     np.exp(-0.5 * (1 / sigma * (1.0 - mu))**2)), colors="orange", linestyles="-.")
-# Tweak spacing to prevent clipping of ylabel
-fig.tight_layout()
-plt.show()
-```
-
-## Standardization
-
-To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
-If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
-$$
-X^{\ast} = (X-\mu)/\sigma
-$$ 
-is called $X$ in standard units. 
-It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
-
-
-## Random Numbers in Python
-
-Results from computers are deterministic, so it sounds like a contradiction in terms to generate random numbers on a computer.
-Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
-To generate ten random numbers from a normal distribution, the following command can be used.
-
-
-```{python}
-import numpy as np
-rng = np.random.default_rng()
-n = 10
-mu, sigma = 2, 0.1
-x = rng.normal(mu, sigma, n)
-```
-
-Verify the mean:
-
-```{python}
-abs(mu - np.mean(x))
-```
-
-Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
-
-```{python}
-abs(sigma - np.std(x, ddof=1))
-```
 
 ## The Multivariate Normal Distribution
 
@@ -472,7 +643,7 @@ rng = np.random.default_rng()
 Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size=m)
 ```
 
-# Kriging in a Nutshell
+## Kriging in a Nutshell
 
 * We will use the Kriging correlation $\Psi$ to predict new values based on the observed data.
 * The matrix algebra involved i calculating the likelihood is the most computationally intensive part of the Kriging process
@@ -536,7 +707,47 @@ $|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$.
   * low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample
   * high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s
 * $\theta_j$ is a measure of how active the function we are approximating is
-* High $\theta_j$ indicate important parameters
+* High $\theta_j$ indicate important parameters, see @fig-theta12
+
+
+
+
+```{python}
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
+
+def dist(point1, point2, theta1=1, theta2=3):
+  return np.array([theta1, theta2]) * np.abs(np.array(point1) - np.array(point2))
+
+def squared_euclidean_distance(point1, point2, theta1=1, theta2=3):
+    return np.sum((dist(point1, point2, theta1=theta1, theta2=theta2))**2)
+
+def inverse_exp_squared_distance(point1, point2, theta1=1, theta2=3):
+    return np.exp(-squared_euclidean_distance(point1, point2, theta1=theta1, theta2=theta2))
+
+def generate_grid(n):
+    return [(x/n, y/n) for x in range(n+1) for y in range(n+1)]
+
+def visualize_inverse_exp_squared_distance_3d_theta(n, point, theta1=1, theta2=3):
+    grid = generate_grid(n)
+    distances = [inverse_exp_squared_distance(p, point, theta1=theta1, theta2=theta2) for p in grid]
+    distances_matrix = np.array(distances).reshape((n+1, n+1))
+    
+    contour = plt.contour(distances_matrix, cmap='cool')
+    plt.clabel(contour, inline=True, fontsize=8)
+    plt.show()
+
+```
+
+
+```{python}
+#| label: fig-theta12
+#| fig-cap: "Theta set to 2 and 1"
+visualize_inverse_exp_squared_distance_3d_theta(100, (0.5, 0.5), theta1=2, theta2=1)
+```
+
+
 
 ### MLE to estimate $\theta$ and $p$
 
@@ -556,13 +767,13 @@ $$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
   * The first term requires information about the measured point (observations) $y_i$.
   * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the equation  is not differentiable.
 
-## Tuning $\theta$ and $p$
+### Tuning $\theta$ and $p$
 
 * Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
 * After the optimization, the correlation matrix is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. 
 * We will skip the optimization step here and use $\theta = 1$ and $p=2$.
 
-## Kriging Prediction
+### Kriging Prediction
 
 * Main idea for prediction:
   * The new $Y(x)$ should be consistent with the old sample data $X$. 
@@ -610,11 +821,11 @@ $$\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} -
   * **Basis functions**: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
   * **Interpolation**: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
 
-## Example: Sinusoid Function  
+### Example: Sinusoid Function  
 
 * Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
 
-## Calculating the Correlation Matrix $\Psi$
+### Calculating the Correlation Matrix $\Psi$
 
 * The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations
 * Here we will use $n=8$ sample locations
@@ -641,8 +852,8 @@ plt.title("Sin(x) evaluated at {} points".format(n))
 plt.show()
 ```
 
-## Computing the $\psi$ Vector
-### Based on Distances Between Testing and Training Data Locations
+### Computing the $\psi$ Vector
+#### Based on Distances Between Testing and Training Data Locations
 
 * Distances between testing locations $x$ and training data locations $X$.
 
@@ -675,7 +886,7 @@ x = np.linspace(0, 2*np.pi, m, endpoint=False).reshape(-1,1)
 psi = build_psi(X, x, theta)
 ```
 
-## Predictive Equations 
+### Predictive Equations 
 
 ```{python}
 U = cholesky(Psi).T
@@ -700,30 +911,32 @@ plt.legend(loc='upper right')
 plt.show()
 ```
 
-# Exercises
+<!-- 
 
-## 1 Number of Sample Points
+## Exercises
+
+### 1 Number of Sample Points
 
 * The example uses $n=8$ sample points to fit the sin function.
   * What happens, if less than 8 samples are available?
 
-## 2 Modified $\theta$ values
+### 2 Modified $\theta$ values
 
 * The example uses a $\theta$ value of $1.0$.
   * What happens if $\theta$ is modified?
   * Can get better predictions with smaller or larger $\theta$ values?
 
-## 3 Prediction Interval
+### 3 Prediction Interval
 
 * The prediction interval was identical to the measurement interval, i.e., in the range from $0$ to $2\pi$. This is referred to as "interpolation".
   * What happens if this interval is increased (which is referred to as "extrapolation")?
 
 
 
-## Exercise RBF
+### Exercise RBF
 
 
-### Package Loading
+#### Package Loading
 
 ```{python}
 %matplotlib inline
@@ -737,13 +950,13 @@ import matplotlib.pyplot as plt
 
 ```
 
-### Define a small number
+#### Define a small number
 
 ```{python}
 eps = np.sqrt(np.spacing(1))
 ```
 
-### The Sampling Plan (X)
+#### The Sampling Plan (X)
 
 * We will use 256 points.
 * The first 10 points are shown below.
@@ -757,7 +970,7 @@ X = gen.scipy_lhd(256, lower=lower, upper = upper)
 X[1:10]
 ```
 
-### The Objective Function
+#### The Objective Function
 
 * Here we use $\sum_{i=1}^n (x_i-1)^2$.
 * `f_map()` is a helper function that maps $f$ to the entries (points) in the matrix $X$.
@@ -797,7 +1010,7 @@ fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 10))
 ```
 
-### The Gram Matrix
+#### The Gram Matrix
 
 ```{python}
 def build_Gram(X):
@@ -818,7 +1031,7 @@ G = build_Gram(X)
 np.round(G,2)
 ```
 
-### The Radial Basis Functions
+#### The Radial Basis Functions
 
 ```{python}
 def basis_linear(r):
@@ -836,7 +1049,7 @@ def basis_gauss(r, sigma = 1e-1):
 basis = basis_gauss
 ```
 
-### The $\Psi$ Matrix
+#### The $\Psi$ Matrix
 
 ```{python}
 def build_Phi(G, basis, eps=np.sqrt(np.spacing(1))):
@@ -854,7 +1067,7 @@ Phi = build_Phi(G, basis=basis)
 Phi[0:3,0:3]
 ```
 
-### Inverting $\Psi$ via Cholesky Factorization
+#### Inverting $\Psi$ via Cholesky Factorization
 
 * There a two different implementations of the Cholesky factorization oin Python:
   * `numpy`'s  `linalg.cholesky()` and
@@ -881,9 +1094,9 @@ w = get_rbf_weights(Phi, y)
 w[0:3]
 ```
 
-### Predictions
+#### Predictions
 
-#### The Predictor
+##### The Predictor
 
 ```{python}
 def pred_rbf(x, X, basis, w):
@@ -897,26 +1110,26 @@ def pred_rbf(x, X, basis, w):
     return w @ phi    
 ```
 
-#### Testing some Example Points
+##### Testing some Example Points
 
 ```{python}
 x = X[0]
 x
 ```
 
-#### The RBF Prediction $\hat{f}$
+##### The RBF Prediction $\hat{f}$
 
 ```{python}
 pred_rbf(x=x, X=X, basis=basis, w=w)
 ```
 
-#### The Original (True) Value $f$
+##### The Original (True) Value $f$
 
 ```{python}
 f_map(np.array(x).reshape(1,-1))
 ```
 
-#### Visualizations
+##### Visualizations
 
 ```{python}
 XX, YY = np.meshgrid(np.linspace(-1, 2, 128), np.linspace(-1, 2, 128))
@@ -933,11 +1146,11 @@ fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 5))
 ```
 
-#### Note
+##### Note
 
 The original function $f$ is cheaper than the surrogate $\hat{f}$ in this example, because we have chosen a simple analytical function as the ground truth. This is not the case in real-world settings.
 
-### Cholesky Factorization
+#### Cholesky Factorization
 
 ##### $A = U^T U$
 
@@ -1040,4 +1253,4 @@ L @ L.T
 
 * Select the linear basis function?
 * What errors occur?
-* Do you have any ideas how to fix this error?
+* Do you have any ideas how to fix this error? -->
