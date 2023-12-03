@@ -101,7 +101,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 3&nbsp; Introduction to scipy.optimize">
 <meta name="twitter:description" content="">
-<meta name="twitter:image" content="003_scipy_optimize_intro_files/figure-html/cell-9-output-1.png">
+<meta name="twitter:image" content="003_scipy_optimize_intro_files/figure-html/cell-8-output-1.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 
@@ -452,7 +452,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#gradient-based-optimization-algorithms" id="toc-gradient-based-optimization-algorithms" class="nav-link" data-scroll-target="#gradient-based-optimization-algorithms"><span class="header-section-number">3.2</span> Gradient-based optimization algorithms</a>
   <ul class="collapse">
-  <li><a href="#sec-bfgs" id="toc-sec-bfgs" class="nav-link" data-scroll-target="#sec-bfgs"><span class="header-section-number">3.2.1</span> Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</a></li>
+  <li><a href="#sec-bfgs-intro" id="toc-sec-bfgs-intro" class="nav-link" data-scroll-target="#sec-bfgs-intro"><span class="header-section-number">3.2.1</span> An Introductory Example: Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</a></li>
+  <li><a href="#background-and-basics-for-gradient-based-optimization" id="toc-background-and-basics-for-gradient-based-optimization" class="nav-link" data-scroll-target="#background-and-basics-for-gradient-based-optimization"><span class="header-section-number">3.2.2</span> Background and Basics for Gradient-based Optimization</a></li>
+  <li><a href="#gradient" id="toc-gradient" class="nav-link" data-scroll-target="#gradient"><span class="header-section-number">3.2.3</span> Gradient</a></li>
+  <li><a href="#jacobian-matrix" id="toc-jacobian-matrix" class="nav-link" data-scroll-target="#jacobian-matrix"><span class="header-section-number">3.2.4</span> Jacobian Matrix</a></li>
+  <li><a href="#hessian-matrix" id="toc-hessian-matrix" class="nav-link" data-scroll-target="#hessian-matrix"><span class="header-section-number">3.2.5</span> Hessian Matrix</a></li>
+  <li><a href="#gradient-for-optimization" id="toc-gradient-for-optimization" class="nav-link" data-scroll-target="#gradient-for-optimization"><span class="header-section-number">3.2.6</span> Gradient for Optimization</a></li>
+  <li><a href="#newton-method" id="toc-newton-method" class="nav-link" data-scroll-target="#newton-method"><span class="header-section-number">3.2.7</span> Newton Method</a></li>
+  <li><a href="#bfgs-algorithm" id="toc-bfgs-algorithm" class="nav-link" data-scroll-target="#bfgs-algorithm"><span class="header-section-number">3.2.8</span> BFGS-Algorithm</a></li>
+  <li><a href="#procedure" id="toc-procedure" class="nav-link" data-scroll-target="#procedure"><span class="header-section-number">3.2.9</span> Procedure:</a></li>
+  <li><a href="#visualization-bfgs-for-rosenbrock" id="toc-visualization-bfgs-for-rosenbrock" class="nav-link" data-scroll-target="#visualization-bfgs-for-rosenbrock"><span class="header-section-number">3.2.10</span> Visualization BFGS for Rosenbrock</a></li>
   </ul></li>
   <li><a href="#gradient--and-hessian-based-optimization-algorithms" id="toc-gradient--and-hessian-based-optimization-algorithms" class="nav-link" data-scroll-target="#gradient--and-hessian-based-optimization-algorithms"><span class="header-section-number">3.3</span> Gradient- and Hessian-based optimization algorithms</a>
   <ul class="collapse">
@@ -538,7 +547,7 @@ Note
 </div>
 <p>We will introduce unconstrained minimization of multivariate scalar functions in this chapter. The <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize">minimize</a> function provides a common interface to unconstrained and constrained minimization algorithms for multivariate scalar functions in <code>scipy.optimize</code>. To demonstrate the minimization function, consider the problem of minimizing the Rosenbrock function of <em>N</em> variables:</p>
 <p><span class="math display">\[
-f(\mathbf{x}) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
+f(J) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
 \]</span></p>
 <p>The minimum value of this function is 0, which is achieved when (x_i = 1).</p>
 <p>Note that the Rosenbrock function and its derivatives are included in <code>scipy.optimize</code>. The implementations shown in the following sections provide examples of how to define an objective function as well as its Jacobian and Hessian functions. Objective functions in <code>scipy.optimize</code> expect a numpy array as their first parameter, which is to be optimized and must return a float value. The exact calling signature must be <code>f(x, *args)</code>, where <code>x</code> represents a numpy array, and <code>args</code> is a tuple of additional arguments supplied to the objective function.</p>
@@ -574,11 +583,11 @@ f(\mathbf{x}) = \sum_{i=1}^{N-1} 100 (x_{i+1} - x_i^2)^2 + (1 - x_i)^2
 <section id="sec-powells-method" class="level3" data-number="3.1.2">
 <h3 data-number="3.1.2" class="anchored" data-anchor-id="sec-powells-method"><span class="header-section-number">3.1.2</span> Powell’s Method</h3>
 <p>Another optimization algorithm that needs only function calls to find the minimum is <em>Powell</em>’s method, which can be selected by setting the <code>method</code> parameter to <code>'powell'</code> in the <code>minimize</code> function.</p>
-<p>To demonstrate how to supply additional arguments to an objective function, let’s consider minimizing the Rosenbrock function with an additional scaling factor <em>a</em> and an offset <em>b</em>:</p>
+<p>To demonstrate how to supply additional arguments to an objective function, let’s consider minimizing the Rosenbrock function with an additional scaling factor <span class="math inline">\(a\)</span> and an offset <span class="math inline">\(b\)</span>:</p>
 <p><span class="math display">\[
-f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
+f(J, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
 \]</span></p>
-<p>You can achieve this using the <code>minimize</code> routine with the example parameters <em>a=0.5</em> and <em>b=1</em>:</p>
+<p>You can achieve this using the <code>minimize</code> routine with the example parameters <span class="math inline">\(a=0.5\)</span> and <span class="math inline">\(b=1\)</span>:</p>
 <div class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosen_with_args(x, a, b):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""The Rosenbrock function with additional arguments"""</span></span>
@@ -631,12 +640,19 @@ f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
 </section>
 <section id="gradient-based-optimization-algorithms" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="gradient-based-optimization-algorithms"><span class="header-section-number">3.2</span> Gradient-based optimization algorithms</h2>
-<p><a href="#sec-bfgs"><span>Section&nbsp;3.2.1</span></a> presents an optimization algorithm that uses gradient information to find the minimum.</p>
-<section id="sec-bfgs" class="level3" data-number="3.2.1">
-<h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-bfgs"><span class="header-section-number">3.2.1</span> Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</h3>
-<p>The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm (selected by setting <code>method='BFGS'</code>) is an optimization algorithm that aims to converge quickly to the solution. This algorithm uses the gradient of the objective function. If the gradient is not provided by the user, it is estimated using first-differences. The BFGS method typically requires fewer function calls compared to the simplex algorithm, even when the gradient needs to be estimated.</p>
-<section id="using-bfgs-with-the-rosenbrock-function" class="level4" data-number="3.2.1.1">
-<h4 data-number="3.2.1.1" class="anchored" data-anchor-id="using-bfgs-with-the-rosenbrock-function"><span class="header-section-number">3.2.1.1</span> Using BFGS with the Rosenbrock Function</h4>
+<section id="sec-bfgs-intro" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-bfgs-intro"><span class="header-section-number">3.2.1</span> An Introductory Example: Broyden-Fletcher-Goldfarb-Shanno Algorithm (BFGS)</h3>
+<p>This section introduces an optimization algorithm that uses gradient information to find the minimum. The Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm (selected by setting <code>method='BFGS'</code>) is an optimization algorithm that aims to converge quickly to the solution. This algorithm uses the gradient of the objective function. If the gradient is not provided by the user, it is estimated using first-differences. The BFGS method typically requires fewer function calls compared to the simplex algorithm, even when the gradient needs to be estimated.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: BFGS
+</div>
+</div>
+<div class="callout-body-container callout-body">
 <p>To demonstrate the BFGS algorithm, let’s use the Rosenbrock function again. The gradient of the Rosenbrock function is a vector described by the following mathematical expression:</p>
 <p><span class="math display">\[\begin{align}
 \frac{\partial f}{\partial x_j} = \sum_{i=1}^{N} 200(x_i - x_{i-1}^2)(\delta_{i,j} - 2x_{i-1}\delta_{i-1,j}) - 2(1 - x_{i-1})\delta_{i-1,j} \\
@@ -676,7 +692,342 @@ f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
 [1.00000004 1.0000001  1.00000021 1.00000044 1.00000092]</code></pre>
 </div>
 </div>
+</div>
+</div>
 </section>
+<section id="background-and-basics-for-gradient-based-optimization" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="background-and-basics-for-gradient-based-optimization"><span class="header-section-number">3.2.2</span> Background and Basics for Gradient-based Optimization</h3>
+</section>
+<section id="gradient" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="gradient"><span class="header-section-number">3.2.3</span> Gradient</h3>
+<p>The gradient <span class="math inline">\(\nabla f(J)\)</span> for a scalar function <span class="math inline">\(f(J)\)</span> with <span class="math inline">\(n\)</span> different variables is defined by its partial derivatives:</p>
+<p><span class="math display">\[\nabla f(J) = \left[ \frac{\partial f}{\partial x_1}, \frac{\partial f}{\partial x_2}, \ldots, \frac{\partial f}{\partial x_n} \right]\]</span></p>
+</section>
+<section id="jacobian-matrix" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="jacobian-matrix"><span class="header-section-number">3.2.4</span> Jacobian Matrix</h3>
+<p>The Jacobian matrix <span class="math inline">\(J(J)\)</span> for a vector-valued function <span class="math inline">\(F(J) = [f_1(J), f_2(J), \ldots, f_m(J)]\)</span> is defined as:</p>
+<p><span class="math inline">\(J(J) = \begin{bmatrix} \frac{\partial f_1}{\partial x_1} &amp; \frac{\partial f_1}{\partial x_2} &amp; \ldots &amp; \frac{\partial f_1}{\partial x_n} \\ \frac{\partial f_2}{\partial x_1} &amp; \frac{\partial f_2}{\partial x_2} &amp; \ldots &amp; \frac{\partial f_2}{\partial x_n} \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ \frac{\partial f_m}{\partial x_1} &amp; \frac{\partial f_m}{\partial x_2} &amp; \ldots &amp; \frac{\partial f_m}{\partial x_n} \end{bmatrix}\)</span></p>
+<p>It consists of the first order partial derivatives and gives therefore an overview about the gradients of a vector valued function.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Jacobian matrix
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Consider a vector-valued function <span class="math inline">\(f : \mathbb{R}^2 \rightarrow \mathbb{R}^3\)</span> defined as follows: <span class="math display">\[f(J) = \begin{bmatrix} x_1^2 + 2x_2 \\ 3x_1 - \sin(x_2) \\ e^{x_1 + x_2} \end{bmatrix}\]</span></p>
+<p>Let’s compute the partial derivatives and construct the Jacobian matrix:</p>
+<p><span class="math inline">\(\frac{\partial f_1}{\partial x_1} = 2x_1, \quad \frac{\partial f_1}{\partial x_2} = 2\)</span></p>
+<p><span class="math inline">\(\frac{\partial f_2}{\partial x_1} = 3, \quad \frac{\partial f_2}{\partial x_2} = -\cos(x_2)\)</span></p>
+<p><span class="math inline">\(\frac{\partial f_3}{\partial x_1} = e^{x_1 + x_2}, \quad \frac{\partial f_3}{\partial x_2} = e^{x_1 + x_2}\)</span></p>
+<p>So, the Jacobian matrix is:</p>
+<p><span class="math display">\[J(J) = \begin{bmatrix} 2x_1 &amp; 2 \\ 3 &amp; -\cos(x_2) \\ e^{x_1 + x_2} &amp; e^{x_1 + x_2} \end{bmatrix}\]</span></p>
+<p>This Jacobian matrix provides information about how small changes in the input variables <span class="math inline">\(x_1\)</span> and <span class="math inline">\(x_2\)</span> affect the corresponding changes in each component of the output vector.</p>
+</div>
+</div>
+</section>
+<section id="hessian-matrix" class="level3" data-number="3.2.5">
+<h3 data-number="3.2.5" class="anchored" data-anchor-id="hessian-matrix"><span class="header-section-number">3.2.5</span> Hessian Matrix</h3>
+<p>The Hessian matrix <span class="math inline">\(H(J)\)</span> for a scalar function <span class="math inline">\(f(J)\)</span> is defined as:</p>
+<p><span class="math inline">\(H(J) = \begin{bmatrix} \frac{\partial^2 f}{\partial x_1^2} &amp; \frac{\partial^2 f}{\partial x_1 \partial x_2} &amp; \ldots &amp; \frac{\partial^2 f}{\partial x_1 \partial x_n} \\ \frac{\partial^2 f}{\partial x_2 \partial x_1} &amp; \frac{\partial^2 f}{\partial x_2^2} &amp; \ldots &amp; \frac{\partial^2 f}{\partial x_2 \partial x_n} \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ \frac{\partial^2 f}{\partial x_n \partial x_1} &amp; \frac{\partial^2 f}{\partial x_n \partial x_2} &amp; \ldots &amp; \frac{\partial^2 f}{\partial x_n^2} \end{bmatrix}\)</span></p>
+<p>So, the Hessian matrix consists of the second order dervatives of the function. It provides information about the local curvature of the function with respect to changes in the input variables.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Hessian matrix
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Consider a scalar-valued function: <span class="math display">\[f(J) = x_1^2 + 2x_2^2 + \sin(x_1   x_2)\]</span></p>
+<p>The Hessian matrix of this scalar-valued function is the matrix of its second-order partial derivatives with respect to the input variables: <span class="math display">\[H(J) = \begin{bmatrix} \frac{\partial^2 f}{\partial x_1^2} &amp; \frac{\partial^2 f}{\partial x_1 \partial x_2} \\ \frac{\partial^2 f}{\partial x_2 \partial x_1} &amp; \frac{\partial^2 f}{\partial x_2^2} \end{bmatrix}\]</span></p>
+<p>Let’s compute the second-order partial derivatives and construct the Hessian matrix:</p>
+<p><span class="math display">\[\begin{align}
+\frac{\partial^2 f}{\partial x_1^2} &amp;= 2 + \cos(x_1 x_2) x_2^2\\
+\frac{\partial^2 f}{\partial x_1 \partial x_2} &amp;= 2x_1  x_2 \cos(x_1 x_2) - \sin(x_1  x_2)\\
+\frac{\partial^2 f}{\partial x_2 \partial x_1} &amp;= 2x_1  x_2  \cos(x_1  x_2) - \sin(x_1  x_2)\\
+\frac{\partial^2 f}{\partial x_2^2} &amp;= 4x_2^2 + \cos(x_1  x_2) x_1^2
+\end{align}\]</span></p>
+<p>So, the Hessian matrix is:</p>
+<p><span class="math display">\[H(J) = \begin{bmatrix} 2 + \cos(x_1   x_2)   x_2^2 &amp; 2x_1   x_2   \cos(x_1   x_2) - \sin(x_1   x_2) \\ 2x_1   x_2   \cos(x_1   x_2) - \sin(x_1   x_2) &amp; 4x_2^2 + \cos(x_1   x_2)   x_1^2 \end{bmatrix}\]</span></p>
+</div>
+</div>
+</section>
+<section id="gradient-for-optimization" class="level3" data-number="3.2.6">
+<h3 data-number="3.2.6" class="anchored" data-anchor-id="gradient-for-optimization"><span class="header-section-number">3.2.6</span> Gradient for Optimization</h3>
+<p>In optimization, the goal is to find the minimum or maximum of a function. Gradient-based optimization methods utilize information about the gradient (or derivative) of the function to guide the search for the optimal solution. This is particularly useful when dealing with complex, high-dimensional functions where an exhaustive search is impractical.</p>
+<p>The gradient descent method can be divided in the following steps:</p>
+<ul>
+<li><strong>Initialize:</strong> start with an initial guess for the parameters of the function to be optimized.</li>
+<li><strong>Compute Gradient:</strong> Calculate the gradient (partial derivatives) of the function with respect to each parameter at the current point. The gradient indicates the direction of the steepest increase in the function.</li>
+<li><strong>Update Parameters:</strong> Adjust the parameters in the opposite direction of the gradient, scaled by a learning rate. This step aims to move towards the minimum of the function:
+<ul>
+<li><span class="math inline">\(x_{k+1} = x_k - \alpha \times \nabla f(x_{k})\)</span></li>
+<li><span class="math inline">\(x_{x}\)</span> is current parameter vector or point in the parameter space.</li>
+<li><span class="math inline">\(\alpha\)</span> is the learning rate, a positive scalar that determines the step size in each iteration.</li>
+<li><span class="math inline">\(\nabla f(x)\)</span> is the gradient of the objective function.</li>
+</ul></li>
+<li><strong>Iterate:</strong> Repeat the above steps until convergence or a predefined number of iterations. Convergence is typically determined when the change in the function value or parameters becomes negligible.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Gradient Descent
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Let’s consider a simple quadratic function as an example: <span class="math display">\[f(x) = x^2 + 4x + y^2 + 2y + 4.\]</span></p>
+<p>We’ll use gradient descent to find the minimum of this function.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.mplot3d <span class="im">import</span> Axes3D</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the quadratic function</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> quadratic_function(x, y):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">4</span><span class="op">*</span>x <span class="op">+</span> y<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">2</span><span class="op">*</span>y <span class="op">+</span> <span class="dv">4</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the gradient of the quadratic function</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gradient_quadratic_function(x, y):</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    grad_x <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>x <span class="op">+</span> <span class="dv">4</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    grad_y <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>y <span class="op">+</span> <span class="dv">2</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array([grad_x, grad_y])</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Gradient Descent for optimization in 2D</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gradient_descent(initial_point, learning_rate, num_iterations):</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    points <span class="op">=</span> [np.array(initial_point)]</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(num_iterations):</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        current_point <span class="op">=</span> points[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        gradient <span class="op">=</span> gradient_quadratic_function(<span class="op">*</span>current_point)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        new_point <span class="op">=</span> current_point <span class="op">-</span> learning_rate <span class="op">*</span> gradient</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        points.append(new_point)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> points</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization of optimization process with 3D surface and consistent arrow sizes</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_optimization_process_3d_consistent_arrows(points):</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>, projection<span class="op">=</span><span class="st">'3d'</span>)</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    x_vals <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">10</span>, <span class="dv">2</span>, <span class="dv">100</span>)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>    y_vals <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">10</span>, <span class="dv">2</span>, <span class="dv">100</span>)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>    X, Y <span class="op">=</span> np.meshgrid(x_vals, y_vals)</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>    Z <span class="op">=</span> quadratic_function(X, Y)</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>    ax.plot_surface(X, Y, Z, cmap<span class="op">=</span><span class="st">'viridis'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    ax.scatter(<span class="op">*</span><span class="bu">zip</span>(<span class="op">*</span>points), [quadratic_function(<span class="op">*</span>p) <span class="cf">for</span> p <span class="kw">in</span> points], c<span class="op">=</span><span class="st">'red'</span>, label<span class="op">=</span><span class="st">'Optimization Trajectory'</span>)</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(points) <span class="op">-</span> <span class="dv">1</span>):  </span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> points[i]</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>        dx, dy <span class="op">=</span> points[i <span class="op">+</span> <span class="dv">1</span>] <span class="op">-</span> points[i]</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>        dz <span class="op">=</span> quadratic_function(<span class="op">*</span>(points[i <span class="op">+</span> <span class="dv">1</span>])) <span class="op">-</span> quadratic_function(<span class="op">*</span>points[i])</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>        gradient_length <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>        ax.quiver(x, y, quadratic_function(<span class="op">*</span>points[i]), dx, dy, dz, color<span class="op">=</span><span class="st">'blue'</span>, length<span class="op">=</span>gradient_length, normalize<span class="op">=</span><span class="va">False</span>, arrow_length_ratio<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="st">'Gradient-Based Optimization with 2D Quadratic Function'</span>)</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'x'</span>)</span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">'y'</span>)</span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>    ax.set_zlabel(<span class="st">'f(x, y)'</span>)</span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Initial guess and parameters</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>initial_guess <span class="op">=</span> [<span class="op">-</span><span class="fl">9.0</span>, <span class="op">-</span><span class="fl">9.0</span>]</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>learning_rate <span class="op">=</span> <span class="fl">0.2</span></span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>num_iterations <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a><span class="co"># Run gradient descent in 2D and visualize the optimization process with 3D surface and consistent arrow sizes</span></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>trajectory <span class="op">=</span> gradient_descent(initial_guess, learning_rate, num_iterations)</span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>plot_optimization_process_3d_consistent_arrows(trajectory)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="003_scipy_optimize_intro_files/figure-html/cell-8-output-1.png" width="621" height="631"></p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="newton-method" class="level3" data-number="3.2.7">
+<h3 data-number="3.2.7" class="anchored" data-anchor-id="newton-method"><span class="header-section-number">3.2.7</span> Newton Method</h3>
+<p><strong>Initialization:</strong> Start with an initial guess for the optimal solution: <span class="math inline">\(x_0\)</span>.</p>
+<p><strong>Iteration:</strong> Repeat the following three steps until convergence or a predefined stopping criterion is met:</p>
+<ol type="1">
+<li><p>Calculate the gradient (<span class="math inline">\(\nabla\)</span>) and the Hessian matrix (<span class="math inline">\(\nabla^2\)</span>) of the objective function at the current point: <span class="math display">\[\nabla f(x_k) \quad \text{and} \quad \nabla^2 f(x_k)\]</span></p></li>
+<li><p>Update the current solution using the Newton-Raphson update formula <span class="math display">\[x_{k+1} = x_k - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k),\]</span> where</p></li>
+</ol>
+<ul>
+<li><span class="math inline">\(\nabla f(x_k)\)</span> is the gradient (first derivative) of the objective function with respect to the variable <span class="math inline">\(x\)</span>, evaluated at the current solution <span class="math inline">\(x_k\)</span>.</li>
+<li><span class="math inline">\(\nabla^2 f(x_k)\)</span>: The Hessian matrix (second derivative) of the objective function with respect to <span class="math inline">\(x\)</span>, evaluated at the current solution <span class="math inline">\(x_k\)</span>.</li>
+<li><span class="math inline">\(x_k\)</span>: The current solution or point in the optimization process.</li>
+<li><span class="math inline">\(\nabla^2 f(x_k)]^{-1}\)</span>: The inverse of the Hessian matrix at the current point, representing the approximation of the curvature of the objective function.</li>
+<li><span class="math inline">\(x_{k+1}\)</span>: The updated solution or point after applying the Newton-Raphson update.</li>
+</ul>
+<ol start="3" type="1">
+<li>Check for convergence.</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Newton Method
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We want to optimize the Rosenbrock function and use the Hessian and the Jacobian (which is equal to the gradient vector for scalar objective function) to the <code>minimize</code> function.</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosenbrock(x):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">100</span> <span class="op">*</span> (x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span>)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (<span class="dv">1</span> <span class="op">-</span> x[<span class="dv">0</span>])<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosenbrock_gradient(x):</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    dfdx0 <span class="op">=</span> <span class="op">-</span><span class="dv">400</span> <span class="op">*</span> x[<span class="dv">0</span>] <span class="op">*</span> (x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span>) <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x[<span class="dv">0</span>])</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    dfdx1 <span class="op">=</span> <span class="dv">200</span> <span class="op">*</span> (x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array([dfdx0, dfdx1])</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosenbrock_hessian(x):</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    d2fdx0 <span class="op">=</span> <span class="dv">1200</span> <span class="op">*</span> x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">-</span> <span class="dv">400</span> <span class="op">*</span> x[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">2</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    d2fdx1 <span class="op">=</span> <span class="op">-</span><span class="dv">400</span> <span class="op">*</span> x[<span class="dv">0</span>]</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array([[d2fdx0, d2fdx1], [d2fdx1, <span class="dv">200</span>]])</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> classical_newton_optimization_2d(initial_guess, tol<span class="op">=</span><span class="fl">1e-6</span>, max_iter<span class="op">=</span><span class="dv">100</span>):</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> initial_guess.copy()</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(max_iter):</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        gradient <span class="op">=</span> rosenbrock_gradient(x)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        hessian <span class="op">=</span> rosenbrock_hessian(x)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Solve the linear system H * d = -g for d</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> np.linalg.solve(hessian, <span class="op">-</span>gradient)</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Update x</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>        x <span class="op">+=</span> d</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Check for convergence</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.linalg.norm(gradient, <span class="bu">ord</span><span class="op">=</span>np.inf) <span class="op">&lt;</span> tol:</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Initial guess</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>initial_guess_2d <span class="op">=</span> np.array([<span class="fl">0.0</span>, <span class="fl">0.0</span>])</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Run classical Newton optimization for the 2D Rosenbrock function</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>result_2d <span class="op">=</span> classical_newton_optimization_2d(initial_guess_2d)</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the result</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Optimal solution:"</span>, result_2d)</span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Objective value:"</span>, rosenbrock(result_2d))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimal solution: [1. 1.]
+Objective value: 0.0</code></pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="bfgs-algorithm" class="level3" data-number="3.2.8">
+<h3 data-number="3.2.8" class="anchored" data-anchor-id="bfgs-algorithm"><span class="header-section-number">3.2.8</span> BFGS-Algorithm</h3>
+<p>BFGS is an optimization algorithm designed for unconstrained optimization problems. It belongs to the class of quasi-Newton methods and is known for its efficiency in finding the minimum of a smooth, unconstrained objective function.</p>
+</section>
+<section id="procedure" class="level3" data-number="3.2.9">
+<h3 data-number="3.2.9" class="anchored" data-anchor-id="procedure"><span class="header-section-number">3.2.9</span> Procedure:</h3>
+<ol type="1">
+<li><strong>Initialization:</strong>
+<ul>
+<li>Start with an initial guess for the parameters of the objective function.</li>
+<li>Initialize an approximation of the Hessian matrix (inverse) denoted by <span class="math inline">\(H\)</span>.<br>
+</li>
+</ul></li>
+<li><strong>Iterative Update:</strong>
+<ul>
+<li>At each iteration, compute the gradient vector at the current point.</li>
+<li>Update the parameters using the BFGS update formula, which involves the inverse Hessian matrix approximation, the gradient, and the difference in parameter vectors between successive iterations: <span class="math display">\[x_{k+1} = x_k - H_k^{-1} \nabla f(x_k).\]</span></li>
+<li>Update the inverse Hessian approximation using the BFGS update formula for the inverse Hessian. <span class="math display">\[H_{k+1} = H_k + \frac{\Delta x_k \Delta x_k^T}{\Delta x_k^T \Delta g_k} - \frac{H_k g_k g_k^T H_k}{g_k^T H_k g_k},\]</span> where:</li>
+<li><span class="math inline">\(x_k\)</span> and <span class="math inline">\(x_{k+1}\)</span> are the parameter vectors at the current and updated iterations, respectively.</li>
+<li><span class="math inline">\(\nabla f(x_k)\)</span> is the gradient vector at the current iteration.</li>
+<li><span class="math inline">\(\Delta x_k = x_{k+1} - x_k\)</span> is the change in parameter vectors.</li>
+<li><span class="math inline">\(\Delta g_k = \nabla f(x_{k+1}) - \nabla f(x_k)\)</span> is the change in gradient vectors.</li>
+</ul></li>
+<li><strong>Convergence:</strong>
+<ul>
+<li>Repeat the iterative update until the optimization converges. Convergence is typically determined by reaching a sufficiently low gradient or parameter change.</li>
+</ul></li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: BFGS for Rosenbrock
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> minimize</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the 2D Rosenbrock function</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rosenbrock(x):</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="dv">1</span> <span class="op">-</span> x[<span class="dv">0</span>])<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="dv">100</span> <span class="op">*</span> (x[<span class="dv">1</span>] <span class="op">-</span> x[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span>)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Initial guess</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>initial_guess <span class="op">=</span> np.array([<span class="fl">0.0</span>, <span class="fl">0.0</span>])</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Minimize the Rosenbrock function using BFGS</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>minimize(rosenbrock, initial_guess, method<span class="op">=</span><span class="st">'BFGS'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: 2.843987518235081e-11
+        x: [ 1.000e+00  1.000e+00]
+      nit: 19
+      jac: [ 3.987e-06 -2.844e-06]
+ hess_inv: [[ 4.948e-01  9.896e-01]
+            [ 9.896e-01  1.984e+00]]
+     nfev: 72
+     njev: 24</code></pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="visualization-bfgs-for-rosenbrock" class="level3" data-number="3.2.10">
+<h3 data-number="3.2.10" class="anchored" data-anchor-id="visualization-bfgs-for-rosenbrock"><span class="header-section-number">3.2.10</span> Visualization BFGS for Rosenbrock</h3>
+<p>A visualization of the BFGS search process on Rosenbrock’s function can be found here: <a href="https://upload.wikimedia.org/wikipedia/de/f/ff/Rosenbrock-bfgs-animation.gif">https://upload.wikimedia.org/wikipedia/de/f/ff/Rosenbrock-bfgs-animation.gif</a></p>
+<!-- 
+![BFGS search process on Rosenbrock's function. Figure taken from: [https://upload.wikimedia.org/wikipedia/de/f/ff/Rosenbrock-bfgs-animation.gif](https://upload.wikimedia.org/wikipedia/de/f/ff/Rosenbrock-bfgs-animation.gif)](./figures_static/Rosenbrock-bfgs-animation.gif)
+ -->
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tasks
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>In which situations is it possible to use algorithms like BFGS, but not the classical Newton method?</li>
+<li>Investigate the Newton-CG method</li>
+<li>Use an objective function of your choice and apply Newton-CG</li>
+<li>Compare the Newton-CG method with the BFGS. What are the similarities and differences between the two algorithms?</li>
+</ul>
+</div>
+</div>
 </section>
 </section>
 <section id="gradient--and-hessian-based-optimization-algorithms" class="level2" data-number="3.3">
@@ -697,41 +1048,41 @@ f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
 <section id="global-optimization" class="level2" data-number="3.4">
 <h2 data-number="3.4" class="anchored" data-anchor-id="global-optimization"><span class="header-section-number">3.4</span> Global Optimization</h2>
 <p>Global optimization aims to find the global minimum of a function within given bounds, in the presence of potentially many local minima. Typically, global minimizers efficiently search the parameter space, while using a local minimizer (e.g., minimize) under the hood. SciPy contains a number of good global optimizers. Here, we’ll use those on the same objective function, namely the (aptly named) eggholder function:</p>
-<div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eggholder(x):</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="op">-</span>(x[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">47</span>) <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>))))</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>            <span class="op">-</span>x[<span class="dv">0</span>] <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>] <span class="op">-</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>)))))</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [(<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>), (<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eggholder(x):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="op">-</span>(x[<span class="dv">1</span>] <span class="op">+</span> <span class="dv">47</span>) <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>))))</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>            <span class="op">-</span>x[<span class="dv">0</span>] <span class="op">*</span> np.sin(np.sqrt(<span class="bu">abs</span>(x[<span class="dv">0</span>] <span class="op">-</span> (x[<span class="dv">1</span>]  <span class="op">+</span> <span class="dv">47</span>)))))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [(<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>), (<span class="op">-</span><span class="dv">512</span>, <span class="dv">512</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.mplot3d <span class="im">import</span> Axes3D</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>xgrid, ygrid <span class="op">=</span> np.meshgrid(x, y)</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>xy <span class="op">=</span> np.stack([xgrid, ygrid])</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>, projection<span class="op">=</span><span class="st">'3d'</span>)</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>ax.view_init(<span class="dv">45</span>, <span class="op">-</span><span class="dv">45</span>)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ax.plot_surface(xgrid, ygrid, eggholder(xy), cmap<span class="op">=</span><span class="st">'terrain'</span>)</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>ax.set_zlabel(<span class="st">'eggholder(x, y)'</span>)</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.mplot3d <span class="im">import</span> Axes3D</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">512</span>, <span class="dv">513</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>xgrid, ygrid <span class="op">=</span> np.meshgrid(x, y)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>xy <span class="op">=</span> np.stack([xgrid, ygrid])</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>, projection<span class="op">=</span><span class="st">'3d'</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>ax.view_init(<span class="dv">45</span>, <span class="op">-</span><span class="dv">45</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>ax.plot_surface(xgrid, ygrid, eggholder(xy), cmap<span class="op">=</span><span class="st">'terrain'</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>ax.set_zlabel(<span class="st">'eggholder(x, y)'</span>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="003_scipy_optimize_intro_files/figure-html/cell-9-output-1.png" width="427" height="398"></p>
+<p><img src="003_scipy_optimize_intro_files/figure-html/cell-12-output-1.png" width="427" height="398"></p>
 </div>
 </div>
 <p>We now use the global optimizers to obtain the minimum and the function value at the minimum. We’ll store the results in a dictionary so we can compare different optimization results later.</p>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> optimize</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="bu">dict</span>()</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="9">
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> optimize</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="bu">dict</span>()</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code> message: Optimization terminated successfully.
  success: True
      fun: -935.3379515605789
@@ -745,41 +1096,41 @@ f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
    nlhev: 0</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>] <span class="op">=</span> optimize.dual_annealing(eggholder, bounds)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>] <span class="op">=</span> optimize.dual_annealing(eggholder, bounds)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DA'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code> message: ['Maximum number of iteration reached']
  success: True
   status: 0
-     fun: -959.6406627208428
-       x: [ 5.120e+02  4.042e+02]
+     fun: -956.9182316229447
+       x: [ 4.824e+02  4.329e+02]
      nit: 1000
-    nfev: 4133
-    njev: 44
+    nfev: 4124
+    njev: 41
     nhev: 0</code></pre>
 </div>
 </div>
 <p>All optimizers return an <code>OptimizeResult</code>, which in addition to the solution contains information on the number of function evaluations, whether the optimization was successful, and more. For brevity, we won’t show the full output of the other optimizers:</p>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>] <span class="op">=</span> optimize.differential_evolution(eggholder, bounds)</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="11">
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>] <span class="op">=</span> optimize.differential_evolution(eggholder, bounds)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'DE'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
 <pre><code> message: Optimization terminated successfully.
  success: True
-     fun: -894.5789003905069
-       x: [-4.657e+02  3.857e+02]
-     nit: 18
-    nfev: 591
-     jac: [-1.137e-05 -1.137e-05]</code></pre>
+     fun: -955.2551521426891
+       x: [ 4.790e+02  4.345e+02]
+     nit: 23
+    nfev: 759
+     jac: [-1.933e-04  2.160e-04]</code></pre>
 </div>
 </div>
 <p><code>shgo</code> has a second method, which returns all local minima rather than only what it thinks is the global minimum:</p>
-<div class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds, n<span class="op">=</span><span class="dv">200</span>, iters<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                                      sampling_method<span class="op">=</span><span class="st">'sobol'</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="12">
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>] <span class="op">=</span> optimize.shgo(eggholder, bounds, n<span class="op">=</span><span class="dv">200</span>, iters<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>                                      sampling_method<span class="op">=</span><span class="st">'sobol'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'shgo_sobol'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code> message: Optimization terminated successfully.
  success: True
      fun: -959.640662720831
@@ -798,33 +1149,33 @@ f(\mathbf{x}, a, b) = \sum_{i=1}^{N-1} a (x_{i+1} - x_i^2)^2 + (1 - x_i)^2 + b
 </div>
 </div>
 <p>We’ll now plot all found minima on a heatmap of the function:</p>
-<div class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>)</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>im <span class="op">=</span> ax.imshow(eggholder(xy), interpolation<span class="op">=</span><span class="st">'bilinear'</span>, origin<span class="op">=</span><span class="st">'lower'</span>,</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>               cmap<span class="op">=</span><span class="st">'gray'</span>)</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_point(res, marker<span class="op">=</span><span class="st">'o'</span>, color<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">0</span>], <span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">1</span>], marker<span class="op">=</span>marker, color<span class="op">=</span>color, ms<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DE'</span>], color<span class="op">=</span><span class="st">'c'</span>)  <span class="co"># differential_evolution - cyan</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DA'</span>], color<span class="op">=</span><span class="st">'w'</span>)  <span class="co"># dual_annealing.        - white</span></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co"># SHGO produces multiple minima, plot them all (with a smaller marker size)</span></span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'+'</span>)</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo_sobol'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'x'</span>)</span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(results[<span class="st">'shgo_sobol'</span>].xl.shape[<span class="dv">0</span>]):</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">0</span>],</span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>            <span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">1</span>],</span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">'ro'</span>, ms<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>ax.set_xlim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(<span class="dv">111</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>im <span class="op">=</span> ax.imshow(eggholder(xy), interpolation<span class="op">=</span><span class="st">'bilinear'</span>, origin<span class="op">=</span><span class="st">'lower'</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>               cmap<span class="op">=</span><span class="st">'gray'</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'x'</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'y'</span>)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_point(res, marker<span class="op">=</span><span class="st">'o'</span>, color<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">0</span>], <span class="dv">512</span><span class="op">+</span>res.x[<span class="dv">1</span>], marker<span class="op">=</span>marker, color<span class="op">=</span>color, ms<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DE'</span>], color<span class="op">=</span><span class="st">'c'</span>)  <span class="co"># differential_evolution - cyan</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'DA'</span>], color<span class="op">=</span><span class="st">'w'</span>)  <span class="co"># dual_annealing.        - white</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="co"># SHGO produces multiple minima, plot them all (with a smaller marker size)</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'+'</span>)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>plot_point(results[<span class="st">'shgo_sobol'</span>], color<span class="op">=</span><span class="st">'r'</span>, marker<span class="op">=</span><span class="st">'x'</span>)</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(results[<span class="st">'shgo_sobol'</span>].xl.shape[<span class="dv">0</span>]):</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>    ax.plot(<span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">0</span>],</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>            <span class="dv">512</span> <span class="op">+</span> results[<span class="st">'shgo_sobol'</span>].xl[i, <span class="dv">1</span>],</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">'ro'</span>, ms<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>ax.set_xlim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="op">-</span><span class="dv">4</span>, <span class="dv">514</span><span class="op">*</span><span class="dv">2</span>])</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="003_scipy_optimize_intro_files/figure-html/cell-14-output-1.png" width="457" height="429"></p>
+<p><img src="003_scipy_optimize_intro_files/figure-html/cell-17-output-1.png" width="457" height="429"></p>
 </div>
 </div>
 <section id="dual-annealing-optimization" class="level3" data-number="3.4.1">
