@@ -80,7 +80,9 @@ The function `numpy.std` returns the standard deviation, a measure of the spread
 \begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
 
 
-#### Example
+
+::: {.callout-note}
+#### Example: Standard Deviation with Python
 
 Consider the array $[1,2,3]$:
 Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
@@ -90,6 +92,8 @@ import numpy as np
 a = np.array([[1, 2, 3]])
 np.std(a)
 ```
+:::
+
 
 ### The Empirical Standard Deviation
 
@@ -173,6 +177,7 @@ abs(0.45 - np.std(a, dtype=np.float64))
 ```
 
 
+::: {.callout-note}
 #### Example: 32 versus 64 bit
 
 ```{python}
@@ -190,9 +195,12 @@ print("float32: ", num_float32)
 print("float64: ", num_float64)
 ```
 
+:::
+
 The float32 data type in numpy represents a single-precision floating point number. It uses 32 bits of memory, which gives it a precision of about 7 decimal digits. On the other hand, float64 represents a double-precision floating point number. It uses 64 bits of memory, which gives it a precision of about 15 decimal digits.
 
 The reason float32 shows fewer digits is because it has less precision due to using less memory. The bits of memory are used to store the sign, exponent, and fraction parts of the floating point number, and with fewer bits, you can represent fewer digits accurately.
+
 
 
 ## The Normal Distribution
@@ -277,6 +285,34 @@ X^{\ast} = (X-\mu)/\sigma
 $$ 
 is called $X$ in standard units. 
 It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
+
+
+## Realizations of a Normal Distribution
+
+Realizations of a normal distribution refers to the actual values that you get when you draw samples from a normal distribution.
+Each sample drawn from the distribution is a realization of that distribution.
+
+For example, if you have a normal distribution with a mean of 0 and a standard deviation of 1, each number you draw from that distribution is a realization.
+
+Here's a Python example:
+
+```{python}
+import numpy as np
+
+# Define the parameters of the normal distribution
+mu = 0
+sigma = 1
+
+# Draw 10 samples (realizations) from the normal distribution
+realizations = np.random.normal(mu, sigma, 10)
+
+print(realizations)
+```
+
+
+In this code, np.random.normal generates 10 realizations of a normal distribution with a mean of 0 and a standard deviation of 1.
+The realizations array contains the actual values drawn from the distribution.
+
 
 
 ## Random Numbers in Python
@@ -374,30 +410,38 @@ visualize_inverse_exp_squared_distance(3, 0.0)
 import numpy as np
 import matplotlib.pyplot as plt
 
-def squared_euclidean_distance(point1, point2):
-    return np.sum((np.array(point1) - np.array(point2))**2)
+def squared_euclidean_distance(point1, point2, theta):
+    return np.sum(theta*(np.array(point1) - np.array(point2))**2)
 
-def inverse_exp_squared_distance(point1, point2):
-    return np.exp(-squared_euclidean_distance(point1, point2))
+def inverse_exp_squared_distance(point1, point2, theta):
+    return np.exp(-squared_euclidean_distance(point1, point2, theta))
 
-def generate_grid(n):
-    return [(x/n, y/n) for x in range(n+1) for y in range(n+1)]
+def generate_grid(x_max, y_max, n):
+    x = np.linspace(-x_max, x_max, n)
+    y = np.linspace(-y_max, y_max, n)
+    return [(xi, yi) for xi in x for yi in y]
 
-def visualize_inverse_exp_squared_distance_3d(n, point):
-    grid = generate_grid(n)
-    distances = [inverse_exp_squared_distance(p, point) for p in grid]
-    distances_matrix = np.array(distances).reshape((n+1, n+1))
+def visualize_inverse_exp_squared_distance_3d(x_max, y_max, theta, n):
+    x = np.linspace(-x_max, x_max, n)
+    y = np.linspace(-y_max, y_max, n)
+    X, Y = np.meshgrid(x, y)
     
-    plt.imshow(distances_matrix, cmap='cool', interpolation='nearest')
-    plt.colorbar()
+    Z = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            Z[i, j] = inverse_exp_squared_distance((X[i, j], Y[i, j]), (0, 0), theta)
+    
+    contour = plt.contour(X, Y, Z, levels = 10, cmap='viridis')
+    plt.clabel(contour, inline=True, fontsize=8)
+    plt.gca().set_aspect('equal', adjustable='box')  # Make x and y axis the same size
     plt.show()
 ```
 
 ```{python}
 #| label: fig-exp2euclid2d
-#| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
+#| fig-cap: "Two-dim inverse exponentiated squared Euclidean distance"
 
-visualize_inverse_exp_squared_distance_3d(100, (0.5, 0.5))
+visualize_inverse_exp_squared_distance_3d(x_max=1, y_max=1, theta=np.array([1,3]), n=100)
 ```
 
 The covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
