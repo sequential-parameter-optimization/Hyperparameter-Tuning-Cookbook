@@ -101,7 +101,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 13&nbsp; Handling Noise">
 <meta name="twitter:description" content="">
-<meta name="twitter:image" content="013_num_spot_noisy_files/figure-html/cell-4-output-1.png">
+<meta name="twitter:image" content="013_num_spot_noisy_files/figure-html/cell-3-output-1.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 
@@ -326,18 +326,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#example-spot-and-the-noisy-sphere-function" id="toc-example-spot-and-the-noisy-sphere-function" class="nav-link active" data-scroll-target="#example-spot-and-the-noisy-sphere-function"><span class="header-section-number">13.1</span> Example: <code>Spot</code> and the Noisy Sphere Function</a>
   <ul class="collapse">
   <li><a href="#the-objective-function-noisy-sphere" id="toc-the-objective-function-noisy-sphere" class="nav-link" data-scroll-target="#the-objective-function-noisy-sphere"><span class="header-section-number">13.1.1</span> The Objective Function: Noisy Sphere</a></li>
+  <li><a href="#reproducibility-noise-generation-and-seed-handling" id="toc-reproducibility-noise-generation-and-seed-handling" class="nav-link" data-scroll-target="#reproducibility-noise-generation-and-seed-handling"><span class="header-section-number">13.1.2</span> Reproducibility: Noise Generation and Seed Handling</a></li>
   </ul></li>
-  <li><a href="#print-the-results" id="toc-print-the-results" class="nav-link" data-scroll-target="#print-the-results"><span class="header-section-number">13.2</span> Print the Results</a></li>
-  <li><a href="#noise-and-surrogates-the-nugget-effect" id="toc-noise-and-surrogates-the-nugget-effect" class="nav-link" data-scroll-target="#noise-and-surrogates-the-nugget-effect"><span class="header-section-number">13.3</span> Noise and Surrogates: The Nugget Effect</a>
+  <li><a href="#spotpythons-noise-handling-approaches" id="toc-spotpythons-noise-handling-approaches" class="nav-link" data-scroll-target="#spotpythons-noise-handling-approaches"><span class="header-section-number">13.2</span> spotPython’s Noise Handling Approaches</a></li>
+  <li><a href="#print-the-results" id="toc-print-the-results" class="nav-link" data-scroll-target="#print-the-results"><span class="header-section-number">13.3</span> Print the Results</a></li>
+  <li><a href="#noise-and-surrogates-the-nugget-effect" id="toc-noise-and-surrogates-the-nugget-effect" class="nav-link" data-scroll-target="#noise-and-surrogates-the-nugget-effect"><span class="header-section-number">13.4</span> Noise and Surrogates: The Nugget Effect</a>
   <ul class="collapse">
-  <li><a href="#the-noisy-sphere" id="toc-the-noisy-sphere" class="nav-link" data-scroll-target="#the-noisy-sphere"><span class="header-section-number">13.3.1</span> The Noisy Sphere</a></li>
+  <li><a href="#the-noisy-sphere" id="toc-the-noisy-sphere" class="nav-link" data-scroll-target="#the-noisy-sphere"><span class="header-section-number">13.4.1</span> The Noisy Sphere</a></li>
   </ul></li>
-  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises"><span class="header-section-number">13.4</span> Exercises</a>
+  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises"><span class="header-section-number">13.5</span> Exercises</a>
   <ul class="collapse">
-  <li><a href="#noisy-fun_cubed" id="toc-noisy-fun_cubed" class="nav-link" data-scroll-target="#noisy-fun_cubed"><span class="header-section-number">13.4.1</span> Noisy <code>fun_cubed</code></a></li>
-  <li><a href="#fun_runge" id="toc-fun_runge" class="nav-link" data-scroll-target="#fun_runge"><span class="header-section-number">13.4.2</span> <code>fun_runge</code></a></li>
-  <li><a href="#fun_forrester" id="toc-fun_forrester" class="nav-link" data-scroll-target="#fun_forrester"><span class="header-section-number">13.4.3</span> <code>fun_forrester</code></a></li>
-  <li><a href="#fun_xsin" id="toc-fun_xsin" class="nav-link" data-scroll-target="#fun_xsin"><span class="header-section-number">13.4.4</span> <code>fun_xsin</code></a></li>
+  <li><a href="#noisy-fun_cubed" id="toc-noisy-fun_cubed" class="nav-link" data-scroll-target="#noisy-fun_cubed"><span class="header-section-number">13.5.1</span> Noisy <code>fun_cubed</code></a></li>
+  <li><a href="#fun_runge" id="toc-fun_runge" class="nav-link" data-scroll-target="#fun_runge"><span class="header-section-number">13.5.2</span> <code>fun_runge</code></a></li>
+  <li><a href="#fun_forrester" id="toc-fun_forrester" class="nav-link" data-scroll-target="#fun_forrester"><span class="header-section-number">13.5.3</span> <code>fun_forrester</code></a></li>
+  <li><a href="#fun_xsin" id="toc-fun_xsin" class="nav-link" data-scroll-target="#fun_xsin"><span class="header-section-number">13.5.4</span> <code>fun_xsin</code></a></li>
   </ul></li>
   </ul>
 </nav>
@@ -362,7 +364,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </header>
 
-<p>This chapter demonstrates how noisy functions can be handled by <code>Spot</code>.</p>
+<p>This chapter demonstrates how noisy functions can be handled by <code>Spot</code> and how noise can be simulated, i.e., added to the objective function.</p>
 <section id="example-spot-and-the-noisy-sphere-function" class="level2" data-number="13.1">
 <h2 data-number="13.1" class="anchored" data-anchor-id="example-spot-and-the-noisy-sphere-function"><span class="header-section-number">13.1</span> Example: <code>Spot</code> and the Noisy Sphere Function</h2>
 <div class="cell" data-execution_count="1">
@@ -379,225 +381,361 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>experiment_name <span class="op">=</span> get_experiment_name(prefix<span class="op">=</span>PREFIX)</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(experiment_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>08_bartz09_2023-12-05_08-49-25</code></pre>
+<pre><code>08_bartz09_2023-12-06_23-29-00</code></pre>
 </div>
 </div>
 <section id="the-objective-function-noisy-sphere" class="level3" data-number="13.1.1">
 <h3 data-number="13.1.1" class="anchored" data-anchor-id="the-objective-function-noisy-sphere"><span class="header-section-number">13.1.1</span> The Objective Function: Noisy Sphere</h3>
-<ul>
-<li><p>The <code>spotPython</code> package provides several classes of objective functions.</p></li>
-<li><p>We will use an analytical objective function with noise, i.e., a function that can be described by a (closed) formula: <span class="math display">\[f(x) = x^2 + \epsilon\]</span></p></li>
-<li><p>Since <code>sigma</code> is set to <code>0.1</code>, noise is added to the function:</p></li>
-</ul>
-<div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    spot_tensorboard_path<span class="op">=</span>get_spot_tensorboard_path(experiment_name),</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.02</span>,</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The <code>spotPython</code> package provides several classes of objective functions, which return a one-dimensional output <span class="math inline">\(y=f(x)\)</span> for a given input <span class="math inline">\(x\)</span> (independent variable). Several objective functions allow one- or multidimensional input, some also combinations of real-valued and categorial input values.</p>
+<p>An objective function is considered as “analytical” if it can be described by a closed mathematical formula, e.g., <span class="math display">\[
+f(x, y) = x^2 + y^2.
+\]</span></p>
+<p>To simulate measurement errors, adding artificial noise to the function value <span class="math inline">\(y\)</span> is a common practice, e.g.,:</p>
+<p><span class="math display">\[
+f(x, y) = x^2 + y^2 + \epsilon.
+\]</span></p>
+<p>Usually, noise is assumed to be normally distributed with mean <span class="math inline">\(\mu=0\)</span> and standard deviation <span class="math inline">\(\sigma\)</span>. spotPython uses numpy’s <code>scale</code> parameter, which specifies the standard deviation (spread or “width”) of the distribution is used. This must be a non-negative value, see <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html">https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html</a>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
 </div>
-<ul>
-<li>A plot illustrates the noise:</li>
-</ul>
+<div class="callout-title-container flex-fill">
+Example: The sphere function without noise
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The default setting does not use any noise.</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.figure()</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y, <span class="st">"k"</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="013_num_spot_noisy_files/figure-html/cell-3-output-1.png" width="571" height="411"></p>
+</div>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: The sphere function with noise
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Noise can be added to the sphere function as follows:</p>
 <div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x, fun_control<span class="op">=</span>fun_control)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plt.figure()</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y, <span class="st">"k"</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical(seed<span class="op">=</span><span class="dv">123</span>, sigma<span class="op">=</span><span class="fl">0.02</span>).fun_sphere</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>plt.figure()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y, <span class="st">"k"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <p><img src="013_num_spot_noisy_files/figure-html/cell-4-output-1.png" width="571" height="411"></p>
 </div>
 </div>
-<p><code>Spot</code> is adopted as follows to cope with noisy functions:</p>
+</div>
+</div>
+</section>
+<section id="reproducibility-noise-generation-and-seed-handling" class="level3" data-number="13.1.2">
+<h3 data-number="13.1.2" class="anchored" data-anchor-id="reproducibility-noise-generation-and-seed-handling"><span class="header-section-number">13.1.2</span> Reproducibility: Noise Generation and Seed Handling</h3>
+<p>spotPython provides two mechanisms for generating random noise:</p>
+<ol type="1">
+<li>The seed is initialized once, i.e., when the objective function is instantiated. This can be done using the following call: <code>fun = analytical(sigma=0.02, seed=123).fun_sphere</code>.</li>
+<li>The seed is set every time the objective function is called. This can be done using the following call: <code>y = fun(x, sigma=0.02, seed=123)</code>.</li>
+</ol>
+<p>These two different ways lead to different results as explained in the following tables:</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Noise added to the sphere function
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Since <code>sigma</code> is set to <code>0.02</code>, noise is added to the function:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical(sigma<span class="op">=</span><span class="fl">0.02</span>, seed<span class="op">=</span><span class="dv">123</span>).fun_sphere</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.array([<span class="dv">1</span>]).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>fun(x)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0: [0.98021757]
+1: [0.99264427]
+2: [1.02575851]</code></pre>
+</div>
+</div>
+<p>The seed is set once. Every call to <code>fun()</code> results in a different value. The whole experiment can be repeated, the initial seed is used to generate the same sequence as shown below:</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: Noise added to the sphere function
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Since <code>sigma</code> is set to <code>0.02</code>, noise is added to the function:</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical(sigma<span class="op">=</span><span class="fl">0.02</span>, seed<span class="op">=</span><span class="dv">123</span>).fun_sphere</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.array([<span class="dv">1</span>]).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>fun(x)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0: [0.98021757]
+1: [0.99264427]
+2: [1.02575851]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<p>If <code>spotPython</code> is used as a hyperparameter tuner, it is important that only one realization of the noise function is optimized. This behaviour can be accomplished by passing the same seed via the dictionary <code>fun_control</code> to every call of the objective function <code>fun</code> as shown below:</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Example: The same noise added to the sphere function
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Since <code>sigma</code> is set to <code>0.02</code>, noise is added to the function:</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    spot_tensorboard_path<span class="op">=</span>get_spot_tensorboard_path(experiment_name),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.02</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x, fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.array([<span class="dv">1</span>]).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>fun(x)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0: [0.98021757]
+1: [0.98021757]
+2: [0.98021757]</code></pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="spotpythons-noise-handling-approaches" class="level2" data-number="13.2">
+<h2 data-number="13.2" class="anchored" data-anchor-id="spotpythons-noise-handling-approaches"><span class="header-section-number">13.2</span> spotPython’s Noise Handling Approaches</h2>
+<p>The following setting will be used for the next steps:</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    spot_tensorboard_path<span class="op">=</span>get_spot_tensorboard_path(experiment_name),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.02</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><code>spotPython</code> is adopted as follows to cope with noisy functions:</p>
 <ol type="1">
 <li><code>fun_repeats</code> is set to a value larger than 1 (here: 2)</li>
 <li><code>noise</code> is set to <code>true</code>. Therefore, a nugget (<code>Lambda</code>) term is added to the correlation matrix</li>
-<li><code>init size</code> (of the <code>design_control</code> dictionary) is set to a value larger than 1 (here: 2)</li>
+<li><code>init size</code> (of the <code>design_control</code> dictionary) is set to a value larger than 1 (here: 3)</li>
 </ol>
-<div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                   lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                   upper <span class="op">=</span> np.array([<span class="dv">1</span>]),</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                   fun_evals <span class="op">=</span> <span class="dv">20</span>,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                   fun_repeats <span class="op">=</span> <span class="dv">2</span>,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                   noise <span class="op">=</span> <span class="va">True</span>,</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                   seed<span class="op">=</span><span class="dv">123</span>,</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                   show_models<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>{<span class="st">"init_size"</span>: <span class="dv">3</span>,</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">"repeats"</span>: <span class="dv">2</span>},</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>                   surrogate_control<span class="op">=</span>{<span class="st">"noise"</span>: <span class="va">True</span>},</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                   lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                   upper <span class="op">=</span> np.array([<span class="dv">1</span>]),</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                   fun_evals <span class="op">=</span> <span class="dv">20</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                   fun_repeats <span class="op">=</span> <span class="dv">2</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                   noise <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                   seed<span class="op">=</span><span class="dv">123</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>                   show_models<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>{<span class="st">"init_size"</span>: <span class="dv">3</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">"repeats"</span>: <span class="dv">2</span>},</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>                   surrogate_control<span class="op">=</span>{<span class="st">"noise"</span>: <span class="va">True</span>},</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-1.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-1.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-2.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-2.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 0.01497250376483504 [####------] 40.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-4.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-4.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 0.014972272755587455 [#####-----] 50.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-6.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-6.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 0.014966273462465166 [######----] 60.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-8.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-8.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 0.01480994923420837 [#######---] 70.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-10.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-10.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 0.011665893638594611 [########--] 80.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-12.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-12.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: -0.012922167154961792 [#########-] 90.00% </code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-6-output-14.png" width="604" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-14.png" width="604" height="449"></p>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: -0.015064679263867698 [##########] 100.00% Done...
 </code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="5">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2dd496dd0&gt;</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d906fe90&gt;</code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="print-the-results" class="level2" data-number="13.2">
-<h2 data-number="13.2" class="anchored" data-anchor-id="print-the-results"><span class="header-section-number">13.2</span> Print the Results</h2>
-<div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="print-the-results" class="level2" data-number="13.3">
+<h2 data-number="13.3" class="anchored" data-anchor-id="print-the-results"><span class="header-section-number">13.3</span> Print the Results</h2>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: -0.015064679263867698
 x0: 0.0686858627600274
 min mean y: -0.008851332275068022
 x0: 0.0686858627600274</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>[['x0', 0.0686858627600274], ['x0', 0.0686858627600274]]</code></pre>
 </div>
 </div>
-<div class="cell" data-fig-label="fig-progress" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.plot_progress(log_y<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    filename<span class="op">=</span><span class="st">"./figures/"</span> <span class="op">+</span> experiment_name<span class="op">+</span><span class="st">"_progress.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-fig-label="fig-progress" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>spot_1_noisy.plot_progress(log_y<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    filename<span class="op">=</span><span class="st">"./figures/"</span> <span class="op">+</span> experiment_name<span class="op">+</span><span class="st">"_progress.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-8-output-1.png" width="719" height="247" class="figure-img"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-12-output-1.png" width="719" height="247" class="figure-img"></p>
 <figcaption class="figure-caption">Progress plot. <em>Black</em> dots denote results from the initial design. <em>Red</em> dots illustrate the improvement found by the surrogate model based optimization.</figcaption>
 </figure>
 </div>
 </div>
 </div>
 </section>
-<section id="noise-and-surrogates-the-nugget-effect" class="level2" data-number="13.3">
-<h2 data-number="13.3" class="anchored" data-anchor-id="noise-and-surrogates-the-nugget-effect"><span class="header-section-number">13.3</span> Noise and Surrogates: The Nugget Effect</h2>
-<section id="the-noisy-sphere" class="level3" data-number="13.3.1">
-<h3 data-number="13.3.1" class="anchored" data-anchor-id="the-noisy-sphere"><span class="header-section-number">13.3.1</span> The Noisy Sphere</h3>
-<section id="the-data" class="level4" data-number="13.3.1.1">
-<h4 data-number="13.3.1.1" class="anchored" data-anchor-id="the-data"><span class="header-section-number">13.3.1.1</span> The Data</h4>
+<section id="noise-and-surrogates-the-nugget-effect" class="level2" data-number="13.4">
+<h2 data-number="13.4" class="anchored" data-anchor-id="noise-and-surrogates-the-nugget-effect"><span class="header-section-number">13.4</span> Noise and Surrogates: The Nugget Effect</h2>
+<section id="the-noisy-sphere" class="level3" data-number="13.4.1">
+<h3 data-number="13.4.1" class="anchored" data-anchor-id="the-noisy-sphere"><span class="header-section-number">13.4.1</span> The Noisy Sphere</h3>
+<section id="the-data" class="level4" data-number="13.4.1.1">
+<h4 data-number="13.4.1.1" class="anchored" data-anchor-id="the-data"><span class="header-section-number">13.4.1.1</span> The Data</h4>
 <ul>
 <li>We prepare some data first:</li>
 </ul>
-<div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.design.spacefilling <span class="im">import</span> spacefilling</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> spacefilling(<span class="dv">1</span>)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.RandomState(<span class="dv">1</span>)</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    spot_tensorboard_path<span class="op">=</span>get_spot_tensorboard_path(experiment_name),</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> gen.scipy_lhd(<span class="dv">10</span>, lower<span class="op">=</span>lower, upper <span class="op">=</span> upper)</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(X, fun_control<span class="op">=</span>fun_control)</span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> X.reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.design.spacefilling <span class="im">import</span> spacefilling</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> spacefilling(<span class="dv">1</span>)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.RandomState(<span class="dv">1</span>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    spot_tensorboard_path<span class="op">=</span>get_spot_tensorboard_path(experiment_name),</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> gen.scipy_lhd(<span class="dv">10</span>, lower<span class="op">=</span>lower, upper <span class="op">=</span> upper)</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(X, fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> X.reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
 <li>A surrogate without nugget is fitted to these data:</li>
 </ul>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>S.fit(X_train, y_train)</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>X_axis <span class="op">=</span> np.linspace(start<span class="op">=-</span><span class="dv">13</span>, stop<span class="op">=</span><span class="dv">13</span>, num<span class="op">=</span><span class="dv">1000</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>mean_prediction, std_prediction, ei <span class="op">=</span> S.predict(X_axis, return_val<span class="op">=</span><span class="st">"all"</span>)</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>plt.scatter(X_train, y_train, label<span class="op">=</span><span class="st">"Observations"</span>)</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>plt.plot(X_axis, mean_prediction, label<span class="op">=</span><span class="st">"mue"</span>)</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$x$"</span>)</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Sphere: Gaussian process regression on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>S.fit(X_train, y_train)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>X_axis <span class="op">=</span> np.linspace(start<span class="op">=-</span><span class="dv">13</span>, stop<span class="op">=</span><span class="dv">13</span>, num<span class="op">=</span><span class="dv">1000</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>mean_prediction, std_prediction, ei <span class="op">=</span> S.predict(X_axis, return_val<span class="op">=</span><span class="st">"all"</span>)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>plt.scatter(X_train, y_train, label<span class="op">=</span><span class="st">"Observations"</span>)</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>plt.plot(X_axis, mean_prediction, label<span class="op">=</span><span class="st">"mue"</span>)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$x$"</span>)</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Sphere: Gaussian process regression on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-10-output-1.png" width="594" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-14-output-1.png" width="586" height="449"></p>
 </div>
 </div>
 <ul>
 <li>In comparison to the surrogate without nugget, we fit a surrogate with nugget to the data:</li>
 </ul>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>S_nug <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>S_nug.fit(X_train, y_train)</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>X_axis <span class="op">=</span> np.linspace(start<span class="op">=-</span><span class="dv">13</span>, stop<span class="op">=</span><span class="dv">13</span>, num<span class="op">=</span><span class="dv">1000</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>mean_prediction, std_prediction, ei <span class="op">=</span> S_nug.predict(X_axis, return_val<span class="op">=</span><span class="st">"all"</span>)</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(X_train, y_train, label<span class="op">=</span><span class="st">"Observations"</span>)</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>plt.plot(X_axis, mean_prediction, label<span class="op">=</span><span class="st">"mue"</span>)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$x$"</span>)</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Sphere: Gaussian process regression with nugget on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>S_nug <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>S_nug.fit(X_train, y_train)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>X_axis <span class="op">=</span> np.linspace(start<span class="op">=-</span><span class="dv">13</span>, stop<span class="op">=</span><span class="dv">13</span>, num<span class="op">=</span><span class="dv">1000</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>mean_prediction, std_prediction, ei <span class="op">=</span> S_nug.predict(X_axis, return_val<span class="op">=</span><span class="st">"all"</span>)</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(X_train, y_train, label<span class="op">=</span><span class="st">"Observations"</span>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>plt.plot(X_axis, mean_prediction, label<span class="op">=</span><span class="st">"mue"</span>)</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$x$"</span>)</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Sphere: Gaussian process regression with nugget on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="013_num_spot_noisy_files/figure-html/cell-11-output-1.png" width="600" height="449"></p>
+<p><img src="013_num_spot_noisy_files/figure-html/cell-15-output-1.png" width="600" height="449"></p>
 </div>
 </div>
 <ul>
 <li>The value of the nugget term can be extracted from the model as follows:</li>
 </ul>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>S.Lambda</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>S.Lambda</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>S_nug.Lambda</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>5.208508947162493e-05</code></pre>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>S_nug.Lambda</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>0.0005591829302793254</code></pre>
 </div>
 </div>
 <ul>
@@ -610,62 +748,62 @@ x0: 0.0686858627600274</code></pre>
 </section>
 </section>
 </section>
-<section id="exercises" class="level2" data-number="13.4">
-<h2 data-number="13.4" class="anchored" data-anchor-id="exercises"><span class="header-section-number">13.4</span> Exercises</h2>
-<section id="noisy-fun_cubed" class="level3" data-number="13.4.1">
-<h3 data-number="13.4.1" class="anchored" data-anchor-id="noisy-fun_cubed"><span class="header-section-number">13.4.1</span> Noisy <code>fun_cubed</code></h3>
+<section id="exercises" class="level2" data-number="13.5">
+<h2 data-number="13.5" class="anchored" data-anchor-id="exercises"><span class="header-section-number">13.5</span> Exercises</h2>
+<section id="noisy-fun_cubed" class="level3" data-number="13.5.1">
+<h3 data-number="13.5.1" class="anchored" data-anchor-id="noisy-fun_cubed"><span class="header-section-number">13.5.1</span> Noisy <code>fun_cubed</code></h3>
 <ul>
 <li>Analyse the effect of noise on the <code>fun_cubed</code> function with the following settings:</li>
 </ul>
-<div class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_cubed</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_cubed</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="fun_runge" class="level3" data-number="13.4.2">
-<h3 data-number="13.4.2" class="anchored" data-anchor-id="fun_runge"><span class="header-section-number">13.4.2</span> <code>fun_runge</code></h3>
+<section id="fun_runge" class="level3" data-number="13.5.2">
+<h3 data-number="13.5.2" class="anchored" data-anchor-id="fun_runge"><span class="header-section-number">13.5.2</span> <code>fun_runge</code></h3>
 <ul>
 <li>Analyse the effect of noise on the <code>fun_runge</code> function with the following settings:</li>
 </ul>
-<div class="cell" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_runge</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.25</span>,</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">10</span>])</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">10</span>])</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_runge</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.25</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="fun_forrester" class="level3" data-number="13.4.3">
-<h3 data-number="13.4.3" class="anchored" data-anchor-id="fun_forrester"><span class="header-section-number">13.4.3</span> <code>fun_forrester</code></h3>
+<section id="fun_forrester" class="level3" data-number="13.5.3">
+<h3 data-number="13.5.3" class="anchored" data-anchor-id="fun_forrester"><span class="header-section-number">13.5.3</span> <code>fun_forrester</code></h3>
 <ul>
 <li>Analyse the effect of noise on the <code>fun_forrester</code> function with the following settings:</li>
 </ul>
-<div class="cell" data-execution_count="15">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="dv">0</span>])</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">1</span>])</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_forrester</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="dv">0</span>])</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="dv">1</span>])</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_forrester</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="fun_xsin" class="level3" data-number="13.4.4">
-<h3 data-number="13.4.4" class="anchored" data-anchor-id="fun_xsin"><span class="header-section-number">13.4.4</span> <code>fun_xsin</code></h3>
+<section id="fun_xsin" class="level3" data-number="13.5.4">
+<h3 data-number="13.5.4" class="anchored" data-anchor-id="fun_xsin"><span class="header-section-number">13.5.4</span> <code>fun_xsin</code></h3>
 <ul>
 <li>Analyse the effect of noise on the <code>fun_xsin</code> function with the following settings:</li>
 </ul>
-<div class="cell" data-execution_count="16">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="fl">1.</span>])</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="fl">1.</span>])</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_xsin</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(    </span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>lower <span class="op">=</span> np.array([<span class="op">-</span><span class="fl">1.</span>])</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>upper <span class="op">=</span> np.array([<span class="fl">1.</span>])</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_xsin</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(    </span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    sigma<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">123</span>,)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
 

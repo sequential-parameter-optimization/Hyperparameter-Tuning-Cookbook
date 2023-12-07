@@ -8,7 +8,7 @@ execute:
 
 # Handling Noise {#sec-noise}
 
-This chapter demonstrates how noisy functions can be handled by `Spot`.
+This chapter demonstrates how noisy functions can be handled by `Spot` and how noise can be simulated, i.e., added to the objective function.
 
 ## Example: `Spot` and the Noisy Sphere Function
 
@@ -30,11 +30,126 @@ print(experiment_name)
 
 ### The Objective Function: Noisy Sphere
 
-* The `spotPython` package provides several classes of objective functions.
-* We will use an analytical objective function with noise, i.e., a function that can be described by a (closed) formula:
-   $$f(x) = x^2 + \epsilon$$
+The `spotPython` package provides several classes of objective functions, which return a one-dimensional output $y=f(x)$ for a given input $x$ (independent variable). Several objective functions allow one- or multidimensional input, some also combinations of real-valued and categorial input values.
 
-* Since `sigma` is set to `0.1`, noise is added to the function:
+An objective function is considered as "analytical" if it can be described by a closed mathematical formula, e.g.,
+$$
+f(x, y) = x^2 + y^2.
+$$
+
+To simulate measurement errors, adding artificial noise to the function value $y$ is a common practice, e.g.,:
+
+$$
+f(x, y) = x^2 + y^2 + \epsilon.
+$$
+
+Usually, noise is assumed to be normally distributed with mean $\mu=0$ and standard deviation $\sigma$.
+spotPython uses numpy's `scale` parameter, which specifies the standard deviation (spread or "width") of the distribution is used. This must be a non-negative value, see [https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html](https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html).
+
+:::{.callout-note}
+### Example: The sphere function without noise
+
+The default setting does not use any noise.
+
+```{python}
+from spotPython.fun.objectivefunctions import analytical
+fun = analytical().fun_sphere
+x = np.linspace(-1,1,100).reshape(-1,1)
+y = fun(x)
+plt.figure()
+plt.plot(x,y, "k")
+plt.show()
+```
+:::
+
+
+:::{.callout-note}
+### Example: The sphere function with noise
+
+Noise can be added to the sphere function as follows:
+
+```{python}
+from spotPython.fun.objectivefunctions import analytical
+fun = analytical(seed=123, sigma=0.02).fun_sphere
+x = np.linspace(-1,1,100).reshape(-1,1)
+y = fun(x)
+plt.figure()
+plt.plot(x,y, "k")
+plt.show()
+```
+:::
+
+### Reproducibility: Noise Generation and Seed Handling
+
+spotPython provides two mechanisms for generating random noise:
+
+1. The seed is initialized once, i.e., when the objective function is instantiated. This can be done using the following call: `fun = analytical(sigma=0.02, seed=123).fun_sphere`.
+2. The seed is set every time the objective function is called. This can be done using the following call: `y = fun(x, sigma=0.02, seed=123)`.
+
+These two different ways lead to different results as explained in the following tables:
+
+
+
+:::{.callout-note}
+### Example: Noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotPython.fun.objectivefunctions import analytical
+fun = analytical(sigma=0.02, seed=123).fun_sphere
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+The seed is set once. Every call to `fun()` results in a different value.
+The whole experiment can be repeated, the initial seed is used to generate the same sequence as shown below:
+
+:::
+
+:::{.callout-note}
+### Example: Noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotPython.fun.objectivefunctions import analytical
+fun = analytical(sigma=0.02, seed=123).fun_sphere
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+:::
+
+If `spotPython` is used as a hyperparameter tuner, it is important that only one realization of the noise function is optimized.
+This behaviour can be accomplished by passing the same seed via the dictionary `fun_control` to every call of the objective function `fun` as shown below:
+
+:::{.callout-note}
+### Example: The same noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotPython.fun.objectivefunctions import analytical
+fun = analytical().fun_sphere
+fun_control = fun_control_init(
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+    sigma=0.02,
+    seed=123,)
+y = fun(x, fun_control=fun_control)
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+:::
+
+
+## spotPython's Noise Handling Approaches
+
+The following setting will be used for the next steps:
 
 ```{python}
 fun = analytical().fun_sphere
@@ -44,21 +159,13 @@ fun_control = fun_control_init(
     seed=123,)
 ```
 
-* A plot illustrates the noise:
 
-```{python}
-x = np.linspace(-1,1,100).reshape(-1,1)
-y = fun(x, fun_control=fun_control)
-plt.figure()
-plt.plot(x,y, "k")
-plt.show()
-```
 
-`Spot` is adopted as follows to cope with noisy functions:
+`spotPython` is adopted as follows to cope with noisy functions:
 
 1. `fun_repeats` is set to a value larger than 1 (here: 2)
 2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix
-3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 2)
+3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 3)
 
 ```{python}
 spot_1_noisy = spot.Spot(fun=fun,
@@ -116,7 +223,7 @@ upper = np.array([10])
 fun = analytical().fun_sphere
 fun_control = fun_control_init(
     spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
-    sigma=2,
+    sigma=4,
     seed=123,)
 X = gen.scipy_lhd(10, lower=lower, upper = upper)
 y = fun(X, fun_control=fun_control)
