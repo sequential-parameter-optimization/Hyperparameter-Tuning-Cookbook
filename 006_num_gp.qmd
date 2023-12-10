@@ -625,10 +625,10 @@ def visualize_inverse_exp_squared_distance(distance, point):
 visualize_inverse_exp_squared_distance(3, 0.0)
 ```
 
-An additional parameter, $\sigma^2$, is introduced to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
+The *Gaussian* kernel uses an additional parameter, $\sigma^2$, to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
 
 $$
-\Sigma(x, x') = \exp\{ - || x - x'||^2 / \sigma^2 \}.
+\Sigma(x, x') = \exp\{ - || x - x'||^2 / (2 \sigma^2) \}.
 $$ {#eq-Sigma}
 
 
@@ -640,7 +640,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def squared_euclidean_distance(point1, point2, sigma2):
-    return np.sum(1/sigma2 * (np.array(point1) - np.array(point2))**2)
+    return np.sum(1/(2*sigma2) * (np.array(point1) - np.array(point2))**2)
 
 def inverse_exp_squared_distance(point1, point2, sigma2):
     return np.exp(-squared_euclidean_distance(point1, point2, sigma2))
@@ -726,7 +726,7 @@ def build_Sigma(X, sigma2):
     for l in range(k):
         for i in range(n):
             for j in range(i, n):
-                D[l, i, j] = 1/sigma2[l]*(X[i,l] - X[j,l])**2
+                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
     D = sum(D)
     D = D + D.T
     return exp(-D)  
@@ -786,7 +786,12 @@ plt.show()
 
 #### Several Bumps:
 In this analysis, we observe several bumps in the $x$-range of $[0,10]$.
-These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior.
+These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior:
+
+* When $x$ and $x'$ are one $\sigma$ unit apart, the correlation is $\exp\left(-\sigma^2 / (2\sigma^2)\right) = \exp(-1/2) \approx 0.61$, i.e., a decent amount of correlation.
+* $2\sigma$ apart means correlation $\exp(− 2^2 /2) \approx 0.14$, i.e., only slightly dependent.
+* $4\sigma$ apart means correlation $\exp(− 4^2 /2) \approx 0.0003$, i.e., essentially independent for almost all practical purposes.
+
 
 #### Smoothness:
 The function plotted in @fig-mvn1-1 represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
@@ -807,7 +812,7 @@ def build_Sigma(X, sigma2):
     for l in range(k):
         for i in range(n):
             for j in range(i, n):
-                D[l, i, j] = 1/sigma2[l]*(X[i,l] - X[j,l])**2
+                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
     D = sum(D)
     D = D + D.T
     return exp(-D)
@@ -841,21 +846,21 @@ plot_mvn(a=0, b=10, sigma2=0.1, size=3, n=250)
 
 ### The Kriging Basis Function
 
-Kriging basis functions (as introduced in @eq-Sigma) of the form 
+$k$-dimensional Kriging basis functions of the form 
 $$
-\psi^{(i)} = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l} | ^{p_l} \right)
+\psi(x^{(i)}, x^{(j)}) = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l}^{(j)} | ^{p_l} \right)
 $$
-are used in a method known as Kriging.
+are used in a method known as Kriging. Note, $x^{(i)}$ denotes the $k$-dim vector $x^{(i)}= (x_1^{(i)}, \ldots, x_k^{(i)})^T$.
 
-The Kriging basis function is related to the Gaussian basis function,
+The Kriging basis function is related to the 1-dim Gaussian basis function ( @eq-Sigma),
 which is defined as
 $$
-\Sigma(x, x') = \exp\{ - || x - x'||^2 / \sigma^2 \}.
+\Sigma(x^{(i)}, x^{(j)}) = \exp\{ - || x^{(i)} - x^{(j)}||^2 / (2\sigma^2) \}.
 $$ {#eq-Sigma2}
 
 There are some differences between Gaussian basis functions and Kriging basis functions:
 
-  * Where the Gaussian basis function has $1/\sigma^2$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
+  * Where the Gaussian basis function has $1/(2\sigma^2)$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
   * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
   * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent $p_l$ to vary (typically from 1 to 2).
 
@@ -953,7 +958,7 @@ print(covariance_to_correlation(cov))
 
 ### Building the Kriging Model
 
-Consider a set of $k$-dimensional sample data 
+Consider a set of $k$-dimensional sample data  (sample size is $n$)
 $$
 X = [x_1, x_2, \ldots, x_n],
 $$
@@ -1047,13 +1052,17 @@ $$
 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
 $$
 
-Finally, $$ \Psi = \exp(-D)$$ is computed.  Next, we will demonstrate how this computation can be implemented in Python.
+Finally, $$ \Psi = \exp(-D)$$ is computed.
+
+Next, we will demonstrate how this computation can be implemented in Python.
 
 ```{python}
-from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy import (array, zeros, power, ones, exp, multiply,
+                    eye, linspace, mat, spacing, sqrt, arange,
+                    append, ravel)
 from numpy.linalg import cholesky, solve
 theta = np.array([1,2,3])
-X = np.array([ [1,0,0], [0,1,0], [0,0,1], [0,0,0]])
+X = np.array([ [1,0,0], [0,1,0], [100, 100, 100], [101, 100, 100]])
 X
 ```
 
@@ -1084,13 +1093,17 @@ from scipy.spatial.distance import squareform
 from scipy.spatial.distance import pdist
 
 def build_Psi(X, theta, eps=sqrt(spacing(1))):
-    return exp(- squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))) +  multiply(eye(X.shape[0]), eps)
+    return exp(- squareform(pdist(X,
+                            metric='sqeuclidean',
+                            out=None,
+                            w=theta))) +  multiply(eye(X.shape[0]),
+                                                   eps)
 
 Psi = build_Psi(X, theta, eps=.0)
 Psi
 ```
 
-### Generate sample from N($\mu$, $\Psi$)
+### Generate samples from N($\mu$, $\Psi$)
 
 The following block of code generates 5 draws from a bivariate normal distribution with zero mean and covariance matrix $\Psi$. Because our input space is three dimensional, the results cannot be visualized in a simple way. The next examples will use a one-dimensional input space, so that our results can be easily visualized in 2d.
 
@@ -1100,6 +1113,7 @@ from numpy.random import multivariate_normal
 m = 5
 rng = np.random.default_rng()
 Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size=m)
+Y
 ```
 
 ## Kriging in a Nutshell
