@@ -6,10 +6,9 @@ execute:
   warning: false
 ---
 
-<!-- bart21mSlides2022Lec-05 -->
-
-
 # Kriging (Gaussian Process Regression)
+
+<!-- bart21mSlides2022Lec-05 -->
 
 ## DACE and RSM
 
@@ -25,11 +24,7 @@ One of the remaining differences between RSM and DACE lies in how they handle no
 
 ### DACE Literature
 
-* Two very good texts on computer experiments and surrogate modeling:
-  1. The Design and Analysis of Computer Experiments, by Santner, Williams, and Notz (2018) is the canonical reference in the statistics literature
-  2. Engineering Design via Surrogate Modeling by Forrester, Sobester, and Keane (2008) is perhaps more popular in engineering
-
-* We will analyze an example from the latter.
+Two very good texts on computer experiments and surrogate modeling are @Sant03a and @Forr08a. The former is the canonical reference in the statistics literature and the latter is perhaps more popular in engineering.
 
 
 ## Background: Expectation, Mean
@@ -201,9 +196,83 @@ The float32 data type in numpy represents a single-precision floating point numb
 
 The reason float32 shows fewer digits is because it has less precision due to using less memory. The bits of memory are used to store the sign, exponent, and fraction parts of the floating point number, and with fewer bits, you can represent fewer digits accurately.
 
+## Random Numbers in Python
+
+Results from computers are deterministic, so it sounds like a contradiction in terms to generate random numbers on a computer.
+Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
+
+::: {.callout-note}
+### Deterministic Random Numbers
+
+* Idea: Generate deterministically numbers that **look** (behave) as if they were drawn randomly.
+
+:::
+
+## The Uniform Distribution
+
+Generate 10 random numbers from a uniform distribution between 0 and 1:
+
+```{python}
+# generate 10 random numbers between from a uniform distribution
+import numpy as np
+rng = np.random.default_rng()
+n = 10
+x = rng.uniform(low=0.0, high=1.0, size=n)
+x
+```
+
+
+Generate 10,000 random numbers from a uniform distribution between 0 and 10 and plot a histogram of the numbers:
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Initialize the random number generator
+rng = np.random.default_rng()
+
+# Generate random numbers from a uniform distribution
+x = rng.uniform(0, 10, 10000)
+
+# Plot a histogram of the numbers
+plt.hist(x, bins=50, density=True, edgecolor='black')
+plt.title('Uniform Distribution [0,10]')
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+plt.show()
+
+```
 
 
 ## The Normal Distribution
+
+To generate ten random numbers from a normal distribution, the following command can be used.
+
+```{python}
+# generate 10 random numbers between from a normal distribution
+import numpy as np
+rng = np.random.default_rng()
+n = 10
+mu, sigma = 2, 0.1
+x = rng.normal(mu, sigma, n)
+x
+```
+
+
+
+Verify the mean:
+
+```{python}
+abs(mu - np.mean(x))
+```
+
+Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
+
+```{python}
+abs(sigma - np.std(x, ddof=1))
+```
+
+
 
 A normally distributed random variable is a random variable whose associated probability distribution is the normal (or Gaussian) distribution. The normal distribution is a continuous probability distribution characterized by a symmetric bell-shaped curve.
 
@@ -315,42 +384,147 @@ The realizations array contains the actual values drawn from the distribution.
 
 
 
-## Random Numbers in Python
+## The Multivariate Normal Distribution
 
-Results from computers are deterministic, so it sounds like a contradiction in terms to generate random numbers on a computer.
-Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as if they were drawn randomly.
+The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. To fully define this distribution, it is necessary to specify its mean and covariance matrix. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution.
 
-::: {.callout-note}
-### Deterministic Random Numbers
+In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an n-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
 
-* Idea: Generate deterministically numbers that **look** (behave) as if they were drawn randomly.
+On the other hand, the covariance within the multivariate normal distribution denotes the extent to which two variables vary together. When drawing n-dimensional samples from this distribution, it results in a set of values represented as $X = [x_1, x_2, \ldots, x_n]$.
+The elements of the covariance matrix, such as $C_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
 
-
-:::
-
-
-To generate ten random numbers from a normal distribution, the following command can be used.
-
+@fig-bi9040 shows draws from a bivariate normal distribution with $\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}$ and 
+$\Sigma=\begin{pmatrix} 9 & 0 \\ 0 & 4 \end{pmatrix}$.
 
 ```{python}
+#| label: fig-bi9040
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 4\\end{pmatrix}$"
 import numpy as np
 rng = np.random.default_rng()
-n = 10
-mu, sigma = 2, 0.1
-x = rng.normal(mu, sigma, n)
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[9, 0], [0, 4]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
 ```
 
-Verify the mean:
 
 ```{python}
-abs(mu - np.mean(x))
+#| echo: false
+#| label: fig-bi0000
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 0\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[0, 0], [0, 0]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
 ```
 
-Note: To verify the standard deviation, we use `ddof = 1` (empirical standard deviation):
 
 ```{python}
-abs(sigma - np.std(x, ddof=1))
+#| echo: false
+#| label: fig-bi0900
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 9 \\\\ 0 & 0\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[0, 9], [0, 0]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
 ```
+
+
+
+```{python}
+#| echo: false
+#| label: fig-bi9000
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 0\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[9, 0], [0, 0]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
+```
+
+
+
+```{python}
+#| echo: false
+#| label: fig-bi0040
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 4 & 0\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[0, 0], [4, 0]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
+```
+
+
+
+```{python}
+#| echo: false
+#| label: fig-bi0004
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 4\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[0, 0], [0, 4]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
+```
+
+
+
+```{python}
+#| echo: false
+#| label: fig-bi9494
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 9 & 4\\end{pmatrix}$"
+import numpy as np
+rng = np.random.default_rng()
+import matplotlib.pyplot as plt
+mean = [0, 0]
+cov = [[9, 4], [9, 4]]  # diagonal covariance
+x, y = rng.multivariate_normal(mean, cov, 1000).T
+plt.plot(x, y, 'x')
+plt.axis('equal')
+plt.grid()
+plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.show()
+```
+
+
 
 
 ## Introduction to Gaussian Processes
@@ -557,147 +731,6 @@ The function plotted in the above figure represents only a finite realization, w
 
 #### Scale of Two:
 Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. This range is influenced by the scale of the covariance, which is set to 1, without considering the small value, $\epsilon$, added to the diagonal. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
-
-
-## The Multivariate Normal Distribution
-
-The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. To fully define this distribution, it is necessary to specify its mean and covariance matrix. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution.
-
-In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an n-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
-
-On the other hand, the covariance within the multivariate normal distribution denotes the extent to which two variables vary together. When drawing n-dimensional samples from this distribution, it results in a set of values represented as $X = [x_1, x_2, \ldots, x_n]$.
-The elements of the covariance matrix, such as $C_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
-
-@fig-bi9040 shows draws from a bivariate normal distribution with $\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}$ and 
-$\Sigma=\begin{pmatrix} 9 & 0 \\ 0 & 4 \end{pmatrix}$.
-
-```{python}
-#| label: fig-bi9040
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 4\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[9, 0], [0, 4]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-```{python}
-#| echo: false
-#| label: fig-bi0000
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 0\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 0], [0, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-```{python}
-#| echo: false
-#| label: fig-bi0900
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 9 \\\\ 0 & 0\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 9], [0, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-
-```{python}
-#| echo: false
-#| label: fig-bi9000
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 0\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[9, 0], [0, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-
-```{python}
-#| echo: false
-#| label: fig-bi0040
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 4 & 0\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 0], [4, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-
-```{python}
-#| echo: false
-#| label: fig-bi0004
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 4\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 0], [0, 4]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
-
-
-
-```{python}
-#| echo: false
-#| label: fig-bi9494
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 9 & 4\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[9, 4], [9, 4]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
 
 
 ## Kriging
