@@ -394,73 +394,88 @@ On the other hand, the covariance within the multivariate normal distribution de
 The elements of the covariance matrix, such as $C_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
 
 @fig-bi9040 shows draws from a bivariate normal distribution with $\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}$ and 
-$\Sigma=\begin{pmatrix} 9 & 0 \\ 0 & 4 \end{pmatrix}$.
+$\Sigma=\begin{pmatrix} 9 & 4 \\ 4 & 9 \end{pmatrix}$.
 
 ```{python}
 #| label: fig-bi9040
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 4\\end{pmatrix}$"
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 4 & 9\\end{pmatrix}$"
 import numpy as np
 rng = np.random.default_rng()
 import matplotlib.pyplot as plt
 mean = [0, 0]
-cov = [[9, 0], [0, 4]]  # diagonal covariance
+cov = [[9, 4], [4, 9]]  # diagonal covariance
 x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
+# Create a scatter plot of the numbers
+plt.scatter(x, y, s=2)
 plt.axis('equal')
 plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+plt.title(f"Bivariate Normal. Mean zero and positive covariance: {cov}")
 plt.show()
 ```
+
+The covariance matrix of a bivariate normal distribution determines the shape, orientation, and spread of the distribution in the two-dimensional space.
+
+The diagonal elements of the covariance matrix ($\sigma_1^2$, $\sigma_2^2$) are the variances of the individual variables. They determine the spread of the distribution along each axis. A larger variance corresponds to a greater spread along that axis.
+
+The off-diagonal elements of the covariance matrix ($\sigma_{12}, \sigma_{21}$) are the covariances between the variables.
+They determine the orientation and shape of the distribution.
+If the covariance is positive, the distribution is stretched along the line $y=x$,
+indicating that the variables tend to increase together.
+If the covariance is negative, the distribution is stretched along the line $y=-x$,
+indicating that one variable tends to decrease as the other increases.
+If the covariance is zero, the variables are uncorrelated and the distribution is axis-aligned.
+
+In @fig-bi9040, the variances are identical and the variables are correlated (covariance is 4), so the distribution is stretched along the line $y=x$.
 
 
 ```{python}
-#| echo: false
-#| label: fig-bi0000
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 0\\end{pmatrix}$"
+#| label: fig-bi90403d
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 4 & 9\\end{pmatrix}$"
 import numpy as np
-rng = np.random.default_rng()
 import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 0], [0, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
+from scipy.stats import multivariate_normal
+
+# Parameters
+mu = np.array([0, 0])
+cov = np.array([[9, 4], [4, 9]])
+
+# Create grid and multivariate normal
+x = np.linspace(-10,10,100)
+y = np.linspace(-10,10,100)
+X, Y = np.meshgrid(x,y)
+pos = np.empty(X.shape + (2,))
+pos[:, :, 0] = X; pos[:, :, 1] = Y
+rv = multivariate_normal(mu, cov)
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')  
+surf=ax.plot_surface(X, Y, rv.pdf(pos),cmap='viridis',linewidth=0)
+ax.set_xlabel('X axis')
+ax.set_ylabel('Y axis')
+ax.set_zlabel('Z axis')
+ax.set_title('Bivariate Normal Distribution')
+fig.colorbar(surf, shrink=0.5, aspect=10)
 plt.show()
 ```
 
 
-```{python}
-#| echo: false
-#| label: fig-bi0900
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 9 \\\\ 0 & 0\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 9], [0, 0]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
+
+### The Bivariate Normal Distribution with Mean Zero and Zero Covariances $\sigma_{12} = \sigma_{21} = 0$
 
 
+$\Sigma=\begin{pmatrix} 9 & 0 \\ 0 & 9\end{pmatrix}$
 
 ```{python}
 #| echo: false
 #| label: fig-bi9000
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 0\\end{pmatrix}$"
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 0 \\\\ 0 & 9\\end{pmatrix}$"
 import numpy as np
 rng = np.random.default_rng()
 import matplotlib.pyplot as plt
 mean = [0, 0]
-cov = [[9, 0], [0, 0]]  # diagonal covariance
+cov = [[9, 0], [0, 9]]  # diagonal covariance
 x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
+plt.scatter(x, y, s=2)
 plt.axis('equal')
 plt.grid()
 plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
@@ -468,18 +483,21 @@ plt.show()
 ```
 
 
+### The Bivariate Normal Distribution with Mean Zero and Negative Covariances $\sigma_{12} = \sigma_{21} = -4$
+
+$\Sigma=\begin{pmatrix} 9 & -4 \\ -4 & 9\end{pmatrix}$
 
 ```{python}
 #| echo: false
-#| label: fig-bi0040
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 4 & 0\\end{pmatrix}$"
+#| label: fig-bi9449
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & -4 \\\\ -4 & 9\\end{pmatrix}$"
 import numpy as np
 rng = np.random.default_rng()
 import matplotlib.pyplot as plt
 mean = [0, 0]
-cov = [[0, 0], [4, 0]]  # diagonal covariance
+cov = [[9, -4], [-4, 9]]  # diagonal covariance
 x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
+plt.scatter(x, y, s=2)
 plt.axis('equal')
 plt.grid()
 plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
@@ -487,43 +505,37 @@ plt.show()
 ```
 
 
+## Positive Definite Matrices
 
-```{python}
-#| echo: false
-#| label: fig-bi0004
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 0 & 0 \\\\ 0 & 4\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[0, 0], [0, 4]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
+The covariance matrix must be positive definite for a multivariate normal distribution for a couple of reasons:
 
+* Semidefinite vs Definite: A covariance matrix is always symmetric and positive semidefinite. However, for a multivariate normal distribution, it must be positive definite, not just semidefinite. This is because a positive semidefinite matrix can have zero eigenvalues, which would imply that some dimensions in the distribution have zero variance, collapsing the distribution in those dimensions. A positive definite matrix has all positive eigenvalues, ensuring that the distribution has positive variance in all dimensions.
+* Invertibility: The multivariate normal distribution's probability density function involves the inverse of the covariance matrix. If the covariance matrix is not positive definite, it may not be invertible, and the density function would be undefined.
 
+In summary, the covariance matrix being positive definite ensures that the multivariate normal distribution is well-defined and has positive variance in all dimensions.
 
-```{python}
-#| echo: false
-#| label: fig-bi9494
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 9 & 4\\end{pmatrix}$"
-import numpy as np
-rng = np.random.default_rng()
-import matplotlib.pyplot as plt
-mean = [0, 0]
-cov = [[9, 4], [9, 4]]  # diagonal covariance
-x, y = rng.multivariate_normal(mean, cov, 1000).T
-plt.plot(x, y, 'x')
-plt.axis('equal')
-plt.grid()
-plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
-plt.show()
-```
+## Covariance Matrix and Correlation Coefficient
 
+In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
+
+The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
+
+$$
+\Sigma =
+\begin{pmatrix}
+\sigma_1^2 & \sigma_{12}\\
+\sigma_{21} & \sigma_2^2
+\end{pmatrix},
+$$
+where $\sigma_1^2$ and $\sigma_2^2$ are the variances of $X_1$ and $X_2$, and $\sigma_{12} = \sigma_{21}$ is the covariance between $X_1$ and $X_2$.
+
+The correlation coefficient, often denoted as $\rho$, is a normalized measure of the linear relationship between two variables. It is calculated from the covariance and the standard deviations $\sigma_1$ and $\sigma_2$ (or the square roots of the variances) of $X_1$ and $X_2$ as follows:
+$$
+\rho = \sigma_{12} / (\sqrt{\sigma_1^2} \times \sqrt{\sigma_2^2}) = \sigma_{12} / (\sigma_1 \times \sigma_2).
+$$
+
+So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
+The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
 
 
 
