@@ -568,51 +568,6 @@ print("L*LT = \n", np.dot(L, L.T))
 
 ::: 
 
-## Covariance Matrix and Correlation Matrix
-
-### The Correlation Coefficient
-
-In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
-The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
-
-$$
-\Sigma =
-\begin{pmatrix}
-\sigma_1^2 & \sigma_{12}\\
-\sigma_{21} & \sigma_2^2
-\end{pmatrix},
-$$
-where $\sigma_1^2$ and $\sigma_2^2$ are the variances of $X_1$ and $X_2$, and $\sigma_{12} = \sigma_{21}$ is the covariance between $X_1$ and $X_2$.
-
-The correlation coefficient, often denoted as $\rho$, is a normalized measure of the linear relationship between two variables. It is calculated from the covariance and the standard deviations $\sigma_1$ and $\sigma_2$ (or the square roots of the variances) of $X_1$ and $X_2$ as follows:
-$$
-\rho = \sigma_{12} / (\sqrt{\sigma_1^2} \times \sqrt{\sigma_2^2}) = \sigma_{12} / (\sigma_1 \times \sigma_2).
-$$
-
-So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
-The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
-
-### The Correlation Matrix
-
-You can compute the correlation matrix from a covariance matrix in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.
-
-The function `covariance_to_correlation` first computes the standard deviations of the variables with `np.sqrt(np.diag(cov))`. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with `cov / np.outer(std_devs, std_devs)`.
-
-```{python}
-import numpy as np
-
-def covariance_to_correlation(cov):
-    # Compute standard deviations
-    std_devs = np.sqrt(np.diag(cov))
-    
-    # Compute correlation matrix
-    corr = cov / np.outer(std_devs, std_devs)
-    
-    return corr
-
-cov = np.array([[9, -4], [-4, 9]])
-print(covariance_to_correlation(cov))
-```
 
 ## Introduction to Gaussian Processes
 
@@ -670,11 +625,12 @@ def visualize_inverse_exp_squared_distance(distance, point):
 visualize_inverse_exp_squared_distance(3, 0.0)
 ```
 
-Especially in higher dimensions, an additional parameter, $\theta$, is introduced to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
+An additional parameter, $\sigma^2$, is introduced to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
 
 $$
-\Sigma(x, x') = \exp\{ - \theta || x - x'||^2 \}.
-$$
+\Sigma(x, x') = \exp\{ - || x - x'||^2 / \sigma^2 \}.
+$$ {#eq-Sigma}
+
 
 
 ```{python}
@@ -683,18 +639,18 @@ $$
 import numpy as np
 import matplotlib.pyplot as plt
 
-def squared_euclidean_distance(point1, point2, theta):
-    return np.sum(theta*(np.array(point1) - np.array(point2))**2)
+def squared_euclidean_distance(point1, point2, sigma2):
+    return np.sum(1/sigma2 * (np.array(point1) - np.array(point2))**2)
 
-def inverse_exp_squared_distance(point1, point2, theta):
-    return np.exp(-squared_euclidean_distance(point1, point2, theta))
+def inverse_exp_squared_distance(point1, point2, sigma2):
+    return np.exp(-squared_euclidean_distance(point1, point2, sigma2))
 
 def generate_grid(x_max, y_max, n):
     x = np.linspace(-x_max, x_max, n)
     y = np.linspace(-y_max, y_max, n)
     return [(xi, yi) for xi in x for yi in y]
 
-def visualize_inverse_exp_squared_distance_3d(x_max, y_max, theta, n):
+def visualize_inverse_exp_squared_distance_3d(x_max, y_max, sigma2, n):
     x = np.linspace(-x_max, x_max, n)
     y = np.linspace(-y_max, y_max, n)
     X, Y = np.meshgrid(x, y)
@@ -702,7 +658,7 @@ def visualize_inverse_exp_squared_distance_3d(x_max, y_max, theta, n):
     Z = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
-            Z[i, j] = inverse_exp_squared_distance((X[i, j], Y[i, j]), (0, 0), theta)
+            Z[i, j] = inverse_exp_squared_distance((X[i, j], Y[i, j]), (0, 0), sigma2)
     
     contour = plt.contour(X, Y, Z, levels = 10, cmap='viridis')
     plt.clabel(contour, inline=True, fontsize=8)
@@ -713,7 +669,7 @@ def visualize_inverse_exp_squared_distance_3d(x_max, y_max, theta, n):
 ```{python}
 #| label: fig-exp2euclid2d
 #| fig-cap: "Two-dim inverse exponentiated squared Euclidean distance"
-visualize_inverse_exp_squared_distance_3d(x_max=1, y_max=1, theta=np.array([1,3]), n=100)
+visualize_inverse_exp_squared_distance_3d(x_max=1, y_max=1, sigma2=np.array([1,3]), n=100)
 ```
 
 The covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
@@ -763,14 +719,14 @@ import numpy as np
 from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
 from numpy.linalg import cholesky, solve
 from numpy.random import multivariate_normal
-def build_Psi(X, theta):
+def build_Sigma(X, sigma2):
     n = X.shape[0]
     k = X.shape[1]
     D = zeros((k, n, n))
     for l in range(k):
         for i in range(n):
             for j in range(i, n):
-                D[l, i, j] = theta[l]*(X[i,l] - X[j,l])**2
+                D[l, i, j] = 1/sigma2[l]*(X[i,l] - X[j,l])**2
     D = sum(D)
     D = D + D.T
     return exp(-D)  
@@ -778,47 +734,51 @@ def build_Psi(X, theta):
 
 
 ```{python}
-theta = np.array([1.0])
-Psi = build_Psi(X, theta)
-np.round(Psi[:3,:], 3)
+sigma2 = np.array([1.0])
+Sigma = build_Sigma(X, sigma2)
+np.round(Sigma[:3,:], 3)
 ```
 
 
 ```{python}
 import matplotlib.pyplot as plt
-plt.imshow(Psi, cmap='hot', interpolation='nearest')
+plt.imshow(Sigma, cmap='hot', interpolation='nearest')
 plt.colorbar()
 plt.show()
 ```
 
 ### Generation of Random Samples and Plotting the Realizations of the Random Function
 
-In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Psi`. It is used as an essential component in generating random samples from the multivariate normal distribution.
+In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Sigma`. It is used as an essential component in generating random samples from the multivariate normal distribution.
 
 The function `multivariate_normal` is employed for this purpose. It serves as a random number generator specifically designed for the multivariate normal distribution. In this case, the mean of the distribution is set equal to `mean`, and the covariance matrix is provided as `Psi`. The argument `size` specifies the number of realizations, which, in this specific scenario, is set to one.
 
-By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Psi` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples (here taken from the size of the matrix, e.g.,: `Psi.shape[0]`).
+By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Sigma` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples (here taken from the size of the matrix, e.g.,: `Sigma.shape[0]`).
 
 ```{python}
 rng = np.random.default_rng(seed=12345)
-Y = rng.multivariate_normal(zeros(Psi.shape[0]), Psi, size = 1, check_valid="raise").reshape(-1,1)
+Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 1, check_valid="raise").reshape(-1,1)
 Y.shape
 ```
 
 Now we can plot the results, i.e., a finite realization of the random function $Y()$ under a GP prior with a particular covariance structure. We will plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
 
 ```{python}
+#| label: fig-mvn1-1
+#| fig-cap: "Realization of one random function under a GP prior. sigma2: 1.0"
 import matplotlib.pyplot as plt
 plt.plot(X, Y)
-plt.title("Realization of Random Functions under a GP prior.\n theta: {}".format(theta[0]))
+plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
 plt.show()
 ```
 
 ```{python}
+#| label: fig-mvn1-3
+#| fig-cap: "Realization of three random functions under a GP prior. sigma2: 1.0"
 rng = np.random.default_rng(seed=12345)
-Y = rng.multivariate_normal(zeros(Psi.shape[0]), Psi, size = 3, check_valid="raise")
+Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 3, check_valid="raise")
 plt.plot(X, Y.T)
-plt.title("Realization of Random Functions under a GP prior.\n theta: {}".format(theta[0]))
+plt.title("Realization of Three Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
 plt.show()
 ```
 
@@ -829,26 +789,166 @@ In this analysis, we observe several bumps in the $x$-range of $[0,10]$.
 These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior.
 
 #### Smoothness:
-The function plotted in the above figure represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
+The function plotted in @fig-mvn1-1 represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
 
 #### Scale of Two:
-Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. This range is influenced by the scale of the covariance, which is set to 1, without considering the small value, $\epsilon$, added to the diagonal. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
+Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
+
+
+```{python}
+import numpy as np
+from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy.random import multivariate_normal
+
+def build_Sigma(X, sigma2):
+    n = X.shape[0]
+    k = X.shape[1]
+    D = zeros((k, n, n))
+    for l in range(k):
+        for i in range(n):
+            for j in range(i, n):
+                D[l, i, j] = 1/sigma2[l]*(X[i,l] - X[j,l])**2
+    D = sum(D)
+    D = D + D.T
+    return exp(-D)
+
+def plot_mvn( a=0, b=10, sigma2=1.0, size=1, n=100, show=True):    
+    X = np.linspace(a, b, n, endpoint=False).reshape(-1,1)
+    sigma2 = np.array([sigma2])
+    Sigma = build_Sigma(X, sigma2)
+    rng = np.random.default_rng(seed=12345)
+    Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = size, check_valid="raise")
+    plt.plot(X, Y.T)
+    plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
+    if show:
+        plt.show()
+```
+
+```{python}
+#| label: fig-mvn2
+#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 10"
+plot_mvn(a=0, b=10, sigma2=10.0, size=3, n=250)
+```
+
+```{python}
+#| label: fig-mvn05
+#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 0.1"
+plot_mvn(a=0, b=10, sigma2=0.1, size=3, n=250)
+```
 
 
 ## Kriging
 
-### The Kriging Covariance Matrix 
+### The Kriging Basis Function
 
-Basis functions of the form 
+Kriging basis functions (as introduced in @eq-Sigma) of the form 
 $$
 \psi^{(i)} = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l} | ^{p_l} \right)
 $$
 are used in a method known as Kriging.
-Although the Kriging basis function is related to the Gaussian basis function, there are some differences:
+
+The Kriging basis function is related to the Gaussian basis function,
+which is defined as
+$$
+\Sigma(x, x') = \exp\{ - || x - x'||^2 / \sigma^2 \}.
+$$ {#eq-Sigma2}
+
+There are some differences between Gaussian basis functions and Kriging basis functions:
 
   * Where the Gaussian basis function has $1/\sigma^2$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
   * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
-  * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent to vary (typically from 1 to 2).
+  * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent $p_l$ to vary (typically from 1 to 2).
+
+
+### Covariance Matrix and Correlation Matrix
+
+#### The Correlation Coefficient
+
+In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
+The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
+
+$$
+\Sigma =
+\begin{pmatrix}
+\sigma_1^2 & \sigma_{12}\\
+\sigma_{21} & \sigma_2^2
+\end{pmatrix},
+$$
+where $\sigma_1^2$ and $\sigma_2^2$ are the variances of $X_1$ and $X_2$, and $\sigma_{12} = \sigma_{21}$ is the covariance between $X_1$ and $X_2$.
+
+The correlation coefficient, often denoted as $\rho$, is a normalized measure of the linear relationship between two variables. It is calculated from the covariance and the standard deviations $\sigma_1$ and $\sigma_2$ (or the square roots of the variances) of $X_1$ and $X_2$ as follows:
+$$
+\rho = \sigma_{12} / (\sqrt{\sigma_1^2} \times \sqrt{\sigma_2^2}) = \sigma_{12} / (\sigma_1 \times \sigma_2).
+$$
+
+So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
+The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
+
+::: {.callout-note}
+### Covariance and Correlation (taken from @Forr08a)
+
+Covariance is a measure of the correlation between two or more sets of random variables.
+
+$$
+\text{Cov}(X,Y) = E[(X - E[X])(Y - E[Y])] = E[XY] - E[X]E[Y]
+$$
+
+From the covariance, we can derive the correlation
+
+$$
+\text{Corr}(X,Y) = \frac{\text{Cov}(X,Y)}{\sqrt{\text{Var}(X)\text{Var}(Y)}} = \frac{\text{Cov}(X,Y)}{\sigma_X\sigma_Y}.
+$$ {#eq-corrxy}
+
+For a vector of random variables 
+
+$$
+Y = 
+\begin{pmatrix}
+(Y^{(l)}, \ldots, Y^{(n)})
+\end{pmatrix}^T
+$$
+
+the covariance matrix is a matrix of covariances between the random variables
+
+$$
+\text{Cov}(Y, Y) =
+\begin{pmatrix}
+\text{Cov}(Y^{(1)}, Y^{(1)}) & \ldots & \text{Cov}(Y^{(1)}, Y^{(n)}) \\
+\vdots & \ddots & \vdots \\
+\text{Cov}(Y^{(n)}, Y^{(1)}) & \ldots & \text{Cov}(Y^{(n)}, Y^{(n)})
+\end{pmatrix},
+$$
+
+and from @eq-corrxy
+
+$$
+\text{Cov}(Y, Y) = \sigma_Y^2 \text{Cor}(Y, Y).
+$$
+
+:::
+
+### The Correlation Matrix $\Psi$
+
+You can compute the correlation matrix $\Psi$ from a covariance matrix $\Sigma$ in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.
+
+The function `covariance_to_correlation` first computes the standard deviations of the variables with `np.sqrt(np.diag(cov))`. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with `cov / np.outer(std_devs, std_devs)`.
+
+```{python}
+import numpy as np
+
+def covariance_to_correlation(cov):
+    # Compute standard deviations
+    std_devs = np.sqrt(np.diag(cov))
+    
+    # Compute correlation matrix
+    corr = cov / np.outer(std_devs, std_devs)
+    
+    return corr
+
+cov = np.array([[9, -4], [-4, 9]])
+print(covariance_to_correlation(cov))
+```
+
 
 
 ### Building the Kriging Model
@@ -1184,6 +1284,7 @@ $$
 ### Properties of the Predictor
 
 This Equation reveals two important properties of the Kriging predictor:
+
   * **Basis functions**: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
   * **Interpolation**: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
 
@@ -1193,8 +1294,7 @@ Toy example in 1d where the response is a simple sinusoid measured at eight equa
 
 ### Calculating the Correlation Matrix $\Psi$
 
-The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations. Here we will use $n=8$ sample locations
-* $\theta$ is set to 1.0
+The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations. Here we will use $n=8$ sample locations and $\theta$ is set to 1.0.
 
 ```{python}
 n = 8
@@ -1213,7 +1313,7 @@ y = np.sin(X)
 ```{python}
 import matplotlib.pyplot as plt
 plt.plot(X, y, "bo")
-plt.title("Sin(x) evaluated at {} points".format(n))
+plt.title(f"Sin(x) evaluated at {n} points")
 plt.show()
 ```
 
