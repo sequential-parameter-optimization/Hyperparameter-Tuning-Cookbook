@@ -514,10 +514,65 @@ The covariance matrix must be positive definite for a multivariate normal distri
 
 In summary, the covariance matrix being positive definite ensures that the multivariate normal distribution is well-defined and has positive variance in all dimensions.
 
-## Covariance Matrix and Correlation Coefficient
+```{python}
+import numpy as np
+
+def is_positive_definite(matrix):
+    return np.all(np.linalg.eigvals(matrix) > 0)
+
+matrix = np.array([[9, 4], [4, 9]])
+print(is_positive_definite(matrix))  # Outputs: True
+```
+
+
+### Cholesky Decomposition
+
+More effficent (and check if symmetric) is based on Cholesky decomposition.
+
+
+```{python}
+import numpy as np
+
+def is_pd(K):
+    try:
+        np.linalg.cholesky(K)
+        return True
+    except np.linalg.linalg.LinAlgError as err:
+        if 'Matrix is not positive definite' in err.message:
+            return False
+        else:
+            raise
+matrix = np.array([[9, 4], [4, 9]])
+print(is_pd(matrix))  # Outputs: True
+```
+
+::: {.callout-note}
+### Example: Cholesky decomposition.
+
+`linalg.cholesky` computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix $L$ such that $LL^T = A$. If the matrix is not positive definite, an error (`LinAlgError`) is raised.
+
+
+```{python}
+import numpy as np
+
+# Define a Hermitian, positive-definite matrix
+A = np.array([[9, 4], [4, 9]]) 
+
+# Compute the Cholesky decomposition
+L = np.linalg.cholesky(A)
+
+print("L = \n", L)
+print("L*LT = \n", np.dot(L, L.T))
+
+```
+
+::: 
+
+## Covariance Matrix and Correlation Matrix
+
+### The Correlation Coefficient
 
 In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
-
 The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
 
 $$
@@ -537,7 +592,27 @@ $$
 So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
 The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
 
+### The Correlation Matrix
 
+You can compute the correlation matrix from a covariance matrix in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.
+
+The function `covariance_to_correlation` first computes the standard deviations of the variables with `np.sqrt(np.diag(cov))`. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with `cov / np.outer(std_devs, std_devs)`.
+
+```{python}
+import numpy as np
+
+def covariance_to_correlation(cov):
+    # Compute standard deviations
+    std_devs = np.sqrt(np.diag(cov))
+    
+    # Compute correlation matrix
+    corr = cov / np.outer(std_devs, std_devs)
+    
+    return corr
+
+cov = np.array([[9, -4], [-4, 9]])
+print(covariance_to_correlation(cov))
+```
 
 ## Introduction to Gaussian Processes
 
@@ -548,7 +623,7 @@ However, it's important to emphasize that GPs are not a universal solution for e
 
 ### Gaussian Process Prior
 
-In this context, any finite collection of realizations, which is represented by $n$ observations, is modeled as having a multivariate normal (MVN) distribution. The characteristics of these realizations can be fully described by two key parameters:
+In the context of GP, any finite collection of realizations, which is represented by $n$ observations, is modeled as having a multivariate normal (MVN) distribution. The characteristics of these realizations can be fully described by two key parameters:
 
 1. Their mean, denoted as an $n$-vector $\mu$.
 2. The covariance matrix, denoted as an $n \times n$ matrix $\Sigma$. This covariance matrix encapsulates the relationships and variability between the individual realizations within the collection.
@@ -557,7 +632,13 @@ In this context, any finite collection of realizations, which is represented by 
 ### Covariance Function
 
 The covariance function is defined by inverse exponentiated squared Euclidean distance:
-$$\Sigma(x, x') = \exp\{ - || x - x'||^2 \}.$$
+$$
+\Sigma(x, x') = \exp\{ - || x - x'||^2 \},
+$$
+where $x$ and $x'$ are two points in the $k$-dimensional input space and $\| \cdot \|$ denotes the Euclidean distance, i.e.,
+$$
+|| x - x'||^2 = \sum_{i=1}^k (x_i - x_i')^2.
+$$
 
 An 1-d example is shown in @fig-exp2euclid. A 2-d example in @fig-exp2euclid2d.
 
@@ -588,6 +669,12 @@ def visualize_inverse_exp_squared_distance(distance, point):
 #| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
 visualize_inverse_exp_squared_distance(3, 0.0)
 ```
+
+Especially in higher dimensions, an additional parameter, $\theta$, is introduced to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
+
+$$
+\Sigma(x, x') = \exp\{ - \theta || x - x'||^2 \}.
+$$
 
 
 ```{python}
@@ -626,26 +713,26 @@ def visualize_inverse_exp_squared_distance_3d(x_max, y_max, theta, n):
 ```{python}
 #| label: fig-exp2euclid2d
 #| fig-cap: "Two-dim inverse exponentiated squared Euclidean distance"
-
 visualize_inverse_exp_squared_distance_3d(x_max=1, y_max=1, theta=np.array([1,3]), n=100)
 ```
 
 The covariance decays exponentially fast as $x$ and $x'$ become farther apart. Observe that 
 
-$$\Sigma(x,x) = 1$$ and 
+$$
+\Sigma(x,x) = 1
+$$ 
+and 
 
-$$\Sigma(x, x') < 1$$ for  $x \neq x'$ 
-
-The function $\Sigma(x,x')$ must be positive definite.
+$$
+\Sigma(x, x') < 1
+$$ 
+for  $x \neq x'$. The function $\Sigma(x,x')$ must be positive definite.
 
 :::{.callout-note}
+
 #### Positive Definiteness
 
-* Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement.
-* It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values, denoted as $x_1, x_2, \ldots, x_n$.
-* The condition for positive definiteness is that for all $x$ vectors that are not equal to zero, the expression $x^\top \Sigma_n x$ must be greater than zero.
-* This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis.
-* It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
+Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement. It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $x$-values, denoted as $x_1, x_2, \ldots, x_n$. The condition for positive definiteness is that for all $x$ vectors that are not equal to zero, the expression $x^\top \Sigma_n x$ must be greater than zero. This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis. It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
 
 ::: 
 
@@ -662,7 +749,7 @@ Here is an one-dimensional example. The process begins by creating an input grid
 
 ```{python}
 import numpy as np
-n = 30
+n = 100
 X = np.linspace(0, 10, n, endpoint=False).reshape(-1,1)
 ```
 
@@ -693,8 +780,9 @@ def build_Psi(X, theta):
 ```{python}
 theta = np.array([1.0])
 Psi = build_Psi(X, theta)
-np.round(Psi, 3)
+np.round(Psi[:3,:], 3)
 ```
+
 
 ```{python}
 import matplotlib.pyplot as plt
@@ -712,7 +800,8 @@ The function `multivariate_normal` is employed for this purpose. It serves as a 
 By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Psi` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples (here taken from the size of the matrix, e.g.,: `Psi.shape[0]`).
 
 ```{python}
-Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size = 1).reshape(-1,1)
+rng = np.random.default_rng(seed=12345)
+Y = rng.multivariate_normal(zeros(Psi.shape[0]), Psi, size = 1, check_valid="raise").reshape(-1,1)
 Y.shape
 ```
 
@@ -726,8 +815,9 @@ plt.show()
 ```
 
 ```{python}
-Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size = 3).reshape(-1,3)
-plt.plot(X, Y)
+rng = np.random.default_rng(seed=12345)
+Y = rng.multivariate_normal(zeros(Psi.shape[0]), Psi, size = 3, check_valid="raise")
+plt.plot(X, Y.T)
 plt.title("Realization of Random Functions under a GP prior.\n theta: {}".format(theta[0]))
 plt.show()
 ```
@@ -746,10 +836,16 @@ Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2
 
 
 ## Kriging
+
 ### The Kriging Covariance Matrix 
 
-* Basis functions of the form \begin{equation} \psi^{(i)} = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l} | ^{p_l} \right) \end{equation} are used in a method known as Kriging.
-* Although the Kriging basis function is related to the Gaussian basis function, there are some differences:
+Basis functions of the form 
+$$
+\psi^{(i)} = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l} | ^{p_l} \right)
+$$
+are used in a method known as Kriging.
+Although the Kriging basis function is related to the Gaussian basis function, there are some differences:
+
   * Where the Gaussian basis function has $1/\sigma^2$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
   * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
   * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent to vary (typically from 1 to 2).
@@ -757,36 +853,89 @@ Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2
 
 ### Building the Kriging Model
 
-* Consider a set of $k$-dimensional sample data $$X = [x_1, x_2, \ldots, x_n],$$ i.e., $X$ is a $(n,k)$-matrix, with related responses $$y = [y_1, y_2, \ldots, y_n].$$
-* We are interested in finding an expression for the predicted value at a new point $x$.
-* We are going to interpret the observed responses as if they are generated by a stochastic process, which will be denoted as follows: \begin{equation} Y = [Y(x_1), \ldots, Y(x_n) ]^T. \end{equation}
-* The random process has a mean of $\mu$ (which is a (n,1)-dimensional vector). The random variables are correlated with each other using the basis function expression \begin{equation} \text{cor} [Y(x_i), Y(x_j)] =  \exp \left( - \sum_{l=1}^k \theta_l | x_{il} - x_{jl} | ^{p_l} \right). \end{equation}
-* From this, the $(n,n)$ correlation matrix $\Psi$ of the observed data can be computed: \begin{equation} \Psi = \begin{pmatrix} \text{cor} [Y(x_1), Y(x_1)] & \ldots & \text{cor} [Y(x_1), Y(x_n)] \\  \vdots & \ddots & \vdots \\ \text{cor} [Y(x_n), Y(x_1)] &  \ldots & \text{cor} [Y(x_n), Y(x_n)] \end{pmatrix} .\end{equation}
+Consider a set of $k$-dimensional sample data 
+$$
+X = [x_1, x_2, \ldots, x_n],
+$$
+i.e., $X$ is a $(n,k)$-matrix, with related responses
+$$
+y = [y_1, y_2, \ldots, y_n].
+$$
+We are interested in finding an expression for the predicted value at a new point $x$. We are going to interpret the observed responses as if they are generated by a stochastic process, which will be denoted as follows:
+$$
+Y = [Y(x_1), \ldots, Y(x_n) ]^T.
+$$
+The random process has a mean of $\mu$ (which is a (n,1)-dimensional vector).
+The random variables are correlated with each other using the basis function expression
+$$
+\text{cor} [Y(x_i), Y(x_j)] =  \exp \left( - \sum_{l=1}^k \theta_l | x_{il} - x_{jl} | ^{p_l} \right).
+$$
+From this, the $(n,n)$ correlation matrix $\Psi$ of the observed data can be computed:
+$$
+\Psi = \begin{pmatrix}
+\text{cor} [Y(x_1), Y(x_1)] & \ldots & \text{cor} [Y(x_1), Y(x_n)] \\ 
+\vdots & \ddots & \vdots \\
+ \text{cor} [Y(x_n), Y(x_1)] &  \ldots & \text{cor} [Y(x_n), Y(x_n)] 
+ \end{pmatrix}.
+ $$
 
 ### Example: Correlation Matrix
 
-* Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
-$$X = \begin{pmatrix} x_{11} & x_{12} & x_{13}\\ x_{21} & x_{22} & x_{23}\\ x_{31} & x_{32} & x_{33}\\ x_{41} & x_{42} & x_{43}\\ \end{pmatrix}$$
+Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
+$$
+X = \begin{pmatrix} x_{11} & x_{12} & x_{13}\\
+x_{21} & x_{22} & x_{23}\\
+x_{31} & x_{32} & x_{33}\\
+x_{41} & x_{42} & x_{43}\\ 
+\end{pmatrix}
+$$
 
+To compute the elements of the matrix $\Psi$, the following $k$ $(n,n)$-matrices have to be computed:
+$$
+D_1 = \begin{pmatrix} x_{11} - x_{11} & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  x_{21} - x_{11} & x_{21} - x_{21} & x_{21} -x_{31} & x_{21} - x_{41} \\ x_{31} - x_{11} & x_{31} - x_{21} & x_{31} -x_{31} & x_{31} - x_{41} \\ x_{41} - x_{11} & x_{41} - x_{21} & x_{41} -x_{31} & x_{41} - x_{41} \\
+\end{pmatrix}
+$$
 
-* To compute the elements of the matrix $\Psi$, the following $k$ $(n,n)$-matrices have to be computed:
-  $$ D_1 = \begin{pmatrix} x_{11} - x_{11} & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  x_{21} - x_{11} & x_{21} - x_{21} & x_{21} -x_{31} & x_{21} - x_{41} \\ x_{31} - x_{11} & x_{31} - x_{21} & x_{31} -x_{31} & x_{31} - x_{41} \\ x_{41} - x_{11} & x_{41} - x_{21} & x_{41} -x_{31} & x_{41} - x_{41} \\\end{pmatrix}$$
-  $$ D_2 = \begin{pmatrix} x_{12} - x_{12} & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  x_{22} - x_{12} & x_{22} - x_{22} & x_{22} -x_{32} & x_{22} - x_{42} \\ x_{32} - x_{12} & x_{32} - x_{22} & x_{32} -x_{32} & x_{32} - x_{42} \\ x_{42} - x_{12} & x_{42} - x_{22} & x_{42} -x_{32} & x_{42} - x_{42} \\\end{pmatrix}$$
-  $$ D_3 = \begin{pmatrix} x_{13} - x_{13} & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  x_{23} - x_{13} & x_{23} - x_{23} & x_{23} -x_{33} & x_{23} - x_{43} \\ x_{33} - x_{13} & x_{33} - x_{23} & x_{33} -x_{33} & x_{33} - x_{43} \\ x_{43} - x_{13} & x_{43} - x_{23} & x_{43} -x_{33} & x_{43} - x_{43} \\\end{pmatrix}$$
+$$
+D_2 = \begin{pmatrix} x_{12} - x_{12} & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  x_{22} - x_{12} & x_{22} - x_{22} & x_{22} -x_{32} & x_{22} - x_{42} \\ x_{32} - x_{12} & x_{32} - x_{22} & x_{32} -x_{32} & x_{32} - x_{42} \\ x_{42} - x_{12} & x_{42} - x_{22} & x_{42} -x_{32} & x_{42} - x_{42} \\
+\end{pmatrix}
+$$
 
-* Since the matrices are symmetric and the main diagonals are zero, it is sufficient to compute the following matrices:
-$$D_1 = \begin{pmatrix} 0 & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  0 &  0 & x_{21} -x_{31} & x_{21} - x_{41} \\ 0 & 0 & 0 & x_{31} - x_{41} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
-  $$ D_2 = \begin{pmatrix} 0 & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  0 & 0 & x_{22} -x_{32} & x_{22} - x_{42} \\ 0 & 0 & 0 & x_{32} - x_{42} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
-  $$ D_3 = \begin{pmatrix} 0 & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  0 & 0 & x_{23} -x_{33} & x_{23} - x_{43} \\ 0 & 0 & 0 & x_{33} - x_{43} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+$$
+D_3 = \begin{pmatrix} x_{13} - x_{13} & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  x_{23} - x_{13} & x_{23} - x_{23} & x_{23} -x_{33} & x_{23} - x_{43} \\ x_{33} - x_{13} & x_{33} - x_{23} & x_{33} -x_{33} & x_{33} - x_{43} \\ x_{43} - x_{13} & x_{43} - x_{23} & x_{43} -x_{33} & x_{43} - x_{43} \\\end{pmatrix}
+$$
 
-* We will consider $p_l=2$.
-* The differences will be squared and multiplied by $\theta_i$, i.e.:
-$$ D_1 = \theta_1 \begin{pmatrix} 0 & (x_{11} - x_{21})^2 & (x_{11} -x_{31})^2 & (x_{11} - x_{41})^2 \\  0 &  0 & (x_{21} -x_{31})^2 & (x_{21} - x_{41})^2 \\ 0 & 0 & 0 & (x_{31} - x_{41})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
-  $$ D_2 = \theta_2 \begin{pmatrix} 0 & (x_{12} - x_{22})^2 & (x_{12} -x_{32})^2 & (x_{12} - x_{42})^2 \\  0 & 0 & (x_{22} -x_{32})^2 & (x_{22} - x_{42})^2 \\ 0 & 0 & 0 & (x_{32} - x_{42})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
-  $$ D_3 = \theta_3 \begin{pmatrix} 0 & (x_{13} - x_{23})^2 & (x_{13} -x_{33})^2 & (x_{13} - x_{43})^2 \\  0 & 0 & (x_{23} -x_{33})^2 & (x_{23} - x_{43})^2 \\ 0 & 0 & 0 & (x_{33} - x_{43})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+Since the matrices are symmetric and the main diagonals are zero, it is sufficient to compute the following matrices:
+$$
+D_1 = \begin{pmatrix} 0 & x_{11} - x_{21} & x_{11} -x_{31} & x_{11} - x_{41} \\  0 &  0 & x_{21} -x_{31} & x_{21} - x_{41} \\ 0 & 0 & 0 & x_{31} - x_{41} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
+$$
+D_2 = \begin{pmatrix} 0 & x_{12} - x_{22} & x_{12} -x_{32} & x_{12} - x_{42} \\  0 & 0 & x_{22} -x_{32} & x_{22} - x_{42} \\ 0 & 0 & 0 & x_{32} - x_{42} \\ 0 & 0 & 0 & 0 \\
+\end{pmatrix}
+$$
 
-* The sum of the three matrices $D=D_1+ D_2 + D_3$ will be calculated next: 
-$$ \begin{pmatrix} 0 & 
+$$
+D_3 = \begin{pmatrix} 0 & x_{13} - x_{23} & x_{13} -x_{33} & x_{13} - x_{43} \\  0 & 0 & x_{23} -x_{33} & x_{23} - x_{43} \\ 0 & 0 & 0 & x_{33} - x_{43} \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
+
+We will consider $p_l=2$. The differences will be squared and multiplied by $\theta_i$, i.e.:
+
+$$
+D_1 = \theta_1 \begin{pmatrix} 0 & (x_{11} - x_{21})^2 & (x_{11} -x_{31})^2 & (x_{11} - x_{41})^2 \\  0 &  0 & (x_{21} -x_{31})^2 & (x_{21} - x_{41})^2 \\ 0 & 0 & 0 & (x_{31} - x_{41})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
+
+$$
+D_2 = \theta_2 \begin{pmatrix} 0 & (x_{12} - x_{22})^2 & (x_{12} -x_{32})^2 & (x_{12} - x_{42})^2 \\  0 & 0 & (x_{22} -x_{32})^2 & (x_{22} - x_{42})^2 \\ 0 & 0 & 0 & (x_{32} - x_{42})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
+
+$$
+D_3 = \theta_3 \begin{pmatrix} 0 & (x_{13} - x_{23})^2 & (x_{13} -x_{33})^2 & (x_{13} - x_{43})^2 \\  0 & 0 & (x_{23} -x_{33})^2 & (x_{23} - x_{43})^2 \\ 0 & 0 & 0 & (x_{33} - x_{43})^2 \\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
+
+The sum of the three matrices $D=D_1+ D_2 + D_3$ will be calculated next: 
+
+$$
+\begin{pmatrix} 0 & 
 \theta_1  (x_{11} - x_{21})^2 + \theta_2 (x_{12} - x_{22})^2 + \theta_3  (x_{13} - x_{23})^2  &
 \theta_1 (x_{11} -x_{31})^2 + \theta_2  (x_{12} -x_{32})^2 + \theta_3  (x_{13} -x_{33})^2 &
 \theta_1  (x_{11} - x_{41})^2 + \theta_2  (x_{12} - x_{42})^2 + \theta_3 (x_{13} - x_{43})^2
@@ -795,11 +944,10 @@ $$ \begin{pmatrix} 0 &
 \theta_1  x_{21} - x_{41})^2 + \theta_2  (x_{22} - x_{42})^2 + \theta_3 (x_{23} - x_{43})^2
 \\ 0 & 0 & 0 & 
 \theta_1 (x_{31} - x_{41})^2 + \theta_2 (x_{32} - x_{42})^2 + \theta_3 (x_{33} - x_{43})^2
-\\ 0 & 0 & 0 & 0 \\\end{pmatrix}$$
+\\ 0 & 0 & 0 & 0 \\\end{pmatrix}
+$$
 
-* Finally, $$ \Psi = \exp(-D)$$ is computed.
-
-* Next, we will demonstrate how this computation can be implemented in Python.
+Finally, $$ \Psi = \exp(-D)$$ is computed.  Next, we will demonstrate how this computation can be implemented in Python.
 
 ```{python}
 from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
@@ -828,8 +976,8 @@ Psi = build_Psi(X, theta)
 Psi
 ```
 
-* The same result can be obtained with existing python functions, e.g., from the package `scipy`.
-  * Note: A small value, `eps`,  can be passed to the function `build_Psi` to improve the condition number.
+The same result can be obtained with existing python functions, e.g., from the package `scipy`.
+Note: A small value, `eps`,  can be passed to the function `build_Psi` to improve the condition number.
 
 ```{python}
 from scipy.spatial.distance import squareform
@@ -844,9 +992,7 @@ Psi
 
 ### Generate sample from N($\mu$, $\Psi$)
 
-* The following block of code generates 5 draws from a bivariate normal distribution with zero mean and covariance matrix $\Psi$.
-* Because our input space is three dimensional, the results cannot be visualized in a simple way.
-* The next examples will use a one-dimensional input space, so that our results can be easily visualized in 2d.
+The following block of code generates 5 draws from a bivariate normal distribution with zero mean and covariance matrix $\Psi$. Because our input space is three dimensional, the results cannot be visualized in a simple way. The next examples will use a one-dimensional input space, so that our results can be easily visualized in 2d.
 
 ```{python}
 import numpy as np
@@ -858,40 +1004,40 @@ Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size=m)
 
 ## Kriging in a Nutshell
 
-* We will use the Kriging correlation $\Psi$ to predict new values based on the observed data.
-* The matrix algebra involved i calculating the likelihood is the most computationally intensive part of the Kriging process
-  * Care must be taken that the computer code is as efficient as possible.
+We will use the Kriging correlation $\Psi$ to predict new values based on the observed data. The matrix algebra involved for calculating the likelihood is the most computationally intensive part of the Kriging process. Care must be taken that the computer code is as efficient as possible.
 
-* Basic elements of the Kriging based surrogate optimization 
-such as interpolation,  expected improvement, and regression
-are presented. 
-* The presentation follows the approach described in Forr08a and Bart21i.
+Basic elements of the Kriging based surrogate optimization 
+such as interpolation, expected improvement, and regression are presented. The presentation follows the approach described in @Forr08a and @bart21i.
 
 ### The Kriging Model
 
-* Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
+Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
 $\vec{X}$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
 $\vec{y}$ is a $(n\times 1)$ vector.
 
-* The observed responses $\vec{y}$ are considered as if they are from a stochastic
+The observed responses $\vec{y}$ are considered as if they are from a stochastic
 process, which will be denoted as
-\begin{equation*}
+$$
 \begin{pmatrix}
 \vec{Y}(\vec{x}^{(1)})\\
 \vdots\\
 \vec{Y}(\vec{x}^{(n)})\\
 \end{pmatrix}.
-\end{equation*}
+$$
 
-* The set of random vectors (also referred to as a *random field*) has a 
-mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
+The set of random vectors (also referred to as a *random field*) has a mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
 
 ### Correlations
 
-* The random vectors are correlated with each other using the basis function expression
-$$\text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\left\{ - \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right\}.$$
+The random vectors are correlated with each other using the basis function expression
+$$
+\text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\left\{ - \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right\}.
+$$
 
-* The $(n \times n)$ correlation matrix of the observed sample data is $$\vec{\Psi} = \begin{pmatrix}
+The $(n \times n)$ correlation matrix of the observed sample data is 
+
+$$
+\vec{\Psi} = \begin{pmatrix}
 \text{cor}\left(
 \vec{Y}(\vec{x}^{(i)}),
 \vec{Y}(\vec{x}^{(l)}) 
@@ -910,19 +1056,20 @@ $$\text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\
 \vec{Y}(\vec{x}^{(i)}),
 \vec{Y}(\vec{x}^{(l)}) 
 \right)
-\end{pmatrix}.$$
+\end{pmatrix}.
+$$
 
-* Note: correlations depend on the absolute distances between sample points
+Note: correlations depend on the absolute distances between sample points
 $|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$.
 
-* Correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
-* $\theta$ can be seen as a width parameter:
-  * low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample
-  * high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s
-* $\theta_j$ is a measure of how active the function we are approximating is
-* High $\theta_j$ indicate important parameters, see @fig-theta12
+Correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
 
+$\theta$ can be seen as a width parameter:
 
+* low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample.
+* high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s.
+* $\theta_j$ is a measure of how active the function we are approximating is.
+* High $\theta_j$ indicate important parameters, see @fig-theta12.
 
 
 ```{python}
@@ -982,9 +1129,8 @@ $$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
 
 ### Tuning $\theta$ and $p$
 
-* Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
-* After the optimization, the correlation matrix is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. 
-* We will skip the optimization step here and use $\theta = 1$ and $p=2$.
+Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
+After the optimization, the correlation matrix is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. We will skip the optimization step here and use $\theta = 1$ and $p=2$.
 
 ### Kriging Prediction
 
@@ -993,7 +1139,8 @@ $$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
 * For a new prediction $\hat{y}$ at $\vec{x}$, the value of $\hat{y}$ is chosen so that it maximizes the likelihood of the sample data $\vec{X}$ and the prediction, given the (optimized) correlation parameter $\vec{\theta}$ and $\vec{p}$ from above.
 * The observed data $\vec{y}$ is augmented with the new prediction $\hat{y}$ which results in the augmented vector $\vec{\tilde{y}} = ( \vec{y}^T, \hat{y})^T$.
 * A vector of correlations between the observed data and the new prediction is defined as
-\begin{equation*}
+
+$$
 \vec{\psi} = 
 \begin{pmatrix}
 \text{cor}\left(
@@ -1012,36 +1159,41 @@ $$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
 \vdots\\
 \vec{\psi}^{(n)}
 \end{pmatrix}.
-\end{equation*}
-* The augmented correlation matrix is constructed as
-\begin{equation*}
+$$
+
+The augmented correlation matrix is constructed as
+
+$$
 \tilde{\vec{\Psi}} =
 \begin{pmatrix}
 \vec{\Psi} & \vec{\psi} \\
 \vec{\psi}^T & 1
 \end{pmatrix}.
-\end{equation*}
+$$
 
-* The log-likelihood of the augmented data is
-$$\ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2}.$$
+The log-likelihood of the augmented data is
+$$
+\ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2}.
+$$
 
-* The MLE for $\hat{y}$ can be calculated as 
-$$\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).$$
+The MLE for $\hat{y}$ can be calculated as 
+$$
+\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
+$$
 
 ### Properties of the Predictor
 
-* This Equation reveals two important properties of the Kriging predictor:
+This Equation reveals two important properties of the Kriging predictor:
   * **Basis functions**: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
   * **Interpolation**: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
 
 ### Example: Sinusoid Function  
 
-* Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
+Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
 
 ### Calculating the Correlation Matrix $\Psi$
 
-* The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations
-* Here we will use $n=8$ sample locations
+The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations. Here we will use $n=8$ sample locations
 * $\theta$ is set to 1.0
 
 ```{python}
