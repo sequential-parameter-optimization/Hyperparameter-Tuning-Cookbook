@@ -804,11 +804,11 @@ plot_mvn(a=0, b=10, sigma2=0.1, size=3, n=250)
 ```
 
 
-## Kriging
+## Kriging: Modeling Basics
 
 ### The Kriging Basis Function
 
-$k$-dimensional Kriging basis functions of the form 
+$k$-dimensional basis functions of the form 
 $$
 \psi(x^{(i)}, x^{(j)}) = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l}^{(j)} | ^{p_l} \right)
 $$
@@ -826,10 +826,7 @@ There are some differences between Gaussian basis functions and Kriging basis fu
   * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
   * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent $p_l$ to vary (typically from 1 to 2).
 
-
-### Covariance Matrix and Correlation Matrix
-
-#### The Correlation Coefficient
+### The Correlation Coefficient
 
 In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
 The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
@@ -850,6 +847,9 @@ $$
 
 So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
 The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
+
+### Covariance Matrix and Correlation Matrix
+
 
 ::: {.callout-note}
 ### Covariance and Correlation (taken from @Forr08a)
@@ -894,8 +894,6 @@ $$
 
 :::
 
-### The Correlation Matrix $\Psi$
-
 You can compute the correlation matrix $\Psi$ from a covariance matrix $\Sigma$ in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.
 
 The function `covariance_to_correlation` first computes the standard deviations of the variables with `np.sqrt(np.diag(cov))`. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with `cov / np.outer(std_devs, std_devs)`.
@@ -918,7 +916,7 @@ print(covariance_to_correlation(cov))
 
 
 
-### Building the Kriging Model
+### Building the Kriging Correlation Matrix
 
 Consider a set of $k$-dimensional sample data  (sample size is $n$)
 $$
@@ -946,7 +944,8 @@ $$
  \end{pmatrix}.
  $$
 
-### Example: Correlation Matrix
+::: {.callout-note}
+#### Example: The Correlation Matrix (Detailed Computation)
 
 Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
 $$
@@ -1046,9 +1045,12 @@ def build_Psi(X, theta):
 Psi = build_Psi(X, theta)
 Psi
 ```
+:::
 
-The same result can be obtained with existing python functions, e.g., from the package `scipy`.
-Note: A small value, `eps`,  can be passed to the function `build_Psi` to improve the condition number.
+::: {.callout-note}
+### Example: The Correlation Matrix (Using Existing Functions)
+
+The same result as computed in the previous example can be obtained with existing python functions, e.g., from the package `scipy`.
 
 ```{python}
 from scipy.spatial.distance import squareform
@@ -1065,8 +1067,11 @@ Psi = build_Psi(X, theta, eps=.0)
 Psi
 ```
 
-::: {.callout-note}
-#### Condition nunber
+:::
+
+### The Condition Number
+
+A small value, `eps`, can be passed to the function `build_Psi` to improve the condition number. For example, `eps=sqrt(spacing(1))` can be used. The numpy function `spacing()` returns the distance between a number and its nearest adjacent number.
 
 The condition number of a matrix is a measure of its sensitivity to small changes in its elements. It is used to estimate how much the output of a function will change if the input is slightly altered.
 
@@ -1084,27 +1089,13 @@ B = np.array([[1, 0.99999999], [0.99999999, 1]])
 print("Condition number of B: ", np.linalg.cond(B))
 ```
 
-:::
-
 ```{python}
 np.linalg.cond(Psi)
 ```
 
 
-### Generate samples from N($\mu$, $\Psi$)
 
-The following block of code generates five draws from a bivariate normal distribution with zero mean and covariance matrix $\Psi$. Because our input space is three dimensional, the results cannot be visualized in a simple way. The next examples will use a one-dimensional input space, so that our results can be easily visualized in 2d.
-
-```{python}
-import numpy as np
-from numpy.random import multivariate_normal
-m = 5
-rng = np.random.default_rng()
-Y = multivariate_normal(zeros(Psi.shape[0]), Psi, size=m)
-Y
-```
-
-## Kriging in a Nutshell
+## Kriging Modeling and Prediction in a Nutshell
 
 We will use the Kriging correlation $\Psi$ to predict new values based on the observed data. The matrix algebra involved for calculating the likelihood is the most computationally intensive part of the Kriging process. Care must be taken that the computer code is as efficient as possible.
 
@@ -1278,7 +1269,7 @@ $$
 The MLE for $\hat{y}$ can be calculated as 
 $$
 \hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
-$$
+$$ {#eq-mle-yhat}
 
 ### Properties of the Predictor
 
@@ -1287,11 +1278,12 @@ This Equation reveals two important properties of the Kriging predictor:
   * **Basis functions**: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
   * **Interpolation**: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
 
-### Example: Sinusoid Function  
+::: {.callout-note}
+### Example: Sinusoid Function 
 
 Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
 
-### Calculating the Correlation Matrix $\Psi$
+1. Calculating the Correlation Matrix $\Psi$
 
 The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations. Here we will use $n=8$ sample locations and $\theta$ is set to 1.0.
 
@@ -1303,7 +1295,7 @@ theta = np.array([1.0])
 Psi = build_Psi(X, theta)
 ```
 
-* Evaluate at sample points
+Evaluate at sample points
 
 ```{python}
 y = np.sin(X)
@@ -1316,10 +1308,9 @@ plt.title(f"Sin(x) evaluated at {n} points")
 plt.show()
 ```
 
-### Computing the $\psi$ Vector
-#### Based on Distances Between Testing and Training Data Locations
+2. Computing the $\psi$ Vector
 
-* Distances between testing locations $x$ and training data locations $X$.
+Distances between testing locations $x$ and training data locations $X$.
 
 ```{python}
 from scipy.spatial.distance import cdist
@@ -1342,7 +1333,9 @@ def build_psi(X, x, theta, eps=sqrt(spacing(1))):
     return(psi.T)
 ```
 
-* We would like to predict at $m = 100$ new locations:
+3. Predicting at New Locations
+
+We would like to predict at $m = 100$ new locations in the interval $[0, 2\pi]$. The new locations are stored in the variable `x`.
 
 ```{python}
 m = 100
@@ -1350,20 +1343,18 @@ x = np.linspace(0, 2*np.pi, m, endpoint=False).reshape(-1,1)
 psi = build_psi(X, x, theta)
 ```
 
-### Predictive Equations 
+Computation of the predictive equations.
 
 ```{python}
 U = cholesky(Psi).T
-```
-
-```{python}
 one = np.ones(n).reshape(-1,1)
 mu = (one.T.dot(solve(U, solve(U.T, y)))) / one.T.dot(solve(U, solve(U.T, one)))
-```
-
-```{python}
 f = mu * ones(m).reshape(-1,1) + psi.T.dot(solve(U, solve(U.T, y - one * mu)))
 ```
+
+To compute $f$, @eq-mle-yhat is used. 
+
+4. Visualization
 
 ```{python}
 import matplotlib.pyplot as plt
@@ -1374,6 +1365,8 @@ plt.title("Kriging prediction of sin(x) with {} points.\n theta: {}".format(n, t
 plt.legend(loc='upper right')
 plt.show()
 ```
+
+:::
 
 <!-- 
 
