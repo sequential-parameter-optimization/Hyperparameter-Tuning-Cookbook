@@ -210,7 +210,13 @@ Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as i
 
 ## The Uniform Distribution
 
-Generate 10 random numbers from a uniform distribution between 0 and 1:
+The probability density function of the uniform distribution is defined as:
+$$
+f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
+$$
+
+
+Generate 10 random numbers from a uniform distribution between $a=0$ and $b=1$:
 
 ```{python}
 import numpy as np
@@ -245,6 +251,15 @@ plt.show()
 
 
 ## The Normal Distribution
+
+The probability density function of the normal distribution is defined as:
+$$
+f_X(x) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp\left(-\frac{1}{2} \left(\frac{x-\mu}{\sigma}\right)^2\right),
+$$  {#eq-normal-one}
+where:
+$\mu$ is the mean;
+$\sigma$ is the standard deviation.
+
 
 To generate ten random numbers from a normal distribution, the following command can be used.
 
@@ -386,12 +401,11 @@ The realizations array contains the actual values drawn from the distribution.
 
 ## The Multivariate Normal Distribution
 
-The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. To fully define this distribution, it is necessary to specify its mean and covariance matrix. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution.
+The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions.
+We will consider $k$-dimensional random vectors $X = (X_1, X_2, \ldots, X_k)$. When drawing samples from this distribution, it results in a set of values represented as $\{x_1, x_2, \ldots, x_k\}$.
+To fully define this distribution, it is necessary to specify its mean $\mu$ and covariance matrix $\Sigma$. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution introduced in @eq-normal-one.
 
-In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an n-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
-
-On the other hand, the covariance within the multivariate normal distribution denotes the extent to which two variables vary together. When drawing n-dimensional samples from this distribution, it results in a set of values represented as $X = [x_1, x_2, \ldots, x_n]$.
-The elements of the covariance matrix, such as $C_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
+In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an $k$-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
 
 ::: {.callout-note}
 #### Covariance of two random variables
@@ -404,6 +418,19 @@ the covariance is defined as the expected value (or mean) of the product of thei
 $$
 \operatorname{cov}(X, Y) = \operatorname{E}{\big[(X - \operatorname{E}[X])(Y - \operatorname{E}[Y])\big]}
 $$
+
+
+The covariance within the multivariate normal distribution denotes the extent to which two variables vary together. 
+The elements of the covariance matrix, such as $\Sigma_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
+
+The probability density function (PDF) of the multivariate normal distribution is defined as:
+$$
+f_X(x) = \frac{1}{\sqrt{(2\pi)^n \det(\Sigma)}} \exp\left(-\frac{1}{2} (x-\mu)^T\Sigma^{-1} (x-\mu)\right),
+$$
+where:
+$\mu$ is the $k \times 1$  mean vector;
+$\Sigma$ is the  $k \times k$ covariance matrix.
+The covariance matrix  $\Sigma$ is assumed to be positive definite, so that its determinant is strictly positive.
 
 For discrete random variables, covariance can be written as:
 $$
@@ -586,6 +613,35 @@ print("L*LT = \n", np.dot(L, L.T))
 ```
 
 ::: 
+
+
+## Multivariate Normal Distribution: Maximum Likelihood Estimation
+
+Consider the first $n$ terms of an identically and independently distributed (i.i..d.) sequence ${X^{(j)}}$ of $k$-dimensional multivariate normal random vectors, i.e., $X^{(j)} \sim N(\mu, \Sigma)$, $j=1,2,\ldots$.
+The joint probability density function of the  $j$-th term of the sequence is
+$$
+f_X(x_j) = \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right),
+$$
+
+where:
+$\mu$ is the $k \times 1$  mean vector;
+$\Sigma$ is the  $k \times k$ covariance matrix.
+The covariance matrix $\Sigma$ is assumed to be positive definite, so that its determinant is strictly positive.
+We use $x_1, \ldots x_n$, i.e., the realizations of the first $n$ random vectors in the sequence, to estimate the two unknown parameters  $\mu$ and  $\Sigma$.
+
+The likelihood function is defined as the joint probability density function of the observed data, viewed as a function of the unknown parameters. Since the terms in the sequence are independent, their joint density is equal to the product of their marginal densities. As a consequence, the likelihood function can be written as the product of the individual densities:
+
+$$
+L(\mu, \Sigma) = \prod_{j=1}^n f_X(x_j) = \prod_{j=1}^n \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right)
+$$
+$$
+= \frac{1}{(2\pi)^{nk/2} \det(\Sigma)^{n/2}} \exp\left(-\frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right).
+$$
+The log-likelihood function is
+$$
+\ell(\mu, \Sigma) = -\frac{nk}{2} \ln(2\pi) - \frac{n}{2} \ln(\det(\Sigma)) - \frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu).
+$$
+The likelihood function is well-defined only if $\det(\Sigma)>0$.
 
 
 ## Introduction to Gaussian Processes
@@ -897,6 +953,7 @@ $$
 the covariance matrix is a matrix of covariances between the random variables
 
 $$
+\Sigma =
 \text{Cov}(Y, Y) =
 \begin{pmatrix}
 \text{Cov}(Y^{(1)}, Y^{(1)}) & \ldots & \text{Cov}(Y^{(1)}, Y^{(n)}) \\
@@ -939,18 +996,18 @@ print(covariance_to_correlation(cov))
 
 Consider a set of $k$-dimensional sample data  (sample size is $n$)
 $$
-X = [\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n],
+X = \{\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n\},
 $$
 i.e., $X$ is a $(n,k)$-matrix, with related responses
 $$
-\vec{y} = [y_1, y_2, \ldots, y_n].
+\vec{y} = \{y_1, y_2, \ldots, y_n\}.
 $$
 We are interested in finding an expression for the predicted value at a new point $\vec{x}$. We are going to interpret the observed responses as if they are generated by a stochastic process, which will be denoted as follows:
 $$
 Y = [Y(\vec{x}_1), \ldots, Y(\vec{x}_n) ]^T.
 $$
-The random process has a mean of $\vec{\mu}$ (which is a (n,1)-dimensional vector).
-The random variables are correlated with each other using the basis function expression
+The random process has a mean of $\vec{\mu}$ (which is a $(n \times 1)$-dimensional vector).
+The $n$ $k$-dimensional random variables are correlated with each other using the basis function expression
 $$
 \text{cor} [Y(\vec{x}_i), Y(\vec{x}_j)] =  \exp \left( - \sum_{l=1}^k \theta_l | x_{il} - x_{jl} | ^{p_l} \right).
 $$
@@ -1220,21 +1277,27 @@ visualize_inverse_exp_squared_distance(5, 0, theta_values=[0.5, 1, 2.0])
 
 ### MLE to estimate $\theta$ and $p$
 
-* We know what the correlations mean, but how do we estimate the values of $\theta_j$ amd where does our observed data $y$ come in?
-* To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
+We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
+To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
 which can be expressed in terms of the sample data 
 $$L\left(\vec{Y}(\vec{x}^{(1)}), \ldots, \vec{Y}(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left\{ \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right\},$$ 
 and formulated as the log-likelihood:
 $$\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.$$
-* Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
+
+Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
 $$\hat{\mu} = \frac{\vec{1}^T \vec{\Psi}^{-1} \vec{y}^T}{\vec{1}^T \vec{\Psi}^{-1} \vec{1}^T}$$ 
 and 
 $$\hat{\sigma} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.$$
-* Combining the equations leads to the concentrated log-likelihood: 
-$$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$
-* Note: 
-  * The first term requires information about the measured point (observations) $y_i$.
-  * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the equation  is not differentiable.
+
+Combining the equations leads to the concentrated log-likelihood: 
+$$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$ {#eq-concentrated-loglikelihood}
+
+::: {.callout-note}
+#### Note: The Concentrated Log-Likelihood
+* The first term in @eq-concentrated-loglikelihood requires information about the measured point (observations) $y_i$.
+* To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the equation  is not differentiable.
+:::
+
 
 ### Tuning $\theta$ and $p$
 
