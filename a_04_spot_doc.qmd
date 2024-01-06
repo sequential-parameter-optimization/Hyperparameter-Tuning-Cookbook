@@ -42,31 +42,31 @@ plt.show()
 ```
 
 ```{python}
+from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init
 spot_1 = spot.Spot(fun=fun,
-                   lower = np.array([-10]),
-                   upper = np.array([100]),
-                   fun_evals = 7,
-                   fun_repeats = 1,
-                   max_time = inf,
-                   noise = False,
-                   tolerance_x = np.sqrt(np.spacing(1)),
-                   var_type=["num"],
-                   infill_criterion = "y",
-                   n_points = 1,
-                   seed=123,
-                   log_level = 50,
-                   show_models=True,
-                   fun_control = {},
-                   design_control={"init_size": 5,
-                                   "repeats": 1},
-                   surrogate_control={"noise": False,
-                                      "cod_type": "norm",
-                                      "min_theta": -4,
-                                      "max_theta": 3,
-                                      "n_theta": 1,
-                                      "model_optimizer": differential_evolution,
-                                      "model_fun_evals": 1000,
-                                      })
+                   fun_control=fun_control_init(
+                        lower = np.array([-10]),
+                        upper = np.array([100]),
+                        fun_evals = 7,
+                        fun_repeats = 1,
+                        max_time = inf,
+                        noise = False,
+                        tolerance_x = np.sqrt(np.spacing(1)),
+                        var_type=["num"],
+                        infill_criterion = "y",
+                        n_points = 1,
+                        seed=123,
+                        log_level = 50),
+                   design_control=design_control_init(
+                        init_size=5,
+                        repeats=1),
+                   surrogate_control=surrogate_control_init(
+                        noise=False,
+                        min_theta=-4,
+                        max_theta=3,
+                        n_theta=1,
+                        model_optimizer=differential_evolution,
+                        model_fun_evals=10000))
 ```
 
 
@@ -177,30 +177,29 @@ spot_1.surrogate.plot()
 
 ```{python}
 spot_x0 = spot.Spot(fun=fun,
-                   lower = np.array([-10, -10]),
-                   upper = np.array([10, 10]),
-                   fun_evals = 7,
-                   fun_repeats = 1,
-                   max_time = inf,
-                   noise = False,
-                   tolerance_x = np.sqrt(np.spacing(1)),
-                   var_type=["num"],
-                   infill_criterion = "y",
-                   n_points = 1,
-                   seed=123,
-                   log_level = 50,
-                   show_models=False,
-                   fun_control = {},
-                   design_control={"init_size": 5,
-                                   "repeats": 1},
-                   surrogate_control={"noise": False,
-                                      "cod_type": "norm",
-                                      "min_theta": -4,
-                                      "max_theta": 3,
-                                      "n_theta": 2,
-                                      "model_optimizer": differential_evolution,
-                                      "model_fun_evals": 1000,
-                                      })
+                    fun_control=fun_control_init(
+                        lower = np.array([-10]),
+                        upper = np.array([100]),
+                        fun_evals = 7,
+                        fun_repeats = 1,
+                        max_time = inf,
+                        noise = False,
+                        tolerance_x = np.sqrt(np.spacing(1)),
+                        var_type=["num"],
+                        infill_criterion = "y",
+                        n_points = 1,
+                        seed=123,
+                        log_level = 50),
+                    design_control=design_control_init(
+                        init_size=5,
+                        repeats=1),
+                    surrogate_control=surrogate_control_init(
+                        noise=False,
+                        min_theta=-4,
+                        max_theta=3,
+                        n_theta=1,
+                        model_optimizer=differential_evolution,
+                        model_fun_evals=10000))
 spot_x0.run(X_start=np.array([0.5, -0.5]))
 spot_x0.plot_progress()
 ```
@@ -283,16 +282,16 @@ ni = 20
 n = 30
 
 fun = analytical().fun_random_error
-lower = np.array([-1])
-upper = np.array([1])
-design_control={"init_size": ni}
+fun_control=fun_control_init(
+    lower = np.array([-1]),
+    upper= np.array([1]),
+    fun_evals = n,
+    show_progress=False)
+design_control=design_control_init(init_size=ni)
 
 spot_1 = spot.Spot(fun=fun,
-            lower = lower,
-            upper= upper,
-            fun_evals = n,
-            show_progress=False,
-            design_control=design_control,)
+                     fun_control=fun_control,
+                     design_control=design_control)
 spot_1.run()
 # To check whether the run was successfully completed,
 # we compare the number of evaluated points to the specified

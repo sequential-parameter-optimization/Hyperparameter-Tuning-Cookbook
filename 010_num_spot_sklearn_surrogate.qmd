@@ -36,11 +36,6 @@ from spotPython.spot import spot
 
 ```{python}
 from spotPython.fun.objectivefunctions import analytical
-lower = np.array([-5,-0])
-upper = np.array([10,15])
-```
-
-```{python}
 fun = analytical().fun_branin
 ```
 
@@ -51,7 +46,7 @@ Similar to the one-dimensional case, which was introduced in Section @sec-visual
 
 ```{python}
 from spotPython.utils.file import get_experiment_name
-from spotPython.utils.init import fun_control_init
+from spotPython.utils.init import fun_control_init, design_control_init
 from spotPython.utils.file import get_spot_tensorboard_path
 
 PREFIX = "04"
@@ -59,7 +54,14 @@ experiment_name = get_experiment_name(prefix=PREFIX)
 print(experiment_name)
 
 fun_control = fun_control_init(
-    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name))
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+    lower = np.array([-5,-0]),
+    upper = np.array([10,15]),
+    fun_evals=20,
+    max_time=inf)
+
+design_control = design_control_init(
+    init_size=10)
 ```
 
 :::
@@ -68,13 +70,8 @@ fun_control = fun_control_init(
 
 ```{python}
 spot_2 = spot.Spot(fun=fun,
-                   lower = lower,
-                   upper = upper,
-                   fun_evals = 20,
-                   max_time = inf,
-                   seed=123,
-                   design_control={"init_size": 10},
-                   fun_control=fun_control)
+                   fun_control=fun_control,
+                   design_control=design_control)
 ```
 
 ```{python}
@@ -165,8 +162,7 @@ S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
 * We can check the kind of surogate model with the command `isinstance`:
 
 ```{python}
-isinstance(S_GP, GaussianProcessRegressor)
- 
+isinstance(S_GP, GaussianProcessRegressor) 
 ```
 
 ```{python}
@@ -178,12 +174,9 @@ isinstance(S_0, Kriging)
 ```{python}
 fun = analytical(seed=123).fun_branin
 spot_2_GP = spot.Spot(fun=fun,
-                   lower = lower,
-                   upper = upper,
-                   fun_evals = 20,
-                   seed=123,
-                   design_control={"init_size": 10},
-                   surrogate = S_GP)
+                     fun_control=fun_control,
+                     design_control=design_control,
+                     surrogate = S_GP)
 spot_2_GP.run()
 ```
 
@@ -202,21 +195,22 @@ spot_2_GP.print_results()
 
 ```{python}
 from spotPython.fun.objectivefunctions import analytical
-lower = np.array([-1])
-upper = np.array([1])
+fun_control = fun_control_init(
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    fun_evals=10,
+    max_time=inf,
+    show_models= True,
+    tolerance_x = np.sqrt(np.spacing(1)))
 fun = analytical(seed=123).fun_sphere
+design_control = design_control_init(
+    init_size=3)
 ```
 
 ```{python}
 spot_1 = spot.Spot(fun=fun,
-                   lower = lower,
-                   upper = upper,
-                   fun_evals = 10,
-                   max_time = inf,
-                   seed=123,
-                   show_models= True,
-                   tolerance_x = np.sqrt(np.spacing(1)),
-                   design_control={"init_size": 3},)
+                    fun_control=fun_control,
+                    design_control=design_control)
 spot_1.run()
 ```
 
@@ -244,14 +238,9 @@ spot_1.plot_model()
 ```{python}
 fun = analytical(seed=123).fun_sphere
 spot_1_GP = spot.Spot(fun=fun,
-                   lower = lower,
-                   upper = upper,
-                   fun_evals = 10,
-                   max_time = inf,
-                   seed=123,
-                   show_models= True,
-                   design_control={"init_size": 3},
-                   surrogate = S_GP)
+                      fun_control=fun_control,
+                      design_control=design_control,
+                      surrogate = S_GP)
 spot_1_GP.run()
 ```
 

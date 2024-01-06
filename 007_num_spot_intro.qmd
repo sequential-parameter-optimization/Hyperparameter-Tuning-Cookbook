@@ -61,9 +61,11 @@ plt.show()
 ```
 
 ```{python}
+from spotPython.utils.init import fun_control_init
 spot_0 = spot.Spot(fun=fun,
+                   fun_control=fun_control_init(
                    lower = np.array([-1]),
-                   upper = np.array([1]))
+                   upper = np.array([1])))
 ```
 
 ```{python}
@@ -93,13 +95,15 @@ We will modify three parameters:
 The full list of the `Spot` parameters is shown in the Help System and in the notebook `spot_doc.ipynb`.
 
 ```{python}
+from spotPython.utils.init import design_control_init
 spot_1 = spot.Spot(fun=fun,
+                   fun_control=fun_control_init(
                    lower = np.array([-1]),
                    upper = np.array([2]),
                    fun_evals= 10,
                    seed=123,
-                   show_models=True,
-                   design_control={"init_size": 9})
+                   show_models=True),
+                   design_control=design_control_init(init_size=9))
 spot_1.run()
 ```
 
@@ -130,9 +134,13 @@ from spotPython.utils.file import get_spot_tensorboard_path
 PREFIX = "01"
 experiment_name = get_experiment_name(prefix=PREFIX)
 print(experiment_name)
-
+```
+```{python}
 fun_control = fun_control_init(
-    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name))
+    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
+     lower = np.array([-1]),
+     upper = np.array([2]))
+design_control = design_control_init(init_size=5)
 ```
 
 Since the `spot_tensorboard_path` is defined, `spotPython` will log the optimization process in the TensorBoard files. The TensorBoard files are stored in the directory `spot_tensorboard_path`. We can pass the TensorBoard information to the `Spot` method via the `fun_control` dictionary.
@@ -140,15 +148,12 @@ Since the `spot_tensorboard_path` is defined, `spotPython` will log the optimiza
 
 ```{python}
 spot_tuner = spot.Spot(fun=fun,
-                   lower = np.array([-1]),
-                   upper = np.array([2]),
-                   fun_evals= 10,
-                   seed=123,
-                   show_models=False,
-                   design_control={"init_size": 5},
-                   fun_control=fun_control,)
+                   fun_control=fun_control,
+                   design_control=design_control)
 spot_tuner.run()
+spot_tuner.print_results()
 ```
+
 
 Now we can start TensorBoard in the background. The TensorBoard process will read the TensorBoard files and visualize the hyperparameter tuning process.
 From the terminal, we can start TensorBoard with the following command:
