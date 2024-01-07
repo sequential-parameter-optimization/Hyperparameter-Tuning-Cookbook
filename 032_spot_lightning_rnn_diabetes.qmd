@@ -4,9 +4,10 @@ execute:
   eval: true
   echo: true
   warning: false
+title: 'HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network'
+jupyter: python3
 ---
 
-# HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network
 
 In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
 training workflow for a regression task.
@@ -22,6 +23,7 @@ This chapter describes the hyperparameter tuning of a `PyTorch Lightning` networ
 * The parameter `WORKERS` specifies the number of workers. 
 * The prefix `PREFIX` is used for the experiment name and the name of the log file.
 * The parameter `DEVICE` specifies the device to use for training.
+
 
 ```{python}
 from spotPython.utils.device import getDevice
@@ -76,7 +78,7 @@ fun_control = fun_control_init(
     max_time=MAX_TIME,
     num_workers=WORKERS,
     show_progress=True,
-    test_size=0.6,
+    test_size=0.1,
     tolerance_x=np.sqrt(np.spacing(1)),
     )
 ```
@@ -132,10 +134,12 @@ The class is imported here. It inherits from the class `Lightning.LightningModul
 
 ```{python}
 from spotPython.light.regression.rnnlightregression import RNNLightRegression
+from spotPython.light.regression.netlightregression import NetLightRegression
 from spotPython.hyperdict.light_hyper_dict import LightHyperDict
 from spotPython.hyperparameters.values import add_core_model_to_fun_control
 add_core_model_to_fun_control(fun_control=fun_control,
-                              core_model=RNNLightRegression,
+                              core_model=NetLightRegression,
+                              # core_model=RNNLightRegression,
                               hyper_dict=LightHyperDict)
 ```
 
@@ -159,8 +163,8 @@ The hyperparameters of the model are specified in the `core_model_hyper_dict` di
 ```{python}
 from spotPython.hyperparameters.values import set_control_hyperparameter_value
 
-set_control_hyperparameter_value(fun_control, "l1", [64, 64])
-set_control_hyperparameter_value(fun_control, "epochs", [10, 13])
+set_control_hyperparameter_value(fun_control, "l1", [5, 6])
+set_control_hyperparameter_value(fun_control, "epochs", [7, 10])
 set_control_hyperparameter_value(fun_control, "batch_size", [4, 5])
 set_control_hyperparameter_value(fun_control, "optimizer", [
                 "Adadelta",
@@ -175,8 +179,8 @@ set_control_hyperparameter_value(fun_control, "optimizer", [
             ])
 set_control_hyperparameter_value(fun_control, "dropout_prob", [0.01, 0.2])
 set_control_hyperparameter_value(fun_control, "lr_mult", [0.5, 5.0])
-set_control_hyperparameter_value(fun_control, "patience", [6, 11])
-set_control_hyperparameter_value(fun_control, "act_fn",["ReLU"] )
+set_control_hyperparameter_value(fun_control, "patience", [5, 7])
+# set_control_hyperparameter_value(fun_control, "act_fn",["ReLU"] )
 ```
 
 Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:
@@ -234,7 +238,6 @@ We will use MSE.
 
 ### Preparing the SPOT Call {#sec-prepare-spot-call-31}
 
-
 ```{python}
 from spotPython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init()
@@ -252,7 +255,6 @@ set_control_key_value(control_dict=surrogate_control,
                         key="n_theta",
                         value=2,
                         replace=True)      
-
 ```
 
 ### The Objective Function `fun` {#sec-the-objective-function-31}
@@ -271,6 +273,13 @@ import pprint
 pprint.pprint(fun_control)
 ```
 
+```{python}
+pprint.pprint(design_control)
+```
+
+```{python}
+pprint.pprint(surrogate_control)
+```
 
 ### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}
 
@@ -373,7 +382,7 @@ set_control_key_value(control_dict=fun_control,
                         replace=True)
 set_control_key_value(control_dict=fun_control,
                         key="test_size",
-                        value=0.6,
+                        value=0.1,
                         replace=True)
 cv_model(config, fun_control)
 ```
