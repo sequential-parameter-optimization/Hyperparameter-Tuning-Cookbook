@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.450">
+<meta name="generator" content="quarto-1.4.537">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -22,7 +22,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -81,7 +81,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   "collapse-after": 3,
   "panel-placement": "start",
   "type": "textbox",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -90,6 +96,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
@@ -99,10 +106,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 <meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 12&nbsp; Expected Improvement">
 <meta name="twitter:description" content="">
-<meta name="twitter:image" content="012_num_spot_ei_files/figure-html/cell-7-output-1.png">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 </head>
 
 <body class="nav-sidebar docked">
@@ -111,12 +144,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./012_num_spot_ei.html"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></a></li></ol></nav>
-      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-      </a>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./012_num_spot_ei.html"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
@@ -126,13 +159,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation docked overflow-auto">
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
       <a href="./">Hyperparameter Tuning Cookbook</a> 
         <div class="sidebar-tools-main tools-wide">
-    <a href="https://github.com/sequential-parameter-optimization/spotPython" rel="" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
-    <a href="./Hyperparameter-Tuning-Cookbook.pdf" rel="" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <a href="https://github.com/sequential-parameter-optimization/spotPython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
     <div class="dropdown">
       <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Share"><i class="bi bi-share"></i></a>
       <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
@@ -190,13 +223,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to `scipy.optimize`</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using `scipy` Optimizers</span></span></a>
   </div>
 </li>
       </ul>
@@ -225,7 +258,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to `spotPython`</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -243,13 +276,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using `sklearn` Surrogates in `spotPython`</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization:  Gaussian Process Models</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -267,7 +300,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in `Spot`</span></span></a>
   </div>
 </li>
       </ul>
@@ -333,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
@@ -376,7 +409,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./012_num_spot_ei.html"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title"><span id="sec-expected-improvement" class="quarto-section-identifier"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></h1>
 </div>
@@ -391,12 +424,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </div>
   
 
+
 </header>
+
 
 <p>This chapter describes, analyzes, and compares different infill criterion. An infill criterion defines how the next point <span class="math inline">\(x_{n+1}\)</span> is selected from the surrogate model <span class="math inline">\(S\)</span>. Expected improvement is a popular infill criterion in Bayesian optimization.</p>
 <section id="example-spot-and-the-1-dim-sphere-function" class="level2" data-number="12.1">
 <h2 data-number="12.1" class="anchored" data-anchor-id="example-spot-and-the-1-dim-sphere-function"><span class="header-section-number">12.1</span> Example: <code>Spot</code> and the 1-dim Sphere Function</h2>
-<div class="cell" data-execution_count="1">
+<div id="62973f74" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -410,7 +445,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The <code>spotPython</code> package provides several classes of objective functions.</li>
 <li>We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: <span class="math display">\[f(x) = x^2 \]</span></li>
 </ul>
-<div class="cell" data-execution_count="2">
+<div id="f12aaef3" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
@@ -427,8 +462,8 @@ TensorBoard
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Similar to the one-dimensional case, which was introduced in Section <a href="007_num_spot_intro.html#sec-visualizing-tensorboard-01"><span>Section&nbsp;7.5</span></a>, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:</p>
-<div class="cell" data-execution_count="3">
+<p>Similar to the one-dimensional case, which was introduced in Section <a href="007_num_spot_intro.html#sec-visualizing-tensorboard-01" class="quarto-xref"><span>Section 7.5</span></a>, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:</p>
+<div id="f6d9ab02" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_name</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.<span class="bu">file</span> <span class="im">import</span> get_spot_tensorboard_path</span>
@@ -445,34 +480,43 @@ TensorBoard
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    tolerance_x <span class="op">=</span> np.sqrt(np.spacing(<span class="dv">1</span>)),)</span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>07_Y_bartz09_2024-01-07_01-19-04</code></pre>
+<pre><code>07_Y_bartz09_2024-01-07_11-35-27</code></pre>
 </div>
 </div>
 </div>
 </div>
-<div class="cell" data-execution_count="4">
+<div id="53f77799" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spot_1 <span class="op">=</span> spot.Spot(</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>            fun<span class="op">=</span>fun,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>            fun_control<span class="op">=</span>fun_control,</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>            design_control<span class="op">=</span>design_control)</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>spot_1.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 25, 'fun_repeats': 1, 'infill_criterion': 'y', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': 'runs/spot_logs/07_Y_bartz09_2024-01-07_01-19-04', 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 1.4901161193847656e-08, 'train': None, 'test': None, 'task': None, 'upper': array([1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': &lt;torch.utils.tensorboard.writer.SummaryWriter object at 0x2d38fb110&gt;}
-self.k: 1
-fun_control['upper']: [1]
-fun_control['var_type']: ['num']
-self.lower: [-1]
-self.upper: [1]
-self.var_type: ['num']</code></pre>
+<pre><code>spotPython tuning: 1.1986325668379847e-08 [####------] 44.00% 
+spotPython tuning: 1.1986325668379847e-08 [#####-----] 48.00% 
+spotPython tuning: 1.1986325668379847e-08 [#####-----] 52.00% 
+spotPython tuning: 1.1385311249270152e-08 [######----] 56.00% 
+spotPython tuning: 5.189351944607845e-10 [######----] 60.00% 
+spotPython tuning: 5.189351944607845e-10 [######----] 64.00% 
+spotPython tuning: 5.189351944607845e-10 [#######---] 68.00% 
+spotPython tuning: 5.189351944607845e-10 [#######---] 72.00% 
+spotPython tuning: 5.189351944607845e-10 [########--] 76.00% 
+spotPython tuning: 5.189351944607845e-10 [########--] 80.00% 
+spotPython tuning: 5.189351944607845e-10 [########--] 84.00% 
+spotPython tuning: 5.189351944607845e-10 [#########-] 88.00% 
+spotPython tuning: 4.9233547910699585e-11 [#########-] 92.00% 
+spotPython tuning: 4.9233547910699585e-11 [##########] 96.00% 
+spotPython tuning: 4.9233547910699585e-11 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3806550&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d164a350&gt;</code></pre>
 </div>
 </div>
 </section>
 <section id="results" class="level3" data-number="12.1.2">
 <h3 data-number="12.1.2" class="anchored" data-anchor-id="results"><span class="header-section-number">12.1.2</span> Results</h3>
-<div class="cell" data-execution_count="5">
+<div id="440e5079" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>spot_1.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 4.9233547910699585e-11
@@ -482,23 +526,27 @@ x0: -7.016662163072951e-06</code></pre>
 <pre><code>[['x0', -7.016662163072951e-06]]</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="6">
+<div id="cf06966c" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>spot_1.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-7-output-1.png" width="729" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-7-output-1.png" width="729" height="243" class="figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="figures_static/07_tensorboard_Y.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<figcaption class="figure-caption">TensorBoard visualization of the spotPython optimization process and the surrogate model.</figcaption>
+<figcaption>TensorBoard visualization of the spotPython optimization process and the surrogate model.</figcaption>
 </figure>
 </div>
 </section>
 </section>
 <section id="same-but-with-ei-as-infill_criterion" class="level2" data-number="12.2">
 <h2 data-number="12.2" class="anchored" data-anchor-id="same-but-with-ei-as-infill_criterion"><span class="header-section-number">12.2</span> Same, but with EI as infill_criterion</h2>
-<div class="cell" data-execution_count="7">
+<div id="f6008bfd" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> <span class="st">"07_EI_ISO"</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>experiment_name <span class="op">=</span> get_experiment_name(prefix<span class="op">=</span>PREFIX)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(experiment_name)</span>
@@ -510,33 +558,46 @@ x0: -7.016662163072951e-06</code></pre>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    tolerance_x <span class="op">=</span> np.sqrt(np.spacing(<span class="dv">1</span>)),</span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    infill_criterion <span class="op">=</span> <span class="st">"ei"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>07_EI_ISO_bartz09_2024-01-07_01-19-06</code></pre>
+<pre><code>07_EI_ISO_bartz09_2024-01-07_11-35-29</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="8">
+<div id="ca7ed939" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>spot_1_ei <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                     fun_control<span class="op">=</span>fun_control)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>spot_1_ei.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 25, 'fun_repeats': 1, 'infill_criterion': 'ei', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': 'runs/spot_logs/07_EI_ISO_bartz09_2024-01-07_01-19-06', 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 1.4901161193847656e-08, 'train': None, 'test': None, 'task': None, 'upper': array([1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': &lt;torch.utils.tensorboard.writer.SummaryWriter object at 0x2d38f93d0&gt;}
-self.k: 1
-fun_control['upper']: [1]
-fun_control['var_type']: ['num']
-self.lower: [-1]
-self.upper: [1]
-self.var_type: ['num']</code></pre>
+<pre><code>spotPython tuning: 1.2401208585321248e-08 [####------] 44.00% 
+spotPython tuning: 1.2401208585321248e-08 [#####-----] 48.00% 
+spotPython tuning: 1.2401208585321248e-08 [#####-----] 52.00% 
+spotPython tuning: 1.2401208585321248e-08 [######----] 56.00% 
+spotPython tuning: 4.773576053400193e-12 [######----] 60.00% 
+spotPython tuning: 4.773576053400193e-12 [######----] 64.00% 
+spotPython tuning: 4.773576053400193e-12 [#######---] 68.00% 
+spotPython tuning: 4.773576053400193e-12 [#######---] 72.00% 
+spotPython tuning: 4.773576053400193e-12 [########--] 76.00% 
+spotPython tuning: 4.773576053400193e-12 [########--] 80.00% 
+spotPython tuning: 4.773576053400193e-12 [########--] 84.00% 
+spotPython tuning: 4.773576053400193e-12 [#########-] 88.00% 
+spotPython tuning: 4.773576053400193e-12 [#########-] 92.00% 
+spotPython tuning: 4.773576053400193e-12 [##########] 96.00% 
+spotPython tuning: 4.773576053400193e-12 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3bc5710&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d167b910&gt;</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="9">
+<div id="76558c44" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>spot_1_ei.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-10-output-1.png" width="735" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-10-output-1.png" width="735" height="243" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="10">
+</div>
+<div id="5be5e375" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>spot_1_ei.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 4.773576053400193e-12
@@ -549,13 +610,13 @@ x0: -2.184851494587262e-06</code></pre>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="figures_static/07_tensorboard_EI_ISO.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<figcaption class="figure-caption">TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.</figcaption>
+<figcaption>TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.</figcaption>
 </figure>
 </div>
 </section>
 <section id="non-isotropic-kriging" class="level2" data-number="12.3">
 <h2 data-number="12.3" class="anchored" data-anchor-id="non-isotropic-kriging"><span class="header-section-number">12.3</span> Non-isotropic Kriging</h2>
-<div class="cell" data-execution_count="11">
+<div id="3cf192bd" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> <span class="st">"07_EI_NONISO"</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>experiment_name <span class="op">=</span> get_experiment_name(prefix<span class="op">=</span>PREFIX)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(experiment_name)</span>
@@ -571,34 +632,47 @@ x0: -2.184851494587262e-06</code></pre>
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    noise<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>07_EI_NONISO_bartz09_2024-01-07_01-19-08</code></pre>
+<pre><code>07_EI_NONISO_bartz09_2024-01-07_11-35-31</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="12">
+<div id="4d172652" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>spot_2_ei_noniso <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                   surrogate_control<span class="op">=</span>surrogate_control)</span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>spot_2_ei_noniso.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 25, 'fun_repeats': 1, 'infill_criterion': 'ei', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1, -1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': 'runs/spot_logs/07_EI_NONISO_bartz09_2024-01-07_01-19-08', 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 1.4901161193847656e-08, 'train': None, 'test': None, 'task': None, 'upper': array([1, 1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': &lt;torch.utils.tensorboard.writer.SummaryWriter object at 0x2c2875210&gt;}
-self.k: 2
-fun_control['upper']: [1 1]
-fun_control['var_type']: ['num']
-self.lower: [-1 -1]
-self.upper: [1 1]
-self.var_type: ['num', 'num']</code></pre>
+<pre><code>spotPython tuning: 1.8691113149381826e-05 [####------] 44.00% 
+spotPython tuning: 1.8691113149381826e-05 [#####-----] 48.00% 
+spotPython tuning: 1.8691113149381826e-05 [#####-----] 52.00% 
+spotPython tuning: 1.3171284020530374e-05 [######----] 56.00% 
+spotPython tuning: 1.3171284020530374e-05 [######----] 60.00% 
+spotPython tuning: 6.912401156134061e-08 [######----] 64.00% 
+spotPython tuning: 4.6808832368953396e-08 [#######---] 68.00% 
+spotPython tuning: 4.6808832368953396e-08 [#######---] 72.00% 
+spotPython tuning: 4.6808832368953396e-08 [########--] 76.00% 
+spotPython tuning: 4.6808832368953396e-08 [########--] 80.00% 
+spotPython tuning: 4.6808832368953396e-08 [########--] 84.00% 
+spotPython tuning: 4.6808832368953396e-08 [#########-] 88.00% 
+spotPython tuning: 4.6808832368953396e-08 [#########-] 92.00% 
+spotPython tuning: 4.6808832368953396e-08 [##########] 96.00% 
+spotPython tuning: 4.6808832368953396e-08 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3d601d0&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d207f150&gt;</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="13">
+<div id="916977e5" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>spot_2_ei_noniso.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-14-output-1.png" width="729" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-14-output-1.png" width="729" height="243" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="14">
+</div>
+<div id="a9fce0af" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>spot_2_ei_noniso.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 4.6808832368953396e-08
@@ -609,16 +683,20 @@ x1: 5.452313769831611e-05</code></pre>
 <pre><code>[['x0', -0.00020937062789341742], ['x1', 5.452313769831611e-05]]</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="15">
+<div id="55607c24" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>spot_2_ei_noniso.surrogate.plot()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-16-output-1.png" width="742" height="485"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-16-output-1.png" width="742" height="485" class="figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="figures_static/07_tensorboard_EI_NONISO.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<figcaption class="figure-caption">TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.</figcaption>
+<figcaption>TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.</figcaption>
 </figure>
 </div>
 </section>
@@ -631,7 +709,7 @@ x1: 5.452313769831611e-05</code></pre>
 <li>Init: Build initial design <span class="math inline">\(X\)</span></li>
 <li>Evaluate initial design on real objective <span class="math inline">\(f\)</span>: <span class="math inline">\(y = f(X)\)</span></li>
 <li>Build surrogate: <span class="math inline">\(S = S(X,y)\)</span></li>
-<li>Optimize on surrogate: <span class="math inline">\(X_0 = \text{optimize}(S)\)</span></li>
+<li>Optimize on surrogate: <span class="math inline">\(X_0 =  \text{optimize}(S)\)</span></li>
 <li>Evaluate on real objective: <span class="math inline">\(y_0 = f(X_0)\)</span></li>
 <li>Impute (Infill) new points: <span class="math inline">\(X = X \cup X_0\)</span>, <span class="math inline">\(y = y \cup y_0\)</span>.</li>
 <li>Got 3.</li>
@@ -640,7 +718,7 @@ x1: 5.452313769831611e-05</code></pre>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="figures_static/spotModel.png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">Visual representation of the model based search with SPOT. Taken from: Bartz-Beielstein, T., and Zaefferer, M. Hyperparameter tuning approaches. In Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide, E. Bartz, T. Bartz-Beielstein, M. Zaefferer, and O. Mersmann, Eds. Springer, 2022, ch.&nbsp;4, pp.&nbsp;67–114.</figcaption>
+<figcaption>Visual representation of the model based search with SPOT. Taken from: Bartz-Beielstein, T., and Zaefferer, M. Hyperparameter tuning approaches. In Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide, E. Bartz, T. Bartz-Beielstein, M. Zaefferer, and O. Mersmann, Eds. Springer, 2022, ch.&nbsp;4, pp.&nbsp;67–114.</figcaption>
 </figure>
 </div>
 </section>
@@ -649,7 +727,7 @@ x1: 5.452313769831611e-05</code></pre>
 <section id="example-modifying-the-initial-design-size" class="level4" data-number="12.4.2.1">
 <h4 data-number="12.4.2.1" class="anchored" data-anchor-id="example-modifying-the-initial-design-size"><span class="header-section-number">12.4.2.1</span> Example: Modifying the initial design size</h4>
 <p>This is the “Example: Modifying the initial design size” from Chapter 4.5.1 in [bart21i].</p>
-<div class="cell" data-execution_count="16">
+<div id="92f69931" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>spot_ei <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                fun_control<span class="op">=</span>fun_control_init(</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>]),</span>
@@ -657,25 +735,33 @@ x1: 5.452313769831611e-05</code></pre>
 <span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>))</span>
 <span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>spot_ei.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 15, 'fun_repeats': 1, 'infill_criterion': 'y', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1, -1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': None, 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 0, 'train': None, 'test': None, 'task': None, 'upper': array([1, 1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': None}
-self.k: 2
-fun_control['upper']: [1 1]
-fun_control['var_type']: ['num']
-self.lower: [-1 -1]
-self.upper: [1 1]
-self.var_type: ['num', 'num']</code></pre>
+<pre><code>spotPython tuning: 0.13771718056980337 [####------] 40.00% 
+spotPython tuning: 0.00873860889878173 [#####-----] 46.67% 
+spotPython tuning: 0.0028322099789017184 [#####-----] 53.33% 
+spotPython tuning: 0.0008112636408310097 [######----] 60.00% 
+spotPython tuning: 0.00036558411628539707 [#######---] 66.67% 
+spotPython tuning: 0.00035830687535911014 [#######---] 73.33% 
+spotPython tuning: 0.00035830687535911014 [########--] 80.00% 
+spotPython tuning: 0.00032833591068864664 [#########-] 86.67% 
+spotPython tuning: 0.0002757670364359785 [#########-] 93.33% 
+spotPython tuning: 0.0001601071101026825 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="16">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3ae2690&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d23d9f50&gt;</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="17">
+<div id="3236847f" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>spot_ei.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-18-output-1.png" width="728" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-18-output-1.png" width="728" height="243" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="18">
+</div>
+<div id="4972878e" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>np.<span class="bu">min</span>(spot_1.y), np.<span class="bu">min</span>(spot_ei.y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>(4.9233547910699585e-11, 0.0001601071101026825)</code></pre>
@@ -685,7 +771,7 @@ self.var_type: ['num', 'num']</code></pre>
 </section>
 <section id="init-build-initial-design" class="level3" data-number="12.4.3">
 <h3 data-number="12.4.3" class="anchored" data-anchor-id="init-build-initial-design"><span class="header-section-number">12.4.3</span> Init: Build Initial Design</h3>
-<div class="cell" data-execution_count="19">
+<div id="1110c7c2" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.design.spacefilling <span class="im">import</span> spacefilling</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -714,15 +800,19 @@ self.var_type: ['num', 'num']</code></pre>
   70.16178611  48.71407916  31.77322887  76.91788181  30.69410529]</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="20">
+<div id="e31fa801" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,  seed<span class="op">=</span><span class="dv">123</span>)</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>S.fit(X, y)</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>S.plot()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-21-output-1.png" width="719" height="485"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-21-output-1.png" width="719" height="485" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="21">
+</div>
+<div id="278c6682" class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> spacefilling(<span class="dv">2</span>, seed<span class="op">=</span><span class="dv">123</span>)</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>X0 <span class="op">=</span> gen.scipy_lhd(<span class="dv">3</span>)</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> spacefilling(<span class="dv">2</span>, seed<span class="op">=</span><span class="dv">345</span>)</span>
@@ -764,7 +854,7 @@ self.var_type: ['num', 'num']</code></pre>
 </ol></li>
 <li><p>We are interested in the value at <span class="math inline">\(x_0 = 1\)</span>, i.e., <span class="math inline">\(f(x_0 = 1)\)</span>, but cannot run an additional, third experiment.</p></li>
 </ul>
-<div class="cell" data-execution_count="22">
+<div id="2cb880c6" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> linear_model</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>], [<span class="dv">2</span>]])</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.array([<span class="fl">0.5</span>, <span class="fl">2.5</span>])</span>
@@ -788,7 +878,7 @@ self.var_type: ['num', 'num']</code></pre>
 <section id="gaussian-processes-regression-basic-introductory-example" class="level2" data-number="12.5">
 <h2 data-number="12.5" class="anchored" data-anchor-id="gaussian-processes-regression-basic-introductory-example"><span class="header-section-number">12.5</span> Gaussian Processes regression: basic introductory example</h2>
 <p>This example was taken from <a href="https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html">scikit-learn</a>. After fitting our model, we see that the hyperparameters of the kernel have been optimized. Now, we will use our kernel to compute the mean prediction of the full dataset and plot the 95% confidence interval.</p>
-<div class="cell" data-execution_count="23">
+<div id="65f59734" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math <span class="im">as</span> m</span>
@@ -823,10 +913,14 @@ self.var_type: ['num', 'num']</code></pre>
 <span id="cb44-32"><a href="#cb44-32" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb44-33"><a href="#cb44-33" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"sk-learn Version: Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-24-output-1.png" width="612" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-24-output-1.png" width="612" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="24">
+</div>
+<div id="62bed08e" class="cell" data-execution_count="24">
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -859,18 +953,22 @@ self.var_type: ['num', 'num']</code></pre>
 <span id="cb45-30"><a href="#cb45-30" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb45-31"><a href="#cb45-31" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"spotPython Version: Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-25-output-1.png" width="625" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-25-output-1.png" width="625" height="449" class="figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
 <section id="the-surrogate-using-scikit-learn-models" class="level2" data-number="12.6">
 <h2 data-number="12.6" class="anchored" data-anchor-id="the-surrogate-using-scikit-learn-models"><span class="header-section-number">12.6</span> The Surrogate: Using scikit-learn models</h2>
 <p>Default is the internal <code>kriging</code> surrogate.</p>
-<div class="cell" data-execution_count="25">
+<div id="4cfb1e6f" class="cell" data-execution_count="25">
 <div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>S_0 <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>, seed<span class="op">=</span><span class="dv">123</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Models from <code>scikit-learn</code> can be selected, e.g., Gaussian Process:</p>
-<div class="cell" data-execution_count="26">
+<div id="9ffe320c" class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Needed for the sklearn surrogates:</span></span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.gaussian_process <span class="im">import</span> GaussianProcessRegressor</span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.gaussian_process.kernels <span class="im">import</span> RBF</span>
@@ -880,14 +978,14 @@ self.var_type: ['num', 'num']</code></pre>
 <span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> tree</span>
 <span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="27">
+<div id="29efd923" class="cell" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>kernel <span class="op">=</span> <span class="dv">1</span> <span class="op">*</span> RBF(length_scale<span class="op">=</span><span class="fl">1.0</span>, length_scale_bounds<span class="op">=</span>(<span class="fl">1e-2</span>, <span class="fl">1e2</span>))</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>S_GP <span class="op">=</span> GaussianProcessRegressor(kernel<span class="op">=</span>kernel, n_restarts_optimizer<span class="op">=</span><span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
 <li>and many more:</li>
 </ul>
-<div class="cell" data-execution_count="28">
+<div id="7b50fb67" class="cell" data-execution_count="28">
 <div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>S_Tree <span class="op">=</span> DecisionTreeRegressor(random_state<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>S_LM <span class="op">=</span> linear_model.LinearRegression()</span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>S_Ridge <span class="op">=</span> linear_model.Ridge()</span>
@@ -896,16 +994,16 @@ self.var_type: ['num', 'num']</code></pre>
 <ul>
 <li>The scikit-learn GP model <code>S_GP</code> is selected.</li>
 </ul>
-<div class="cell" data-execution_count="29">
+<div id="08b3209a" class="cell" data-execution_count="29">
 <div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> S_GP</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="30">
+<div id="91b725de" class="cell" data-execution_count="30">
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="bu">isinstance</span>(S, GaussianProcessRegressor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="30">
 <pre><code>True</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="31">
+<div id="aefc31b8" class="cell" data-execution_count="31">
 <div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
 <span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_branin</span>
 <span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
@@ -919,19 +1017,23 @@ self.var_type: ['num', 'num']</code></pre>
 <span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>                    design_control<span class="op">=</span>design_control)</span>
 <span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>spot_GP.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 15, 'fun_repeats': 1, 'infill_criterion': 'y', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-5,  0]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': None, 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 0, 'train': None, 'test': None, 'task': None, 'upper': array([10, 15]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': None}
-self.k: 2
-fun_control['upper']: [10 15]
-fun_control['var_type']: ['num']
-self.lower: [-5  0]
-self.upper: [10 15]
-self.var_type: ['num', 'num']</code></pre>
+<pre><code>spotPython tuning: 24.51465459019188 [####------] 40.00% 
+spotPython tuning: 11.003077541587748 [#####-----] 46.67% 
+spotPython tuning: 11.003077541587748 [#####-----] 53.33% 
+spotPython tuning: 7.281227279299504 [######----] 60.00% 
+spotPython tuning: 7.281227279299504 [#######---] 66.67% 
+spotPython tuning: 7.281227279299504 [#######---] 73.33% 
+spotPython tuning: 2.9519489314482 [########--] 80.00% 
+spotPython tuning: 2.9519489314482 [#########-] 86.67% 
+spotPython tuning: 2.104972804244822 [#########-] 93.33% 
+spotPython tuning: 1.9431600962086772 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="31">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3e81690&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d8d32050&gt;</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="32">
+<div id="7121ae6e" class="cell" data-execution_count="32">
 <div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>spot_GP.y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="32">
 <pre><code>array([ 69.32459936, 152.38491454, 107.92560483,  24.51465459,
@@ -940,13 +1042,17 @@ self.var_type: ['num', 'num']</code></pre>
          3.02910742,   2.1049728 ,   1.9431601 ])</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="33">
+<div id="595f44e0" class="cell" data-execution_count="33">
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>spot_GP.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-34-output-1.png" width="724" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-34-output-1.png" width="724" height="243" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="34">
+</div>
+<div id="67b7a422" class="cell" data-execution_count="34">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>spot_GP.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 1.9431600962086772
@@ -960,7 +1066,7 @@ x1: 2.9985482809555464</code></pre>
 </section>
 <section id="additional-examples" class="level2" data-number="12.7">
 <h2 data-number="12.7" class="anchored" data-anchor-id="additional-examples"><span class="header-section-number">12.7</span> Additional Examples</h2>
-<div class="cell" data-execution_count="35">
+<div id="056dde9e" class="cell" data-execution_count="35">
 <div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Needed for the sklearn surrogates:</span></span>
 <span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.gaussian_process <span class="im">import</span> GaussianProcessRegressor</span>
 <span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.gaussian_process.kernels <span class="im">import</span> RBF</span>
@@ -970,11 +1076,11 @@ x1: 2.9985482809555464</code></pre>
 <span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> tree</span>
 <span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="36">
+<div id="718ee465" class="cell" data-execution_count="36">
 <div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>kernel <span class="op">=</span> <span class="dv">1</span> <span class="op">*</span> RBF(length_scale<span class="op">=</span><span class="fl">1.0</span>, length_scale_bounds<span class="op">=</span>(<span class="fl">1e-2</span>, <span class="fl">1e2</span>))</span>
 <span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>S_GP <span class="op">=</span> GaussianProcessRegressor(kernel<span class="op">=</span>kernel, n_restarts_optimizer<span class="op">=</span><span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="37">
+<div id="36760894" class="cell" data-execution_count="37">
 <div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
@@ -1002,31 +1108,53 @@ x1: 2.9985482809555464</code></pre>
 <span id="cb64-25"><a href="#cb64-25" aria-hidden="true" tabindex="-1"></a>                     surrogate_control<span class="op">=</span>surrogate_control)</span>
 <span id="cb64-26"><a href="#cb64-26" aria-hidden="true" tabindex="-1"></a>spot_S_K.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 25, 'fun_repeats': 1, 'infill_criterion': 'y', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1, -1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 1, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': None, 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 0, 'train': None, 'test': None, 'task': None, 'upper': array([1, 1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': None}
-self.k: 2
-fun_control['upper']: [1 1]
-fun_control['var_type']: ['num']
-self.lower: [-1 -1]
-self.upper: [1 1]
-self.var_type: ['num', 'num']</code></pre>
+<pre><code>spotPython tuning: 0.13771718778810743 [##--------] 24.00% 
+spotPython tuning: 0.008768000187888899 [###-------] 28.00% 
+spotPython tuning: 0.0028300907437246053 [###-------] 32.00% 
+spotPython tuning: 0.0008148020998531609 [####------] 36.00% 
+spotPython tuning: 0.00036681248440550095 [####------] 40.00% 
+spotPython tuning: 0.00035607605553701025 [####------] 44.00% 
+spotPython tuning: 0.00035607605553701025 [#####-----] 48.00% 
+spotPython tuning: 0.00033033596693814263 [#####-----] 52.00% 
+spotPython tuning: 0.0002774179969789593 [######----] 56.00% 
+spotPython tuning: 0.00016886412273302311 [######----] 60.00% 
+spotPython tuning: 2.0349536932144563e-05 [######----] 64.00% 
+spotPython tuning: 1.6621220007683266e-06 [#######---] 68.00% 
+spotPython tuning: 4.905822935561126e-07 [#######---] 72.00% 
+spotPython tuning: 4.7634545282279014e-07 [########--] 76.00% 
+spotPython tuning: 3.966290585455581e-07 [########--] 80.00% 
+spotPython tuning: 1.9602185212475464e-07 [########--] 84.00% 
+spotPython tuning: 1.7115221726800905e-07 [#########-] 88.00% 
+spotPython tuning: 1.7115221726800905e-07 [#########-] 92.00% 
+spotPython tuning: 1.7115221726800905e-07 [##########] 96.00% 
+spotPython tuning: 1.7115221726800905e-07 [##########] 100.00% Done...
+</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="37">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d3ee7bd0&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d8cbfd50&gt;</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="38">
+<div id="00237e95" class="cell" data-execution_count="38">
 <div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>spot_S_K.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-39-output-1.png" width="729" height="243"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-39-output-1.png" width="729" height="243" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="39">
+</div>
+<div id="bab74815" class="cell" data-execution_count="39">
 <div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>spot_S_K.surrogate.plot()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-40-output-1.png" width="742" height="485"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-40-output-1.png" width="742" height="485" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="40">
+</div>
+<div id="7c4e1e6f" class="cell" data-execution_count="40">
 <div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>spot_S_K.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 1.7115221726800905e-07
@@ -1049,7 +1177,7 @@ x1: 0.0002732878460995902</code></pre>
 </section>
 <section id="tests" class="level2" data-number="12.8">
 <h2 data-number="12.8" class="anchored" data-anchor-id="tests"><span class="header-section-number">12.8</span> Tests</h2>
-<div class="cell" data-execution_count="41">
+<div id="dd336828" class="cell" data-execution_count="41">
 <div class="sourceCode cell-code" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
 <span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -1080,14 +1208,7 @@ x1: 0.0002732878460995902</code></pre>
 <span id="cb72-28"><a href="#cb72-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(X0)</span>
 <span id="cb72-29"><a href="#cb72-29" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> X0.size <span class="op">==</span> spot_1.n_points <span class="op">*</span> spot_1.k</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>self.fun_control: {'CHECKPOINT_PATH': 'runs/saved_models/', 'DATASET_PATH': 'data/', 'RESULTS_PATH': 'results/', 'TENSORBOARD_PATH': 'runs/', '_L_in': None, '_L_out': None, 'accelerator': 'auto', 'counter': 0, 'data': None, 'data_dir': './data', 'data_module': None, 'data_set': None, 'design': None, 'device': None, 'devices': 1, 'enable_progress_bar': False, 'eval': None, 'fun_evals': 15, 'fun_repeats': 1, 'infill_criterion': 'y', 'k_folds': 3, 'log_level': 50, 'loss_function': None, 'lower': array([-1, -1]), 'max_time': 1, 'metric_river': None, 'metric_sklearn': None, 'metric_torch': None, 'metric_params': {}, 'model_dict': {}, 'noise': False, 'n_points': 2, 'n_samples': None, 'num_workers': 0, 'ocba_delta': 0, 'optimizer': None, 'path': None, 'prep_model': None, 'save_model': False, 'seed': 123, 'show_batch_interval': 1000000, 'show_models': False, 'show_progress': False, 'shuffle': None, 'sigma': 0.0, 'spot_tensorboard_path': None, 'target_column': None, 'test_seed': 1234, 'test_size': 0.4, 'tolerance_x': 0, 'train': None, 'test': None, 'task': None, 'upper': array([1, 1]), 'var_name': None, 'var_type': ['num'], 'weights': 1.0, 'spot_writer': None}
-self.k: 2
-fun_control['upper']: [1 1]
-fun_control['var_type']: ['num']
-self.lower: [-1 -1]
-self.upper: [1 1]
-self.var_type: ['num', 'num']
-[[ 0.86352963  0.7892358 ]
+<pre><code>[[ 0.86352963  0.7892358 ]
  [-0.24407197 -0.83687436]
  [ 0.36481882  0.8375811 ]
  [ 0.415331    0.54468512]
@@ -1106,11 +1227,11 @@ self.var_type: ['num', 'num']
 </section>
 <section id="ei-the-famous-schonlau-example" class="level2" data-number="12.9">
 <h2 data-number="12.9" class="anchored" data-anchor-id="ei-the-famous-schonlau-example"><span class="header-section-number">12.9</span> EI: The Famous Schonlau Example</h2>
-<div class="cell" data-execution_count="42">
+<div id="a3d6f717" class="cell" data-execution_count="42">
 <div class="sourceCode cell-code" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>X_train0 <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">12</span>]).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> np.linspace(start<span class="op">=</span><span class="dv">0</span>, stop<span class="op">=</span><span class="dv">10</span>, num<span class="op">=</span><span class="dv">5</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="43">
+<div id="e32bccfd" class="cell" data-execution_count="43">
 <div class="sourceCode cell-code" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -1139,10 +1260,14 @@ self.var_type: ['num', 'num']
 <span id="cb75-26"><a href="#cb75-26" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb75-27"><a href="#cb75-27" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-44-output-1.png" width="588" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-44-output-1.png" width="588" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="44">
+</div>
+<div id="4bb20de5" class="cell" data-execution_count="44">
 <div class="sourceCode cell-code" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="co">#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")</span></span>
 <span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.scatter(X_train, y_train, label="Observations")</span></span>
 <span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>plt.plot(X, <span class="op">-</span>ei, label<span class="op">=</span><span class="st">"Expected Improvement"</span>)</span>
@@ -1151,10 +1276,14 @@ self.var_type: ['num', 'num']
 <span id="cb76-6"><a href="#cb76-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb76-7"><a href="#cb76-7" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-45-output-1.png" width="598" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-45-output-1.png" width="598" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="45">
+</div>
+<div id="8a13f4dc" class="cell" data-execution_count="45">
 <div class="sourceCode cell-code" id="cb77"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>S.log</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="45">
 <pre><code>{'negLnLike': array([1.20788205]),
@@ -1166,7 +1295,7 @@ self.var_type: ['num', 'num']
 </section>
 <section id="ei-the-forrester-example" class="level2" data-number="12.10">
 <h2 data-number="12.10" class="anchored" data-anchor-id="ei-the-forrester-example"><span class="header-section-number">12.10</span> EI: The Forrester Example</h2>
-<div class="cell" data-execution_count="46">
+<div id="3f3f1b34" class="cell" data-execution_count="46">
 <div class="sourceCode cell-code" id="cb79"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -1205,10 +1334,14 @@ self.var_type: ['num', 'num']
 <span id="cb79-36"><a href="#cb79-36" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb79-37"><a href="#cb79-37" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-47-output-1.png" width="586" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-47-output-1.png" width="586" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="47">
+</div>
+<div id="311eb223" class="cell" data-execution_count="47">
 <div class="sourceCode cell-code" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="co">#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")</span></span>
 <span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.scatter(X_train, y_train, label="Observations")</span></span>
 <span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>plt.plot(X, <span class="op">-</span>ei, label<span class="op">=</span><span class="st">"Expected Improvement"</span>)</span>
@@ -1217,13 +1350,17 @@ self.var_type: ['num', 'num']
 <span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Gaussian process regression on noise-free dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-48-output-1.png" width="598" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-48-output-1.png" width="598" height="449" class="figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
 <section id="noise" class="level2" data-number="12.11">
 <h2 data-number="12.11" class="anchored" data-anchor-id="noise"><span class="header-section-number">12.11</span> Noise</h2>
-<div class="cell" data-execution_count="48">
+<div id="21376b9c" class="cell" data-execution_count="48">
 <div class="sourceCode cell-code" id="cb81"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
 <span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -1282,10 +1419,14 @@ self.var_type: ['num', 'num']
  15.9770567  12.96468767 39.82265329 59.88028242]</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-49-output-2.png" width="594" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-49-output-2.png" width="594" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="49">
+</div>
+<div id="fa6ec307" class="cell" data-execution_count="49">
 <div class="sourceCode cell-code" id="cb83"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>S.log</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="49">
 <pre><code>{'negLnLike': array([26.18505386]),
@@ -1294,7 +1435,7 @@ self.var_type: ['num', 'num']
  'Lambda': []}</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="50">
+<div id="310f0499" class="cell" data-execution_count="50">
 <div class="sourceCode cell-code" id="cb85"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
 <span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
 <span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
@@ -1314,10 +1455,14 @@ self.var_type: ['num', 'num']
 <span id="cb85-17"><a href="#cb85-17" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb85-18"><a href="#cb85-18" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Sphere: Gaussian process regression with nugget on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-51-output-1.png" width="600" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-51-output-1.png" width="600" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="51">
+</div>
+<div id="d184915c" class="cell" data-execution_count="51">
 <div class="sourceCode cell-code" id="cb86"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>S.log</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="51">
 <pre><code>{'negLnLike': array([21.82059174]),
@@ -1329,7 +1474,7 @@ self.var_type: ['num', 'num']
 </section>
 <section id="cubic-function" class="level2" data-number="12.12">
 <h2 data-number="12.12" class="anchored" data-anchor-id="cubic-function"><span class="header-section-number">12.12</span> Cubic Function</h2>
-<div class="cell" data-execution_count="52">
+<div id="307a6bce" class="cell" data-execution_count="52">
 <div class="sourceCode cell-code" id="cb88"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
 <span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -1385,10 +1530,14 @@ self.var_type: ['num', 'num']
   2.57319028e+02 -4.70871982e+02]</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-53-output-2.png" width="614" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-53-output-2.png" width="614" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="53">
+</div>
+<div id="78de3e30" class="cell" data-execution_count="53">
 <div class="sourceCode cell-code" id="cb90"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,  seed<span class="op">=</span><span class="dv">123</span>, log_level<span class="op">=</span><span class="dv">0</span>, n_theta<span class="op">=</span><span class="dv">1</span>, noise<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>S.fit(X_train, y_train)</span>
 <span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1403,10 +1552,14 @@ self.var_type: ['num', 'num']
 <span id="cb90-12"><a href="#cb90-12" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb90-13"><a href="#cb90-13" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Cubed: Gaussian process with nugget regression on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-54-output-1.png" width="617" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-54-output-1.png" width="617" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="54">
+</div>
+<div id="59f78c34" class="cell" data-execution_count="54">
 <div class="sourceCode cell-code" id="cb91"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spotPython</span>
 <span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
@@ -1461,10 +1614,14 @@ self.var_type: ['num', 'num']
  0.05479457 0.07763503 0.02412205 0.01625354]</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-55-output-2.png" width="590" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-55-output-2.png" width="590" height="449" class="figure-img"></p>
+</figure>
 </div>
 </div>
-<div class="cell" data-execution_count="55">
+</div>
+<div id="deddaa7e" class="cell" data-execution_count="55">
 <div class="sourceCode cell-code" id="cb93"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Kriging(name<span class="op">=</span><span class="st">'kriging'</span>,</span>
 <span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
 <span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">50</span>,</span>
@@ -1483,25 +1640,29 @@ self.var_type: ['num', 'num']
 <span id="cb93-16"><a href="#cb93-16" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$f(x)$"</span>)</span>
 <span id="cb93-17"><a href="#cb93-17" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> plt.title(<span class="st">"Gaussian process regression with nugget on noisy dataset"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="012_num_spot_ei_files/figure-html/cell-56-output-1.png" width="590" height="449"></p>
+<div>
+<figure class="figure">
+<p><img src="012_num_spot_ei_files/figure-html/cell-56-output-1.png" width="590" height="449" class="figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
 <section id="factors" class="level2" data-number="12.13">
 <h2 data-number="12.13" class="anchored" data-anchor-id="factors"><span class="header-section-number">12.13</span> Factors</h2>
-<div class="cell" data-execution_count="56">
+<div id="22023ed3" class="cell" data-execution_count="56">
 <div class="sourceCode cell-code" id="cb94"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>[<span class="st">"num"</span>] <span class="op">*</span> <span class="dv">3</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="56">
 <pre><code>['num', 'num', 'num']</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="57">
+<div id="30cea485" class="cell" data-execution_count="57">
 <div class="sourceCode cell-code" id="cb96"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.design.spacefilling <span class="im">import</span> spacefilling</span>
 <span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.build.kriging <span class="im">import</span> Kriging</span>
 <span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
 <span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="58">
+<div id="628b66e8" class="cell" data-execution_count="58">
 <div class="sourceCode cell-code" id="cb97"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> spacefilling(<span class="dv">2</span>)</span>
 <span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">30</span></span>
 <span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.RandomState(<span class="dv">1</span>)</span>
@@ -1530,10 +1691,10 @@ self.var_type: ['num', 'num']
 <pre><code>-55.49075685088792</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="59">
+<div id="12bfc4c0" class="cell" data-execution_count="59">
 <div class="sourceCode cell-code" id="cb99"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="co"># vars(S)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="60">
+<div id="a0f5d9f7" class="cell" data-execution_count="60">
 <div class="sourceCode cell-code" id="cb100"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="co"># vars(Sf)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
@@ -1620,10 +1781,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -1633,8 +1793,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -1647,6 +1816,120 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -1690,6 +1973,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -1715,6 +1999,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1776,17 +2086,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./011_num_spot_sklearn_gaussian.html" class="pagination-link">
+      <a href="./011_num_spot_sklearn_gaussian.html" class="pagination-link  aria-label=" &lt;span="" parameter="" optimization:="" gaussian="" process="" models&lt;="" span&gt;"="">
         <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./013_num_spot_noisy.html" class="pagination-link">
+      <a href="./013_num_spot_noisy.html" class="pagination-link" aria-label="<span class='chapter-number'>13</span>&nbsp; <span class='chapter-title'>Handling Noise</span>">
         <span class="nav-page-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
+
 
 
 
