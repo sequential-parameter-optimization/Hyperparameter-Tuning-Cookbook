@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.537">
+<meta name="generator" content="quarto-1.3.450">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -22,7 +22,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -58,7 +58,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
-  margin-bottom: 0em;
 }
 .hanging-indent div.csl-entry {
   margin-left:2em;
@@ -101,13 +100,7 @@ div.csl-indent {
   "collapse-after": 3,
   "panel-placement": "start",
   "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
+  "limit": 20,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -116,7 +109,6 @@ div.csl-indent {
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
@@ -126,36 +118,10 @@ div.csl-indent {
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
-
 <meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 6&nbsp; Kriging (Gaussian Process Regression)">
 <meta name="twitter:description" content="">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="006_num_gp_files/figure-html/cell-15-output-1.png">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 
 <body class="nav-sidebar docked">
@@ -164,12 +130,12 @@ window.Quarto = {
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./006_num_gp.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></a></li></ol></nav>
-        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./006_num_gp.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
@@ -179,13 +145,13 @@ window.Quarto = {
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
       <a href="./">Hyperparameter Tuning Cookbook</a> 
         <div class="sidebar-tools-main tools-wide">
-    <a href="https://github.com/sequential-parameter-optimization/spotPython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
-    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <a href="https://github.com/sequential-parameter-optimization/spotPython" rel="" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" rel="" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
     <div class="dropdown">
       <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Share"><i class="bi bi-share"></i></a>
       <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
@@ -243,13 +209,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to `scipy.optimize`</span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using `scipy` Optimizers</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
   </div>
 </li>
       </ul>
@@ -278,7 +244,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to `spotPython`</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -296,13 +262,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using `sklearn` Surrogates in `spotPython`</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization:  Gaussian Process Models</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -320,7 +286,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in `Spot`</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
   </div>
 </li>
       </ul>
@@ -338,6 +304,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="./031_spot_lightning_linear_diabetes.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./032_spot_lightning_rnn_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span></span></a>
   </div>
 </li>
       </ul>
@@ -386,7 +358,7 @@ window.Quarto = {
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
@@ -457,7 +429,7 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./006_num_gp.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></h1>
 </div>
@@ -472,9 +444,7 @@ window.Quarto = {
   </div>
   
 
-
 </header>
-
 
 <!-- bart21mSlides2022Lec-05 -->
 <section id="dace-and-rsm" class="level2" data-number="6.1">
@@ -534,7 +504,7 @@ Example: Standard Deviation with Python
 </div>
 <div class="callout-body-container callout-body">
 <p>Consider the array <span class="math inline">\([1,2,3]\)</span>: Since <span class="math inline">\(\bar{x} = 2\)</span>, the following value is computed: <span class="math display">\[ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.\]</span></p>
-<div id="ace8c5f6" class="cell" data-execution_count="1">
+<div class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.array([[<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]])</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>np.std(a)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -547,8 +517,8 @@ Example: Standard Deviation with Python
 </section>
 <section id="the-empirical-standard-deviation" class="level3" data-number="6.2.6">
 <h3 data-number="6.2.6" class="anchored" data-anchor-id="the-empirical-standard-deviation"><span class="header-section-number">6.2.6</span> The Empirical Standard Deviation</h3>
-<p>The empirical standard deviation (which uses <span class="math inline">\(N-1\)</span>), <span class="math inline">\(\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}\)</span>, can be calculated as follows:</p>
-<div id="2469f249" class="cell" data-execution_count="2">
+<p>The empirical standard deviation (which uses <span class="math inline">\(N-1\)</span>), <span class="math inline">\(\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2 \right)} = \sqrt{2/2}\)</span>, can be calculated as follows:</p>
+<div class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>np.std(a, ddof<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>1.0</code></pre>
@@ -574,7 +544,7 @@ Axes along which the standard deviation is computed
 </ul>
 </div>
 </div>
-<div id="75f68329" class="cell" data-execution_count="3">
+<div class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.array([[<span class="dv">1</span>, <span class="dv">2</span>], [<span class="dv">3</span>, <span class="dv">4</span>]])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -582,19 +552,19 @@ Axes along which the standard deviation is computed
        [3, 4]])</code></pre>
 </div>
 </div>
-<div id="9d608b8b" class="cell" data-execution_count="4">
+<div class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>np.std(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>1.118033988749895</code></pre>
 </div>
 </div>
-<div id="65dc2373" class="cell" data-execution_count="5">
+<div class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>np.std(A, axis<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>array([1., 1.])</code></pre>
 </div>
 </div>
-<div id="d8b34152" class="cell" data-execution_count="6">
+<div class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>np.std(A, axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>array([0.5, 0.5])</code></pre>
@@ -604,7 +574,7 @@ Axes along which the standard deviation is computed
 <section id="single-versus-double-precision" class="level3" data-number="6.2.8">
 <h3 data-number="6.2.8" class="anchored" data-anchor-id="single-versus-double-precision"><span class="header-section-number">6.2.8</span> Single Versus Double Precision</h3>
 <p>In single precision, <code>std()</code> can be inaccurate:</p>
-<div id="6d8fef45" class="cell" data-execution_count="7">
+<div class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.zeros((<span class="dv">2</span>, <span class="dv">4</span><span class="op">*</span><span class="dv">4</span>), dtype<span class="op">=</span>np.float32)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>a[<span class="dv">0</span>, :] <span class="op">=</span> <span class="fl">1.0</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>a[<span class="dv">1</span>, :] <span class="op">=</span> <span class="fl">0.1</span></span>
@@ -616,20 +586,20 @@ Axes along which the standard deviation is computed
         0.1, 0.1, 0.1]], dtype=float32)</code></pre>
 </div>
 </div>
-<div id="8b5a91a7" class="cell" data-execution_count="8">
+<div class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>np.std(a, axis<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>array([0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45,
        0.45, 0.45, 0.45, 0.45, 0.45], dtype=float32)</code></pre>
 </div>
 </div>
-<div id="00f1a80c" class="cell" data-execution_count="9">
+<div class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>np.std(a, axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>array([0., 0.], dtype=float32)</code></pre>
 </div>
 </div>
-<div id="0f6c0014" class="cell" data-execution_count="10">
+<div class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">abs</span>(<span class="fl">0.45</span> <span class="op">-</span> np.std(a))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>1.7881393421514957e-08</code></pre>
@@ -654,7 +624,7 @@ Float data types
 </div>
 </div>
 <p>Computing the standard deviation in float64 is more accurate (result may vary), see <a href="https://numpy.org/devdocs/reference/generated/numpy.std.html">https://numpy.org/devdocs/reference/generated/numpy.std.html</a>.</p>
-<div id="591ad01f" class="cell" data-execution_count="11">
+<div class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="bu">abs</span>(<span class="fl">0.45</span> <span class="op">-</span> np.std(a, dtype<span class="op">=</span>np.float64))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>7.450580707946131e-10</code></pre>
@@ -670,7 +640,7 @@ Example: 32 versus 64 bit
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<div id="75aa0f45" class="cell" data-execution_count="12">
+<div class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a number</span></span>
@@ -719,7 +689,7 @@ Deterministic Random Numbers
 f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
 \]</span></p>
 <p>Generate 10 random numbers from a uniform distribution between <span class="math inline">\(a=0\)</span> and <span class="math inline">\(b=1\)</span>:</p>
-<div id="670393af" class="cell" data-execution_count="13">
+<div class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize the random number generator</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(seed<span class="op">=</span><span class="dv">123456789</span>)</span>
@@ -732,7 +702,7 @@ f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
 </div>
 </div>
 <p>Generate 10,000 random numbers from a uniform distribution between 0 and 10 and plot a histogram of the numbers:</p>
-<div id="d1796176" class="cell" data-execution_count="14">
+<div class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -749,11 +719,7 @@ f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
 <span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Frequency'</span>)</span>
 <span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-15-output-1.png" width="597" height="449" class="figure-img"></p>
-</figure>
-</div>
+<p><img src="006_num_gp_files/figure-html/cell-15-output-1.png" width="597" height="449"></p>
 </div>
 </div>
 </section>
@@ -763,7 +729,7 @@ f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
 f_X(x) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp\left(-\frac{1}{2} \left(\frac{x-\mu}{\sigma}\right)^2\right),
 \tag{6.1}\]</span></span> where: <span class="math inline">\(\mu\)</span> is the mean; <span class="math inline">\(\sigma\)</span> is the standard deviation.</p>
 <p>To generate ten random numbers from a normal distribution, the following command can be used.</p>
-<div id="48400b60" class="cell" data-execution_count="15">
+<div class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># generate 10 random numbers between from a normal distribution</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span>
@@ -772,35 +738,31 @@ f_X(x) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp\left(-\frac{1}{2} \left(\frac{x-\mu
 <span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> rng.normal(mu, sigma, n)</span>
 <span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
-<pre><code>array([2.05562961, 2.02790218, 2.01786658, 1.96355028, 2.08391782,
-       2.01784834, 1.91308112, 2.07228071, 1.99686322, 1.95209963])</code></pre>
+<pre><code>array([1.98477591, 2.23751091, 2.0083717 , 1.91853743, 1.73073562,
+       1.88373316, 1.93624698, 2.0091349 , 2.00042706, 1.97086623])</code></pre>
 </div>
 </div>
 <p>Verify the mean:</p>
-<div id="f2e66ae4" class="cell" data-execution_count="16">
+<div class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="bu">abs</span>(mu <span class="op">-</span> np.mean(x))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
-<pre><code>0.01010394959094807</code></pre>
+<pre><code>0.03196600924036308</code></pre>
 </div>
 </div>
 <p>Note: To verify the standard deviation, we use <code>ddof = 1</code> (empirical standard deviation):</p>
-<div id="65f78b08" class="cell" data-execution_count="17">
+<div class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="bu">abs</span>(sigma <span class="op">-</span> np.std(x, ddof<span class="op">=</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="17">
-<pre><code>0.04528403991182054</code></pre>
+<pre><code>0.02655667218113944</code></pre>
 </div>
 </div>
 <p>A normally distributed random variable is a random variable whose associated probability distribution is the normal (or Gaussian) distribution. The normal distribution is a continuous probability distribution characterized by a symmetric bell-shaped curve.</p>
 <p>The distribution is defined by two parameters: the mean <span class="math inline">\(\mu\)</span> and the standard deviation <span class="math inline">\(\sigma\)</span>. The mean indicates the center of the distribution, while the standard deviation measures the spread or dispersion of the distribution.</p>
 <p>This distribution is widely used in statistics and the natural and social sciences as a simple model for random variables with unknown distributions.</p>
-<div id="2a99bec2" class="cell" data-execution_count="19">
+<div class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>plot_normal_distribution(mu<span class="op">=</span><span class="dv">0</span>, sigma<span class="op">=</span><span class="dv">1</span>, num_samples<span class="op">=</span><span class="dv">10000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-20-output-1.png" width="579" height="411" class="figure-img"></p>
-</figure>
-</div>
+<p><img src="006_num_gp_files/figure-html/cell-20-output-1.png" width="579" height="411"></p>
 </div>
 </div>
 <section id="visualization-of-the-standard-deviation" class="level3" data-number="6.5.1">
@@ -811,13 +773,9 @@ f_X(x) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp\left(-\frac{1}{2} \left(\frac{x-\mu
 <li>95% lie within two standard deviation of the mean</li>
 <li>and 99.9% lie within 3 standard deviations of the mean.</li>
 </ul>
-<div id="3b7f0ffb" class="cell" data-execution_count="20">
+<div class="cell" data-execution_count="20">
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-21-output-1.png" width="662" height="469" class="figure-img"></p>
-</figure>
-</div>
+<p><img src="006_num_gp_files/figure-html/cell-21-output-1.png" width="662" height="469"></p>
 </div>
 </div>
 </section>
@@ -833,7 +791,7 @@ X^{\ast} = (X-\mu)/\sigma
 <p>Realizations of a normal distribution refers to the actual values that you get when you draw samples from a normal distribution. Each sample drawn from the distribution is a realization of that distribution.</p>
 <p>For example, if you have a normal distribution with a mean of 0 and a standard deviation of 1, each number you draw from that distribution is a realization.</p>
 <p>Here’s a Python example:</p>
-<div id="6e5b76bd" class="cell" data-execution_count="21">
+<div class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the parameters of the normal distribution</span></span>
@@ -853,7 +811,7 @@ X^{\ast} = (X-\mu)/\sigma
 </section>
 <section id="the-multivariate-normal-distribution" class="level2" data-number="6.8">
 <h2 data-number="6.8" class="anchored" data-anchor-id="the-multivariate-normal-distribution"><span class="header-section-number">6.8</span> The Multivariate Normal Distribution</h2>
-<p>The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. We will consider <span class="math inline">\(k\)</span>-dimensional random vectors <span class="math inline">\(X = (X_1, X_2, \ldots, X_k)\)</span>. When drawing samples from this distribution, it results in a set of values represented as <span class="math inline">\(\{x_1, x_2, \ldots, x_k\}\)</span>. To fully define this distribution, it is necessary to specify its mean <span class="math inline">\(\mu\)</span> and covariance matrix <span class="math inline">\(\Sigma\)</span>. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution introduced in <a href="#eq-normal-one" class="quarto-xref">Equation&nbsp;<span>6.1</span></a>.</p>
+<p>The multivariate normal, multinormal, or Gaussian distribution serves as a generalization of the one-dimensional normal distribution to higher dimensions. We will consider <span class="math inline">\(k\)</span>-dimensional random vectors <span class="math inline">\(X = (X_1, X_2, \ldots, X_k)\)</span>. When drawing samples from this distribution, it results in a set of values represented as <span class="math inline">\(\{x_1, x_2, \ldots, x_k\}\)</span>. To fully define this distribution, it is necessary to specify its mean <span class="math inline">\(\mu\)</span> and covariance matrix <span class="math inline">\(\Sigma\)</span>. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution introduced in <a href="#eq-normal-one">Equation&nbsp;<span>6.1</span></a>.</p>
 <p>In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an <span class="math inline">\(k\)</span>-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -877,8 +835,8 @@ f_X(x) = \frac{1}{\sqrt{(2\pi)^n \det(\Sigma)}} \exp\left(-\frac{1}{2} (x-\mu)^T
 \]</span></p>
 </div>
 </div>
-<p><a href="#fig-bi9040" class="quarto-xref">Figure&nbsp;<span>6.1</span></a> shows draws from a bivariate normal distribution with <span class="math inline">\(\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}\)</span> and <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9 \end{pmatrix}\)</span>.</p>
-<div id="cell-fig-bi9040" class="cell" data-execution_count="22">
+<p><a href="#fig-bi9040">Figure&nbsp;<span>6.1</span></a> shows draws from a bivariate normal distribution with <span class="math inline">\(\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}\)</span> and <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9 \end{pmatrix}\)</span>.</p>
+<div class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -892,14 +850,10 @@ f_X(x) = \frac{1}{\sqrt{(2\pi)^n \det(\Sigma)}} \exp\left(-\frac{1}{2} (x-\mu)^T
 <span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="ss">f"Bivariate Normal. Mean zero and positive covariance: </span><span class="sc">{</span>cov<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-bi9040" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-bi9040-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-bi9040-output-1.png" width="601" height="431" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bi9040-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.1: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9\end{pmatrix}\)</span>
-</figcaption>
+<div id="fig-bi9040" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-bi9040-output-1.png" width="588" height="431" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.1: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9\end{pmatrix}\)</span></figcaption>
 </figure>
 </div>
 </div>
@@ -907,8 +861,8 @@ Figure&nbsp;6.1: Bivariate Normal. Mean zero and covariance <span class="math in
 <p>The covariance matrix of a bivariate normal distribution determines the shape, orientation, and spread of the distribution in the two-dimensional space.</p>
 <p>The diagonal elements of the covariance matrix (<span class="math inline">\(\sigma_1^2\)</span>, <span class="math inline">\(\sigma_2^2\)</span>) are the variances of the individual variables. They determine the spread of the distribution along each axis. A larger variance corresponds to a greater spread along that axis.</p>
 <p>The off-diagonal elements of the covariance matrix (<span class="math inline">\(\sigma_{12}, \sigma_{21}\)</span>) are the covariances between the variables. They determine the orientation and shape of the distribution. If the covariance is positive, the distribution is stretched along the line <span class="math inline">\(y=x\)</span>, indicating that the variables tend to increase together. If the covariance is negative, the distribution is stretched along the line <span class="math inline">\(y=-x\)</span>, indicating that one variable tends to decrease as the other increases. If the covariance is zero, the variables are uncorrelated and the distribution is axis-aligned.</p>
-<p>In <a href="#fig-bi9040" class="quarto-xref">Figure&nbsp;<span>6.1</span></a>, the variances are identical and the variables are correlated (covariance is 4), so the distribution is stretched along the line <span class="math inline">\(y=x\)</span>.</p>
-<div id="cell-fig-bi90403d" class="cell" data-execution_count="23">
+<p>In <a href="#fig-bi9040">Figure&nbsp;<span>6.1</span></a>, the variances are identical and the variables are correlated (covariance is 4), so the distribution is stretched along the line <span class="math inline">\(y=x\)</span>.</p>
+<div class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> multivariate_normal</span>
@@ -935,14 +889,10 @@ Figure&nbsp;6.1: Bivariate Normal. Mean zero and covariance <span class="math in
 <span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>fig.colorbar(surf, shrink<span class="op">=</span><span class="fl">0.5</span>, aspect<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-bi90403d" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-bi90403d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-bi90403d-output-1.png" width="481" height="416" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bi90403d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.2: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9\end{pmatrix}\)</span>
-</figcaption>
+<div id="fig-bi90403d" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-bi90403d-output-1.png" width="481" height="416" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.2: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 4 \\ 4 &amp; 9\end{pmatrix}\)</span></figcaption>
 </figure>
 </div>
 </div>
@@ -950,16 +900,12 @@ Figure&nbsp;6.2: Bivariate Normal. Mean zero and covariance <span class="math in
 <section id="the-bivariate-normal-distribution-with-mean-zero-and-zero-covariances-sigma_12-sigma_21-0" class="level3" data-number="6.8.1">
 <h3 data-number="6.8.1" class="anchored" data-anchor-id="the-bivariate-normal-distribution-with-mean-zero-and-zero-covariances-sigma_12-sigma_21-0"><span class="header-section-number">6.8.1</span> The Bivariate Normal Distribution with Mean Zero and Zero Covariances <span class="math inline">\(\sigma_{12} = \sigma_{21} = 0\)</span></h3>
 <p><span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 0 \\ 0 &amp; 9\end{pmatrix}\)</span></p>
-<div id="cell-fig-bi9000" class="cell" data-execution_count="24">
+<div class="cell" data-execution_count="24">
 <div class="cell-output cell-output-display">
-<div id="fig-bi9000" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-bi9000-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-bi9000-output-1.png" width="577" height="431" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bi9000-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.3: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 0 \\ 0 &amp; 9\end{pmatrix}\)</span>
-</figcaption>
+<div id="fig-bi9000" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-bi9000-output-1.png" width="590" height="431" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.3: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; 0 \\ 0 &amp; 9\end{pmatrix}\)</span></figcaption>
 </figure>
 </div>
 </div>
@@ -968,16 +914,12 @@ Figure&nbsp;6.3: Bivariate Normal. Mean zero and covariance <span class="math in
 <section id="the-bivariate-normal-distribution-with-mean-zero-and-negative-covariances-sigma_12-sigma_21--4" class="level3" data-number="6.8.2">
 <h3 data-number="6.8.2" class="anchored" data-anchor-id="the-bivariate-normal-distribution-with-mean-zero-and-negative-covariances-sigma_12-sigma_21--4"><span class="header-section-number">6.8.2</span> The Bivariate Normal Distribution with Mean Zero and Negative Covariances <span class="math inline">\(\sigma_{12} = \sigma_{21} = -4\)</span></h3>
 <p><span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; -4 \\ -4 &amp; 9\end{pmatrix}\)</span></p>
-<div id="cell-fig-bi9449" class="cell" data-execution_count="25">
+<div class="cell" data-execution_count="25">
 <div class="cell-output cell-output-display">
-<div id="fig-bi9449" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-bi9449-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-bi9449-output-1.png" width="582" height="431" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bi9449-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.4: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; -4 \\ -4 &amp; 9\end{pmatrix}\)</span>
-</figcaption>
+<div id="fig-bi9449" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-bi9449-output-1.png" width="582" height="431" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.4: Bivariate Normal. Mean zero and covariance <span class="math inline">\(\Sigma=\begin{pmatrix} 9 &amp; -4 \\ -4 &amp; 9\end{pmatrix}\)</span></figcaption>
 </figure>
 </div>
 </div>
@@ -992,7 +934,7 @@ Figure&nbsp;6.4: Bivariate Normal. Mean zero and covariance <span class="math in
 <li>Invertibility: The multivariate normal distribution’s probability density function involves the inverse of the covariance matrix. If the covariance matrix is not positive definite, it may not be invertible, and the density function would be undefined.</li>
 </ul>
 <p>In summary, the covariance matrix being positive definite ensures that the multivariate normal distribution is well-defined and has positive variance in all dimensions.</p>
-<div id="86e7c2de" class="cell" data-execution_count="26">
+<div class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> is_positive_definite(matrix):</span>
@@ -1007,7 +949,7 @@ Figure&nbsp;6.4: Bivariate Normal. Mean zero and covariance <span class="math in
 <section id="cholesky-decomposition" class="level3" data-number="6.9.1">
 <h3 data-number="6.9.1" class="anchored" data-anchor-id="cholesky-decomposition"><span class="header-section-number">6.9.1</span> Cholesky Decomposition</h3>
 <p>More effficent (and check if symmetric) is based on Cholesky decomposition.</p>
-<div id="59133b1d" class="cell" data-execution_count="27">
+<div class="cell" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> is_pd(K):</span>
@@ -1036,7 +978,7 @@ Example: Cholesky decomposition.
 </div>
 <div class="callout-body-container callout-body">
 <p><code>linalg.cholesky</code> computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix <span class="math inline">\(L\)</span> such that <span class="math inline">\(LL^T = A\)</span>. If the matrix is not positive definite, an error (<code>LinAlgError</code>) is raised.</p>
-<div id="e9f2a7be" class="cell" data-execution_count="28">
+<div class="cell" data-execution_count="28">
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a Hermitian, positive-definite matrix</span></span>
@@ -1094,18 +1036,14 @@ L(\mu, \Sigma) = \prod_{j=1}^n f_X(x_j) = \prod_{j=1}^n \frac{1}{\sqrt{(2\pi)^k 
 \]</span> where <span class="math inline">\(\vec{x}\)</span> and <span class="math inline">\(\vec{x}'\)</span> are two points in the <span class="math inline">\(k\)</span>-dimensional input space and <span class="math inline">\(\| \cdot \|\)</span> denotes the Euclidean distance, i.e., <span class="math display">\[
 || \vec{x} - \vec{x}'||^2 = \sum_{i=1}^k (x_i - x_i')^2.
 \]</span></p>
-<p>An 1-d example is shown in <a href="#fig-exp2euclid" class="quarto-xref">Figure&nbsp;<span>6.5</span></a>.</p>
-<div id="cell-fig-exp2euclid" class="cell" data-execution_count="30">
+<p>An 1-d example is shown in <a href="#fig-exp2euclid">Figure&nbsp;<span>6.5</span></a>.</p>
+<div class="cell" data-execution_count="30">
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>visualize_inverse_exp_squared_distance(<span class="dv">5</span>, <span class="fl">0.0</span>, [<span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">2.0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-exp2euclid" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-exp2euclid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-exp2euclid-output-1.png" width="571" height="411" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-exp2euclid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.5: One-dim inverse exponentiated squared Euclidean distance
-</figcaption>
+<div id="fig-exp2euclid" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-exp2euclid-output-1.png" width="571" height="411" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.5: One-dim inverse exponentiated squared Euclidean distance</figcaption>
 </figure>
 </div>
 </div>
@@ -1145,14 +1083,14 @@ Positive Definiteness
 <section id="construction-of-the-covariance-matrix" class="level3" data-number="6.11.3">
 <h3 data-number="6.11.3" class="anchored" data-anchor-id="construction-of-the-covariance-matrix"><span class="header-section-number">6.11.3</span> Construction of the Covariance Matrix</h3>
 <p>Here is an one-dimensional example. The process begins by creating an input grid using <span class="math inline">\(\vec{x}\)</span>-values. This grid consists of 100 elements, providing the basis for further analysis and visualization.</p>
-<div id="14fd0222" class="cell" data-execution_count="31">
+<div class="cell" data-execution_count="31">
 <div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">100</span></span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">10</span>, n, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In the context of this discussion, the construction of the covariance matrix, denoted as <span class="math inline">\(\Sigma_n\)</span>, relies on the concept of inverse exponentiated squared Euclidean distances. However, it’s important to note that a modification is introduced later in the process. Specifically, the diagonal of the covariance matrix is augmented with a small value, represented as “eps” or <span class="math inline">\(\epsilon\)</span>.</p>
 <p>The reason for this augmentation is that while inverse exponentiated distances theoretically ensure the covariance matrix’s positive definiteness, in practical applications, the matrix can sometimes become numerically ill-conditioned. By adding a small value to the diagonal, such as <span class="math inline">\(\epsilon\)</span>, this ill-conditioning issue is mitigated. In this context, <span class="math inline">\(\epsilon\)</span> is often referred to as “jitter.”</p>
-<div id="adb2fb2d" class="cell" data-execution_count="32">
+<div class="cell" data-execution_count="32">
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel</span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy.linalg <span class="im">import</span> cholesky, solve</span>
@@ -1169,7 +1107,7 @@ Positive Definiteness
 <span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> D <span class="op">+</span> D.T</span>
 <span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> exp(<span class="op">-</span>D)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="f00c04d5" class="cell" data-execution_count="33">
+<div class="cell" data-execution_count="33">
 <div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>sigma2 <span class="op">=</span> np.array([<span class="fl">1.0</span>])</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>Sigma <span class="op">=</span> build_Sigma(X, sigma2)</span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>np.<span class="bu">round</span>(Sigma[:<span class="dv">3</span>,:], <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1212,17 +1150,13 @@ Positive Definiteness
         0.   ]])</code></pre>
 </div>
 </div>
-<div id="2bcd85e3" class="cell" data-execution_count="34">
+<div class="cell" data-execution_count="34">
 <div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>plt.imshow(Sigma, cmap<span class="op">=</span><span class="st">'hot'</span>, interpolation<span class="op">=</span><span class="st">'nearest'</span>)</span>
 <span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
 <span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-35-output-1.png" width="490" height="416" class="figure-img"></p>
-</figure>
-</div>
+<p><img src="006_num_gp_files/figure-html/cell-35-output-1.png" width="490" height="416"></p>
 </div>
 </div>
 </section>
@@ -1231,7 +1165,7 @@ Positive Definiteness
 <p>In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as <code>Sigma</code>. It is used as an essential component in generating random samples from the multivariate normal distribution.</p>
 <p>The function <code>multivariate_normal</code> is employed for this purpose. It serves as a random number generator specifically designed for the multivariate normal distribution. In this case, the mean of the distribution is set equal to <code>mean</code>, and the covariance matrix is provided as <code>Psi</code>. The argument <code>size</code> specifies the number of realizations, which, in this specific scenario, is set to one.</p>
 <p>By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the <code>X</code> and <code>Sigma</code> matrices, the argument <code>zeros(n)</code> is used, where <code>n</code> represents the number of samples (here taken from the size of the matrix, e.g.,: <code>Sigma.shape[0]</code>).</p>
-<div id="24cdb4a4" class="cell" data-execution_count="35">
+<div class="cell" data-execution_count="35">
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(seed<span class="op">=</span><span class="dv">12345</span>)</span>
 <span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> rng.multivariate_normal(zeros(Sigma.shape[<span class="dv">0</span>]), Sigma, size <span class="op">=</span> <span class="dv">1</span>, check_valid<span class="op">=</span><span class="st">"raise"</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>Y.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1240,39 +1174,31 @@ Positive Definiteness
 </div>
 </div>
 <p>Now we can plot the results, i.e., a finite realization of the random function <span class="math inline">\(Y()\)</span> under a GP prior with a particular covariance structure. We will plot those <code>X</code> and <code>Y</code> pairs as connected points on an <span class="math inline">\(x\)</span>-<span class="math inline">\(y\)</span> plane.</p>
-<div id="cell-fig-mvn1-1" class="cell" data-execution_count="36">
+<div class="cell" data-execution_count="36">
 <div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>plt.plot(X, Y)</span>
 <span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Realization of Random Functions under a GP prior.</span><span class="ch">\n</span><span class="st"> sigma2: </span><span class="sc">{}</span><span class="st">"</span>.<span class="bu">format</span>(sigma2[<span class="dv">0</span>]))</span>
 <span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-mvn1-1" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mvn1-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-mvn1-1-output-1.png" width="582" height="449" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mvn1-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.6: Realization of one random function under a GP prior. sigma2: 1.0
-</figcaption>
+<div id="fig-mvn1-1" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-mvn1-1-output-1.png" width="582" height="449" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.6: Realization of one random function under a GP prior. sigma2: 1.0</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div id="cell-fig-mvn1-3" class="cell" data-execution_count="37">
+<div class="cell" data-execution_count="37">
 <div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(seed<span class="op">=</span><span class="dv">12345</span>)</span>
 <span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> rng.multivariate_normal(zeros(Sigma.shape[<span class="dv">0</span>]), Sigma, size <span class="op">=</span> <span class="dv">3</span>, check_valid<span class="op">=</span><span class="st">"raise"</span>)</span>
 <span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>plt.plot(X, Y.T)</span>
 <span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Realization of Three Random Functions under a GP prior.</span><span class="ch">\n</span><span class="st"> sigma2: </span><span class="sc">{}</span><span class="st">"</span>.<span class="bu">format</span>(sigma2[<span class="dv">0</span>]))</span>
 <span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-mvn1-3" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mvn1-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-mvn1-3-output-1.png" width="569" height="449" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mvn1-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.7: Realization of three random functions under a GP prior. sigma2: 1.0
-</figcaption>
+<div id="fig-mvn1-3" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-mvn1-3-output-1.png" width="569" height="449" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.7: Realization of three random functions under a GP prior. sigma2: 1.0</figcaption>
 </figure>
 </div>
 </div>
@@ -1291,12 +1217,12 @@ Figure&nbsp;6.7: Realization of three random functions under a GP prior. sigma2:
 </section>
 <section id="smoothness" class="level4" data-number="6.11.5.2">
 <h4 data-number="6.11.5.2" class="anchored" data-anchor-id="smoothness"><span class="header-section-number">6.11.5.2</span> Smoothness:</h4>
-<p>The function plotted in <a href="#fig-mvn1-1" class="quarto-xref">Figure&nbsp;<span>6.6</span></a> represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function’s property of being infinitely differentiable.</p>
+<p>The function plotted in <a href="#fig-mvn1-1">Figure&nbsp;<span>6.6</span></a> represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function’s property of being infinitely differentiable.</p>
 </section>
 <section id="scale-of-two" class="level4" data-number="6.11.5.3">
 <h4 data-number="6.11.5.3" class="anchored" data-anchor-id="scale-of-two"><span class="header-section-number">6.11.5.3</span> Scale of Two:</h4>
 <p>Regarding the scale of the <span class="math inline">\(Y\)</span> values, they have a range of approximately <span class="math inline">\([-2,2]\)</span>, with a 95% probability of falling within this range. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.</p>
-<div id="4e7f833e" class="cell" data-execution_count="38">
+<div class="cell" data-execution_count="38">
 <div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel</span>
 <span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy.random <span class="im">import</span> multivariate_normal</span>
@@ -1324,32 +1250,24 @@ Figure&nbsp;6.7: Realization of three random functions under a GP prior. sigma2:
 <span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> show:</span>
 <span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>        plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-fig-mvn2" class="cell" data-execution_count="39">
+<div class="cell" data-execution_count="39">
 <div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>plot_mvn(a<span class="op">=</span><span class="dv">0</span>, b<span class="op">=</span><span class="dv">10</span>, sigma2<span class="op">=</span><span class="fl">10.0</span>, size<span class="op">=</span><span class="dv">3</span>, n<span class="op">=</span><span class="dv">250</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-mvn2" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mvn2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-mvn2-output-1.png" width="569" height="449" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mvn2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.8: Realization of Random Functions under a GP prior. sigma2: 10
-</figcaption>
+<div id="fig-mvn2" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-mvn2-output-1.png" width="569" height="449" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.8: Realization of Random Functions under a GP prior. sigma2: 10</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div id="cell-fig-mvn05" class="cell" data-execution_count="40">
+<div class="cell" data-execution_count="40">
 <div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>plot_mvn(a<span class="op">=</span><span class="dv">0</span>, b<span class="op">=</span><span class="dv">10</span>, sigma2<span class="op">=</span><span class="fl">0.1</span>, size<span class="op">=</span><span class="dv">3</span>, n<span class="op">=</span><span class="dv">250</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-mvn05" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mvn05-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-mvn05-output-1.png" width="569" height="449" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mvn05-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.9: Realization of Random Functions under a GP prior. sigma2: 0.1
-</figcaption>
+<div id="fig-mvn05" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-mvn05-output-1.png" width="569" height="449" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.9: Realization of Random Functions under a GP prior. sigma2: 0.1</figcaption>
 </figure>
 </div>
 </div>
@@ -1364,7 +1282,7 @@ Figure&nbsp;6.9: Realization of Random Functions under a GP prior. sigma2: 0.1
 <p><span class="math inline">\(k\)</span>-dimensional basis functions of the form <span class="math display">\[
 \psi(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l}^{(j)} | ^{p_l} \right)
 \]</span> are used in a method known as Kriging. Note, <span class="math inline">\(\vec{x}^{(i)}\)</span> denotes the <span class="math inline">\(k\)</span>-dim vector <span class="math inline">\(\vec{x}^{(i)}= (x_1^{(i)}, \ldots, x_k^{(i)})^T\)</span>.</p>
-<p>The Kriging basis function is related to the 1-dim Gaussian basis function ( <a href="#eq-Sigma" class="quarto-xref">Equation&nbsp;<span>6.2</span></a>), which is defined as <span id="eq-Sigma2"><span class="math display">\[
+<p>The Kriging basis function is related to the 1-dim Gaussian basis function ( <a href="#eq-Sigma">Equation&nbsp;<span>6.2</span></a>), which is defined as <span id="eq-Sigma2"><span class="math display">\[
 \Sigma(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\{ - || \vec{x}^{(i)} - \vec{x}^{(j)}||^2 / (2\sigma^2) \}.
 \tag{6.3}\]</span></span></p>
 <p>There are some differences between Gaussian basis functions and Kriging basis functions:</p>
@@ -1426,7 +1344,7 @@ Y =
 \text{Cov}(Y^{(n)}, Y^{(1)}) &amp; \ldots &amp; \text{Cov}(Y^{(n)}, Y^{(n)})
 \end{pmatrix},
 \]</span></p>
-<p>and from <a href="#eq-corrxy" class="quarto-xref">Equation&nbsp;<span>6.4</span></a></p>
+<p>and from <a href="#eq-corrxy">Equation&nbsp;<span>6.4</span></a></p>
 <p><span class="math display">\[
 \text{Cov}(Y, Y) = \sigma_Y^2 \text{Cor}(Y, Y).
 \]</span></p>
@@ -1434,7 +1352,7 @@ Y =
 </div>
 <p>You can compute the correlation matrix <span class="math inline">\(\Psi\)</span> from a covariance matrix <span class="math inline">\(\Sigma\)</span> in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.</p>
 <p>The function <code>covariance_to_correlation</code> first computes the standard deviations of the variables with <code>np.sqrt(np.diag(cov))</code>. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with <code>cov / np.outer(std_devs, std_devs)</code>.</p>
-<div id="fb549956" class="cell" data-execution_count="41">
+<div class="cell" data-execution_count="41">
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> covariance_to_correlation(cov):</span>
@@ -1533,7 +1451,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
 \]</span></p>
 <p>Finally, <span class="math display">\[ \Psi = \exp(-D)\]</span> is computed.</p>
 <p>Next, we will demonstrate how this computation can be implemented in Python.</p>
-<div id="515580d9" class="cell" data-execution_count="42">
+<div class="cell" data-execution_count="42">
 <div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> (array, zeros, power, ones, exp, multiply,</span>
 <span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>                    eye, linspace, mat, spacing, sqrt, arange,</span>
 <span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>                    append, ravel)</span>
@@ -1548,7 +1466,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
        [101, 100, 100]])</code></pre>
 </div>
 </div>
-<div id="013b1114" class="cell" data-execution_count="43">
+<div class="cell" data-execution_count="43">
 <div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_Psi(X, theta):</span>
 <span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> X.shape[<span class="dv">0</span>]</span>
 <span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> X.shape[<span class="dv">1</span>]</span>
@@ -1561,7 +1479,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
 <span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> D <span class="op">+</span> D.T</span>
 <span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> exp(<span class="op">-</span>D)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="145bb529" class="cell" data-execution_count="44">
+<div class="cell" data-execution_count="44">
 <div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>Psi <span class="op">=</span> build_Psi(X, theta)</span>
 <span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>Psi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="44">
@@ -1584,7 +1502,7 @@ Example: The Correlation Matrix (Using Existing Functions)
 </div>
 <div class="callout-body-container callout-body">
 <p>The same result as computed in the previous example can be obtained with existing python functions, e.g., from the package <code>scipy</code>.</p>
-<div id="01b74883" class="cell" data-execution_count="45">
+<div class="cell" data-execution_count="45">
 <div class="sourceCode cell-code" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.spatial.distance <span class="im">import</span> squareform</span>
 <span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.spatial.distance <span class="im">import</span> pdist</span>
 <span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1612,7 +1530,7 @@ Example: The Correlation Matrix (Using Existing Functions)
 <p>A small value, <code>eps</code>, can be passed to the function <code>build_Psi</code> to improve the condition number. For example, <code>eps=sqrt(spacing(1))</code> can be used. The numpy function <code>spacing()</code> returns the distance between a number and its nearest adjacent number.</p>
 <p>The condition number of a matrix is a measure of its sensitivity to small changes in its elements. It is used to estimate how much the output of a function will change if the input is slightly altered.</p>
 <p>A matrix with a low condition number is well-conditioned, which means its behavior is relatively stable, while a matrix with a high condition number is ill-conditioned, meaning its behavior is unstable with respect to numerical precision.</p>
-<div id="17f3337e" class="cell" data-execution_count="46">
+<div class="cell" data-execution_count="46">
 <div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a well-conditioned matrix (low condition number)</span></span>
@@ -1627,7 +1545,7 @@ Example: The Correlation Matrix (Using Existing Functions)
 Condition number of B:  200000000.53159264</code></pre>
 </div>
 </div>
-<div id="e38c648d" class="cell" data-execution_count="47">
+<div class="cell" data-execution_count="47">
 <div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>np.linalg.cond(Psi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="47">
 <pre><code>2.163953413738652</code></pre>
@@ -1686,19 +1604,15 @@ Condition number of B:  200000000.53159264</code></pre>
 <li>low <span class="math inline">\(\theta_j\)</span> means that all points will have a high correlation, with <span class="math inline">\(Y(x_j)\)</span> being similar across the sample.</li>
 <li>high <span class="math inline">\(\theta_j\)</span> means that there is a significant difference between the <span class="math inline">\(Y(x_j)\)</span>’s.</li>
 <li><span class="math inline">\(\theta_j\)</span> is a measure of how active the function we are approximating is.</li>
-<li>High <span class="math inline">\(\theta_j\)</span> indicate important parameters, see <a href="#fig-theta12" class="quarto-xref">Figure&nbsp;<span>6.10</span></a>.</li>
+<li>High <span class="math inline">\(\theta_j\)</span> indicate important parameters, see <a href="#fig-theta12">Figure&nbsp;<span>6.10</span></a>.</li>
 </ul>
-<div id="cell-fig-theta12" class="cell" data-execution_count="49">
+<div class="cell" data-execution_count="49">
 <div class="sourceCode cell-code" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>visualize_inverse_exp_squared_distance(<span class="dv">5</span>, <span class="dv">0</span>, theta_values<span class="op">=</span>[<span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">2.0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div id="fig-theta12" class="quarto-figure quarto-figure-center quarto-float anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-theta12-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="006_num_gp_files/figure-html/fig-theta12-output-1.png" width="571" height="411" class="figure-img">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-theta12-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6.10: Theta set to 1/2, 1, and 2
-</figcaption>
+<div id="fig-theta12" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="006_num_gp_files/figure-html/fig-theta12-output-1.png" width="571" height="411" class="figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;6.10: Theta set to 1/2, 1, and 2</figcaption>
 </figure>
 </div>
 </div>
@@ -1720,7 +1634,7 @@ Note: The Concentrated Log-Likelihood
 </div>
 <div class="callout-body-container callout-body">
 <ul>
-<li>The first term in <a href="#eq-concentrated-loglikelihood" class="quarto-xref">Equation&nbsp;<span>6.5</span></a> requires information about the measured point (observations) <span class="math inline">\(y_i\)</span>.</li>
+<li>The first term in <a href="#eq-concentrated-loglikelihood">Equation&nbsp;<span>6.5</span></a> requires information about the measured point (observations) <span class="math inline">\(y_i\)</span>.</li>
 <li>To maximize <span class="math inline">\(\ln(L)\)</span>, optimal values of <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span> are determined numerically, because the equation is not differentiable.</li>
 </ul>
 </div>
@@ -1781,7 +1695,7 @@ Note: The Concentrated Log-Likelihood
 <p>This Equation reveals two important properties of the Kriging predictor:</p>
 <ul>
 <li><strong>Basis functions</strong>: The basis function impacts the vector <span class="math inline">\(\vec{\psi}\)</span>, which contains the <span class="math inline">\(n\)</span> correlations between the new point <span class="math inline">\(\vec{x}\)</span> and the observed locations. Values from the <span class="math inline">\(n\)</span> basis functions are added to a mean base term <span class="math inline">\(\mu\)</span> with weightings <span class="math inline">\(\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})\)</span>.</li>
-<li><strong>Interpolation</strong>: The predictions interpolate the sample data. When calculating the prediction at the <span class="math inline">\(i\)</span>th sample point, <span class="math inline">\(\vec{x}^{(i)}\)</span>, the <span class="math inline">\(i\)</span>th column of <span class="math inline">\(\vec{\Psi}^{-1}\)</span> is <span class="math inline">\(\vec{\psi}\)</span>, and <span class="math inline">\(\vec{\psi}  \vec{\Psi}^{-1}\)</span> is the <span class="math inline">\(i\)</span>th unit vector. Hence, <span class="math inline">\(\hat{y}(\vec{x}^{(i)}) = y^{(i)}\)</span>.</li>
+<li><strong>Interpolation</strong>: The predictions interpolate the sample data. When calculating the prediction at the <span class="math inline">\(i\)</span>th sample point, <span class="math inline">\(\vec{x}^{(i)}\)</span>, the <span class="math inline">\(i\)</span>th column of <span class="math inline">\(\vec{\Psi}^{-1}\)</span> is <span class="math inline">\(\vec{\psi}\)</span>, and <span class="math inline">\(\vec{\psi} \vec{\Psi}^{-1}\)</span> is the <span class="math inline">\(i\)</span>th unit vector. Hence, <span class="math inline">\(\hat{y}(\vec{x}^{(i)}) = y^{(i)}\)</span>.</li>
 </ul>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1796,7 +1710,7 @@ Example: Sinusoid Function
 <p>Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced <span class="math inline">\(x\)</span>-locations in the span of a single period of oscillation.</p>
 <p><strong>1. Calculating the Correlation Matrix <span class="math inline">\(\Psi\)</span></strong></p>
 <p>The correlation matrix <span class="math inline">\(\Psi\)</span> is based on the pairwise squared distances between the input locations. Here we will use <span class="math inline">\(n=8\)</span> sample locations and <span class="math inline">\(\theta\)</span> is set to 1.0.</p>
-<div id="af2e2852" class="cell" data-execution_count="50">
+<div class="cell" data-execution_count="50">
 <div class="sourceCode cell-code" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">8</span></span>
 <span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span><span class="op">*</span>np.pi, n, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a><span class="co"># theta should be an array (of one value, for the moment, will be changed later)</span></span>
@@ -1804,25 +1718,21 @@ Example: Sinusoid Function
 <span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a>Psi <span class="op">=</span> build_Psi(X, theta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Evaluate at sample points</p>
-<div id="b496e6a3" class="cell" data-execution_count="51">
+<div class="cell" data-execution_count="51">
 <div class="sourceCode cell-code" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.sin(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="fde7820e" class="cell" data-execution_count="52">
+<div class="cell" data-execution_count="52">
 <div class="sourceCode cell-code" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>plt.plot(X, y, <span class="st">"bo"</span>)</span>
 <span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="ss">f"Sin(x) evaluated at </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> points"</span>)</span>
 <span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-53-output-1.png" width="590" height="431" class="figure-img"></p>
-</figure>
-</div>
+<p><img src="006_num_gp_files/figure-html/cell-53-output-1.png" width="590" height="431"></p>
 </div>
 </div>
 <p><strong>2. Computing the <span class="math inline">\(\psi\)</span> Vector</strong></p>
 <p>Distances between testing locations <span class="math inline">\(x\)</span> and training data locations <span class="math inline">\(X\)</span>.</p>
-<div id="5b09bc6f" class="cell" data-execution_count="53">
+<div class="cell" data-execution_count="53">
 <div class="sourceCode cell-code" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.spatial.distance <span class="im">import</span> cdist</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_psi(X, x, theta, eps<span class="op">=</span>sqrt(spacing(<span class="dv">1</span>))):</span>
@@ -1844,7 +1754,7 @@ Example: Sinusoid Function
 </div>
 <p><strong>3. Predicting at New Locations</strong></p>
 <p>We would like to predict at <span class="math inline">\(m = 100\)</span> new locations in the interval <span class="math inline">\([0, 2\pi]\)</span>. The new locations are stored in the variable <code>x</code>.</p>
-<div id="392813f3" class="cell" data-execution_count="54">
+<div class="cell" data-execution_count="54">
 <div class="sourceCode cell-code" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="dv">100</span></span>
 <span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span><span class="op">*</span>np.pi, m, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>psi <span class="op">=</span> build_psi(X, x, theta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1853,15 +1763,15 @@ Example: Sinusoid Function
 </div>
 </div>
 <p>Computation of the predictive equations.</p>
-<div id="42872cfd" class="cell" data-execution_count="55">
+<div class="cell" data-execution_count="55">
 <div class="sourceCode cell-code" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>U <span class="op">=</span> cholesky(Psi).T</span>
 <span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>one <span class="op">=</span> np.ones(n).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> (one.T.dot(solve(U, solve(U.T, y)))) <span class="op">/</span> one.T.dot(solve(U, solve(U.T, one)))</span>
 <span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> mu <span class="op">*</span> ones(m).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>) <span class="op">+</span> psi.T.dot(solve(U, solve(U.T, y <span class="op">-</span> one <span class="op">*</span> mu)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>To compute <span class="math inline">\(f\)</span>, <a href="#eq-mle-yhat" class="quarto-xref">Equation&nbsp;<span>6.6</span></a> is used.</p>
+<p>To compute <span class="math inline">\(f\)</span>, <a href="#eq-mle-yhat">Equation&nbsp;<span>6.6</span></a> is used.</p>
 <p><strong>4. Visualization</strong></p>
-<div id="6746be71" class="cell" data-execution_count="56">
+<div class="cell" data-execution_count="56">
 <div class="sourceCode cell-code" id="cb79"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>plt.plot(x, f, color <span class="op">=</span> <span class="st">"orange"</span>, label<span class="op">=</span><span class="st">"Fitted"</span>)</span>
 <span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>plt.plot(x, np.sin(x), color <span class="op">=</span> <span class="st">"grey"</span>, label<span class="op">=</span><span class="st">"Original"</span>)</span>
@@ -1870,15 +1780,12 @@ Example: Sinusoid Function
 <span id="cb79-6"><a href="#cb79-6" aria-hidden="true" tabindex="-1"></a>plt.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
 <span id="cb79-7"><a href="#cb79-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="006_num_gp_files/figure-html/cell-57-output-1.png" width="590" height="449" class="figure-img"></p>
-</figure>
+<p><img src="006_num_gp_files/figure-html/cell-57-output-1.png" width="590" height="449"></p>
 </div>
 </div>
 </div>
 </div>
-</div>
+
 <!-- 
 
 ## Exercises
@@ -1906,7 +1813,7 @@ Example: Sinusoid Function
 
 #### Package Loading
 
-::: {#f92827e2 .cell execution_count=57}
+::: {.cell execution_count=57}
 ``` {.python .cell-code}
 %matplotlib inline
 import numpy as np
@@ -1922,7 +1829,7 @@ import matplotlib.pyplot as plt
 
 #### Define a small number
 
-::: {#82afe8b3 .cell execution_count=58}
+::: {.cell execution_count=58}
 ``` {.python .cell-code}
 eps = np.sqrt(np.spacing(1))
 ```
@@ -1934,7 +1841,7 @@ eps = np.sqrt(np.spacing(1))
 * We will use 256 points.
 * The first 10 points are shown below.
 
-::: {#8247e0c9 .cell execution_count=59}
+::: {.cell execution_count=59}
 ``` {.python .cell-code}
 gen = spacefilling(2)
 rng = np.random.RandomState(1)
@@ -1965,7 +1872,7 @@ array([[ 0.67319891, -0.11153561],
 * Here we use $\sum_{i=1}^n (x_i-1)^2$.
 * `f_map()` is a helper function that maps $f$ to the entries (points) in the matrix $X$.
 
-::: {#8b1f261c .cell execution_count=60}
+::: {.cell execution_count=60}
 ``` {.python .cell-code}
 def f(x):
     return np.sum((x-1.0)**2)
@@ -1976,7 +1883,7 @@ def f_map(x):
 :::
 
 
-::: {#1b0eab29 .cell execution_count=61}
+::: {.cell execution_count=61}
 ``` {.python .cell-code}
 y = f_map(X)
 y[1:10]
@@ -1993,7 +1900,7 @@ array([1.34231036, 1.47789766, 4.44347889, 5.9285336 , 3.07230572,
 
 * Alternatively, we can use pre-defined functions from the `pyspot` package:
 
-::: {#c66c710f .cell execution_count=62}
+::: {.cell execution_count=62}
 ``` {.python .cell-code}
 # fun = analytical(sigma=0).fun_branin
 # fun = analytical(sigma=0).fun_sphere
@@ -2001,7 +1908,7 @@ array([1.34231036, 1.47789766, 4.44347889, 5.9285336 , 3.07230572,
 :::
 
 
-::: {#f241f6fb .cell execution_count=63}
+::: {.cell execution_count=63}
 ``` {.python .cell-code}
 XX, YY = np.meshgrid(np.linspace(-1, 2, 128), np.linspace(-1, 2, 128))
 zz = np.array([f_map(np.array([xi, yi]).reshape(-1,2)) for xi, yi in zip(np.ravel(XX), np.ravel(YY))]).reshape(128,128)
@@ -2009,7 +1916,7 @@ zz = np.array([f_map(np.array([xi, yi]).reshape(-1,2)) for xi, yi in zip(np.rave
 :::
 
 
-::: {#00a065e4 .cell execution_count=64}
+::: {.cell execution_count=64}
 ``` {.python .cell-code}
 fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
@@ -2021,7 +1928,7 @@ co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
 :::
 
 
-::: {#221040ad .cell execution_count=65}
+::: {.cell execution_count=65}
 ``` {.python .cell-code}
 fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 10))
@@ -2035,7 +1942,7 @@ co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 10))
 
 #### The Gram Matrix
 
-::: {#7e9143b9 .cell execution_count=66}
+::: {.cell execution_count=66}
 ``` {.python .cell-code}
 def build_Gram(X):
         """
@@ -2052,7 +1959,7 @@ def build_Gram(X):
 :::
 
 
-::: {#43ec0f28 .cell execution_count=67}
+::: {.cell execution_count=67}
 ``` {.python .cell-code}
 G = build_Gram(X)
 np.round(G,2)
@@ -2074,7 +1981,7 @@ array([[0.  , 0.51, 0.57, ..., 0.99, 0.62, 1.39],
 
 #### The Radial Basis Functions
 
-::: {#6c703f0e .cell execution_count=68}
+::: {.cell execution_count=68}
 ``` {.python .cell-code}
 def basis_linear(r):
     return r*r*r
@@ -2082,7 +1989,7 @@ def basis_linear(r):
 :::
 
 
-::: {#b2b71372 .cell execution_count=69}
+::: {.cell execution_count=69}
 ``` {.python .cell-code}
 def basis_gauss(r, sigma = 1e-1):
     return np.exp(-r**2/sigma)
@@ -2092,7 +1999,7 @@ def basis_gauss(r, sigma = 1e-1):
 
 + We select the Gaussian basis function for the following examples:
 
-::: {#b5a59f77 .cell execution_count=70}
+::: {.cell execution_count=70}
 ``` {.python .cell-code}
 basis = basis_gauss
 ```
@@ -2101,7 +2008,7 @@ basis = basis_gauss
 
 #### The $\Psi$ Matrix
 
-::: {#5db715bc .cell execution_count=71}
+::: {.cell execution_count=71}
 ``` {.python .cell-code}
 def build_Phi(G, basis, eps=np.sqrt(np.spacing(1))):
     n = G.shape[0]
@@ -2115,7 +2022,7 @@ def build_Phi(G, basis, eps=np.sqrt(np.spacing(1))):
 :::
 
 
-::: {#31bc92d6 .cell execution_count=72}
+::: {.cell execution_count=72}
 ``` {.python .cell-code}
 Phi = build_Phi(G, basis=basis)
 Phi[0:3,0:3]
@@ -2138,7 +2045,7 @@ matrix([[1.00000001, 0.07413611, 0.03828587],
   * `scipy`'s  `linalg.cholesky()`
 * We will use `numpy`'s version.
 
-::: {#6fd5dcd5 .cell execution_count=73}
+::: {.cell execution_count=73}
 ``` {.python .cell-code}
 def get_rbf_weights(Phi, y):
     """ 
@@ -2156,7 +2063,7 @@ def get_rbf_weights(Phi, y):
 :::
 
 
-::: {#1595fa25 .cell execution_count=74}
+::: {.cell execution_count=74}
 ``` {.python .cell-code}
 w = get_rbf_weights(Phi, y)
 w[0:3]
@@ -2174,7 +2081,7 @@ array([-6.98432952,  3.06393352, -5.13738971])
 
 ##### The Predictor
 
-::: {#8f774df1 .cell execution_count=75}
+::: {.cell execution_count=75}
 ``` {.python .cell-code}
 def pred_rbf(x, X, basis, w):
     n = X.shape[0]
@@ -2191,7 +2098,7 @@ def pred_rbf(x, X, basis, w):
 
 ##### Testing some Example Points
 
-::: {#d5f14d3f .cell execution_count=76}
+::: {.cell execution_count=76}
 ``` {.python .cell-code}
 x = X[0]
 x
@@ -2207,7 +2114,7 @@ array([ 0.76153494, -0.61391197])
 
 ##### The RBF Prediction $\hat{f}$
 
-::: {#459645c4 .cell execution_count=77}
+::: {.cell execution_count=77}
 ``` {.python .cell-code}
 pred_rbf(x=x, X=X, basis=basis, w=w)
 ```
@@ -2222,7 +2129,7 @@ pred_rbf(x=x, X=X, basis=basis, w=w)
 
 ##### The Original (True) Value $f$
 
-::: {#052923f4 .cell execution_count=78}
+::: {.cell execution_count=78}
 ``` {.python .cell-code}
 f_map(np.array(x).reshape(1,-1))
 ```
@@ -2237,7 +2144,7 @@ array([2.66157742])
 
 ##### Visualizations
 
-::: {#2d1ad976 .cell execution_count=79}
+::: {.cell execution_count=79}
 ``` {.python .cell-code}
 XX, YY = np.meshgrid(np.linspace(-1, 2, 128), np.linspace(-1, 2, 128))
 zz = np.array([pred_rbf(x=np.array([xi, yi]), X=X, basis=basis,w=w) for xi, yi in zip(np.ravel(XX), np.ravel(YY))]).reshape(128,128)
@@ -2245,7 +2152,7 @@ zz = np.array([pred_rbf(x=np.array([xi, yi]), X=X, basis=basis,w=w) for xi, yi i
 :::
 
 
-::: {#a8f17e4d .cell execution_count=80}
+::: {.cell execution_count=80}
 ``` {.python .cell-code}
 fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
@@ -2257,7 +2164,7 @@ co = ax.pcolormesh(XX, YY, zz, vmin=-1, vmax=1, cmap='RdBu_r')
 :::
 
 
-::: {#d8ea4d18 .cell execution_count=81}
+::: {.cell execution_count=81}
 ``` {.python .cell-code}
 fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
 co = ax.contourf(XX, YY, zz, levels=np.linspace(0,2, 5))
@@ -2279,7 +2186,7 @@ The original function $f$ is cheaper than the surrogate $\hat{f}$ in this exampl
 
 * $U$ is an upper triangular matrix
 
-::: {#a7d6af4b .cell execution_count=82}
+::: {.cell execution_count=82}
 ``` {.python .cell-code}
 def cholesky_U(A):
     N = A.shape[0]
@@ -2305,7 +2212,7 @@ def cholesky_U(A):
 
 $L$ is a lower triangular matrix
 
-::: {#d08a25d5 .cell execution_count=83}
+::: {.cell execution_count=83}
 ``` {.python .cell-code}
 def cholesky_L(A):
     N = A.shape[0]
@@ -2329,7 +2236,7 @@ def cholesky_L(A):
 
 #### Example
 
-::: {#55dcd88a .cell execution_count=84}
+::: {.cell execution_count=84}
 ``` {.python .cell-code}
 A = np.array([[4, 2, 4, 4], [2, 10, 5, 2], [4, 5, 9, 6], [4, 2, 6, 9]])
 A
@@ -2348,7 +2255,7 @@ array([[ 4,  2,  4,  4],
 
 #### Check: Is $A$ positive definite?
 
-::: {#324a2b2e .cell execution_count=85}
+::: {.cell execution_count=85}
 ``` {.python .cell-code}
 assert(np.all(np.linalg.eigvals(A) > 0))
 ```
@@ -2359,7 +2266,7 @@ assert(np.all(np.linalg.eigvals(A) > 0))
 
 Perform Cholesky Factorization
 
-::: {#359d81f9 .cell execution_count=86}
+::: {.cell execution_count=86}
 ``` {.python .cell-code}
 U = cholesky_U(A)
 U
@@ -2378,7 +2285,7 @@ array([[2., 1., 2., 2.],
 
 Test Result
 
-::: {#1963c4b7 .cell execution_count=87}
+::: {.cell execution_count=87}
 ``` {.python .cell-code}
 U.T @ U
 ```
@@ -2396,7 +2303,7 @@ array([[ 4.,  2.,  4.,  4.],
 
 ####  $A = L L^T$
 
-::: {#8db857a8 .cell execution_count=88}
+::: {.cell execution_count=88}
 ``` {.python .cell-code}
 L = cholesky_L(A)
 L
@@ -2415,7 +2322,7 @@ array([[2., 0., 0., 0.],
 
 Test Result
 
-::: {#afc2bdc5 .cell execution_count=89}
+::: {.cell execution_count=89}
 ``` {.python .cell-code}
 L @ L.T
 ```
@@ -2448,7 +2355,7 @@ array([[ 4.,  2.,  4.,  4.],
 * Do you have any ideas how to fix this error? -->
 
 
-<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
 <div id="ref-bart21i" class="csl-entry" role="listitem">
 Bartz, Eva, Thomas Bartz-Beielstein, Martin Zaefferer, and Olaf Mersmann, eds. 2022. <em><span class="nocase">Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide</span></em>. Springer.
 </div>
@@ -2542,9 +2449,10 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+  function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
+      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -2554,17 +2462,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start',
+      placement: 'bottom-start'
     };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -2577,120 +2476,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
-          }
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
-        }
-        return container.innerHTML
-      } else {
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      return note.innerHTML;
-    }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
-          }
-        } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
-            if (note !== null) {
-              const html = processXRef(id, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -2734,7 +2519,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
-            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -2760,32 +2544,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -2847,18 +2605,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./005_num_rsm.html" class="pagination-link  aria-label=" &lt;span="" numerical="" methods&lt;="" span&gt;"="">
+      <a href="./005_num_rsm.html" class="pagination-link">
         <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./007_num_spot_intro.html" class="pagination-link" aria-label="<span class='chapter-number'>7</span>&nbsp; <span class='chapter-title'>Introduction to `spotPython`</span>">
+      <a href="./007_num_spot_intro.html" class="pagination-link">
         <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to <code>spotPython</code></span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
-
 
 
 
