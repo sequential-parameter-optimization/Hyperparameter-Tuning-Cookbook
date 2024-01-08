@@ -21,13 +21,12 @@ from scipy.optimize import direct
 from scipy.optimize import differential_evolution
 from scipy.optimize import dual_annealing
 from scipy.optimize import basinhopping
+from spotPython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init
 ```
 
 ## The Objective Function Branin
 
-* The `spotPython` package provides several classes of objective functions.
-* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula.
-* Here we will use the Branin function. The 2-dim Branin function is
+The `spotPython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula. Here we will use the Branin function. The 2-dim Branin function is
 
     $$y = a * (x2 - b * x1**2 + c * x1 - r) ** 2 + s * (1 - t) * cos(x1) + s,$$ 
     where values of a, b, c, r, s and t are: 
@@ -43,63 +42,54 @@ from scipy.optimize import basinhopping
 from spotPython.fun.objectivefunctions import analytical
 lower = np.array([-5,-0])
 upper = np.array([10,15])
-```
-
-```{python}
 fun = analytical(seed=123).fun_branin
 ```
 
 ## The Optimizer
 
-* Differential Evalution from the `scikit.optimize` package, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution) is the default optimizer for the search on the surrogate.
-* Other optimiers that are available in `spotPython`:
-    * `dual_annealing`
-    *  `direct`
-    * `shgo`
-    * `basinhopping`, see [https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization](https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization).
+Differential Evolution (DE) from the `scikit.optimize` package, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution) is the default optimizer for the search on the surrogate.
+Other optimiers that are available in `spotPython`, see [https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization](https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization).
 
-* These can be selected as follows:
+  * `dual_annealing`
+  *  `direct`
+  * `shgo`
+  * `basinhopping`
 
-    ` surrogate_control = "model_optimizer": differential_evolution`
+These optimizers can be selected as follows:
 
-* We will use `differential_evolution`.
-* The optimizer can use `1000` evaluations. This value will be passed to the `differential_evolution` method, which has the argument `maxiter` (int). It defines the maximum number of generations over which the entire differential evolution population is evolved, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution)
+  `surrogate_control = "model_optimizer": differential_evolution`
+
+As noted above, we will use `differential_evolution`. The optimizer can use `1000` evaluations. This value will be passed to the `differential_evolution` method, which has the argument `maxiter` (int). It defines the maximum number of generations over which the entire differential evolution population is evolved, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution)
 
 
 :::{.callout-note}
 #### TensorBoard
 
-Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:
+Similar to the one-dimensional case, which is discussed in @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use a similar code, only the prefix is different:
 
 ```{python}
-from spotPython.utils.file import get_experiment_name
-from spotPython.utils.init import fun_control_init
-
-PREFIX = "05_DE_"
-experiment_name = get_experiment_name(prefix=PREFIX)
-print(experiment_name)
+fun_control=fun_control_init(
+                    lower = lower,
+                    upper = upper,
+                    fun_evals = 20,
+                    PREFIX = "04_DE_"
+                    )
+surrogate_control=surrogate_control_init(
+                    n_theta=len(lower))
 ```
 
 :::
 
 ```{python}
-from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init
 spot_de = spot.Spot(fun=fun,
-                    fun_control=fun_control_init(
-                    lower = lower,
-                    upper = upper,
-                    fun_evals = 20,
-                    max_time = inf,
-                    seed=125,
-                    ),
-                    design_control=design_control_init(init_size=10),
-                    surrogate_control=surrogate_control_init(n_theta=len(lower)))                
+                    fun_control=fun_control,
+                    surrogate_control=surrogate_control)
 spot_de.run()
 ```
 
 ### TensorBoard
 
-Now we can start TensorBoard in the background with the following command:
+If the `prefix` argument in `fun_control_init()`is not `None` (as above, where the `prefix` was set to `04_DE_`) , we can start TensorBoard in the background with the following command:
 
 ```{raw}
 tensorboard --logdir="./runs"
@@ -137,39 +127,116 @@ spot_de.surrogate.plot()
 
 ### `dual_annealing`
 
-* Describe the optimization algorithm
-* Use the algorithm as an optimizer on the surrogate
+* Describe the optimization algorithm, see [scipy.optimize.dual_annealing](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html).
+* Use the algorithm as an optimizer on the surrogate.
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotPython with the `dual_annealing` optimizer as follows:
+
+```{python}
+spot_da = spot.Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=dual_annealing,
+                    surrogate_control=surrogate_control)
+spot_da.run()
+spot_da.print_results()
+spot_da.plot_progress(log_y=True)
+spot_da.surrogate.plot()
+```
+
+:::
+
 
 ### `direct`
 
 * Describe the optimization algorithm
 * Use the algorithm as an optimizer on the surrogate
 
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotPython with the `direct` optimizer as follows:
+
+```{python}
+spot_di = spot.Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=direct,
+                    surrogate_control=surrogate_control)
+spot_di.run()
+spot_di.print_results()
+spot_di.plot_progress(log_y=True)
+spot_di.surrogate.plot()
+```
+
+:::
+
 ### `shgo`
 
 * Describe the optimization algorithm
 * Use the algorithm as an optimizer on the surrogate
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotPython with the `direct` optimizer as follows:
+
+```{python}
+spot_sh = spot.Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=shgo,
+                    surrogate_control=surrogate_control)
+spot_sh.run()
+spot_sh.print_results()
+spot_sh.plot_progress(log_y=True)
+spot_sh.surrogate.plot()
+```
+
+:::
+
+
 
 ### `basinhopping`
 
 * Describe the optimization algorithm
 * Use the algorithm as an optimizer on the surrogate
 
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotPython with the `direct` optimizer as follows:
+
+```{python}
+spot_bh = spot.Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=basinhopping,
+                    surrogate_control=surrogate_control)
+spot_bh.run()
+spot_bh.print_results()
+spot_bh.plot_progress(log_y=True)
+spot_bh.surrogate.plot()
+```
+
+:::
+
+
 ### Performance Comparison
 
 Compare the performance and run time of the 5 different optimizers:
 
-    * `differential_evolution`
-    * `dual_annealing`
-    *  `direct`
-    * `shgo`
-    * `basinhopping`.
+  * `differential_evolution`
+  * `dual_annealing`
+  *  `direct`
+  * `shgo`
+  * `basinhopping`.
 
 The Branin function has three global minima:
 
-  * $f(x) = 0.397887$  at 
-    * $(-\pi, 12.275)$, 
-    * $(\pi, 2.275)$, and 
-    * $(9.42478, 2.475)$.    
-  * Which optima are found by the optimizers? Does the `seed` change this behavior?
+* $f(x) = 0.397887$  at 
+  * $(-\pi, 12.275)$, 
+  * $(\pi, 2.275)$, and 
+  * $(9.42478, 2.475)$.    
+* Which optima are found by the optimizers?
+* Does the `seed` argument in `fun = analytical(seed=123).fun_branin` change this behavior?
 

@@ -124,9 +124,6 @@ class RNNLightRegression(L.LightningModule):
         Returns:
             (NoneType): None
 
-        Raises:
-            ValueError: If l1 is less than 4.
-
         """
         super().__init__()
         # Attribute 'act_fn' is an instance of `nn.Module` and is already saved during
@@ -142,9 +139,10 @@ class RNNLightRegression(L.LightningModule):
         # set log_graph=True in Trainer to see the graph (in traintest.py)
         self.example_input_array = torch.zeros((batch_size, self._L_in))
 
-        # # Initialize RNN
-        # # input_size = number of features (= 11)
-        # # num_layers=1: only a single RNN and not stacked
+        # Initialize RNN
+        # input_size = number of features is defined via _L_in
+        # output size via _L_out
+        # num_layers=1: only a single RNN and not stacked
         rnn_units = self.hparams.l1
         fc_units = self.hparams.l1
 
@@ -170,34 +168,15 @@ class RNNLightRegression(L.LightningModule):
         # self.dropout1 = nn.Dropout(dropout[0])
         # self.dropout2 = nn.Dropout(dropout[1])
         # self.dropout3 = nn.Dropout(dropout[2])
-        # # TODO: use different dropout for different layers
+        # # TODO: use enhanced dropout management for different layers
         self.dropout1 = nn.Dropout(self.hparams.dropout_prob)
         self.dropout2 = nn.Dropout(self.hparams.dropout_prob // 10.0)
         self.dropout3 = nn.Dropout(self.hparams.dropout_prob // 100.0)
 
-        activation_fct = nn.ReLU()
-        self.activation_fct = activation_fct
-        # self.activation_fct = self.hparams.act_fn
-
-        # ###########################################
-        # old:
-        # if self.hparams.l1 < 4:
-        #    raise ValueError("l1 must be at least 4")
-        # hidden_sizes = [self.hparams.l1, self.hparams.l1 // 2, self.hparams.l1 // 2, self.hparams.l1 // 4]
-        # Create the network based on the specified hidden sizes
-        # layers = []
-        # layer_sizes = [self._L_in] + hidden_sizes
-        # layer_size_last = layer_sizes[0]
-        # for layer_size in layer_sizes[1:]:
-        #     layers += [
-        #         nn.Linear(layer_size_last, layer_size),
-        #         self.hparams.act_fn,
-        #         nn.Dropout(self.hparams.dropout_prob),
-        #     ]
-        #     layer_size_last = layer_size
-        # layers += [nn.Linear(layer_sizes[-1], self._L_out)]
-        # # nn.Sequential summarizes a list of modules into a single module, applying them in sequence
-        # self.layers = nn.Sequential(*layers)
+        # TODO: Enable different activation functions
+        # activation_fct = nn.ReLU()
+        # self.activation_fct = activation_fct
+        self.activation_fct = self.hparams.act_fn
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -227,22 +206,13 @@ class RNNLightRegression(L.LightningModule):
         # print(f"output_layer: {x.shape}")
         return x
 
-        # old:
-        # x = self.layers(x)
-        # # check if the number of columns in x is 1, otherwise throw an error
-        # try:
-        #     assert x.shape[1] == 1
-        # except AssertionError:
-        #     print(f"forward x.shape: {x.shape}")
-        #     raise AssertionError("Number of columns in x is not 1.")
-        # return x
-
-    def training_step(self, batch: tuple) -> torch.Tensor:
+    def training_step(self, batch: tuple, prog_bar: bool = False) -> torch.Tensor:
         """
         Performs a single training step.
 
         Args:
             batch (tuple): A tuple containing a batch of input data and labels.
+            prog_bar (bool, optional): Whether to display the progress bar. Defaults to False.
 
         Returns:
             torch.Tensor: A tensor containing the loss for this batch.
@@ -251,26 +221,14 @@ class RNNLightRegression(L.LightningModule):
         x, y = batch
         # reshape the tensor y to be a column vector (len(y) rows and 1 column)
         y = y.view(len(y), 1)
-        # check if the number of rows in x is equal to the number of rows in y, otherwise throw an error
-        try:
-            assert x.shape[0] == y.shape[0]
-        except AssertionError:
-            print(f"training_step x.shape: {x.shape}")
-            print(f"training_step y.shape: {y.shape}")
-            raise AssertionError("Number of rows in x and y must be equal")
+        # Note: the number of rows in x is equal to the number of rows in y
         y_hat = self(x)
-        # check if the number of rows in y_hat is equal to the number of rows in y, otherwise throw an error
-        try:
-            assert y_hat.shape[0] == y.shape[0]
-        except AssertionError:
-            print(f"training_step y_hat.shape: {y_hat.shape}")
-            print(f"training_step y.shape: {y.shape}")
-            raise AssertionError("Number of rows in y_hat and y must be equal")
-        val_loss = F.mse_loss(y_hat, y)
+        # Note: the number of rows in y_hat is equal to the number of rows in y
+        train_loss = F.mse_loss(y_hat, y)
         # mae_loss = F.l1_loss(y_hat, y)
         # self.log("train_loss", val_loss, on_step=True, on_epoch=True, prog_bar=True)
         # self.log("train_mae_loss", mae_loss, on_step=True, on_epoch=True, prog_bar=True)
-        return val_loss
+        return train_loss
 
     def validation_step(self, batch: tuple, batch_idx: int, prog_bar: bool = False) -> torch.Tensor:
         """
@@ -332,7 +290,6 @@ class RNNLightRegression(L.LightningModule):
             torch.optim.Optimizer: The optimizer to use during training.
 
         """
-        # optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         optimizer = optimizer_handler(
             optimizer_name=self.hparams.optimizer, params=self.parameters(), lr_mult=self.hparams.lr_mult
         )
