@@ -1340,9 +1340,10 @@ $$
 \hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
 $$ {#eq-mle-yhat}
 
+
 ### Properties of the Predictor
 
-This Equation reveals two important properties of the Kriging predictor:
+@eq-mle-yhat reveals two important properties of the Kriging predictor:
 
 1. Basis functions: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
 2. Interpolation: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
@@ -1433,6 +1434,184 @@ plt.title("Kriging prediction of sin(x) with {} points.\n theta: {}".format(n, t
 plt.legend(loc='upper right')
 plt.show()
 ```
+
+
+## Cholesky Example With Two Points
+
+### Cholesky Decomposition
+
+We consider $k=1$ and $n=2$ sample points. The sample points are located at $x_1=1$ and $x_2=5$. 
+The response values are $y_1=2$ and $y_2=10$. The correlation parameter is $\theta=1$ and $p$ is set to $1$.
+Using @eq-krigingbase, we can compute the correlation matrix $\Psi$:
+
+$$
+\Psi = \begin{pmatrix}
+1 & e^{-1}\\
+e^{-1} & 1
+\end{pmatrix}.
+$$
+
+To determine MLE as in @eq-mle-yhat, we need to compute $\Psi^{-1}$:
+
+$$
+\Psi^{-1} = \frac{e}{e^2 -1} \begin{pmatrix}
+e & -1\\
+-1 & e
+\end{pmatrix}.
+$$
+
+Cholesky-decomposition of $\Psi$ is recommended to compute $\Psi^{-1}$. Cholesky decomposition is a decomposition of a positive definite symmetric matrix into the product of a lower triangular matrix $L$, a diagonal matrix $D$ and the transpose of $L$, which is denoted as $L^T$.
+Consider the following example:
+
+$$
+LDL^T=
+\begin{pmatrix}
+1 & 0 \\
+l_{21} & 1
+\end{pmatrix}
+\begin{pmatrix}
+d_{11} & 0 \\
+0 & d_{22}
+\end{pmatrix}
+\begin{pmatrix}
+1 & l_{21} \\
+0 & 1
+\end{pmatrix}=
+$$
+
+$$
+\begin{pmatrix}
+d_{11} & 0 \\
+d_{11} l_{21} & d_{22}
+\end{pmatrix}
+\begin{pmatrix}
+1 & l_{21} \\
+0 & 1
+\end{pmatrix}
+=
+\begin{pmatrix}
+d_{11} & d_{11} l_{21} \\
+d_{11} l_{21} & d_{11} l_{21}^2 + d_{22}
+\end{pmatrix}.
+$$ {#eq-cholex}
+
+
+
+Using @eq-cholex, we can compute the Cholesky decomposition of $\Psi$:
+
+1. $d_{11} = 1$,
+2. $l_{21}d_{11} = e^{-1} \Rightarrow l_{21} = e^{-1}$, and
+3. $d_{11} l_{21}^2 + d_{22} = 1 \Rightarrow d_{22} = 1 - e^{-2}$.
+
+The Cholesky decomposition of $\Psi$ is
+$$
+\Psi = \begin{pmatrix}
+1 & 0\\
+e^{-1} & 1\\
+\end{pmatrix}
+\begin{pmatrix}
+1 & 0\\
+0 & 1 - e^{-2}\\
+\end{pmatrix}
+\begin{pmatrix}
+1 & e^{-1}\\
+0 & 1\\
+\end{pmatrix}
+= LDL^T$$
+
+Some programs use $U$ instead of $L$. The Cholesky decomposition of $\Psi$ is
+$$
+\Psi = LDL^T = U^TDU.
+$$
+
+Using 
+$$
+\sqrt{D} =\begin{pmatrix}
+1 & 0\\
+0 & \sqrt{1 - e^{-2}}\\
+\end{pmatrix},
+$$
+we can write the Cholesky decomposition of $\Psi$ without a diagonal matrix $D$ as
+$$
+\Psi = \begin{pmatrix}
+1 & 0\\
+e^{-1} & \sqrt{1 - e^{-2}}\\
+\end{pmatrix}
+\begin{pmatrix}
+1 & e^{-1}\\
+0 & \sqrt{1 - e^{-2}}\\
+\end{pmatrix}
+= U^TU.
+$$
+
+
+### Computation of the Inverse Matrix
+
+To compute the inverse of a matrix using the Cholesky decomposition, you can follow these steps:
+
+1. Decompose the matrix $A$ into $L$ and $L^T$, where $L$ is a lower triangular matrix and $L^T$ is the transpose of $L$.
+2. Compute $L^{-1}$, the inverse of $L$.
+3. The inverse of $A$ is then $(L^{-1})^T  L^-1$.
+
+Please note that this method only applies to symmetric, positive-definite matrices.
+
+The inverse of the matrix $\Psi$ from above is:
+
+$$
+\Psi^{-1} = \frac{e}{e^2 -1} \begin{pmatrix}
+e & -1\\
+-1 & e
+\end{pmatrix}.
+$$
+
+
+Here’s an example of how to compute the inverse of a matrix using Cholesky decomposition in Python:
+
+```{python}
+import numpy as np
+from scipy.linalg import cholesky, inv
+E = np.exp(1)
+
+# Psi is a symmetric, positive-definite matrix 
+Psi = np.array([[1, 1/E], [1/E, 1]])
+L = cholesky(Psi, lower=True)
+L_inv = inv(L)
+# The inverse of A is (L^-1)^T * L^-1
+Psi_inv = np.dot(L_inv.T, L_inv)
+
+print("Psi:\n", Psi)
+print("Psi Inverse:\n", Psi_inv)
+```
+
+
+<!-- 
+
+```{python}
+from spotPython.build.kriging import Kriging
+import numpy as np
+nat_X = np.array([[1], [2]])
+nat_y = np.array([5, 10])
+n=2
+p=1
+S=Kriging(name='kriging', seed=124, n_theta=n, n_p=p, optim_p=True, noise=False, theta_init_zero=True)
+S.initialize_variables(nat_X, nat_y)
+S.set_variable_types()
+S.set_theta_values()
+S.initialize_matrices()
+S.build_Psi()
+S.build_U()
+S.likelihood()
+# assert S.mu is close to 7.5 with a tolerance of 1e-6
+assert np.allclose(S.mu, 7.5, atol=1e-6)
+E = np.exp(1)
+sigma2 = E/(E**2 -1) * (25/4 + 25/4*E)
+# asssert S.SigmaSqr is close to sigma2 with a tolerance of 1e-6
+assert np.allclose(S.SigmaSqr, sigma2, atol=1e-6)
+``` 
+-->
+
+
+
 
 
 <!-- 
