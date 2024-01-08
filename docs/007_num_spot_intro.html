@@ -382,6 +382,7 @@ window.Quarto = {
   <li><a href="#example-spot-and-the-sphere-function" id="toc-example-spot-and-the-sphere-function" class="nav-link active" data-scroll-target="#example-spot-and-the-sphere-function"><span class="header-section-number">7.1</span> Example: <code>Spot</code> and the Sphere Function</a>
   <ul class="collapse">
   <li><a href="#the-objective-function-sphere" id="toc-the-objective-function-sphere" class="nav-link" data-scroll-target="#the-objective-function-sphere"><span class="header-section-number">7.1.1</span> The Objective Function: Sphere</a></li>
+  <li><a href="#the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model" id="toc-the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model" class="nav-link" data-scroll-target="#the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model"><span class="header-section-number">7.1.2</span> The <code>Spot</code> Method as an Optimization Algorithm Using a Surrogate Model</a></li>
   </ul></li>
   <li><a href="#spot-parameters-fun_evals-init_size-and-show_models" id="toc-spot-parameters-fun_evals-init_size-and-show_models" class="nav-link" data-scroll-target="#spot-parameters-fun_evals-init_size-and-show_models"><span class="header-section-number">7.2</span> <code>Spot</code> Parameters: <code>fun_evals</code>, <code>init_size</code> and <code>show_models</code></a></li>
   <li><a href="#print-the-results" id="toc-print-the-results" class="nav-link" data-scroll-target="#print-the-results"><span class="header-section-number">7.3</span> Print the Results</a></li>
@@ -422,31 +423,30 @@ window.Quarto = {
 <li>Optimize on surrogate: <span class="math inline">\(X_0 =  \text{optimize}(S)\)</span></li>
 <li>Evaluate on real objective: <span class="math inline">\(y_0 = f(X_0)\)</span></li>
 <li>Impute (Infill) new points: <span class="math inline">\(X = X \cup X_0\)</span>, <span class="math inline">\(y = y \cup y_0\)</span>.</li>
-<li>Got 3.</li>
+<li>Goto 3.</li>
 </ol>
 <p>Central Idea: Evaluation of the surrogate model <code>S</code> is much cheaper (or / and much faster) than running the real-world experiment <span class="math inline">\(f\)</span>. We start with a small example.</p>
 <section id="example-spot-and-the-sphere-function" class="level2" data-number="7.1">
 <h2 data-number="7.1" class="anchored" data-anchor-id="example-spot-and-the-sphere-function"><span class="header-section-number">7.1</span> Example: <code>Spot</code> and the Sphere Function</h2>
-<div id="126d553e" class="cell" data-execution_count="1">
+<div id="e369f6c8" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> shgo</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> direct</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> differential_evolution</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init, design_control_init</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> set_control_key_value</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="the-objective-function-sphere" class="level3" data-number="7.1.1">
 <h3 data-number="7.1.1" class="anchored" data-anchor-id="the-objective-function-sphere"><span class="header-section-number">7.1.1</span> The Objective Function: Sphere</h3>
 <p>The <code>spotPython</code> package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: <span class="math display">\[
 f(x) = x^2
 \]</span></p>
-<div id="4dc4fd60" class="cell" data-execution_count="2">
+<div id="677705b7" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We can apply the function <code>fun</code> to input values and plot the result:</p>
-<div id="19a7f398" class="cell" data-execution_count="3">
+<div id="23831b55" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>plt.figure()</span>
@@ -460,15 +460,16 @@ f(x) = x^2
 </div>
 </div>
 </div>
-<div id="3a52b3e7" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>spot_0 <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control_init(</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                   lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                   upper <span class="op">=</span> np.array([<span class="dv">1</span>])))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="1d4bad13" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>spot_0.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model" class="level3" data-number="7.1.2">
+<h3 data-number="7.1.2" class="anchored" data-anchor-id="the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model"><span class="header-section-number">7.1.2</span> The <code>Spot</code> Method as an Optimization Algorithm Using a Surrogate Model</h3>
+<p>We initialize the <code>fun_control</code> dictionary. The <code>fun_control</code> dictionary contains the parameters for the objective function. The <code>fun_control</code> dictionary is passed to the <code>Spot</code> method.</p>
+<div id="82619943" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fun_control<span class="op">=</span>fun_control_init(lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                     upper <span class="op">=</span> np.array([<span class="dv">1</span>]))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>spot_0 <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>spot_0.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 1.1986325668379847e-08 [#######---] 73.33% 
 spotPython tuning: 1.1986325668379847e-08 [########--] 80.00% 
@@ -477,36 +478,48 @@ spotPython tuning: 1.1385311249270152e-08 [#########-] 93.33%
 spotPython tuning: 5.189351944607845e-10 [##########] 100.00% Done...
 </code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="5">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x2d6344bd0&gt;</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="106">
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2e09e4ad0&gt;</code></pre>
 </div>
 </div>
-<div id="6a03d5b4" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>spot_0.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Print the results:</p>
+<div id="d5c87e96" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spot_0.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 5.189351944607845e-10
 x0: 2.2780149131662516e-05</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display" data-execution_count="107">
 <pre><code>[['x0', 2.2780149131662516e-05]]</code></pre>
 </div>
 </div>
-<div id="cee8e7d7" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>spot_0.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Plot the search progress:</p>
+<div id="cell-fig-spot-progress" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>spot_0.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="007_num_spot_intro_files/figure-html/cell-8-output-1.png" width="729" height="261" class="figure-img"></p>
+<div id="fig-spot-progress" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-spot-progress-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="007_num_spot_intro_files/figure-html/fig-spot-progress-output-1.png" width="729" height="261" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-spot-progress-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.1: Visualization of the search progress of the <code>Spot</code> method. The black elements (points and line) represent the initial design, before the surrogate is build. The red elements represent the search on the surrogate.
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div id="783de4a3" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>spot_0.plot_model()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-fig-spot-model-1d" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>spot_0.plot_model()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="007_num_spot_intro_files/figure-html/cell-9-output-1.png" width="604" height="449" class="figure-img"></p>
+<div id="fig-spot-model-1d" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-spot-model-1d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="007_num_spot_intro_files/figure-html/fig-spot-model-1d-output-1.png" width="604" height="449" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-spot-model-1d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.2: Visualization of the model and the underlying objective function values.
+</figcaption>
 </figure>
 </div>
 </div>
@@ -517,63 +530,62 @@ x0: 2.2780149131662516e-05</code></pre>
 <h2 data-number="7.2" class="anchored" data-anchor-id="spot-parameters-fun_evals-init_size-and-show_models"><span class="header-section-number">7.2</span> <code>Spot</code> Parameters: <code>fun_evals</code>, <code>init_size</code> and <code>show_models</code></h2>
 <p>We will modify three parameters:</p>
 <ol type="1">
-<li>The number of function evaluations (<code>fun_evals</code>)</li>
-<li>The size of the initial design (<code>init_size</code>)</li>
-<li>The parameter <code>show_models</code>, which visualizes the search process for 1-dim functions.</li>
+<li>The number of function evaluations (<code>fun_evals</code>) will be set to <code>10</code> (instead of 15, which is the default value) in the <code>fun_control</code> dictionary.</li>
+<li>The parameter <code>show_models</code>, which visualizes the search process for each single iteration for 1-dim functions, in the <code>fun_control</code> dictionary.</li>
+<li>The size of the initial design (<code>init_size</code>) in the <code>design_control</code> dictionary.</li>
 </ol>
-<p>The full list of the <code>Spot</code> parameters is shown in the Help System and in the notebook <code>spot_doc.ipynb</code>.</p>
-<div id="9241065a" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> design_control_init</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>spot_1 <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control_init(</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                   lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                   upper <span class="op">=</span> np.array([<span class="dv">2</span>]),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                   fun_evals<span class="op">=</span> <span class="dv">10</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                   seed<span class="op">=</span><span class="dv">123</span>,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                   show_models<span class="op">=</span><span class="va">True</span>),</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>design_control_init(init_size<span class="op">=</span><span class="dv">9</span>))</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>spot_1.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The full list of the <code>Spot</code> parameters is shown in code reference on GitHub, see <a href="https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/spot/spot/#spotPython.spot.spot">Spot</a>.</p>
+<div id="4e77bb25" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fun_control<span class="op">=</span>fun_control_init(lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                     upper <span class="op">=</span> np.array([<span class="dv">1</span>]),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                     fun_evals <span class="op">=</span> <span class="dv">10</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                     show_models <span class="op">=</span> <span class="va">True</span>)               </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>spot_1 <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>design_control)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>spot_1.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="007_num_spot_intro_files/figure-html/cell-10-output-1.png" width="600" height="449" class="figure-img"></p>
+<p><img src="007_num_spot_intro_files/figure-html/cell-9-output-1.png" width="604" height="449" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="007_num_spot_intro_files/figure-html/cell-10-output-2.png" width="600" height="449" class="figure-img"></p>
+<p><img src="007_num_spot_intro_files/figure-html/cell-9-output-2.png" width="604" height="449" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>spotPython tuning: 3.675700131680327e-07 [##########] 100.00% Done...
+<pre><code>spotPython tuning: 1.1624309649016718e-08 [##########] 100.00% Done...
 </code></pre>
 </div>
 </div>
 </section>
 <section id="print-the-results" class="level2" data-number="7.3">
 <h2 data-number="7.3" class="anchored" data-anchor-id="print-the-results"><span class="header-section-number">7.3</span> Print the Results</h2>
-<div id="b519e5d1" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>spot_1.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="8b594fb8" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>spot_1.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>min y: 3.675700131680327e-07
-x0: -0.0006062755257867768</code></pre>
+<pre><code>min y: 1.1624309649016718e-08
+x0: -0.00010781609179068177</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="10">
-<pre><code>[['x0', -0.0006062755257867768]]</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="111">
+<pre><code>[['x0', -0.00010781609179068177]]</code></pre>
 </div>
 </div>
 </section>
 <section id="show-the-progress" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="show-the-progress"><span class="header-section-number">7.4</span> Show the Progress</h2>
-<div id="b7cb571e" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>spot_1.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="b4c53be5" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>spot_1.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="007_num_spot_intro_files/figure-html/cell-12-output-1.png" width="707" height="261" class="figure-img"></p>
+<p><img src="007_num_spot_intro_files/figure-html/cell-11-output-1.png" width="719" height="261" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -583,27 +595,23 @@ x0: -0.0006062755257867768</code></pre>
 <h2 data-number="7.5" class="anchored" data-anchor-id="sec-visualizing-tensorboard-01"><span class="header-section-number">7.5</span> Visualizing the Optimization and Hyperparameter Tuning Process with TensorBoard</h2>
 <p><code>spotPython</code> supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with <code>spotPython</code>.</p>
 <p>First, we define an “PREFIX” to identify the hyperparameter tuning process. The PREFIX is used to create a directory for the TensorBoard files.</p>
-<div id="9635467d" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> <span class="st">"01"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="ef226fd7" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    PREFIX<span class="op">=</span>PREFIX,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    upper <span class="op">=</span> np.array([<span class="dv">2</span>]))</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="2463eab0" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    PREFIX <span class="op">=</span> <span class="st">"01"</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    upper <span class="op">=</span> np.array([<span class="dv">2</span>]))</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Created spot_tensorboard_path: runs/spot_logs/01_p040025_2024-01-08_14-56-18 for SummaryWriter()</code></pre>
+<pre><code>Created spot_tensorboard_path: runs/spot_logs/01_p040025_2024-01-09_00-40-37 for SummaryWriter()</code></pre>
 </div>
 </div>
-<p>Since the <code>spot_tensorboard_path</code> is defined, <code>spotPython</code> will log the optimization process in the TensorBoard files. The TensorBoard files are stored in the directory <code>spot_tensorboard_path</code>. We can pass the TensorBoard information to the <code>Spot</code> method via the <code>fun_control</code> dictionary.</p>
-<div id="70141241" class="cell" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>design_control)</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>spot_tuner.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Since the <code>spot_tensorboard_path</code> is defined, <code>spotPython</code> will log the optimization process in the TensorBoard files.</p>
+<div id="f949fc2b" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>design_control)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>spot_tuner.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 2.7704798574631272e-05 [####------] 40.00% 
 spotPython tuning: 7.761255945313609e-07 [#####-----] 46.67% 
@@ -619,7 +627,7 @@ spotPython tuning: 1.1649997893485877e-09 [##########] 100.00% Done...
 min y: 1.1649997893485877e-09
 x0: -3.4132093245926007e-05</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="14">
+<div class="cell-output cell-output-display" data-execution_count="114">
 <pre><code>[['x0', -3.4132093245926007e-05]]</code></pre>
 </div>
 </div>

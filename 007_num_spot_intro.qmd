@@ -21,7 +21,7 @@ The `spot` loop consists of the following steps:
 4. Optimize on surrogate: $X_0 =  \text{optimize}(S)$
 5. Evaluate on real objective: $y_0 = f(X_0)$
 6. Impute (Infill) new points: $X = X \cup X_0$, $y = y \cup y_0$.
-7. Got 3.
+7. Goto 3.
 
 Central Idea: Evaluation of the surrogate model `S` is much cheaper (or / and much faster) than running the real-world experiment $f$.
 We start with a small example.
@@ -32,10 +32,9 @@ We start with a small example.
 import numpy as np
 from math import inf
 from spotPython.fun.objectivefunctions import analytical
+from spotPython.utils.init import fun_control_init, design_control_init
+from spotPython.hyperparameters.values import set_control_key_value
 from spotPython.spot import spot
-from scipy.optimize import shgo
-from scipy.optimize import direct
-from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 ```
 
@@ -60,27 +59,35 @@ plt.plot(x, y, "k")
 plt.show()
 ```
 
-```{python}
-from spotPython.utils.init import fun_control_init
-spot_0 = spot.Spot(fun=fun,
-                   fun_control=fun_control_init(
-                   lower = np.array([-1]),
-                   upper = np.array([1])))
-```
+### The `Spot` Method as an Optimization Algorithm Using a Surrogate Model
+
+We initialize the `fun_control` dictionary. The `fun_control` dictionary contains the parameters for the objective function. The `fun_control` dictionary is passed to the `Spot` method.
 
 ```{python}
+fun_control=fun_control_init(lower = np.array([-1]),
+                     upper = np.array([1]))
+spot_0 = spot.Spot(fun=fun,
+                   fun_control=fun_control)
 spot_0.run()
 ```
+
+Print the results:
 
 ```{python}
 spot_0.print_results()
 ```
 
+Plot the search progress:
+
 ```{python}
+#| label: fig-spot-progress
+#| fig-cap: "Visualization of the search progress of the `Spot` method. The black elements (points and line) represent the initial design, before the surrogate is build. The red elements represent the search on the surrogate."
 spot_0.plot_progress(log_y=True)
 ```
 
 ```{python}
+#| label: fig-spot-model-1d
+#| fig-cap: "Visualization of the model and the underlying objective function values."
 spot_0.plot_model()
 ```
 
@@ -88,22 +95,22 @@ spot_0.plot_model()
 
 We will modify three parameters:
 
-  1. The number of function evaluations (`fun_evals`)
-  2. The size of the initial design (`init_size`)
-  3. The parameter `show_models`, which visualizes the search process for 1-dim functions.
+  1. The number of function evaluations (`fun_evals`) will be set to `10` (instead of 15, which is the default value) in the `fun_control` dictionary.
+  2. The parameter `show_models`, which visualizes the search process for each single iteration for 1-dim functions, in the `fun_control` dictionary.
+  3. The size of the initial design (`init_size`) in the `design_control` dictionary.
 
-The full list of the `Spot` parameters is shown in the Help System and in the notebook `spot_doc.ipynb`.
+
+The full list of the `Spot` parameters is shown in code reference on GitHub, see [Spot](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/spot/spot/#spotPython.spot.spot).
 
 ```{python}
-from spotPython.utils.init import design_control_init
+fun_control=fun_control_init(lower = np.array([-1]),
+                     upper = np.array([1]),
+                     fun_evals = 10,
+                     show_models = True)               
+design_control = design_control_init(init_size=9)
 spot_1 = spot.Spot(fun=fun,
-                   fun_control=fun_control_init(
-                   lower = np.array([-1]),
-                   upper = np.array([2]),
-                   fun_evals= 10,
-                   seed=123,
-                   show_models=True),
-                   design_control=design_control_init(init_size=9))
+                   fun_control=fun_control,
+                   design_control=design_control)
 spot_1.run()
 ```
 
@@ -127,19 +134,14 @@ spot_1.plot_progress()
 First, we define an "PREFIX" to identify the hyperparameter tuning process. The PREFIX is used to create a directory for the TensorBoard files.
 
 ```{python}
-from spotPython.utils.init import fun_control_init
-PREFIX = "01"
-```
-```{python}
 fun_control = fun_control_init(
-    PREFIX=PREFIX,
+    PREFIX = "01",
     lower = np.array([-1]),
     upper = np.array([2]))
 design_control = design_control_init(init_size=5)
 ```
 
-Since the `spot_tensorboard_path` is defined, `spotPython` will log the optimization process in the TensorBoard files. The TensorBoard files are stored in the directory `spot_tensorboard_path`. We can pass the TensorBoard information to the `Spot` method via the `fun_control` dictionary.
-
+Since the `spot_tensorboard_path` is defined, `spotPython` will log the optimization process in the TensorBoard files. 
 
 ```{python}
 spot_tuner = spot.Spot(fun=fun,
