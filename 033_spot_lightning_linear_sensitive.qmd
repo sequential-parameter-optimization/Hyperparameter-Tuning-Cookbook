@@ -4,18 +4,18 @@ execute:
   eval: true
   echo: true
   warning: false
-title: 'HPT PyTorch Lightning: Sensitive'
+title: 'HPT PyTorch Lightning: User Specified Data Set and Regression Model'
 jupyter: python3
 ---
 
 
 In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
-training workflow for a regression task.
+training workflow for a regression task with a user specified data set and a user specified regression model.
 
-This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on a user data set, which can be found in the subfolder of this notebook, `userData`.
+The network can be found in the subfolder `userModel`.
 
-
-## Step 1: Setup {#sec-setup-31}
+## Step 1: Setup {#sec-setup-33}
 
 * Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. 
 * The parameter `MAX_TIME` specifies the maximum run time in seconds.
@@ -132,11 +132,11 @@ for batch in dataloader:
 ```
 
 :::
-## Step 4: Preprocessing {#sec-preprocessing-31}
+## Step 4: Preprocessing {#sec-preprocessing-33}
 
 Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.
 
-## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-31}
+## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-33}
 
 `spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. 
 The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
@@ -175,7 +175,7 @@ The hyperparameters of the model are specified in the `core_model_hyper_dict` di
 
 
 
-## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-31}
+## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-33}
 
  `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. 
 
@@ -186,23 +186,31 @@ The hyperparameters of the model are specified in the `core_model_hyper_dict` di
 * More resonable values are, e.g.:
   * `set_control_hyperparameter_value(fun_control, "epochs", [7, 9])` and
   * `set_control_hyperparameter_value(fun_control, "patience", [2, 7])`
+
 :::
 
-# config from maans14:
+::: {.callout-note}
+#### Note: Pre-experimental Results
 
-'act_fn': LeakyReLU(),
- 'batch_size': 16,
- 'dropout_prob': 0.01,
- 'epochs': 512,
- 'initialization': 'Default',
- 'l1': 128,
- 'lr_mult': 0.5,
- 'optimizer': 'Adagrad',
- 'patience': 16
- 
-train_model(): Test set size: 715
-train_model(): Train set size: 1167
-train_model(): Batch size: 16
+* The following hyperparameters {@tbl-pre-experimental-results-33} have generated acceptable results (obtained in in pre-experimental runs):
+
+| Hyperparameter | Value |
+|----------------|-------|
+| `act_fn` | `LeakyReLU` |
+| `batch_size` | `16` |
+| `dropout_prob` | `0.01` |
+| `epochs` | `512` |
+| `initialization` | `Default` |
+| `l1` | `128` |
+| `lr_mult` | `0.5` |
+| `optimizer` | `Adagrad` |
+| `patience` | `16` |
+
+: Table 1: Pre-experimental results for the user specified data set. The test set size is 715, the train set size is 1167, and the batch size is 16. {#tbl-pre-experimental-results-33}
+
+Therefore, we will use these values as the starting poing for the hyperparameter tuning.
+
+:::
 
 ```{python}
 from spotPython.hyperparameters.values import set_control_hyperparameter_value
@@ -213,7 +221,7 @@ set_control_hyperparameter_value(fun_control, "batch_size", [3, 6])
 set_control_hyperparameter_value(fun_control, "optimizer", [
                 "Adadelta",
                 "Adamax",
-                "Adagrad"                
+                "Adagrad"
             ])
 set_control_hyperparameter_value(fun_control, "dropout_prob", [0.005, 0.25])
 set_control_hyperparameter_value(fun_control, "lr_mult", [0.25, 5.0])
@@ -229,7 +237,7 @@ Now, the dictionary `fun_control` contains all information needed for the hyperp
 
 ```{python}
 #| fig-cap: Experimental design for the hyperparameter tuning.
-#| fig-label: tbl-design-31
+#| fig-label: tbl-design-33
 from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
@@ -244,7 +252,7 @@ The updated `fun_control` dictionary can be shown with the command `fun_control[
 
 ## Step 7: Data Splitting, the Objective (Loss) Function and the Metric
 
-### Evaluation  {#sec-selection-of-target-function-31}
+### Evaluation  {#sec-selection-of-target-function-33}
 
 The evaluation procedure requires the specification of two elements:
 
@@ -258,12 +266,12 @@ The data splitting is handled by `Lightning`.
 
 :::
 
-### Loss Function {#sec-loss-function-31}
+### Loss Function {#sec-loss-function-33}
 
 The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)
 We will use MSE.
 
-### Metric {#sec-metric-31}
+### Metric {#sec-metric-33}
 
 * Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).
 
@@ -278,7 +286,7 @@ We will use MSE.
 
 ## Step 8: Calling the SPOT Function
 
-### Preparing the SPOT Call {#sec-prepare-spot-call-31}
+### Preparing the SPOT Call {#sec-prepare-spot-call-33}
 
 ```{python}
 from spotPython.utils.init import design_control_init, surrogate_control_init
@@ -310,7 +318,7 @@ set_control_key_value(control_dict=surrogate_control,
 ```
 :::
 
-### The Objective Function `fun` {#sec-the-objective-function-31}
+### The Objective Function `fun` {#sec-the-objective-function-33}
 
 The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
 
@@ -319,14 +327,14 @@ from spotPython.fun.hyperlight import HyperLight
 fun = HyperLight(log_level=10).fun
 ```
 
-### Showing the fun_control Dictionary {#sec-show-fun-control-31}
+### Showing the fun_control Dictionary {#sec-show-fun-control-33}
 
 ```{python}
 import pprint
 pprint.pprint(fun_control)
 ```
 
-### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}
+### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-33}
 
 The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).
 
@@ -339,7 +347,7 @@ spot_tuner = spot.Spot(fun=fun,
 spot_tuner.run()
 ```
 
-## Step 9: Tensorboard {#sec-tensorboard-31}
+## Step 9: Tensorboard {#sec-tensorboard-33}
 
 The textual output shown in the console (or code cell) can be visualized with Tensorboard.
 
@@ -351,32 +359,42 @@ Further information can be found in the [PyTorch Lightning documentation](https:
 
 
 
-## Step 10: Results {#sec-results-31}
+## Step 10: Results {#sec-results-33}
 
 After the hyperparameter tuning run is finished, the results can be analyzed.
 
 ```{python}
+if spot_tuner.noise:
+    print(spot_tuner.min_mean_X)
+    print(spot_tuner.min_mean_y)
+else:
+    print(spot_tuner.min_X)
+    print(spot_tuner.min_y)
+```
+
+
+```{python}
 #| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.
-#| fig-label: fig-progress-31
+#| fig-label: fig-progress-33
 spot_tuner.plot_progress(log_y=False,
     filename="./figures/" + PREFIX +"_progress.png")
 ```
 
 ```{python}
 #| fig-cap: Results of the hyperparameter tuning.
-#| fig-label: tbl-results-31
+#| fig-label: tbl-results-33
 from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```
 
 ```{python}
 #| fig-cap: 'Variable importance plot, threshold 0.025.'
-#| fig-label: fig-importance-31
+#| fig-label: fig-importance-33
 spot_tuner.plot_importance(threshold=0.025,
     filename="./figures/" + PREFIX + "_importance.png")
 ```
 
-### Get the Tuned Architecture {#sec-get-spot-results-31}
+### Get the Tuned Architecture {#sec-get-spot-results-33}
 
 ```{python}
 from spotPython.hyperparameters.values import get_tuned_architecture
@@ -399,7 +417,7 @@ model_loaded = load_light_from_checkpoint(config, fun_control)
 
 ```{python}
 #| fig-cap: Contour plots.
-#| fig-label: fig-contour-31
+#| fig-label: fig-contour-33
 filename = "./figures/" + PREFIX
 spot_tuner.plot_important_hyperparameter_contour(filename=filename)
 ```
@@ -408,7 +426,7 @@ spot_tuner.plot_important_hyperparameter_contour(filename=filename)
 
 ```{python}
 #| fig-cap: Parallel coordinates plots
-#| fig-label: fig-parallel-31
+#| fig-label: fig-parallel-33
 spot_tuner.parallel_plot()
 ```
 
