@@ -33,13 +33,15 @@ Before we consider the detailed experimental setup, we select the parameters tha
 ```{python}
 MAX_TIME = 1
 INIT_SIZE = 5
-PREFIX="13-river"
+PREFIX="24-river"
 K = 0.1
 ```
 
 ```{python}
 #| echo: false
 import os
+from math import inf
+import numpy as np
 import warnings
 if not os.path.exists('./figures'):
     os.makedirs('./figures')
@@ -60,14 +62,12 @@ First, we define an "experiment name" to identify the hyperparameter tuning proc
 
 ```{python}
 from spotPython.utils.init import fun_control_init
-from spotPython.utils.file import get_spot_tensorboard_path
-import os
-from spotPython.utils.file import get_experiment_name
-experiment_name = get_experiment_name(prefix=PREFIX)
 fun_control = fun_control_init(
-    spot_tensorboard_path=get_spot_tensorboard_path(experiment_name),
-    TENSORBOARD_CLEAN=True)
-print(experiment_name)
+    PREFIX=PREFIX,
+    TENSORBOARD_CLEAN=True,
+    max_time=MAX_TIME,
+    fun_evals=inf,
+    tolerance_x = np.sqrt(np.spacing(1)))
 ```
 
 ::: {.callout-tip}
@@ -124,11 +124,15 @@ df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
 * Then split the data frame into a training and test data set. The train and test data sets are stored in the `fun_control` dictionary.
 
 ```{python}
+from spotPython.hyperparameters.values import set_control_key_value
 df.columns = [f"x{i}" for i in range(1, 11)] + ["y"]
-fun_control.update({"train":  df[:n_train],
-                    "test":  df[n_train:],
-                    "n_samples": n_samples,
-                    "target_column": target_column})
+set_control_key_value(control_dict=fun_control,
+                        key="train",
+                        value=df[:n_train],
+                        replace=True)
+set_control_key_value(fun_control, "test", df[n_train:], True)
+set_control_key_value(fun_control, "n_samples", n_samples, replace=True)
+set_control_key_value(fun_control, "target_column", target_column, replace=True)
 ```
 
 ## Specification of the Preprocessing Model
@@ -138,7 +142,7 @@ fun_control.update({"train":  df[:n_train],
 ```{python}
 from river import preprocessing
 prep_model = preprocessing.StandardScaler()
-fun_control.update({"prep_model": prep_model})
+set_control_key_value(fun_control, "prep_model", prep_model, replace=True)
 ```
 
 ## SelectSelect Model (`algorithm`) and `core_model_hyper_dict`
@@ -160,7 +164,8 @@ Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.jso
 from river.tree import HoeffdingAdaptiveTreeRegressor
 from spotRiver.data.river_hyper_dict import RiverHyperDict
 from spotPython.hyperparameters.values import add_core_model_to_fun_control
-add_core_model_to_fun_control(core_model=HoeffdingAdaptiveTreeRegressor,
+core_model  = HoeffdingAdaptiveTreeRegressor
+add_core_model_to_fun_control(core_model=core_model,
                               fun_control=fun_control,
                               hyper_dict=RiverHyperDict,
                               filename=None)
@@ -174,9 +179,9 @@ However, in some settings, the user wants to modify the hyperparameters of the `
 The following code shows how hyperparameter of type numeric and integer (boolean) can be modified. The `modify_hyper_parameter_bounds` function is used to modify the bounds of the hyperparameter `delta` and `merit_preprune`. Similar option exists for the `modify_hyper_parameter_levels` function to modify the levels of categorical hyperparameters.
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
-modify_hyper_parameter_bounds(fun_control, "delta", bounds=[1e-10, 1e-6])
-modify_hyper_parameter_bounds(fun_control, "merit_preprune", [0, 0])
+from spotPython.hyperparameters.values import set_control_hyperparameter_value
+set_control_hyperparameter_value(fun_control, "delta", [1e-10, 1e-6])
+set_control_hyperparameter_value(fun_control, "merit_preprune", [0, 0])
 ```
 
 ::: {.callout-note}
@@ -222,35 +227,18 @@ oml_grace_period = 2
 step = 100
 weight_coeff = 1.0
 
-fun_control.update({
-               "horizon": horizon,
-               "oml_grace_period": oml_grace_period,
-               "weights": weights,
-               "step": step,
-               "weight_coeff": weight_coeff,
-               "metric_sklearn": mean_absolute_error
-               })
+set_control_key_value(control_dict=fun_control,
+                        key="horizon",
+                        value=horizon,
+                        replace=True)
+set_control_key_value(fun_control, "oml_grace_period", oml_grace_period, True)
+set_control_key_value(fun_control, "weights", weights, True)
+set_control_key_value(fun_control, "step", step, True)
+set_control_key_value(fun_control, "weight_coeff", weight_coeff, True)
+set_control_key_value(fun_control, "metric_sklearn", mean_absolute_error, True)
 ```
 
 ## Calling the SPOT Function
-
-### Prepare the SPOT Parameters
-
-The hyperparameter tuning configuration is stored in the `fun_control` dictionary. Since `Spot` can be used as an optimization algorithm with a similar interface as optimization algorithms from `scipy.optimize` [[LINK]](https://docs.scipy.org/doc/scipy/reference/optimize.html#module-scipy.optimize), the bounds and variable types have to be specified explicitely. The `get_var_type`, `get_var_name`, and `get_bound_values` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py) implement the required functionality.
-
-* Get types and variable names as well as lower and upper bounds for the hyperparameters, so that they can be passed to the `Spot` function.
-
-```{python}
-from spotPython.hyperparameters.values import (
-    get_var_type,
-    get_var_name,
-    get_bound_values
-    )
-var_type = get_var_type(fun_control)
-var_name = get_var_name(fun_control)
-lower = get_bound_values(fun_control, "lower")
-upper = get_bound_values(fun_control, "upper")
-```
 
 ### The Objective Function {#sec-the-objective-function-13}
 
@@ -273,17 +261,13 @@ X_start = get_default_hyperparameters_as_array(fun_control)
 The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:
 
 * `fun`: the objective function
-* `lower`: lower bounds of the hyperparameters
-* `upper`: upper bounds of the hyperparameters
-* `fun_evals`: number of function evaluations
-* `max_time`: maximum time in seconds
-* `tolerance_x`: tolerance for the hyperparameters
-* `var_type`: variable types of the hyperparameters
-* `var_name`: variable names of the hyperparameters
-* `show_progress`: show progress bar
-* `fun_control`: dictionary with control parameters for the objective function
-* `design_control`: dictionary with control parameters for the initial design
-* `surrogate_control`: dictionary with control parameters for the surrogate model
+* `fun_control`: the dictionary with the control parameters for the objective function
+* `design`: the experimental design
+* `design_control`: the dictionary with the control parameters for the experimental design
+* `surrogate`: the surrogate model
+* `surrogate_control`: the dictionary with the control parameters for the surrogate model
+* `optimizer`: the optimizer
+* `optimizer_control`: the dictionary with the control parameters for the optimizer
 
 :::{.callout-note}
 #### Note: Total run time
@@ -291,25 +275,20 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
+from spotPython.utils.init import design_control_init, surrogate_control_init
+design_control = design_control_init()
+set_control_key_value(control_dict=design_control,
+                        key="init_size",
+                        value=INIT_SIZE,
+                        replace=True)
+
+surrogate_control = surrogate_control_init(noise=True,
+                                           n_theta=2)
 from spotPython.spot import spot
-from math import inf
 spot_tuner = spot.Spot(fun=fun,
-                   lower = lower,
-                   upper = upper,
-                   fun_evals = inf,
-                   max_time = MAX_TIME,
-                   tolerance_x = np.sqrt(np.spacing(1)),
-                   var_type = var_type,
-                   var_name = var_name,
-                   show_progress= True,
-                   fun_control = fun_control,
-                   design_control={"init_size": INIT_SIZE},
-                   surrogate_control={"noise": False,
-                                      "cod_type": "norm",
-                                      "min_theta": -4,
-                                      "max_theta": 3,
-                                      "n_theta": len(var_name),
-                                      "model_fun_evals": 10_000})
+                   fun_control=fun_control,
+                   design_control=design_control,
+                   surrogate_control=surrogate_control)
 spot_tuner.run(X_start=X_start)
 ```
 
@@ -347,13 +326,13 @@ The TensorBoard plot illustrates how `spotPython` can be used as a microscope fo
 After the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:
 
 ```{python}
-from spotPython.utils.file import save_pickle
-save_pickle(spot_tuner, experiment_name)
-```
-
-```{python}
-from spotPython.utils.file import load_pickle
-spot_tuner = load_pickle(experiment_name)
+from spotPython.utils.file import save_pickle, get_experiment_name,  load_pickle
+experiment_name = get_experiment_name(PREFIX)
+SAVE_AND_LOAD = False
+if SAVE_AND_LOAD == True:
+    from spotPython.utils.file import save_pickle, get_experiment_name,  load_pickle
+    save_pickle(spot_tuner, experiment_name)
+    spot_tuner = load_pickle(experiment_name)
 ```
 
 After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
@@ -405,10 +384,10 @@ The larger data set is converted to a Pandas data frame and passed to the `fun_c
 ```{python}
 df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
 df.columns = [f"x{i}" for i in range(1, 11)] + ["y"]
-fun_control.update({"train": df[:n_train],
-                    "test": df[n_train:],
-                    "n_samples": n_samples,
-                    "target_column": target_column})
+set_control_key_value(fun_control, "train", df[:n_train], True)
+set_control_key_value(fun_control, "test", df[n_train:], True)
+set_control_key_value(fun_control, "n_samples", n_samples, True)
+set_control_key_value(fun_control, "target_column", target_column, True)
 ```
 
 ## Get Default Hyperparameters
@@ -419,6 +398,7 @@ from spotPython.hyperparameters.values import get_one_core_model_from_X
 from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 model_default = get_one_core_model_from_X(X_start, fun_control)
+model_default
 ```
 
 :::{.callout-note}

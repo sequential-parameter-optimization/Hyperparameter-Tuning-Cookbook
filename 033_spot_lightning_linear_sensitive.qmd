@@ -8,7 +8,6 @@ title: 'HPT PyTorch Lightning: User Specified Data Set and Regression Model'
 jupyter: python3
 ---
 
-
 In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
 training workflow for a regression task with a user specified data set and a user specified regression model.
 
@@ -24,8 +23,8 @@ The network can be found in the subfolder `userModel`.
 * The prefix `PREFIX` is used for the experiment name and the name of the log file.
 * The parameter `DEVICE` specifies the device to use for training.
 
-
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.utils.device import getDevice
 from math import inf
 
@@ -65,10 +64,11 @@ TEST_SIZE = 0.3
 `spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.utils.init import fun_control_init
 import numpy as np
 fun_control = fun_control_init(
-    _L_in=133,
+    _L_in=6,
     _L_out=1,
     PREFIX=PREFIX,
     TENSORBOARD_CLEAN=True,
@@ -89,22 +89,22 @@ fun_control = fun_control_init(
 
 ## Step 3: Loading the User Specified Data Set
 
-
 ```{python}
-from spotPython.hyperparameters.values import set_control_key_value
-from spotPython.data.pkldataset import PKLDataset
-import torch
-dataset = PKLDataset(directory="./userData/",
-                     filename="data_sensitive.pkl",
-                     target_column='N',
-                     feature_type=torch.float32,
-                     target_type=torch.float32,
-                     rmNA=True)
-set_control_key_value(control_dict=fun_control,
-                        key="data_set",
-                        value=dataset,
-                        replace=True)
-print(len(dataset))
+#| vscode: {languageId: python}
+# from spotPython.hyperparameters.values import set_control_key_value
+# from spotPython.data.pkldataset import PKLDataset
+# import torch
+# dataset = PKLDataset(directory="./userData/",
+#                      filename="data_sensitive.pkl",
+#                      target_column='N',
+#                      feature_type=torch.float32,
+#                      target_type=torch.float32,
+#                      rmNA=True)
+# set_control_key_value(control_dict=fun_control,
+#                         key="data_set",
+#                         value=dataset,
+#                         replace=True)
+# print(len(dataset))
 ```
 
 ::: {.callout-note}
@@ -113,12 +113,46 @@ print(len(dataset))
 * As shown below, a DataLoader from `torch.utils.data` can be used to check the data.
 
 ```{python}
+#| vscode: {languageId: python}
+# if the package pyhcf is installed then print "pyhcf is installed" else print "pyhcf is not installed"
+try:
+    import pyhcf
+    print("pyhcf is installed")
+    from pyhcf.data.loadHcfData import load_hcf_data
+    dataset = load_hcf_data(A=True, H=True,
+                        param_list=['H', 'D', 'L', 'K', 'E', 'I', 'N'],
+                        target='N', rmNA=True, rmMF=True, load_all_features=False,
+                        load_thermo_features=False, scale_data=True, return_X_y=False)
+except ImportError:
+    print("pyhcf is not installed")
+    from spotPython.data.pkldataset import PKLDataset
+    import torch
+    dataset = PKLDataset(directory="./userData/",
+                        filename="data_sensitive.pkl",
+                        target_column='N',
+                        feature_type=torch.float32,
+                        target_type=torch.float32,
+                        rmNA=True)
+```
+
+```{python}
+#| vscode: {languageId: python}
+from spotPython.hyperparameters.values import set_control_key_value
+set_control_key_value(control_dict=fun_control,
+                        key="data_set",
+                        value=dataset,
+                        replace=True)
+print(len(dataset))
+```
+
+```{python}
+#| vscode: {languageId: python}
 # Set batch size for DataLoader
 batch_size = 5
 # Create DataLoader
 from torch.utils.data import DataLoader
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
+ 
 # Iterate over the data in the DataLoader
 for batch in dataloader:
     inputs, targets = batch
@@ -147,6 +181,7 @@ We can use aconfiguration from the `spotPython` package:
 
 ```{python}
 #| eval: false
+#| vscode: {languageId: python}
 from spotPython.light.regression.netlightregression import NetLightRegression
 from spotPython.hyperdict.light_hyper_dict import LightHyperDict
 from spotPython.hyperparameters.values import add_core_model_to_fun_control
@@ -159,6 +194,7 @@ add_core_model_to_fun_control(fun_control=fun_control,
 
 ```{python}
 #| eval: true
+#| vscode: {languageId: python}
 from spotPython.hyperparameters.values import add_core_model_to_fun_control
 import sys
 sys.path.insert(0, './userModel')
@@ -167,9 +203,7 @@ import light_hyper_dict
 add_core_model_to_fun_control(fun_control=fun_control,
                               core_model=netlightregression.NetLightRegression,
                               hyper_dict=light_hyper_dict.LightHyperDict)
-
 ```
-
 
 The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).
 
@@ -213,6 +247,7 @@ Therefore, we will use these values as the starting poing for the hyperparameter
 :::
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.hyperparameters.values import set_control_hyperparameter_value
 
 set_control_hyperparameter_value(fun_control, "l1", [5, 9])
@@ -238,6 +273,7 @@ Now, the dictionary `fun_control` contains all information needed for the hyperp
 ```{python}
 #| fig-cap: Experimental design for the hyperparameter tuning.
 #| fig-label: tbl-design-33
+#| vscode: {languageId: python}
 from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
@@ -289,6 +325,7 @@ We will use MSE.
 ### Preparing the SPOT Call {#sec-prepare-spot-call-33}
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init(init_size=INIT_SIZE,
                                      repeats=REPEATS,)
@@ -305,6 +342,8 @@ surrogate_control = surrogate_control_init(noise=True,
 
 * The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:
 
+
+
 ```{raw}
 set_control_key_value(control_dict=surrogate_control,
                         key="noise",
@@ -316,6 +355,8 @@ set_control_key_value(control_dict=surrogate_control,
                         replace=True)      
 
 ```
+
+
 :::
 
 ### The Objective Function `fun` {#sec-the-objective-function-33}
@@ -323,6 +364,7 @@ set_control_key_value(control_dict=surrogate_control,
 The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.fun.hyperlight import HyperLight
 fun = HyperLight(log_level=10).fun
 ```
@@ -330,6 +372,7 @@ fun = HyperLight(log_level=10).fun
 ### Showing the fun_control Dictionary {#sec-show-fun-control-33}
 
 ```{python}
+#| vscode: {languageId: python}
 import pprint
 pprint.pprint(fun_control)
 ```
@@ -339,6 +382,7 @@ pprint.pprint(fun_control)
 The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.spot import spot
 spot_tuner = spot.Spot(fun=fun,
                        fun_control=fun_control,
@@ -351,9 +395,13 @@ spot_tuner.run()
 
 The textual output shown in the console (or code cell) can be visualized with Tensorboard.
 
+
+
 ```{raw}
 tensorboard --logdir="runs/"
 ```
+
+
 
 Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.
 
@@ -364,6 +412,7 @@ Further information can be found in the [PyTorch Lightning documentation](https:
 After the hyperparameter tuning run is finished, the results can be analyzed.
 
 ```{python}
+#| vscode: {languageId: python}
 if spot_tuner.noise:
     print(spot_tuner.min_mean_X)
     print(spot_tuner.min_mean_y)
@@ -372,10 +421,10 @@ else:
     print(spot_tuner.min_y)
 ```
 
-
 ```{python}
 #| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.
 #| fig-label: fig-progress-33
+#| vscode: {languageId: python}
 spot_tuner.plot_progress(log_y=False,
     filename="./figures/" + PREFIX +"_progress.png")
 ```
@@ -383,6 +432,7 @@ spot_tuner.plot_progress(log_y=False,
 ```{python}
 #| fig-cap: Results of the hyperparameter tuning.
 #| fig-label: tbl-results-33
+#| vscode: {languageId: python}
 from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```
@@ -390,6 +440,7 @@ print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```{python}
 #| fig-cap: 'Variable importance plot, threshold 0.025.'
 #| fig-label: fig-importance-33
+#| vscode: {languageId: python}
 spot_tuner.plot_importance(threshold=0.025,
     filename="./figures/" + PREFIX + "_importance.png")
 ```
@@ -397,6 +448,7 @@ spot_tuner.plot_importance(threshold=0.025,
 ### Get the Tuned Architecture {#sec-get-spot-results-33}
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.hyperparameters.values import get_tuned_architecture
 config = get_tuned_architecture(spot_tuner, fun_control)
 print(config)
@@ -405,11 +457,13 @@ print(config)
 * Test on the full data set
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.light.testmodel import test_model
 test_model(config, fun_control)
 ```
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.light.loadmodel import load_light_from_checkpoint
 
 model_loaded = load_light_from_checkpoint(config, fun_control)
@@ -418,6 +472,7 @@ model_loaded = load_light_from_checkpoint(config, fun_control)
 ```{python}
 #| fig-cap: Contour plots.
 #| fig-label: fig-contour-33
+#| vscode: {languageId: python}
 filename = "./figures/" + PREFIX
 spot_tuner.plot_important_hyperparameter_contour(filename=filename)
 ```
@@ -427,6 +482,7 @@ spot_tuner.plot_important_hyperparameter_contour(filename=filename)
 ```{python}
 #| fig-cap: Parallel coordinates plots
 #| fig-label: fig-parallel-33
+#| vscode: {languageId: python}
 spot_tuner.parallel_plot()
 ```
 
@@ -438,6 +494,7 @@ spot_tuner.parallel_plot()
 * It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.light.cvmodel import cv_model
 set_control_key_value(control_dict=fun_control,
                         key="k_folds",
@@ -455,6 +512,7 @@ cv_model(config, fun_control)
 * Warning: this may take a while.
 
 ```{python}
+#| vscode: {languageId: python}
 PLOT_ALL = False
 if PLOT_ALL:
     n = spot_tuner.k
@@ -475,11 +533,13 @@ if PLOT_ALL:
 After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
 act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
 ```
 
 ```{python}
+#| vscode: {languageId: python}
 from spotPython.hyperparameters.values import get_one_config_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 config = get_one_config_from_X(X, fun_control)
@@ -488,6 +548,7 @@ model
 ```
 
 ```{python}
+#| vscode: {languageId: python}
 # from spotPython.utils.eda import visualize_activations
 # visualize_activations(model, color=f"C{0}")
 ```
