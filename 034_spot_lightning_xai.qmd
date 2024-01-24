@@ -1,0 +1,85 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# Explainable AI with SpotPython and Pytorch {#sec-xai}
+
+```{python}
+from torch.utils.data import DataLoader
+from spotPython.utils.init import fun_control_init
+from spotPython.hyperparameters.values import set_control_key_value
+from spotPython.data.diabetes import Diabetes
+from spotPython.light.regression.netlightregression import NetLightRegression
+from spotPython.hyperdict.light_hyper_dict import LightHyperDict
+from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotPython.hyperparameters.values import (
+        get_default_hyperparameters_as_array, get_one_config_from_X)
+from spotPython.hyperparameters.values import set_control_key_value
+from spotPython.plot.xai import (get_activations, get_gradients, get_weights, plot_nn_values_hist, plot_nn_values_scatter, visualize_weights, visualize_gradients, visualize_activations, visualize_gradient_distributions, visualize_weights_distributions)
+fun_control = fun_control_init(
+    _L_in=10, # 10: diabetes
+    _L_out=1,
+    )
+dataset = Diabetes()
+set_control_key_value(control_dict=fun_control,
+                        key="data_set",
+                        value=dataset,
+                        replace=True)
+add_core_model_to_fun_control(fun_control=fun_control,
+                              core_model=NetLightRegression,
+                              hyper_dict=LightHyperDict)
+X = get_default_hyperparameters_as_array(fun_control)
+config = get_one_config_from_X(X, fun_control)
+_L_in = fun_control["_L_in"]
+_L_out = fun_control["_L_out"]
+model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out)
+batch_size= config["batch_size"]
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+```
+
+```{python}
+get_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+```
+
+```{python}
+get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+```
+
+```{python}
+get_weights(model)
+```
+
+```{python}
+visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu", cmap="BlueWhiteRed", absolute=False)
+```
+
+```{python}
+visualize_weights_distributions(model, color=f"C{0}")
+```
+
+```{python}
+visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}")
+```
+
+```{python}
+visualize_weights(model, absolute=True, cmap="gray", figsize=(6, 6))
+```
+
+```{python}
+visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="BlueWhiteRed", figsize=(6, 6))
+```
+
+```{python}
+visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+```
+
+```{python}
+visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+```
+
+
