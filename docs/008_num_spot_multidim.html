@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.547">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Hyperparameter Tuning Cookbook - 8&nbsp; Multi-dimensional Functions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./009_num_spot_anisotropic.html" rel="next">
+<link href="./007_num_spot_intro.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 8&nbsp; Multi-dimensional Functions">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar docked">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./008_num_spot_multidim.html"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Hyperparameter Tuning Cookbook</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/sequential-parameter-optimization/spotPython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <div class="dropdown">
+      <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Share"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./001_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Numerical Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./005_num_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./006_num_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotPython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./008_num_spot_multidim.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./009_num_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./012_num_spot_ei.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./013_num_spot_noisy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./015_num_spot_correlation_p.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with River</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./022_spot_hpt_river.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">HPT: River</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./023_spot_river_gui.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">The spotriver GUI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./024_spot_hpt_river_friedman_hatr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./025_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with PyTorch Lightning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./031_spot_lightning_linear_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./032_spot_lightning_rnn_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./033_spot_lightning_linear_sensitive.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: User Specified Data Set and Regression Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./034_spot_lightning_xai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Explainable AI with SpotPython and Pytorch</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./035_spot_lightning_transformer_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Diabetes</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_01_intro_to_notebooks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_02_git_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Git Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_03_python_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Python Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_04_spot_doc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">D</span>&nbsp; <span class="chapter-title">Documentation of the Sequential Parameter Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#example-spot-and-the-3-dim-sphere-function" id="toc-example-spot-and-the-3-dim-sphere-function" class="nav-link active" data-scroll-target="#example-spot-and-the-3-dim-sphere-function"><span class="header-section-number">8.1</span> Example: <code>Spot</code> and the 3-dim Sphere Function</a>
+  <ul class="collapse">
+  <li><a href="#the-objective-function-3-dim-sphere" id="toc-the-objective-function-3-dim-sphere" class="nav-link" data-scroll-target="#the-objective-function-3-dim-sphere"><span class="header-section-number">8.1.1</span> The Objective Function: 3-dim Sphere</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">8.1.2</span> Results</a></li>
+  <li><a href="#a-contour-plot" id="toc-a-contour-plot" class="nav-link" data-scroll-target="#a-contour-plot"><span class="header-section-number">8.1.3</span> A Contour Plot</a></li>
+  <li><a href="#tensorboard" id="toc-tensorboard" class="nav-link" data-scroll-target="#tensorboard"><span class="header-section-number">8.1.4</span> TensorBoard</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">8.2</span> Conclusion</a></li>
+  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises"><span class="header-section-number">8.3</span> Exercises</a>
+  <ul class="collapse">
+  <li><a href="#the-three-dimensional-fun_cubed" id="toc-the-three-dimensional-fun_cubed" class="nav-link" data-scroll-target="#the-three-dimensional-fun_cubed"><span class="header-section-number">8.3.1</span> 1. The Three Dimensional <code>fun_cubed</code></a></li>
+  <li><a href="#the-ten-dimensional-fun_wing_wt" id="toc-the-ten-dimensional-fun_wing_wt" class="nav-link" data-scroll-target="#the-ten-dimensional-fun_wing_wt"><span class="header-section-number">8.3.2</span> 2. The Ten Dimensional <code>fun_wing_wt</code></a></li>
+  <li><a href="#the-three-dimensional-fun_runge" id="toc-the-three-dimensional-fun_runge" class="nav-link" data-scroll-target="#the-three-dimensional-fun_runge"><span class="header-section-number">8.3.3</span> 3. The Three Dimensional <code>fun_runge</code></a></li>
+  <li><a href="#the-three-dimensional-fun_linear" id="toc-the-three-dimensional-fun_linear" class="nav-link" data-scroll-target="#the-three-dimensional-fun_linear"><span class="header-section-number">8.3.4</span> 4. The Three Dimensional <code>fun_linear</code></a></li>
+  <li><a href="#sec-08-exer-rosenbrock" id="toc-sec-08-exer-rosenbrock" class="nav-link" data-scroll-target="#sec-08-exer-rosenbrock"><span class="header-section-number">8.3.5</span> 5. The Two Dimensional Rosenbrock Function <code>fun_rosen</code></a></li>
+  </ul></li>
+  <li><a href="#selected-solutions" id="toc-selected-solutions" class="nav-link" data-scroll-target="#selected-solutions"><span class="header-section-number">8.4</span> Selected Solutions</a>
+  <ul class="collapse">
+  <li><a href="#solution-to-exercise-sec-08-exer-rosenbrock-the-two-dimensional-rosenbrock-function-fun_rosen" id="toc-solution-to-exercise-sec-08-exer-rosenbrock-the-two-dimensional-rosenbrock-function-fun_rosen" class="nav-link" data-scroll-target="#solution-to-exercise-sec-08-exer-rosenbrock-the-two-dimensional-rosenbrock-function-fun_rosen"><span class="header-section-number">8.4.1</span> Solution to Exercise <span>Section 8.3.5</span>: The Two-dimensional Rosenbrock Function <code>fun_rosen</code></a></li>
+  </ul></li>
+  <li><a href="#jupyter-notebook" id="toc-jupyter-notebook" class="nav-link" data-scroll-target="#jupyter-notebook"><span class="header-section-number">8.5</span> Jupyter Notebook</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./005_num_rsm.html">Numerical Methods</a></li><li class="breadcrumb-item"><a href="./008_num_spot_multidim.html"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-multi-dim" class="quarto-section-identifier"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This chapter illustrates how high-dimensional functions can be optimized and analyzed.</p>
+<section id="example-spot-and-the-3-dim-sphere-function" class="level2" data-number="8.1">
+<h2 data-number="8.1" class="anchored" data-anchor-id="example-spot-and-the-3-dim-sphere-function"><span class="header-section-number">8.1</span> Example: <code>Spot</code> and the 3-dim Sphere Function</h2>
+<div id="9d98360e" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init, surrogate_control_init</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="the-objective-function-3-dim-sphere" class="level3" data-number="8.1.1">
+<h3 data-number="8.1.1" class="anchored" data-anchor-id="the-objective-function-3-dim-sphere"><span class="header-section-number">8.1.1</span> The Objective Function: 3-dim Sphere</h3>
+<p>The <code>spotPython</code> package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: <span class="math display">\[
+f(x) = \sum_i^k x_i^2.
+\]</span></p>
+<p>It is avaliable as <code>fun_sphere</code> in the <code>analytical</code> class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py">[SOURCE]</a>.</p>
+<div id="08035d24" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_sphere</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here we will use problem dimension <span class="math inline">\(k=3\)</span>, which can be specified by the <code>lower</code> bound arrays. The size of the <code>lower</code> bound array determines the problem dimension. If we select <code>-1.0 * np.ones(3)</code>, a three-dimensional function is created. In contrast to the one-dimensional case (<a href="007_num_spot_intro.html#sec-visualizing-tensorboard-01" class="quarto-xref"><span>Section 7.5</span></a>), where only one <code>theta</code> value was used, we will use three different <code>theta</code> values (one for each dimension), i.e., we set <code>n_theta=3</code> in the <code>surrogate_control</code>. The prefix is set to <code>"03"</code> to distinguish the results from the one-dimensional case. Again, TensorBoard can be used to monitor the progress of the optimization.</p>
+<p>We can also add interpreable labels to the dimensions, which will be used in the plots. Therefore, we set <code>var_name=["Pressure", "Temp", "Lambda"]</code> instead of the default <code>var_name=None</code>, which would result in the labels <code>x_0</code>, <code>x_1</code>, and <code>x_2</code>.</p>
+<div id="0ebd796d" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>              PREFIX<span class="op">=</span><span class="st">"03"</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> <span class="op">-</span><span class="fl">1.0</span><span class="op">*</span>np.ones(<span class="dv">3</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> np.ones(<span class="dv">3</span>),</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>              var_name<span class="op">=</span>[<span class="st">"Pressure"</span>, <span class="st">"Temp"</span>, <span class="st">"Lambda"</span>],</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>              show_progress<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(n_theta<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>spot_3 <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                  fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                  surrogate_control<span class="op">=</span>surrogate_control)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>spot_3.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Created spot_tensorboard_path: runs/spot_logs/03_p040025_2024-02-09_19-06-53 for SummaryWriter()
+spotPython tuning: 0.03443324167631616 [#######---] 73.33% 
+spotPython tuning: 0.03134655155643102 [########--] 80.00% 
+spotPython tuning: 0.0009630181526749273 [#########-] 86.67% 
+spotPython tuning: 8.570154459856623e-05 [#########-] 93.33% 
+spotPython tuning: 6.496172516667557e-05 [##########] 100.00% Done...
+</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x110d4e650&gt;</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Now we can start TensorBoard in the background with the following command:</p>
+<pre class="{raw}"><code>tensorboard --logdir="./runs"</code></pre>
+<p>and can access the TensorBoard web server with the following URL:</p>
+<pre class="{raw}"><code>http://localhost:6006/</code></pre>
+</div>
+</div>
+</section>
+<section id="results" class="level3" data-number="8.1.2">
+<h3 data-number="8.1.2" class="anchored" data-anchor-id="results"><span class="header-section-number">8.1.2</span> Results</h3>
+<div id="6086c9cf" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_3.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>min y: 6.496172516667557e-05
+Pressure: 0.005280070995399376
+Temp: 0.0019490323308060742
+Lambda: 0.005769215581315232</code></pre>
+</div>
+</div>
+<div id="985c3c20" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>spot_3.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-6-output-1.png" width="719" height="261" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="a-contour-plot" class="level3" data-number="8.1.3">
+<h3 data-number="8.1.3" class="anchored" data-anchor-id="a-contour-plot"><span class="header-section-number">8.1.3</span> A Contour Plot</h3>
+<p>We can select two dimensions, say <span class="math inline">\(i=0\)</span> and <span class="math inline">\(j=1\)</span>, and generate a contour plot as follows.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note:
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We have specified identical <code>min_z</code> and <code>max_z</code> values to generate comparable plots.</p>
+</div>
+</div>
+<div id="36f175e1" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>spot_3.plot_contour(i<span class="op">=</span><span class="dv">0</span>, j<span class="op">=</span><span class="dv">1</span>, min_z<span class="op">=</span><span class="dv">0</span>, max_z<span class="op">=</span><span class="fl">2.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-7-output-1.png" width="724" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>In a similar manner, we can plot dimension <span class="math inline">\(i=0\)</span> and <span class="math inline">\(j=2\)</span>:</li>
+</ul>
+<div id="46e53a53" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>spot_3.plot_contour(i<span class="op">=</span><span class="dv">0</span>, j<span class="op">=</span><span class="dv">2</span>, min_z<span class="op">=</span><span class="dv">0</span>, max_z<span class="op">=</span><span class="fl">2.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-8-output-1.png" width="723" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>The final combination is <span class="math inline">\(i=1\)</span> and <span class="math inline">\(j=2\)</span>:</li>
+</ul>
+<div id="9b6b399e" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>spot_3.plot_contour(i<span class="op">=</span><span class="dv">1</span>, j<span class="op">=</span><span class="dv">2</span>, min_z<span class="op">=</span><span class="dv">0</span>, max_z<span class="op">=</span><span class="fl">2.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-9-output-1.png" width="723" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>The three plots look very similar, because the <code>fun_sphere</code> is symmetric.</li>
+<li>This can also be seen from the variable importance:</li>
+</ul>
+<div id="edaf3559" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_3.print_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pressure:  95.79368533570627
+Temp:  99.99999999999999
+Lambda:  87.19542775477797</code></pre>
+</div>
+</div>
+<div id="624227fd" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>spot_3.plot_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-11-output-1.png" width="575" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tensorboard" class="level3" data-number="8.1.4">
+<h3 data-number="8.1.4" class="anchored" data-anchor-id="tensorboard"><span class="header-section-number">8.1.4</span> TensorBoard</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures_static/02_tensorboard_01.png" class="img-fluid figure-img"></p>
+<figcaption>TensorBoard visualization of the spotPython process. Objective function values plotted against wall time.</figcaption>
+</figure>
+</div>
+<p>The second TensorBoard visualization shows the input values, i.e., <span class="math inline">\(x_0, \ldots, x_2\)</span>, plotted against the wall time. <img src="figures_static/02_tensorboard_02.png" class="img-fluid" alt="TensorBoard visualization of the spotPython process."></p>
+<p>The third TensorBoard plot illustrates how <code>spotPython</code> can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate <span class="math inline">\(\theta\)</span> of the Kriging surrogate is plotted against the number of optimization steps.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figures_static/02_tensorboard_03.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>TensorBoard visualization of the spotPython surrogate model.</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="conclusion" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">8.2</span> Conclusion</h2>
+<p>Based on this quick analysis, we can conclude that all three dimensions are equally important (as expected, because the analytical function is known).</p>
+</section>
+<section id="exercises" class="level2" data-number="8.3">
+<h2 data-number="8.3" class="anchored" data-anchor-id="exercises"><span class="header-section-number">8.3</span> Exercises</h2>
+<section id="the-three-dimensional-fun_cubed" class="level3" data-number="8.3.1">
+<h3 data-number="8.3.1" class="anchored" data-anchor-id="the-three-dimensional-fun_cubed"><span class="header-section-number">8.3.1</span> 1. The Three Dimensional <code>fun_cubed</code></h3>
+<ul>
+<li>The input dimension is <code>3</code>. The search range is <span class="math inline">\(-1 \leq x \leq 1\)</span> for all dimensions.</li>
+<li>Generate contour plots</li>
+<li>Calculate the variable importance.</li>
+<li>Discuss the variable importance:
+<ul>
+<li>Are all variables equally important?</li>
+<li>If not:
+<ul>
+<li>Which is the most important variable?</li>
+<li>Which is the least important variable?</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="the-ten-dimensional-fun_wing_wt" class="level3" data-number="8.3.2">
+<h3 data-number="8.3.2" class="anchored" data-anchor-id="the-ten-dimensional-fun_wing_wt"><span class="header-section-number">8.3.2</span> 2. The Ten Dimensional <code>fun_wing_wt</code></h3>
+<ul>
+<li>The input dimension is <code>10</code>. The search range is <span class="math inline">\(0 \leq x \leq 1\)</span> for all dimensions.</li>
+<li>Calculate the variable importance.</li>
+<li>Discuss the variable importance:
+<ul>
+<li>Are all variables equally important?</li>
+<li>If not:
+<ul>
+<li>Which is the most important variable?</li>
+<li>Which is the least important variable?</li>
+</ul></li>
+<li>Generate contour plots for the three most important variables. Do they confirm your selection?</li>
+</ul></li>
+</ul>
+</section>
+<section id="the-three-dimensional-fun_runge" class="level3" data-number="8.3.3">
+<h3 data-number="8.3.3" class="anchored" data-anchor-id="the-three-dimensional-fun_runge"><span class="header-section-number">8.3.3</span> 3. The Three Dimensional <code>fun_runge</code></h3>
+<ul>
+<li>The input dimension is <code>3</code>. The search range is <span class="math inline">\(-5 \leq x \leq 5\)</span> for all dimensions.</li>
+<li>Generate contour plots</li>
+<li>Calculate the variable importance.</li>
+<li>Discuss the variable importance:
+<ul>
+<li>Are all variables equally important?</li>
+<li>If not:
+<ul>
+<li>Which is the most important variable?</li>
+<li>Which is the least important variable?</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="the-three-dimensional-fun_linear" class="level3" data-number="8.3.4">
+<h3 data-number="8.3.4" class="anchored" data-anchor-id="the-three-dimensional-fun_linear"><span class="header-section-number">8.3.4</span> 4. The Three Dimensional <code>fun_linear</code></h3>
+<ul>
+<li>The input dimension is <code>3</code>. The search range is <span class="math inline">\(-5 \leq x \leq 5\)</span> for all dimensions.</li>
+<li>Generate contour plots</li>
+<li>Calculate the variable importance.</li>
+<li>Discuss the variable importance:
+<ul>
+<li>Are all variables equally important?</li>
+<li>If not:
+<ul>
+<li>Which is the most important variable?</li>
+<li>Which is the least important variable?</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="sec-08-exer-rosenbrock" class="level3" data-number="8.3.5">
+<h3 data-number="8.3.5" class="anchored" data-anchor-id="sec-08-exer-rosenbrock"><span class="header-section-number">8.3.5</span> 5. The Two Dimensional Rosenbrock Function <code>fun_rosen</code></h3>
+<ul>
+<li>The input dimension is <code>2</code>. The search range is <span class="math inline">\(-5 \leq x \leq 10\)</span> for all dimensions.</li>
+<li>See <a href="https://en.wikipedia.org/wiki/Rosenbrock_function">Rosenbrock function</a> and <a href="https://www.sfu.ca/~ssurjano/rosen.html">Rosenbrock Function</a> for details.</li>
+<li>Generate contour plots</li>
+<li>Calculate the variable importance.</li>
+<li>Discuss the variable importance:
+<ul>
+<li>Are all variables equally important?</li>
+<li>If not:
+<ul>
+<li>Which is the most important variable?</li>
+<li>Which is the least important variable?</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="selected-solutions" class="level2" data-number="8.4">
+<h2 data-number="8.4" class="anchored" data-anchor-id="selected-solutions"><span class="header-section-number">8.4</span> Selected Solutions</h2>
+<section id="solution-to-exercise-sec-08-exer-rosenbrock-the-two-dimensional-rosenbrock-function-fun_rosen" class="level3" data-number="8.4.1">
+<h3 data-number="8.4.1" class="anchored" data-anchor-id="solution-to-exercise-sec-08-exer-rosenbrock-the-two-dimensional-rosenbrock-function-fun_rosen"><span class="header-section-number">8.4.1</span> Solution to Exercise <a href="#sec-08-exer-rosenbrock" class="quarto-xref"><span>Section 8.3.5</span></a>: The Two-dimensional Rosenbrock Function <code>fun_rosen</code></h3>
+<div id="ffd404aa" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init, surrogate_control_init</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="the-objective-function-2-dim-fun_rosen" class="level4" data-number="8.4.1.1">
+<h4 data-number="8.4.1.1" class="anchored" data-anchor-id="the-objective-function-2-dim-fun_rosen"><span class="header-section-number">8.4.1.1</span> The Objective Function: 2-dim fun_rosen</h4>
+<p>The <code>spotPython</code> package provides several classes of objective functions. We will use the <code>fun_rosen</code> in the <code>analytical</code> class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py">[SOURCE]</a>.</p>
+<div id="54532c16" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>fun_rosen <span class="op">=</span> analytical().fun_rosen</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here we will use problem dimension <span class="math inline">\(k=2\)</span>, which can be specified by the <code>lower</code> bound arrays. The size of the <code>lower</code> bound array determines the problem dimension. If we select <code>-5.0 * np.ones(2)</code>, a two-dimensional function is created. In contrast to the one-dimensional case, where only one <code>theta</code> value is used, we will use <span class="math inline">\(k\)</span> different <code>theta</code> values (one for each dimension), i.e., we set <code>n_theta=3</code> in the <code>surrogate_control</code>. The prefix is set to <code>"ROSEN"</code>. Again, TensorBoard can be used to monitor the progress of the optimization.</p>
+<div id="aa661e4b" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>              PREFIX<span class="op">=</span><span class="st">"ROSEN"</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> <span class="op">-</span><span class="fl">5.0</span><span class="op">*</span>np.ones(<span class="dv">2</span>),</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> <span class="dv">10</span><span class="op">*</span>np.ones(<span class="dv">2</span>),</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>              show_progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>              fun_evals<span class="op">=</span><span class="dv">25</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(n_theta<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>spot_rosen <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun_rosen,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>                  fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>                  surrogate_control<span class="op">=</span>surrogate_control)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>spot_rosen.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Created spot_tensorboard_path: runs/spot_logs/ROSEN_p040025_2024-02-09_19-06-56 for SummaryWriter()
+spotPython tuning: 90.7801015955818 [####------] 44.00% 
+spotPython tuning: 1.0172832635943474 [#####-----] 48.00% 
+spotPython tuning: 1.0172832635943474 [#####-----] 52.00% 
+spotPython tuning: 1.0172832635943474 [######----] 56.00% 
+spotPython tuning: 1.0172832635943474 [######----] 60.00% 
+spotPython tuning: 1.0172832635943474 [######----] 64.00% 
+spotPython tuning: 1.0172832635943474 [#######---] 68.00% 
+spotPython tuning: 1.0172832635943474 [#######---] 72.00% 
+spotPython tuning: 1.0172832635943474 [########--] 76.00% 
+spotPython tuning: 1.0172832635943474 [########--] 80.00% 
+spotPython tuning: 0.9921822630967522 [########--] 84.00% 
+spotPython tuning: 0.7147779101762312 [#########-] 88.00% 
+spotPython tuning: 0.7147779101762312 [#########-] 92.00% 
+spotPython tuning: 0.7147779101762312 [##########] 96.00% 
+spotPython tuning: 0.7147779101762312 [##########] 100.00% Done...
+</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2bcefdb10&gt;</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Now we can start TensorBoard in the background with the following command:</p>
+<pre class="{raw}"><code>tensorboard --logdir="./runs"</code></pre>
+<p>and can access the TensorBoard web server with the following URL:</p>
+<pre class="{raw}"><code>http://localhost:6006/</code></pre>
+</div>
+</div>
+</section>
+<section id="results-1" class="level4" data-number="8.4.1.2">
+<h4 data-number="8.4.1.2" class="anchored" data-anchor-id="results-1"><span class="header-section-number">8.4.1.2</span> Results</h4>
+<div id="602dfc23" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_rosen.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>min y: 0.7147779101762312
+x0: 0.19951670458655138
+x1: 0.1258327277797004</code></pre>
+</div>
+</div>
+<div id="c0c583f6" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>spot_rosen.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-16-output-1.png" width="722" height="261" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="a-contour-plot-1" class="level4" data-number="8.4.1.3">
+<h4 data-number="8.4.1.3" class="anchored" data-anchor-id="a-contour-plot-1"><span class="header-section-number">8.4.1.3</span> A Contour Plot</h4>
+<p>We can select two dimensions, say <span class="math inline">\(i=0\)</span> and <span class="math inline">\(j=1\)</span>, and generate a contour plot as follows.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note:
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>For higher dimensions, it might be useful to have identical <code>min_z</code> and <code>max_z</code> values to generate comparable plots. The default values are <code>min_z=None</code> and <code>max_z=None</code>, which will be replaced by the minimum and maximum values of the objective function.</p>
+</div>
+</div>
+<div id="c0f0255e" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>min_z <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>max_z <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>spot_rosen.plot_contour(i<span class="op">=</span><span class="dv">0</span>, j<span class="op">=</span><span class="dv">1</span>, min_z<span class="op">=</span>min_z, max_z<span class="op">=</span>max_z)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-17-output-1.png" width="733" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>The variable importance can be calculated as follows:</li>
+</ul>
+<div id="7367724c" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_rosen.print_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x0:  100.0
+x1:  1.2641431841859785</code></pre>
+</div>
+</div>
+<div id="26894ea4" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>spot_rosen.plot_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="008_num_spot_multidim_files/figure-html/cell-19-output-1.png" width="575" height="411" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tensorboard-1" class="level4" data-number="8.4.1.4">
+<h4 data-number="8.4.1.4" class="anchored" data-anchor-id="tensorboard-1"><span class="header-section-number">8.4.1.4</span> TensorBoard</h4>
+<p>TBD</p>
+</section>
+</section>
+</section>
+<section id="jupyter-notebook" class="level2" data-number="8.5">
+<h2 data-number="8.5" class="anchored" data-anchor-id="jupyter-notebook"><span class="header-section-number">8.5</span> Jupyter Notebook</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>The Jupyter-Notebook of this lecture is available on GitHub in the <a href="https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/008_num_spot_multidim.ipynb">Hyperparameter-Tuning-Cookbook Repository</a></li>
+</ul>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./007_num_spot_intro.html" class="pagination-link  aria-label=" &lt;span="" to="" spotpython&lt;="" span&gt;"="">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotPython</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./009_num_spot_anisotropic.html" class="pagination-link" aria-label="<span class='chapter-number'>9</span>&nbsp; <span class='chapter-title'>Isotropic and Anisotropic Kriging</span>">
+        <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
