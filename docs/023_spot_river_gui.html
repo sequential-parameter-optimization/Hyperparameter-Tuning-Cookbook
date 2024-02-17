@@ -89,6 +89,35 @@ div.csl-indent {
   }
 }</script>
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 17&nbsp; The spotRiver Hyperparameter Tuning GUI">
 <meta name="twitter:description" content="">
@@ -396,7 +425,7 @@ div.csl-indent {
    
   <ul>
   <li><a href="#starting-the-gui" id="toc-starting-the-gui" class="nav-link active" data-scroll-target="#starting-the-gui"><span class="header-section-number">17.1</span> Starting the GUI</a></li>
-  <li><a href="#binary-classification" id="toc-binary-classification" class="nav-link" data-scroll-target="#binary-classification"><span class="header-section-number">17.2</span> Binary Classification</a>
+  <li><a href="#binary-classification-options" id="toc-binary-classification-options" class="nav-link" data-scroll-target="#binary-classification-options"><span class="header-section-number">17.2</span> Binary Classification Options</a>
   <ul class="collapse">
   <li><a href="#sec-river-datasets" id="toc-sec-river-datasets" class="nav-link" data-scroll-target="#sec-river-datasets"><span class="header-section-number">17.2.1</span> River Data Sets</a></li>
   <li><a href="#user-data-sets" id="toc-user-data-sets" class="nav-link" data-scroll-target="#user-data-sets"><span class="header-section-number">17.2.2</span> User Data Sets</a></li>
@@ -406,16 +435,15 @@ div.csl-indent {
   <li><a href="#regression" id="toc-regression" class="nav-link" data-scroll-target="#regression"><span class="header-section-number">17.3</span> Regression</a></li>
   <li><a href="#experiment-options" id="toc-experiment-options" class="nav-link" data-scroll-target="#experiment-options"><span class="header-section-number">17.4</span> Experiment Options</a></li>
   <li><a href="#evaluation-options" id="toc-evaluation-options" class="nav-link" data-scroll-target="#evaluation-options"><span class="header-section-number">17.5</span> Evaluation Options</a></li>
-  <li><a href="#starting-a-new-experiment" id="toc-starting-a-new-experiment" class="nav-link" data-scroll-target="#starting-a-new-experiment"><span class="header-section-number">17.6</span> Starting a New Experiment</a></li>
-  <li><a href="#starting-and-stopping-tensorboard" id="toc-starting-and-stopping-tensorboard" class="nav-link" data-scroll-target="#starting-and-stopping-tensorboard"><span class="header-section-number">17.7</span> Starting and Stopping Tensorboard</a></li>
-  <li><a href="#analysis" id="toc-analysis" class="nav-link" data-scroll-target="#analysis"><span class="header-section-number">17.8</span> Analysis</a></li>
-  <li><a href="#internal-methods" id="toc-internal-methods" class="nav-link" data-scroll-target="#internal-methods"><span class="header-section-number">17.9</span> Internal Methods</a>
+  <li><a href="#online-machine-learning-model-options" id="toc-online-machine-learning-model-options" class="nav-link" data-scroll-target="#online-machine-learning-model-options"><span class="header-section-number">17.6</span> Online Machine Learning Model Options</a></li>
+  <li><a href="#showing-the-data" id="toc-showing-the-data" class="nav-link" data-scroll-target="#showing-the-data"><span class="header-section-number">17.7</span> Showing the Data</a></li>
+  <li><a href="#saving-the-experiment" id="toc-saving-the-experiment" class="nav-link" data-scroll-target="#saving-the-experiment"><span class="header-section-number">17.8</span> Saving the Experiment</a></li>
+  <li><a href="#loading-an-experiment" id="toc-loading-an-experiment" class="nav-link" data-scroll-target="#loading-an-experiment"><span class="header-section-number">17.9</span> Loading an Experiment</a></li>
+  <li><a href="#running-a-new-experiment" id="toc-running-a-new-experiment" class="nav-link" data-scroll-target="#running-a-new-experiment"><span class="header-section-number">17.10</span> Running a New Experiment</a>
   <ul class="collapse">
-  <li><a href="#the-run_spot_river_experiment-method" id="toc-the-run_spot_river_experiment-method" class="nav-link" data-scroll-target="#the-run_spot_river_experiment-method"><span class="header-section-number">17.9.1</span> The run_spot_river_experiment Method</a></li>
-  <li><a href="#the-fun_oml_horizon-method" id="toc-the-fun_oml_horizon-method" class="nav-link" data-scroll-target="#the-fun_oml_horizon-method"><span class="header-section-number">17.9.2</span> The fun_oml_horizon Method</a></li>
-  <li><a href="#the-evaluate_model-method" id="toc-the-evaluate_model-method" class="nav-link" data-scroll-target="#the-evaluate_model-method"><span class="header-section-number">17.9.3</span> The evaluate_model Method</a></li>
-  <li><a href="#the-eval_oml_horizon-method" id="toc-the-eval_oml_horizon-method" class="nav-link" data-scroll-target="#the-eval_oml_horizon-method"><span class="header-section-number">17.9.4</span> The eval_oml_horizon Method</a></li>
+  <li><a href="#starting-and-stopping-tensorboard" id="toc-starting-and-stopping-tensorboard" class="nav-link" data-scroll-target="#starting-and-stopping-tensorboard"><span class="header-section-number">17.10.1</span> Starting and Stopping Tensorboard</a></li>
   </ul></li>
+  <li><a href="#analysis" id="toc-analysis" class="nav-link" data-scroll-target="#analysis"><span class="header-section-number">17.11</span> Analysis</a></li>
   </ul>
 </nav>
     </div>
@@ -441,28 +469,46 @@ div.csl-indent {
 </header>
 
 
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note: This document refers to <code>spotRiverGUI</code> version 0.0.25 which was released on Feb, 17th 2024 on GitHub, see: <a href="https://github.com/sequential-parameter-optimization/spotGUI/tree/main">https://github.com/sequential-parameter-optimization/spotGUI/tree/main</a>. The GUI is under active development and new features will be added soon.</p>
+</div>
+</div>
 <section id="starting-the-gui" class="level2" data-number="17.1">
 <h2 data-number="17.1" class="anchored" data-anchor-id="starting-the-gui"><span class="header-section-number">17.1</span> Starting the GUI</h2>
 <p>The GUI can be started by executing the <code>spotRiverGUI.py</code> file in the <code>spotGUI/spotRiverGUI</code> directory.</p>
 <pre class="{bash}"><code>&gt;&gt; python spotRiverGUI.py</code></pre>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./figures_static/spotRiverGUI-00.png" class="img-fluid figure-img"></p>
-<figcaption>spotriver GUI</figcaption>
+<p>The GUI window will open, as shown in <a href="#fig-spotRiverGUI-00" class="quarto-xref">Figure&nbsp;<span>17.1</span></a>.</p>
+<div id="fig-spotRiverGUI-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-spotRiverGUI-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/spotRiverGUI-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-spotRiverGUI-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.1: spotriver GUI
+</figcaption>
 </figure>
 </div>
 <p>After the GUI window has opened, the user can select the task. Currently, <code>Binary Classification</code> is available. Further tasks like <code>Regression</code> will be available soon.</p>
 <p>Depending on the task, the user can select the data set, the preprocessing model, the metric, and the online machine learning model.</p>
 </section>
-<section id="binary-classification" class="level2" data-number="17.2">
-<h2 data-number="17.2" class="anchored" data-anchor-id="binary-classification"><span class="header-section-number">17.2</span> Binary Classification</h2>
+<section id="binary-classification-options" class="level2" data-number="17.2">
+<h2 data-number="17.2" class="anchored" data-anchor-id="binary-classification-options"><span class="header-section-number">17.2</span> Binary Classification Options</h2>
 <p>If the <code>Binary Classification</code> task is selected, the user can select pre-specified data sets from the <code>Data</code> drop-down menu.</p>
 <section id="sec-river-datasets" class="level3" data-number="17.2.1">
 <h3 data-number="17.2.1" class="anchored" data-anchor-id="sec-river-datasets"><span class="header-section-number">17.2.1</span> River Data Sets</h3>
-<p>The following data sets from the <code>river</code> package are available:</p>
+<p>The following data sets from the <code>river</code> package are available (the descriptions are taken from the <code>river</code> package):</p>
 <ul>
 <li><code>Bananas</code>: An artificial dataset where instances belongs to several clusters with a banana shape.There are two attributes that correspond to the x and y axis, respectively. More: <a href="https://riverml.xyz/dev/api/datasets/Bananas/">https://riverml.xyz/dev/api/datasets/Bananas/</a>.</li>
-<li><code>CreditCard</code>: Credit card frauds. The datasets contains transactions made by credit cards in September 2013 by European cardholders. This dataset presents transactions that occurred in two days, where we have 492 frauds out of 284,807 transactions. The dataset is highly unbalanced, the positive class (frauds) account for 0.172% of all transactions. It contains only numerical input variables which are the result of a PCA transformation. Unfortunately, due to confidentiality issues, we cannot provide the original features and more background information about the data. Features <code>V1</code>, <code>V2</code>,…,<code>V28</code> are the principal components obtained with PCA, the only features which have not been transformed with PCA are ‘<code>Time</code>’ and ‘<code>Amount</code>’. Feature ‘<code>Time</code>’ contains the seconds elapsed between each transaction and the first transaction in the dataset. The feature ‘<code>Amount</code>’ is the transaction Amount, this feature can be used for example-dependant cost-sensitive learning. Feature ‘<code>Class</code>’ is the response variable and it takes value 1 in case of fraud and 0 otherwise. More: <a href="https://riverml.xyz/dev/api/datasets/CreditCard/">https://riverml.xyz/dev/api/datasets/CreditCard/</a>.</li>
+<li><code>CreditCard</code>: Credit card frauds. The datasets contains transactions made by credit cards in September 2013 by European cardholders. Feature ‘<code>Class</code>’ is the response variable and it takes value 1 in case of fraud and 0 otherwise. More: <a href="https://riverml.xyz/dev/api/datasets/CreditCard/">https://riverml.xyz/dev/api/datasets/CreditCard/</a>.</li>
 <li><code>Elec2</code>: Electricity prices in New South Wales. This is a binary classification task, where the goal is to predict if the price of electricity will go up or down. This data was collected from the Australian New South Wales Electricity Market. In this market, prices are not fixed and are affected by demand and supply of the market. They are set every five minutes. Electricity transfers to/from the neighboring state of Victoria were done to alleviate fluctuations. More: <a href="https://riverml.xyz/dev/api/datasets/Elec2/">https://riverml.xyz/dev/api/datasets/Elec2/</a>.</li>
 <li><code>Higgs</code>: The data has been produced using Monte Carlo simulations. The first 21 features (columns 2-22) are kinematic properties measured by the particle detectors in the accelerator. The last seven features are functions of the first 21 features; these are high-level features derived by physicists to help discriminate between the two classes. More: <a href="https://riverml.xyz/dev/api/datasets/Higgs/">https://riverml.xyz/dev/api/datasets/Higgs/</a>.</li>
 <li><code>HTTP</code>: HTTP dataset of the KDD 1999 cup. The goal is to predict whether or not an HTTP connection is anomalous or not. The dataset only contains 2,211 (0.4%) positive labels. More: <a href="https://riverml.xyz/dev/api/datasets/HTTP/">https://riverml.xyz/dev/api/datasets/HTTP/</a>.</li>
@@ -603,62 +649,433 @@ The oml_grace_period
 </div>
 </div>
 </section>
-<section id="starting-a-new-experiment" class="level2" data-number="17.6">
-<h2 data-number="17.6" class="anchored" data-anchor-id="starting-a-new-experiment"><span class="header-section-number">17.6</span> Starting a New Experiment</h2>
-<p>An experiment can be started by clicking on the <code>Run Experiment</code> button. The GUI calls <code>run_spot_river_experiment</code> from <code>spotRiver.tuner.run.py</code>. Output will be shown in the shell window from which the GUI was started.</p>
+<section id="online-machine-learning-model-options" class="level2" data-number="17.6">
+<h2 data-number="17.6" class="anchored" data-anchor-id="online-machine-learning-model-options"><span class="header-section-number">17.6</span> Online Machine Learning Model Options</h2>
+<p>The user can select one of the following online machine learning models from the <code>coremodel</code> drop-down menu:</p>
+<ul>
+<li><code>forest.AMFClassifier</code>: Aggregated Mondrian Forest classifier for online learning. This implementation is truly online, in the sense that a single pass is performed, and that predictions can be produced anytime. More: <a href="https://riverml.xyz/dev/api/forest/AMFClassifier/">https://riverml.xyz/dev/api/forest/AMFClassifier/</a>.</li>
+<li><code>tree.ExtremelyFastDecisionTreeClassifier</code>: Extremely Fast Decision Tree (EFDT) classifier. Also referred to as the Hoeffding AnyTime Tree (HATT) classifier. In practice, despite the name, EFDTs are typically slower than a vanilla Hoeffding Tree to process data. More: <a href="https://riverml.xyz/dev/api/tree/ExtremelyFastDecisionTreeClassifier/">https://riverml.xyz/dev/api/tree/ExtremelyFastDecisionTreeClassifier/</a>.</li>
+<li><code>tree.HoeffdingTreeClassifier</code>: Hoeffding Tree or Very Fast Decision Tree classifier. More: <a href="https://riverml.xyz/dev/api/tree/HoeffdingTreeClassifier/">https://riverml.xyz/dev/api/tree/HoeffdingTreeClassifier/</a>.</li>
+<li><code>tree.HoeffdingAdaptiveTreeClassifier</code>: Hoeffding Adaptive Tree classifier. More: <a href="https://riverml.xyz/dev/api/tree/HoeffdingAdaptiveTreeClassifier/">https://riverml.xyz/dev/api/tree/HoeffdingAdaptiveTreeClassifier/</a>.</li>
+<li><code>linear_model.LogisticRegression</code>: Logistic regression classifier. More: <a href="https://riverml.xyz/dev/api/linear-model/LogisticRegression/">hhttps://riverml.xyz/dev/api/linear-model/LogisticRegression/</a>.</li>
+</ul>
+<p>The <code>spotRiverGUI</code> automatically determines the hyperparameters for the selected online machine learning model and adapts the input fields to the model hyperparameters. The user can modify the hyperparameters in the GUI. <a href="#fig-spotRiverGUI-01" class="quarto-xref">Figure&nbsp;<span>17.2</span></a> shows the <code>spotRiverGUI</code> when the <code>forest.AMFClassifier</code> is selected and <a href="#fig-spotRiverGUI-02" class="quarto-xref">Figure&nbsp;<span>17.3</span></a> shows the <code>spotRiverGUI</code> when the <code>tree.HoeffdingTreeClassifier</code> is selected.</p>
+<div id="fig-spotRiverGUI-01" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-spotRiverGUI-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/spotRiverGUI-01.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-spotRiverGUI-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.2: <code>spotRiverGUI</code> when <code>forest.AMFClassifier</code> is selected
+</figcaption>
+</figure>
+</div>
+<div id="fig-spotRiverGUI-02" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-spotRiverGUI-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/spotRiverGUI-02.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-spotRiverGUI-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.3: <code>spotRiverGUI</code> when <code>tree.HoeffdingAdaptiveTreeClassifier</code> is selected
+</figcaption>
+</figure>
+</div>
+<p>Numerical and categorical hyperparameters are treated differently in the <code>spotRiverGUI</code>:</p>
+<ul>
+<li>The user can modify the lower and upper bounds for the numerical hyperparameters.</li>
+<li>There are no upper or lower bounds for categorical hyperparameters. Instead, hyperparameter values for the categorical hyperparameters are considered as sets of values, e.g., the set of <code>ExhaustiveSplitter</code>, <code>HistogramSplitter</code>, <code>GaussianSplitter</code> is provided for the <code>splitter</code> hyperparameter of the <code>tree.HoeffdingAdaptiveTreeClassifier</code> model as can be seen in <a href="#fig-spotRiverGUI-02" class="quarto-xref">Figure&nbsp;<span>17.3</span></a>. The user can select the full set or any subset of the set of values for the categorical hyperparameters.</li>
+</ul>
+<p>In addition to the lower and upper bounds (or the set of values for the categorical hyperparameters), the <code>spotRiverGUI</code> provides information about the <code>Default values</code> and the <code>Transformation</code> function. If the <code>Transformation</code> function is set to <code>None</code>, the values of the hyperparameters are passed to the <code>spot</code> tuner as they are. If the <code>Transformation</code> function is set to <code>transform_power_2_int</code>, the value <span class="math inline">\(x\)</span> is transformed to <span class="math inline">\(2^x\)</span> before it is passed to the <code>spot</code> tuner.</p>
+<p>Modifications of the <code>Default values</code> and <code>Transformation</code> functions values in the <code>spotRiverGUI</code> have no effect on the hyperparameter tuning process. This is intensional. In future versions, the user will be able to add their own hyperparameter dictionaries to the <code>spotRiverGUI</code>, which allows the modification of <code>Default values</code> and <code>Transformation</code> functions values. Furthermore, the <code>spotRiverGUI</code> will support more online machine learning models in future versions.</p>
 </section>
-<section id="starting-and-stopping-tensorboard" class="level2" data-number="17.7">
-<h2 data-number="17.7" class="anchored" data-anchor-id="starting-and-stopping-tensorboard"><span class="header-section-number">17.7</span> Starting and Stopping Tensorboard</h2>
-<p>Tensorboard is automatically started when an experiment is started. The tensorboard process can be observed in a browser by opening the <a href="http://localhost:6006">http://localhost:6006</a> page.</p>
-<p><code>spotPython.utils.tensorboard</code> provides the methods <code>start_tensorboard</code> and <code>stop_tensorboard</code> to start and stop tensorboard as a background process. These will be used in future versions of the GUI to start and stop tensorboard. Currently, only the <code>start_tensorboard</code> method is used to start tensorboard as a background process.</p>
+<section id="showing-the-data" class="level2" data-number="17.7">
+<h2 data-number="17.7" class="anchored" data-anchor-id="showing-the-data"><span class="header-section-number">17.7</span> Showing the Data</h2>
+<p>The <code>spotRiverGUI</code> provides the <code>Show Data</code> button, which opens a new window and shows information about the data set. The first figure (<a href="#fig-bananas-01" class="quarto-xref">Figure&nbsp;<span>17.4</span></a>) shows histograms of the target variables in the train and test data sets. The second figure (<a href="#fig-bananas-02" class="quarto-xref">Figure&nbsp;<span>17.5</span></a>) shows scatter plots of the features in the train data set. The third figure (<a href="#fig-bananas-03" class="quarto-xref">Figure&nbsp;<span>17.6</span></a>) shows the corresponding scatter plots of the features in the test data set.</p>
+<div id="fig-bananas-01" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bananas-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/bananas-01.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bananas-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.4: <code>spotRiverGUI</code> when <code>Bananas</code> data is selected for the <code>Show Data</code> option
+</figcaption>
+</figure>
+</div>
+<div id="fig-bananas-02" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bananas-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/bananas-02.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bananas-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.5: <code>spotRiverGUI</code> when <code>Bananas</code> data is selected for the <code>Show Data</code> option
+</figcaption>
+</figure>
+</div>
+<div id="fig-bananas-03" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bananas-03-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/bananas-03.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bananas-03-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.6: <code>spotRiverGUI</code> when <code>Bananas</code> data is selected for the <code>Show Data</code> option
+</figcaption>
+</figure>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Size of the Displayed Data Sets
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Some data sets are quite large and the display of the data sets might take some time.</li>
+<li>Therefore, a random subset of 1000 instances of the data set is displayed if the data set is larger than 1000 instances.</li>
+</ul>
+</div>
+</div>
+<p>Showing the data is important, especially for the new / unknown data sets as can be seen in <a href="#fig-http-01" class="quarto-xref">Figure&nbsp;<span>17.7</span></a>, <a href="#fig-http-02" class="quarto-xref">Figure&nbsp;<span>17.8</span></a>, and <a href="#fig-http-03" class="quarto-xref">Figure&nbsp;<span>17.9</span></a>: The target variable is highly biased. The user can check whether the data set is correctly formatted and whether the target variable is correctly specified.</p>
+<div id="fig-http-01" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-http-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/http-01.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-http-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.7: Output from the <code>spotRiverGUI</code> when <code>HTTP</code> data is selected for the <code>Show Data</code> option. The target variabel is biased.
+</figcaption>
+</figure>
+</div>
+<div id="fig-http-02" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-http-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/http-02.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-http-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.8: Output from the <code>spotRiverGUI</code> when <code>HTTP</code> data is selected for the <code>Show Data</code> option. A subset of 1000 randomly chosen data points is shown. Only a few positive events are in the data.
+</figcaption>
+</figure>
+</div>
+<div id="fig-http-03" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-http-03-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/http-03.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-http-03-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.9: Output from the <code>spotRiverGUI</code> when <code>HTTP</code> data is selected for the <code>Show Data</code> option. The test data set shows the same structure as the train data set.
+</figcaption>
+</figure>
+</div>
+<p>In addition to the histograms and scatter plots, the <code>spotRiverGUI</code> provides textual information about the data set in the console window. e.g., for the <code>Bananas</code> data set, the following information is shown:</p>
+<pre class="{bash}"><code>Train data summary:
+                   x1             x2             x3              y
+count  397248.000000  397248.000000  397248.000000  397248.000000
+mean       -2.269013       5.558081       7.488495       0.003904
+std         0.461650       0.434611       1.317235       0.062363
+min        -2.302585      -2.302585      -2.302585       0.000000
+25%        -2.302585       5.380358       6.490875       0.000000
+50%        -2.302585       5.517854       7.414633       0.000000
+75%        -2.302585       5.723912       8.371959       0.000000
+max         8.098369      10.906691      16.277711       1.000000
+
+Test data summary:
+                   x1             x2             x3              y
+count  170250.000000  170250.000000  170250.000000  170250.000000
+mean       -2.267430       5.556740       7.490932       0.003877
+std         0.473859       0.435927       1.316398       0.062142
+min        -2.302585      -2.302585      -2.302585       0.000000
+25%        -2.302585       5.380358       6.492391       0.000000
+50%        -2.302585       5.517854       7.419441       0.000000
+75%        -2.302585       5.723912       8.376747       0.000000</code></pre>
 </section>
-<section id="analysis" class="level2" data-number="17.8">
-<h2 data-number="17.8" class="anchored" data-anchor-id="analysis"><span class="header-section-number">17.8</span> Analysis</h2>
+<section id="saving-the-experiment" class="level2" data-number="17.8">
+<h2 data-number="17.8" class="anchored" data-anchor-id="saving-the-experiment"><span class="header-section-number">17.8</span> Saving the Experiment</h2>
+<p>If the experiment should not be started immediately, the user can save the experiment by clicking on the <code>Save Experiment</code> button. The <code>spotRiverGUI</code> will save the experiment as a pickle file. The file name is generated based on the <code>PREFIX</code> parameter. The pickle file contains a set of dictionaries, which are used to start the experiment.</p>
+<p><code>spotRiverGUI</code> shows a summary of the selected hyperparameters in the console window as can be seen in <a href="#tbl-hyperdict" class="quarto-xref">Table&nbsp;<span>17.1</span></a>.</p>
+<div id="tbl-hyperdict" class="quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hyperdict-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;17.1: The hyperparameter dictionary for the <code>tree.HoeffdingAdaptiveTreeClassifier</code> model.
+</figcaption>
+<div aria-describedby="tbl-hyperdict-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 8%">
+<col style="width: 18%">
+<col style="width: 12%">
+<col style="width: 10%">
+<col style="width: 24%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>name</th>
+<th>type</th>
+<th>default</th>
+<th>lower</th>
+<th>upper</th>
+<th>transform</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>grace_period</td>
+<td>int</td>
+<td>200</td>
+<td>10</td>
+<td>1000</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>max_depth</td>
+<td>int</td>
+<td>20</td>
+<td>2</td>
+<td>20</td>
+<td>transform_power_2_int</td>
+</tr>
+<tr class="odd">
+<td>delta</td>
+<td>float</td>
+<td>1e-07</td>
+<td>1e-08</td>
+<td>1e-06</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>tau</td>
+<td>float</td>
+<td>0.05</td>
+<td>0.01</td>
+<td>0.1</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>leaf_prediction</td>
+<td>factor</td>
+<td>nba</td>
+<td>0</td>
+<td>2</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>nb_threshold</td>
+<td>int</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>splitter</td>
+<td>factor</td>
+<td>GaussianSplitter</td>
+<td>0</td>
+<td>2</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>bootstrap_sampling</td>
+<td>factor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>drift_window_threshold</td>
+<td>int</td>
+<td>300</td>
+<td>100</td>
+<td>500</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>drift_detector</td>
+<td>factor</td>
+<td>ADWIN</td>
+<td>0</td>
+<td>0</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>switch_significance</td>
+<td>float</td>
+<td>0.05</td>
+<td>0.01</td>
+<td>0.1</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>binary_split</td>
+<td>factor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>max_size</td>
+<td>float</td>
+<td>100.0</td>
+<td>100</td>
+<td>1000</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>memory_estimate_period</td>
+<td>int</td>
+<td>1000000</td>
+<td>100000</td>
+<td>1e+06</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>stop_mem_management</td>
+<td>factor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>remove_poor_attrs</td>
+<td>factor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+</tr>
+<tr class="odd">
+<td>merit_preprune</td>
+<td>factor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 </section>
-<section id="internal-methods" class="level2" data-number="17.9">
-<h2 data-number="17.9" class="anchored" data-anchor-id="internal-methods"><span class="header-section-number">17.9</span> Internal Methods</h2>
-<p>The spotriver GUI uses the following internal methods:</p>
-<ol type="1">
-<li><code>run_spot_river_experiment</code></li>
-<li><code>fun_oml_horizon</code></li>
-<li><code>evaluate_model</code></li>
-<li><code>eval_oml_horizon</code></li>
-</ol>
-<section id="the-run_spot_river_experiment-method" class="level3" data-number="17.9.1">
-<h3 data-number="17.9.1" class="anchored" data-anchor-id="the-run_spot_river_experiment-method"><span class="header-section-number">17.9.1</span> The run_spot_river_experiment Method</h3>
-<p><code>run_spot_river_experiment</code> calls the tuner spot after processing the following steps:</p>
-<ol type="1">
-<li>Generate an experiment name.</li>
-<li>Initialize the <code>fun_control</code> dictionary.</li>
-<li>Select the data set based on the <code>data_set</code> parameter and generate a data frame.</li>
-<li>Splits the data into training and test sets.</li>
-<li>Sets the oml_grace_period parameter.</li>
-<li>Select the preprocessing model based on the <code>prepmodel</code> parameter.</li>
-<li>Sets the weights for the evaluation function and the weight coeffient.</li>
-<li>Loads the coremodel based on the <code>coremodel</code> parameter with hyperparameters set to the values specified in the <code>RiverHyperDict</code> dictionary.</li>
-<li>Determines the default hyperparameters.</li>
-<li>Selects the evaluation function: <code>HyperRiver.fun_oml_horizon</code>.</li>
-<li>Determines hyperparameter types, names, lower and upper bounds for the <code>spot</code> tuner.</li>
-<li>Starts tensorboard as a background process.</li>
-<li>Starts the <code>spot</code> tuner.</li>
-</ol>
-<p>When the tuner is finished, the following steps are performed:</p>
-<ol type="1">
-<li>The tensorboard process is terminated.</li>
-<li>The spot_tuner object and the <code>fun_control</code> dictionary are returned.</li>
-</ol>
-<p>After the tuner is finished, the following information is available:</p>
-<p>The <code>run_spot_river_experiment</code> method is located in <code>spotRiver.tuner.run.py</code> and is called by the GUI. It calls the <code>fun_oml_horizon</code> evaluation function and the spot tuner.</p>
+<section id="loading-an-experiment" class="level2" data-number="17.9">
+<h2 data-number="17.9" class="anchored" data-anchor-id="loading-an-experiment"><span class="header-section-number">17.9</span> Loading an Experiment</h2>
+<p>Future versions of the <code>spotRiverGUI</code> will support the loading of experiments from the GUI. Currently, the user can load the experiment by executing the command <code>load_experiment</code>, see <a href="https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/utils/file/#spotPython.utils.file.load_experiment">https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/utils/file/#spotPython.utils.file.load_experiment</a>.</p>
 </section>
-<section id="the-fun_oml_horizon-method" class="level3" data-number="17.9.2">
-<h3 data-number="17.9.2" class="anchored" data-anchor-id="the-fun_oml_horizon-method"><span class="header-section-number">17.9.2</span> The fun_oml_horizon Method</h3>
-<p>The <code>fun_oml_horizon</code> method is located in <code>spotRiver.hyperriver.py</code> file. It calls the <code>evaluate_model</code> method, which in turn calls the <code>eval_oml_horizon</code> method from the <code>spotRiver.evaluation.eval_bml.py</code> file.</p>
+<section id="running-a-new-experiment" class="level2" data-number="17.10">
+<h2 data-number="17.10" class="anchored" data-anchor-id="running-a-new-experiment"><span class="header-section-number">17.10</span> Running a New Experiment</h2>
+<p>An experiment can be started by clicking on the <code>Run Experiment</code> button. The GUI calls <code>run_spot_python_experiment</code> from <code>spotGUI.tuner.spotRun</code>. Output will be shown in the console window from which the GUI was started.</p>
+<section id="starting-and-stopping-tensorboard" class="level3" data-number="17.10.1">
+<h3 data-number="17.10.1" class="anchored" data-anchor-id="starting-and-stopping-tensorboard"><span class="header-section-number">17.10.1</span> Starting and Stopping Tensorboard</h3>
+<p>Tensorboard is automatically started when an experiment is started. The tensorboard process can be observed in a browser by opening the <a href="http://localhost:6006">http://localhost:6006</a> page. Tensorboard provides a visual representation of the hyperparameter tuning process. <a href="#fig-tensorboard-05" class="quarto-xref">Figure&nbsp;<span>17.10</span></a> and <a href="#fig-tensorboard-04" class="quarto-xref">Figure&nbsp;<span>17.11</span></a> show the tensorboard page when the <code>spotRiverGUI</code> is performing the tuning process.</p>
+<div id="fig-tensorboard-05" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tensorboard-05-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/tb-05.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tensorboard-05-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.10: Tensorboard visualiation of the hyperparameter tuning process
+</figcaption>
+</figure>
+</div>
+<div id="fig-tensorboard-04" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tensorboard-04-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/tb-04.png" class="img-fluid figure-img" style="width:50.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tensorboard-04-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.11: Tensorboard. Parallel coordinates plot
+</figcaption>
+</figure>
+</div>
+<p><code>spotPython.utils.tensorboard</code> provides the methods <code>start_tensorboard</code> and <code>stop_tensorboard</code> to start and stop tensorboard as a background process. After the experiment is finished, the tensorboard process is stopped automatically.</p>
 </section>
-<section id="the-evaluate_model-method" class="level3" data-number="17.9.3">
-<h3 data-number="17.9.3" class="anchored" data-anchor-id="the-evaluate_model-method"><span class="header-section-number">17.9.3</span> The evaluate_model Method</h3>
 </section>
-<section id="the-eval_oml_horizon-method" class="level3" data-number="17.9.4">
-<h3 data-number="17.9.4" class="anchored" data-anchor-id="the-eval_oml_horizon-method"><span class="header-section-number">17.9.4</span> The eval_oml_horizon Method</h3>
+<section id="analysis" class="level2" data-number="17.11">
+<h2 data-number="17.11" class="anchored" data-anchor-id="analysis"><span class="header-section-number">17.11</span> Analysis</h2>
+<p>If the hyperparameter tuning process is finished, the user can analyze the results by clicking on the <code>Analysis</code> button. The following options are available:</p>
+<ul>
+<li>Progress plot</li>
+<li>Compare tuned versus default hyperparameters</li>
+<li>Importance of hyperparameters</li>
+<li>Contour plot</li>
+<li>Parallel coordinates plot</li>
+</ul>
+<p><a href="#fig-prg-00" class="quarto-xref">Figure&nbsp;<span>17.12</span></a> shows the progress plot of the hyperparameter tuning process. Black dots denote results from the initial design. Red dots illustrate the improvement found by the surrogate model based optimization. For binary classifiaction tasks, the <code>roc_auc_score</code> is used as the evaluation metric as shown in <a href="#fig-auc-00" class="quarto-xref">Figure&nbsp;<span>17.14</span></a>. The confusion matrix is shown in <a href="#fig-cm-00" class="quarto-xref">Figure&nbsp;<span>17.13</span></a>. The default versus tuned hyperparameters are shown in <a href="#fig-default-tuned-00" class="quarto-xref">Figure&nbsp;<span>17.15</span></a>. The surrogate plot is shown in <a href="#fig-surrogate-00" class="quarto-xref">Figure&nbsp;<span>17.16</span></a>, <a href="#fig-surrogate-01" class="quarto-xref">Figure&nbsp;<span>17.17</span></a>, and <a href="#fig-surrogate-02" class="quarto-xref">Figure&nbsp;<span>17.18</span></a>.</p>
+<div id="fig-prg-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-prg-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/prg-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-prg-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.12: Progress plot of the hyperparameter tuning process
+</figcaption>
+</figure>
+</div>
+<div id="fig-cm-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cm-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/cm-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cm-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.13: Confusion matrix
+</figcaption>
+</figure>
+</div>
+<div id="fig-auc-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-auc-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/auc-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-auc-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.14: Area under the ROC curve
+</figcaption>
+</figure>
+</div>
+<div id="fig-default-tuned-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-default-tuned-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/default-tuned-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-default-tuned-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.15: Default versus tuned hyperparameters
+</figcaption>
+</figure>
+</div>
+<div id="fig-surrogate-00" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-surrogate-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/surrogate-00.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-surrogate-00-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.16: Surrogate plot
+</figcaption>
+</figure>
+</div>
+<div id="fig-surrogate-01" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-surrogate-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/surrogate-01.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-surrogate-01-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.17: Surrogate plot
+</figcaption>
+</figure>
+</div>
+<div id="fig-surrogate-02" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-surrogate-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/surrogate-02.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-surrogate-02-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.18: Surrogate plot
+</figcaption>
+</figure>
+</div>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -672,7 +1089,6 @@ Bartz-Beielstein, Thomas. 2024a. <span>“Evaluation and Performance Measurement
 Bartz-Beielstein, Thomas, and Martin Zaefferer. 2022. <span>“Hyperparameter Tuning Approaches.”</span> In <em><span class="nocase">Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide</span></em>, edited by Eva Bartz, Thomas Bartz-Beielstein, Martin Zaefferer, and Olaf Mersmann, 67–114. Springer.
 </div>
 </div>
-</section>
 </section>
 
 </main> <!-- /main -->
