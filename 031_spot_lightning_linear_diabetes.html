@@ -1,0 +1,2253 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.547">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Hyperparameter Tuning Cookbook - 20&nbsp; HPT PyTorch Lightning: Diabetes</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./032_spot_lightning_rnn_diabetes.html" rel="next">
+<link href="./025_spot_hpt_river_friedman_amfr.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.27.0.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script>
+
+
+
+<meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 20&nbsp; HPT PyTorch Lightning: Diabetes">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar docked">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./031_spot_lightning_linear_diabetes.html">Hyperparameter Tuning with PyTorch Lightning</a></li><li class="breadcrumb-item"><a href="./031_spot_lightning_linear_diabetes.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Hyperparameter Tuning Cookbook</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/sequential-parameter-optimization/spotPython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <div class="dropdown">
+      <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Share"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./001_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Numerical Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./005_num_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./006_num_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotPython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./008_num_spot_multidim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./009_num_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./012_num_spot_ei.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./013_num_spot_noisy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./015_num_spot_correlation_p.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with River</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./022_spot_hpt_river.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">HPT: River</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./023_spot_river_gui.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Simplifying Hyperparameter Tuning in Online Machine Learning—The spotRiverGUI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./024_spot_hpt_river_friedman_hatr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./025_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with PyTorch Lightning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./031_spot_lightning_linear_diabetes.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./032_spot_lightning_rnn_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./033_spot_lightning_linear_sensitive.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: User Specified Data Set and Regression Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./034_spot_lightning_xai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Explainable AI with SpotPython and Pytorch</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./035_spot_lightning_transformer_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Diabetes</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_01_intro_to_notebooks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_02_git_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Git Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_03_python_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Python Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_04_spot_doc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">D</span>&nbsp; <span class="chapter-title">Documentation of the Sequential Parameter Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-setup-31" id="toc-sec-setup-31" class="nav-link active" data-scroll-target="#sec-setup-31"><span class="header-section-number">20.1</span> Step 1: Setup</a></li>
+  <li><a href="#step-2-initialization-of-the-fun_control-dictionary" id="toc-step-2-initialization-of-the-fun_control-dictionary" class="nav-link" data-scroll-target="#step-2-initialization-of-the-fun_control-dictionary"><span class="header-section-number">20.2</span> Step 2: Initialization of the <code>fun_control</code> Dictionary</a></li>
+  <li><a href="#step-3-loading-the-diabetes-data-set" id="toc-step-3-loading-the-diabetes-data-set" class="nav-link" data-scroll-target="#step-3-loading-the-diabetes-data-set"><span class="header-section-number">20.3</span> Step 3: Loading the Diabetes Data Set</a></li>
+  <li><a href="#sec-preprocessing-31" id="toc-sec-preprocessing-31" class="nav-link" data-scroll-target="#sec-preprocessing-31"><span class="header-section-number">20.4</span> Step 4: Preprocessing</a></li>
+  <li><a href="#sec-selection-of-the-algorithm-31" id="toc-sec-selection-of-the-algorithm-31" class="nav-link" data-scroll-target="#sec-selection-of-the-algorithm-31"><span class="header-section-number">20.5</span> Step 5: Select the Core Model (<code>algorithm</code>) and <code>core_model_hyper_dict</code></a></li>
+  <li><a href="#sec-modification-of-hyperparameters-31" id="toc-sec-modification-of-hyperparameters-31" class="nav-link" data-scroll-target="#sec-modification-of-hyperparameters-31"><span class="header-section-number">20.6</span> Step 6: Modify <code>hyper_dict</code> Hyperparameters for the Selected Algorithm aka <code>core_model</code></a></li>
+  <li><a href="#step-7-data-splitting-the-objective-loss-function-and-the-metric" id="toc-step-7-data-splitting-the-objective-loss-function-and-the-metric" class="nav-link" data-scroll-target="#step-7-data-splitting-the-objective-loss-function-and-the-metric"><span class="header-section-number">20.7</span> Step 7: Data Splitting, the Objective (Loss) Function and the Metric</a>
+  <ul class="collapse">
+  <li><a href="#sec-selection-of-target-function-31" id="toc-sec-selection-of-target-function-31" class="nav-link" data-scroll-target="#sec-selection-of-target-function-31"><span class="header-section-number">20.7.1</span> Evaluation</a></li>
+  <li><a href="#sec-loss-function-31" id="toc-sec-loss-function-31" class="nav-link" data-scroll-target="#sec-loss-function-31"><span class="header-section-number">20.7.2</span> Loss Function</a></li>
+  <li><a href="#sec-metric-31" id="toc-sec-metric-31" class="nav-link" data-scroll-target="#sec-metric-31"><span class="header-section-number">20.7.3</span> Metric</a></li>
+  </ul></li>
+  <li><a href="#step-8-calling-the-spot-function" id="toc-step-8-calling-the-spot-function" class="nav-link" data-scroll-target="#step-8-calling-the-spot-function"><span class="header-section-number">20.8</span> Step 8: Calling the SPOT Function</a>
+  <ul class="collapse">
+  <li><a href="#sec-prepare-spot-call-31" id="toc-sec-prepare-spot-call-31" class="nav-link" data-scroll-target="#sec-prepare-spot-call-31"><span class="header-section-number">20.8.1</span> Preparing the SPOT Call</a></li>
+  <li><a href="#sec-the-objective-function-31" id="toc-sec-the-objective-function-31" class="nav-link" data-scroll-target="#sec-the-objective-function-31"><span class="header-section-number">20.8.2</span> The Objective Function <code>fun</code></a></li>
+  <li><a href="#sec-show-fun-control-31" id="toc-sec-show-fun-control-31" class="nav-link" data-scroll-target="#sec-show-fun-control-31"><span class="header-section-number">20.8.3</span> Showing the fun_control Dictionary</a></li>
+  <li><a href="#sec-call-the-hyperparameter-tuner-31" id="toc-sec-call-the-hyperparameter-tuner-31" class="nav-link" data-scroll-target="#sec-call-the-hyperparameter-tuner-31"><span class="header-section-number">20.8.4</span> Starting the Hyperparameter Tuning</a></li>
+  </ul></li>
+  <li><a href="#sec-tensorboard-31" id="toc-sec-tensorboard-31" class="nav-link" data-scroll-target="#sec-tensorboard-31"><span class="header-section-number">20.9</span> Step 9: Tensorboard</a></li>
+  <li><a href="#sec-results-31" id="toc-sec-results-31" class="nav-link" data-scroll-target="#sec-results-31"><span class="header-section-number">20.10</span> Step 10: Results</a>
+  <ul class="collapse">
+  <li><a href="#sec-get-spot-results-31" id="toc-sec-get-spot-results-31" class="nav-link" data-scroll-target="#sec-get-spot-results-31"><span class="header-section-number">20.10.1</span> Get the Tuned Architecture</a></li>
+  <li><a href="#parallel-coordinates-plot" id="toc-parallel-coordinates-plot" class="nav-link" data-scroll-target="#parallel-coordinates-plot"><span class="header-section-number">20.10.2</span> Parallel Coordinates Plot</a></li>
+  <li><a href="#cross-validation-with-lightning" id="toc-cross-validation-with-lightning" class="nav-link" data-scroll-target="#cross-validation-with-lightning"><span class="header-section-number">20.10.3</span> Cross Validation With Lightning</a></li>
+  <li><a href="#plot-all-combinations-of-hyperparameters" id="toc-plot-all-combinations-of-hyperparameters" class="nav-link" data-scroll-target="#plot-all-combinations-of-hyperparameters"><span class="header-section-number">20.10.4</span> Plot all Combinations of Hyperparameters</a></li>
+  <li><a href="#visualizing-the-activation-distribution-under-development" id="toc-visualizing-the-activation-distribution-under-development" class="nav-link" data-scroll-target="#visualizing-the-activation-distribution-under-development"><span class="header-section-number">20.10.5</span> Visualizing the Activation Distribution (Under Development)</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./031_spot_lightning_linear_diabetes.html">Hyperparameter Tuning with PyTorch Lightning</a></li><li class="breadcrumb-item"><a href="./031_spot_lightning_linear_diabetes.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>In this tutorial, we will show how <code>spotPython</code> can be integrated into the <code>PyTorch</code> Lightning training workflow for a regression task.</p>
+<p>This chapter describes the hyperparameter tuning of a <code>PyTorch Lightning</code> network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients, as well as the response of interest, a quantitative measure of disease progression one year after baseline.</p>
+<section id="sec-setup-31" class="level2" data-number="20.1">
+<h2 data-number="20.1" class="anchored" data-anchor-id="sec-setup-31"><span class="header-section-number">20.1</span> Step 1: Setup</h2>
+<ul>
+<li>Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc.</li>
+<li>The parameter <code>MAX_TIME</code> specifies the maximum run time in seconds.</li>
+<li>The parameter <code>INIT_SIZE</code> specifies the initial design size.</li>
+<li>The parameter <code>WORKERS</code> specifies the number of workers.</li>
+<li>The prefix <code>PREFIX</code> is used for the experiment name and the name of the log file.</li>
+<li>The parameter <code>DEVICE</code> specifies the device to use for training.</li>
+</ul>
+<div id="c944f2d7" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.device <span class="im">import</span> getDevice</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>MAX_TIME <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>FUN_EVALS <span class="op">=</span> inf</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>INIT_SIZE <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>WORKERS <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"031"</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>DEVICE <span class="op">=</span> getDevice()</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>DEVICES <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>TEST_SIZE <span class="op">=</span> <span class="fl">0.1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution: Run time and initial design size should be increased for real experiments
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>MAX_TIME</code> is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.</li>
+<li><code>INIT_SIZE</code> is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.</li>
+<li><code>WORKERS</code> is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.</li>
+</ul>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Device selection
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see <a href="https://lightning.ai/docs/pytorch/stable/common/lightning_module.html">LIGHTNINGMODULE</a>, we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device.</li>
+<li>The method <code>spotPython.utils.device.getDevice()</code> returns the device that is used by Lightning.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="step-2-initialization-of-the-fun_control-dictionary" class="level2" data-number="20.2">
+<h2 data-number="20.2" class="anchored" data-anchor-id="step-2-initialization-of-the-fun_control-dictionary"><span class="header-section-number">20.2</span> Step 2: Initialization of the <code>fun_control</code> Dictionary</h2>
+<p><code>spotPython</code> uses a Python dictionary for storing the information required for the hyperparameter tuning process.</p>
+<div id="d6e91553" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> fun_control_init</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    PREFIX<span class="op">=</span>PREFIX,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    TENSORBOARD_CLEAN<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    device<span class="op">=</span>DEVICE,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    enable_progress_bar<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    fun_evals<span class="op">=</span>FUN_EVALS,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    log_level<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    max_time<span class="op">=</span>MAX_TIME,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span>WORKERS,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    show_progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    test_size<span class="op">=</span><span class="fl">0.1</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    tolerance_x<span class="op">=</span>np.sqrt(np.spacing(<span class="dv">1</span>)),</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_02_20_02_49_14
+Created spot_tensorboard_path: runs/spot_logs/031_bartz09_2024-02-20_02-49-14 for SummaryWriter()</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-loading-the-diabetes-data-set" class="level2" data-number="20.3">
+<h2 data-number="20.3" class="anchored" data-anchor-id="step-3-loading-the-diabetes-data-set"><span class="header-section-number">20.3</span> Step 3: Loading the Diabetes Data Set</h2>
+<div id="1a937eb3" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> set_control_key_value</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.data.diabetes <span class="im">import</span> Diabetes</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> Diabetes()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>set_control_key_value(control_dict<span class="op">=</span>fun_control,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                        key<span class="op">=</span><span class="st">"data_set"</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                        value<span class="op">=</span>dataset,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                        replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(dataset))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>442</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Data Set and Data Loader
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>As shown below, a DataLoader from <code>torch.utils.data</code> can be used to check the data.</li>
+</ul>
+<div id="a5f0207c" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set batch size for DataLoader</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>batch_size <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create DataLoader</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>dataloader <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>batch_size, shuffle<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Iterate over the data in the DataLoader</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    inputs, targets <span class="op">=</span> batch</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Batch Size: </span><span class="sc">{</span>inputs<span class="sc">.</span>size(<span class="dv">0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Inputs Shape: </span><span class="sc">{</span>inputs<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Targets Shape: </span><span class="sc">{</span>targets<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"---------------"</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Inputs: </span><span class="sc">{</span>inputs<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Targets: </span><span class="sc">{</span>targets<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">break</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Batch Size: 5
+Inputs Shape: torch.Size([5, 10])
+Targets Shape: torch.Size([5])
+---------------
+Inputs: tensor([[ 0.0381,  0.0507,  0.0617,  0.0219, -0.0442, -0.0348, -0.0434, -0.0026,
+          0.0199, -0.0176],
+        [-0.0019, -0.0446, -0.0515, -0.0263, -0.0084, -0.0192,  0.0744, -0.0395,
+         -0.0683, -0.0922],
+        [ 0.0853,  0.0507,  0.0445, -0.0057, -0.0456, -0.0342, -0.0324, -0.0026,
+          0.0029, -0.0259],
+        [-0.0891, -0.0446, -0.0116, -0.0367,  0.0122,  0.0250, -0.0360,  0.0343,
+          0.0227, -0.0094],
+        [ 0.0054, -0.0446, -0.0364,  0.0219,  0.0039,  0.0156,  0.0081, -0.0026,
+         -0.0320, -0.0466]])
+Targets: tensor([151.,  75., 141., 206., 135.])</code></pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-preprocessing-31" class="level2" data-number="20.4">
+<h2 data-number="20.4" class="anchored" data-anchor-id="sec-preprocessing-31"><span class="header-section-number">20.4</span> Step 4: Preprocessing</h2>
+<p>Preprocessing is handled by <code>Lightning</code> and <code>PyTorch</code>. It is described in the <a href="https://lightning.ai/docs/pytorch/stable/data/datamodule.html">LIGHTNINGDATAMODULE</a> documentation. Here you can find information about the <code>transforms</code> methods.</p>
+</section>
+<section id="sec-selection-of-the-algorithm-31" class="level2" data-number="20.5">
+<h2 data-number="20.5" class="anchored" data-anchor-id="sec-selection-of-the-algorithm-31"><span class="header-section-number">20.5</span> Step 5: Select the Core Model (<code>algorithm</code>) and <code>core_model_hyper_dict</code></h2>
+<p><code>spotPython</code> includes the <code>NetLightRegression</code> class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py">[SOURCE]</a> for configurable neural networks. The class is imported here. It inherits from the class <code>Lightning.LightningModule</code>, which is the base class for all models in <code>Lightning</code>. <code>Lightning.LightningModule</code> is a subclass of <code>torch.nn.Module</code> and provides additional functionality for the training and testing of neural networks. The class <code>Lightning.LightningModule</code> is described in the <a href="https://lightning.ai/docs/pytorch/stable/common/lightning_module.html">Lightning documentation</a>.</p>
+<ul>
+<li>Here we simply add the NN Model to the fun_control dictionary by calling the function <code>add_core_model_to_fun_control</code>:</li>
+</ul>
+<div id="85239fdb" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.regression.netlightregression <span class="im">import</span> NetLightRegression</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperdict.light_hyper_dict <span class="im">import</span> LightHyperDict</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> add_core_model_to_fun_control</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>add_core_model_to_fun_control(fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>                              core_model<span class="op">=</span>NetLightRegression,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>                              hyper_dict<span class="op">=</span>LightHyperDict)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The hyperparameters of the model are specified in the <code>core_model_hyper_dict</code> dictionary <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json">[SOURCE]</a>.</p>
+</section>
+<section id="sec-modification-of-hyperparameters-31" class="level2" data-number="20.6">
+<h2 data-number="20.6" class="anchored" data-anchor-id="sec-modification-of-hyperparameters-31"><span class="header-section-number">20.6</span> Step 6: Modify <code>hyper_dict</code> Hyperparameters for the Selected Algorithm aka <code>core_model</code></h2>
+<p><code>spotPython</code> provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution: Small number of epochs for demonstration purposes
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>epochs</code> and <code>patience</code> are set to small values for demonstration purposes. These values are too small for a real application.</li>
+<li>More resonable values are, e.g.:
+<ul>
+<li><code>set_control_hyperparameter_value(fun_control, "epochs", [7, 9])</code> and</li>
+<li><code>set_control_hyperparameter_value(fun_control, "patience", [2, 7])</code></li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div id="3d256175" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> set_control_hyperparameter_value</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"l1"</span>, [<span class="dv">4</span>, <span class="dv">6</span>])</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"epochs"</span>, [<span class="dv">9</span>, <span class="dv">10</span>])</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"batch_size"</span>, [<span class="dv">4</span>, <span class="dv">5</span>])</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"optimizer"</span>, [</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,                </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NAdam"</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RAdam"</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RMSprop"</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Rprop"</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>            ])</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"dropout_prob"</span>, [<span class="fl">0.01</span>, <span class="fl">0.1</span>])</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"lr_mult"</span>, [<span class="fl">0.5</span>, <span class="fl">5.0</span>])</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"patience"</span>, [<span class="dv">5</span>, <span class="dv">7</span>])</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>set_control_hyperparameter_value(fun_control, <span class="st">"act_fn"</span>,[</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Sigmoid"</span>,</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ReLU"</span>,</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>                <span class="st">"LeakyReLU"</span>,</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Swish"</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>            ] )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, the dictionary <code>fun_control</code> contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method <code>gen_design_table</code> <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py">[SOURCE]</a> generates a design table as follows:</p>
+<div id="58c73e0c" class="cell" data-fig-label="tbl-design-31" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>| name           | type   | default   |   lower |   upper | transform             |
+|----------------|--------|-----------|---------|---------|-----------------------|
+| l1             | int    | 3         |    4    |     6   | transform_power_2_int |
+| epochs         | int    | 4         |    9    |    10   | transform_power_2_int |
+| batch_size     | int    | 4         |    4    |     5   | transform_power_2_int |
+| act_fn         | factor | ReLU      |    0    |     3   | None                  |
+| optimizer      | factor | SGD       |    0    |     8   | None                  |
+| dropout_prob   | float  | 0.01      |    0.01 |     0.1 | None                  |
+| lr_mult        | float  | 1.0       |    0.5  |     5   | None                  |
+| patience       | int    | 2         |    5    |     7   | transform_power_2_int |
+| initialization | factor | Default   |    0    |     2   | None                  |</code></pre>
+</div>
+</div>
+<p>This allows to check if all information is available and if the information is correct.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Hyperparameters of the Tuned Model and the <code>fun_control</code> Dictionary
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The updated <code>fun_control</code> dictionary can be shown with the command <code>fun_control["core_model_hyper_dict"]</code>.</p>
+</div>
+</div>
+</section>
+<section id="step-7-data-splitting-the-objective-loss-function-and-the-metric" class="level2" data-number="20.7">
+<h2 data-number="20.7" class="anchored" data-anchor-id="step-7-data-splitting-the-objective-loss-function-and-the-metric"><span class="header-section-number">20.7</span> Step 7: Data Splitting, the Objective (Loss) Function and the Metric</h2>
+<section id="sec-selection-of-target-function-31" class="level3" data-number="20.7.1">
+<h3 data-number="20.7.1" class="anchored" data-anchor-id="sec-selection-of-target-function-31"><span class="header-section-number">20.7.1</span> Evaluation</h3>
+<p>The evaluation procedure requires the specification of two elements:</p>
+<ol type="1">
+<li>the way how the data is split into a train and a test set</li>
+<li>the loss function (and a metric).</li>
+</ol>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution: Data Splitting in Lightning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The data splitting is handled by <code>Lightning</code>.</p>
+</div>
+</div>
+</section>
+<section id="sec-loss-function-31" class="level3" data-number="20.7.2">
+<h3 data-number="20.7.2" class="anchored" data-anchor-id="sec-loss-function-31"><span class="header-section-number">20.7.2</span> Loss Function</h3>
+<p>The loss function is specified in the configurable network class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py">[SOURCE]</a> We will use MSE.</p>
+</section>
+<section id="sec-metric-31" class="level3" data-number="20.7.3">
+<h3 data-number="20.7.3" class="anchored" data-anchor-id="sec-metric-31"><span class="header-section-number">20.7.3</span> Metric</h3>
+<ul>
+<li>Similar to the loss function, the metric is specified in the configurable network class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py">[SOURCE]</a>.</li>
+</ul>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution: Loss Function and Metric in Lightning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>The loss function and the metric are not hyperparameters that can be tuned with <code>spotPython</code>.</li>
+<li>They are handled by <code>Lightning</code>.</li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+<section id="step-8-calling-the-spot-function" class="level2" data-number="20.8">
+<h2 data-number="20.8" class="anchored" data-anchor-id="step-8-calling-the-spot-function"><span class="header-section-number">20.8</span> Step 8: Calling the SPOT Function</h2>
+<section id="sec-prepare-spot-call-31" class="level3" data-number="20.8.1">
+<h3 data-number="20.8.1" class="anchored" data-anchor-id="sec-prepare-spot-call-31"><span class="header-section-number">20.8.1</span> Preparing the SPOT Call</h3>
+<div id="51ec6513" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> design_control_init, surrogate_control_init</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span>INIT_SIZE)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(noise<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                                            n_theta<span class="op">=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Modifying Values in the Control Dictionaries
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>The values in the control dictionaries can be modified with the function <code>set_control_key_value</code> <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py">[SOURCE]</a>, for example:</li>
+</ul>
+<pre class="{raw}"><code>set_control_key_value(control_dict=surrogate_control,
+                        key="noise",
+                        value=True,
+                        replace=True)                       
+set_control_key_value(control_dict=surrogate_control,
+                        key="n_theta",
+                        value=2,
+                        replace=True)      
+</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-the-objective-function-31" class="level3" data-number="20.8.2">
+<h3 data-number="20.8.2" class="anchored" data-anchor-id="sec-the-objective-function-31"><span class="header-section-number">20.8.2</span> The Objective Function <code>fun</code></h3>
+<p>The objective function <code>fun</code> from the class <code>HyperLight</code> <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py">[SOURCE]</a> is selected next. It implements an interface from <code>PyTorch</code>’s training, validation, and testing methods to <code>spotPython</code>.</p>
+<div id="61d7fa53" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.hyperlight <span class="im">import</span> HyperLight</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight(log_level<span class="op">=</span><span class="dv">50</span>).fun</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="sec-show-fun-control-31" class="level3" data-number="20.8.3">
+<h3 data-number="20.8.3" class="anchored" data-anchor-id="sec-show-fun-control-31"><span class="header-section-number">20.8.3</span> Showing the fun_control Dictionary</h3>
+<div id="b5d6b849" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>pprint.pprint(fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{'CHECKPOINT_PATH': 'runs/saved_models/',
+ 'DATASET_PATH': 'data/',
+ 'PREFIX': '031',
+ 'RESULTS_PATH': 'results/',
+ 'TENSORBOARD_PATH': 'runs/',
+ '_L_in': 10,
+ '_L_out': 1,
+ 'accelerator': 'auto',
+ 'converters': None,
+ 'core_model': &lt;class 'spotPython.light.regression.netlightregression.NetLightRegression'&gt;,
+ 'core_model_hyper_dict': {'act_fn': {'class_name': 'spotPython.torch.activation',
+                                      'core_model_parameter_type': 'instance()',
+                                      'default': 'ReLU',
+                                      'levels': ['Sigmoid',
+                                                 'ReLU',
+                                                 'LeakyReLU',
+                                                 'Swish'],
+                                      'lower': 0,
+                                      'transform': 'None',
+                                      'type': 'factor',
+                                      'upper': 3},
+                           'batch_size': {'default': 4,
+                                          'lower': 4,
+                                          'transform': 'transform_power_2_int',
+                                          'type': 'int',
+                                          'upper': 5},
+                           'dropout_prob': {'default': 0.01,
+                                            'lower': 0.01,
+                                            'transform': 'None',
+                                            'type': 'float',
+                                            'upper': 0.1},
+                           'epochs': {'default': 4,
+                                      'lower': 9,
+                                      'transform': 'transform_power_2_int',
+                                      'type': 'int',
+                                      'upper': 10},
+                           'initialization': {'core_model_parameter_type': 'str',
+                                              'default': 'Default',
+                                              'levels': ['Default',
+                                                         'Kaiming',
+                                                         'Xavier'],
+                                              'lower': 0,
+                                              'transform': 'None',
+                                              'type': 'factor',
+                                              'upper': 2},
+                           'l1': {'default': 3,
+                                  'lower': 4,
+                                  'transform': 'transform_power_2_int',
+                                  'type': 'int',
+                                  'upper': 6},
+                           'lr_mult': {'default': 1.0,
+                                       'lower': 0.5,
+                                       'transform': 'None',
+                                       'type': 'float',
+                                       'upper': 5.0},
+                           'optimizer': {'class_name': 'torch.optim',
+                                         'core_model_parameter_type': 'str',
+                                         'default': 'SGD',
+                                         'levels': ['Adadelta',
+                                                    'Adagrad',
+                                                    'Adam',
+                                                    'AdamW',
+                                                    'Adamax',
+                                                    'NAdam',
+                                                    'RAdam',
+                                                    'RMSprop',
+                                                    'Rprop'],
+                                         'lower': 0,
+                                         'transform': 'None',
+                                         'type': 'factor',
+                                         'upper': 8},
+                           'patience': {'default': 2,
+                                        'lower': 5,
+                                        'transform': 'transform_power_2_int',
+                                        'type': 'int',
+                                        'upper': 7}},
+ 'counter': 0,
+ 'data': None,
+ 'data_dir': './data',
+ 'data_module': None,
+ 'data_set': &lt;spotPython.data.diabetes.Diabetes object at 0x2ad3302d0&gt;,
+ 'design': None,
+ 'device': 'mps',
+ 'devices': 1,
+ 'enable_progress_bar': False,
+ 'eval': None,
+ 'fun_evals': inf,
+ 'fun_repeats': 1,
+ 'horizon': None,
+ 'infill_criterion': 'y',
+ 'k_folds': 3,
+ 'log_graph': False,
+ 'log_level': 10,
+ 'loss_function': None,
+ 'lower': array([3. , 4. , 1. , 0. , 0. , 0. , 0.1, 2. , 0. ]),
+ 'max_time': 1,
+ 'metric_params': {},
+ 'metric_river': None,
+ 'metric_sklearn': None,
+ 'metric_torch': None,
+ 'model_dict': {},
+ 'n_points': 1,
+ 'n_samples': None,
+ 'noise': False,
+ 'num_workers': 0,
+ 'ocba_delta': 0,
+ 'oml_grace_period': None,
+ 'optimizer': None,
+ 'path': None,
+ 'prep_model': None,
+ 'save_model': False,
+ 'seed': 123,
+ 'show_batch_interval': 1000000,
+ 'show_models': False,
+ 'show_progress': True,
+ 'shuffle': None,
+ 'sigma': 0.0,
+ 'spot_tensorboard_path': 'runs/spot_logs/031_bartz09_2024-02-20_02-49-14',
+ 'spot_writer': &lt;torch.utils.tensorboard.writer.SummaryWriter object at 0x28ec6f750&gt;,
+ 'target_column': None,
+ 'task': None,
+ 'test': None,
+ 'test_seed': 1234,
+ 'test_size': 0.1,
+ 'tolerance_x': 1.4901161193847656e-08,
+ 'train': None,
+ 'upper': array([ 8.  ,  9.  ,  4.  ,  5.  , 11.  ,  0.25, 10.  ,  6.  ,  2.  ]),
+ 'var_name': ['l1',
+              'epochs',
+              'batch_size',
+              'act_fn',
+              'optimizer',
+              'dropout_prob',
+              'lr_mult',
+              'patience',
+              'initialization'],
+ 'var_type': ['int',
+              'int',
+              'int',
+              'factor',
+              'factor',
+              'float',
+              'float',
+              'int',
+              'factor'],
+ 'verbosity': 0,
+ 'weight_coeff': 0.0,
+ 'weights': 1.0}</code></pre>
+</div>
+</div>
+</section>
+<section id="sec-call-the-hyperparameter-tuner-31" class="level3" data-number="20.8.4">
+<h3 data-number="20.8.4" class="anchored" data-anchor-id="sec-call-the-hyperparameter-tuner-31"><span class="header-section-number">20.8.4</span> Starting the Hyperparameter Tuning</h3>
+<p>The <code>spotPython</code> hyperparameter tuning is started by calling the <code>Spot</code> function <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py">[SOURCE]</a>.</p>
+<div id="221d656b" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                       fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                       design_control<span class="op">=</span>design_control,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>                       surrogate_control<span class="op">=</span>surrogate_control)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 32
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 32
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 3704.84814453125, 'hp_metric': 3704.84814453125}
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 32
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 32
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 3881.30419921875, 'hp_metric': 3881.30419921875}
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 16
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 2666.55078125, 'hp_metric': 2666.55078125}
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 16
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 5838.70849609375, 'hp_metric': 5838.70849609375}
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 32
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 32
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 32
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 3217.487060546875, 'hp_metric': 3217.487060546875}
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 16
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 3745.490478515625, 'hp_metric': 3745.490478515625}
+spotPython tuning: 2666.55078125 [###-------] 33.60% 
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 16
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 3020.19091796875, 'hp_metric': 3020.19091796875}
+spotPython tuning: 2666.55078125 [########--] 84.56% 
+LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+train_model(): Test set size: 45
+train_model(): Train set size: 359
+train_model(): Batch size: 16
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.VALIDATING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+train_model result: {'val_loss': 4797.9697265625, 'hp_metric': 4797.9697265625}
+spotPython tuning: 2666.55078125 [##########] 100.00% Done...
+</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3704.84814453125      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3704.84814453125      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3881.30419921875      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3881.30419921875      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">       2666.55078125       </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">       2666.55078125       </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     5838.70849609375      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     5838.70849609375      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3217.487060546875     </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3217.487060546875     </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3745.490478515625     </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3745.490478515625     </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3020.19091796875      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3020.19091796875      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">      4797.9697265625      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">      4797.9697265625      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x2ae6b7190&gt;</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-tensorboard-31" class="level2" data-number="20.9">
+<h2 data-number="20.9" class="anchored" data-anchor-id="sec-tensorboard-31"><span class="header-section-number">20.9</span> Step 9: Tensorboard</h2>
+<p>The textual output shown in the console (or code cell) can be visualized with Tensorboard.</p>
+<pre class="{raw}"><code>tensorboard --logdir="runs/"</code></pre>
+<p>Further information can be found in the <a href="https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html">PyTorch Lightning documentation</a> for Tensorboard.</p>
+</section>
+<section id="sec-results-31" class="level2" data-number="20.10">
+<h2 data-number="20.10" class="anchored" data-anchor-id="sec-results-31"><span class="header-section-number">20.10</span> Step 10: Results</h2>
+<p>After the hyperparameter tuning run is finished, the results can be analyzed.</p>
+<div id="e04b4640" class="cell" data-fig-label="fig-progress-31" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress(log_y<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    filename<span class="op">=</span><span class="st">"./figures/"</span> <span class="op">+</span> PREFIX <span class="op">+</span><span class="st">"_progress.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-13-output-1.png" width="732" height="261" class="figure-img"></p>
+<figcaption>Progress plot. <em>Black</em> dots denote results from the initial design. <em>Red</em> dots illustrate the improvement found by the surrogate model based optimization.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div id="a653594a" class="cell" data-fig-label="tbl-results-31" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control<span class="op">=</span>fun_control, spot<span class="op">=</span>spot_tuner))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>| name           | type   | default   |   lower |   upper | tuned               | transform             |   importance | stars   |
+|----------------|--------|-----------|---------|---------|---------------------|-----------------------|--------------|---------|
+| l1             | int    | 3         |     4.0 |     6.0 | 5.0                 | transform_power_2_int |         0.02 |         |
+| epochs         | int    | 4         |     9.0 |    10.0 | 9.0                 | transform_power_2_int |         1.88 | *       |
+| batch_size     | int    | 4         |     4.0 |     5.0 | 4.0                 | transform_power_2_int |        57.05 | **      |
+| act_fn         | factor | ReLU      |     0.0 |     3.0 | Swish               | None                  |         0.11 | .       |
+| optimizer      | factor | SGD       |     0.0 |     8.0 | RMSprop             | None                  |        27.01 | *       |
+| dropout_prob   | float  | 0.01      |    0.01 |     0.1 | 0.08951095646892425 | None                  |         0.46 | .       |
+| lr_mult        | float  | 1.0       |     0.5 |     5.0 | 3.9340958113143683  | None                  |        29.97 | *       |
+| patience       | int    | 2         |     5.0 |     7.0 | 7.0                 | transform_power_2_int |         1.20 | *       |
+| initialization | factor | Default   |     0.0 |     2.0 | Xavier              | None                  |       100.00 | ***     |</code></pre>
+</div>
+</div>
+<div id="6dff80d4" class="cell" data-fig-label="fig-importance-31" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_importance(threshold<span class="op">=</span><span class="fl">0.025</span>,</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    filename<span class="op">=</span><span class="st">"./figures/"</span> <span class="op">+</span> PREFIX <span class="op">+</span> <span class="st">"_importance.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-15-output-1.png" width="575" height="411" class="figure-img"></p>
+<figcaption>Variable importance plot, threshold 0.025.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<section id="sec-get-spot-results-31" class="level3" data-number="20.10.1">
+<h3 data-number="20.10.1" class="anchored" data-anchor-id="sec-get-spot-results-31"><span class="header-section-number">20.10.1</span> Get the Tuned Architecture</h3>
+<div id="5b7a536e" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> get_tuned_architecture</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner, fun_control)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{'l1': 32, 'epochs': 512, 'batch_size': 16, 'act_fn': Swish(), 'optimizer': 'RMSprop', 'dropout_prob': 0.08951095646892425, 'lr_mult': 3.9340958113143683, 'patience': 128, 'initialization': 'Xavier'}</code></pre>
+</div>
+</div>
+<ul>
+<li>Test on the full data set</li>
+</ul>
+<div id="95d113f9" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.testmodel <span class="im">import</span> test_model</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>test_model(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>LightDataModule: setup(). stage: None
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: setup(). stage: test
+LightDataModule: setup(). stage: predict
+LightDataModule: setup(). stage: TrainerFn.FITTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: fit
+LightDataModule: val_dataloader(). Training set size: 39
+LightDataModule: val_dataloader(). batch_size: 16
+LightDataModule: val_dataloader(). num_workers: 0
+LightDataModule: train_dataloader(). Training set size: 359
+LightDataModule: train_dataloader(). batch_size: 16
+LightDataModule: train_dataloader(). num_workers: 0
+LightDataModule: setup(). stage: TrainerFn.TESTING
+LightDataModule setup(): full_train_size: 0.9
+LightDataModule setup(): val_size: 0.09
+LightDataModule setup(): train_size: 0.81
+LightDataModule setup(): test_size: 0.1
+LightDataModule: setup(). stage: test
+LightDataModule: test_dataloader(). Test set size: 45
+LightDataModule: test_dataloader(). batch_size: 16
+LightDataModule: test_dataloader(). num_workers: 0
+test_model result: {'val_loss': 2808.435302734375, 'hp_metric': 2808.435302734375}</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">        Test metric        </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     2808.435302734375     </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     2808.435302734375     </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>(2808.435302734375, 2808.435302734375)</code></pre>
+</div>
+</div>
+<div id="b253476a" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.loadmodel <span class="im">import</span> load_light_from_checkpoint</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>model_loaded <span class="op">=</span> load_light_from_checkpoint(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>config: {'l1': 32, 'epochs': 512, 'batch_size': 16, 'act_fn': Swish(), 'optimizer': 'RMSprop', 'dropout_prob': 0.08951095646892425, 'lr_mult': 3.9340958113143683, 'patience': 128, 'initialization': 'Xavier'}
+Loading model with 32_512_16_Swish_RMSprop_0.0895_3.9341_128_Xavier_TEST from runs/saved_models/32_512_16_Swish_RMSprop_0.0895_3.9341_128_Xavier_TEST/last.ckpt
+Model: NetLightRegression(
+  (layers): Sequential(
+    (0): Linear(in_features=10, out_features=32, bias=True)
+    (1): Swish()
+    (2): Dropout(p=0.08951095646892425, inplace=False)
+    (3): Linear(in_features=32, out_features=16, bias=True)
+    (4): Swish()
+    (5): Dropout(p=0.08951095646892425, inplace=False)
+    (6): Linear(in_features=16, out_features=16, bias=True)
+    (7): Swish()
+    (8): Dropout(p=0.08951095646892425, inplace=False)
+    (9): Linear(in_features=16, out_features=8, bias=True)
+    (10): Swish()
+    (11): Dropout(p=0.08951095646892425, inplace=False)
+    (12): Linear(in_features=8, out_features=1, bias=True)
+  )
+)</code></pre>
+</div>
+</div>
+<div id="d3853792" class="cell" data-fig-label="fig-contour-31" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>filename <span class="op">=</span> <span class="st">"./figures/"</span> <span class="op">+</span> PREFIX</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(filename<span class="op">=</span>filename)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>epochs:  1.8807805068719348
+batch_size:  57.05142175062917
+act_fn:  0.1107426719028105
+optimizer:  27.012920682264415
+dropout_prob:  0.45724124818032186
+lr_mult:  29.965265752518814
+patience:  1.201168496292324
+initialization:  100.0
+impo: [['l1', 0.018595847421411425], ['epochs', 1.8807805068719348], ['batch_size', 57.05142175062917], ['act_fn', 0.1107426719028105], ['optimizer', 27.012920682264415], ['dropout_prob', 0.45724124818032186], ['lr_mult', 29.965265752518814], ['patience', 1.201168496292324], ['initialization', 100.0]]
+impo after select: [['l1', 0.018595847421411425], ['epochs', 1.8807805068719348], ['batch_size', 57.05142175062917], ['act_fn', 0.1107426719028105], ['optimizer', 27.012920682264415], ['dropout_prob', 0.45724124818032186], ['lr_mult', 29.965265752518814], ['patience', 1.201168496292324], ['initialization', 100.0]]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-2.png" width="719" height="281" class="figure-img"></p>
+<figcaption>Contour plots.</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-3.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-4.png" width="704" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-5.png" width="725" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-6.png" width="706" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-7.png" width="716" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-8.png" width="721" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-9.png" width="719" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-10.png" width="705" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-11.png" width="727" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-12.png" width="706" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-13.png" width="719" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-14.png" width="718" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-15.png" width="704" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-16.png" width="736" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-17.png" width="706" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-18.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-19.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-20.png" width="725" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-21.png" width="706" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-22.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-23.png" width="721" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-24.png" width="706" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-25.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-26.png" width="717" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-27.png" width="719" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-28.png" width="719" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="031_spot_lightning_linear_diabetes_files/figure-html/cell-19-output-29.png" width="721" height="281" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="parallel-coordinates-plot" class="level3" data-number="20.10.2">
+<h3 data-number="20.10.2" class="anchored" data-anchor-id="parallel-coordinates-plot"><span class="header-section-number">20.10.2</span> Parallel Coordinates Plot</h3>
+<div id="b6963485" class="cell" data-fig-label="fig-parallel-31" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.parallel_plot()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>                            <div id="8fb6de3f-a720-46e0-8bf9-372bfd90980b" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("8fb6de3f-a720-46e0-8bf9-372bfd90980b")) {                    Plotly.newPlot(                        "8fb6de3f-a720-46e0-8bf9-372bfd90980b",                        [{"dimensions":[{"label":"l1","range":[4.0,6.0],"values":[6.0,4.0,5.0,5.0,4.0,5.0,5.0,5.0]},{"label":"epochs","range":[9.0,10.0],"values":[10.0,9.0,9.0,9.0,10.0,9.0,9.0,9.0]},{"label":"batch_size","range":[4.0,5.0],"values":[5.0,5.0,4.0,4.0,5.0,4.0,4.0,4.0]},{"label":"act_fn","range":[0.0,3.0],"values":[1.0,2.0,3.0,0.0,1.0,3.0,3.0,3.0]},{"label":"optimizer","range":[0.0,7.0],"values":[3.0,4.0,7.0,0.0,6.0,7.0,7.0,7.0]},{"label":"dropout_prob","range":[0.014653593059775226,0.089513353253714],"values":[0.04938229888019609,0.014653593059775226,0.08951095646892425,0.07807342828150021,0.035501708617280955,0.08951088075202243,0.08951108247408367,0.089513353253714]},{"label":"lr_mult","range":[0.8330538158692873,4.785884240333345],"values":[2.3689895017756495,0.8330538158692873,3.9340958113143683,1.5204853123355815,4.785884240333345,3.9340926199593014,3.934102883154346,3.934108471288473]},{"label":"patience","range":[5.0,7.0],"values":[6.0,5.0,7.0,6.0,5.0,7.0,7.0,7.0]},{"label":"initialization","range":[0.0,2.0],"values":[0.0,1.0,2.0,1.0,2.0,2.0,2.0,2.0]}],"line":{"cmax":5838.70849609375,"cmin":2666.55078125,"color":[3704.84814453125,3881.30419921875,2666.55078125,5838.70849609375,3217.487060546875,3745.490478515625,3020.19091796875,4797.9697265625],"colorscale":[[0.0,"rgb(0,0,131)"],[0.2,"rgb(0,60,170)"],[0.4,"rgb(5,255,255)"],[0.6,"rgb(255,255,0)"],[0.8,"rgb(250,0,0)"],[1.0,"rgb(128,0,0)"]],"showscale":true},"type":"parcoords"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmapgl":[{"type":"heatmapgl","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"},"margin":{"b":0,"l":0,"r":0,"t":30}}}},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('8fb6de3f-a720-46e0-8bf9-372bfd90980b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div>
+<p>Parallel coordinates plots</p>
+</div>
+</div>
+</section>
+<section id="cross-validation-with-lightning" class="level3" data-number="20.10.3">
+<h3 data-number="20.10.3" class="anchored" data-anchor-id="cross-validation-with-lightning"><span class="header-section-number">20.10.3</span> Cross Validation With Lightning</h3>
+<ul>
+<li>The <code>KFold</code> class from <code>sklearn.model_selection</code> is used to generate the folds for cross-validation.</li>
+<li>These mechanism is used to generate the folds for the final evaluation of the model.</li>
+<li>The <code>CrossValidationDataModule</code> class <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py">[SOURCE]</a> is used to generate the folds for the hyperparameter tuning process.</li>
+<li>It is called from the <code>cv_model</code> function <a href="https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py">[SOURCE]</a>.</li>
+</ul>
+<div id="0a4448b3" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.cvmodel <span class="im">import</span> cv_model</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>set_control_key_value(control_dict<span class="op">=</span>fun_control,</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>                        key<span class="op">=</span><span class="st">"k_folds"</span>,</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>                        value<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                        replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>set_control_key_value(control_dict<span class="op">=</span>fun_control,</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>                        key<span class="op">=</span><span class="st">"test_size"</span>,</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>                        value<span class="op">=</span><span class="fl">0.6</span>,</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>                        replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>cv_model(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>k: 0
+Train Dataset Size: 221
+Val Dataset Size: 221
+train_model result: {'val_loss': 3876.47509765625, 'hp_metric': 3876.47509765625}
+k: 1
+Train Dataset Size: 221
+Val Dataset Size: 221
+train_model result: {'val_loss': 3607.3779296875, 'hp_metric': 3607.3779296875}</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">     3876.47509765625      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">     3876.47509765625      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span style="font-weight: bold">      Validate metric      </span>┃<span style="font-weight: bold">       DataLoader 0        </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span style="color: #008080; text-decoration-color: #008080">         hp_metric         </span>│<span style="color: #800080; text-decoration-color: #800080">      3607.3779296875      </span>│
+│<span style="color: #008080; text-decoration-color: #008080">         val_loss          </span>│<span style="color: #800080; text-decoration-color: #800080">      3607.3779296875      </span>│
+└───────────────────────────┴───────────────────────────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<pre><code>3741.926513671875</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-all-combinations-of-hyperparameters" class="level3" data-number="20.10.4">
+<h3 data-number="20.10.4" class="anchored" data-anchor-id="plot-all-combinations-of-hyperparameters"><span class="header-section-number">20.10.4</span> Plot all Combinations of Hyperparameters</h3>
+<ul>
+<li>Warning: this may take a while.</li>
+</ul>
+<div id="f2c6c72f" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>PLOT_ALL <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> PLOT_ALL:</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> spot_tuner.k</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n<span class="op">-</span><span class="dv">1</span>):</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i<span class="op">+</span><span class="dv">1</span>, n):</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>            spot_tuner.plot_contour(i<span class="op">=</span>i, j<span class="op">=</span>j, min_z<span class="op">=</span>min_z, max_z <span class="op">=</span> max_z)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="visualizing-the-activation-distribution-under-development" class="level3" data-number="20.10.5">
+<h3 data-number="20.10.5" class="anchored" data-anchor-id="visualizing-the-activation-distribution-under-development"><span class="header-section-number">20.10.5</span> Visualizing the Activation Distribution (Under Development)</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Reference:
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>The following code is based on <a href="https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html">[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]</a>, Author: Phillip Lippe, License: <a href="https://creativecommons.org/licenses/by-sa/3.0/">[CC BY-SA]</a>, Generated: 2023-03-15T09:52:39.179933.</li>
+</ul>
+</div>
+</div>
+<p>After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:</p>
+<div id="c4a44440" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.torch.activation <span class="im">import</span> Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>act_fn_by_name <span class="op">=</span> {<span class="st">"sigmoid"</span>: Sigmoid, <span class="st">"tanh"</span>: Tanh, <span class="st">"relu"</span>: ReLU, <span class="st">"leakyrelu"</span>: LeakyReLU, <span class="st">"elu"</span>: ELU, <span class="st">"swish"</span>: Swish}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="c5280ed6" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> get_one_config_from_X</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> spot_tuner.to_all_dim(spot_tuner.min_X.reshape(<span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_one_config_from_X(X, fun_control)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> fun_control[<span class="st">"core_model"</span>](<span class="op">**</span>config, _L_in<span class="op">=</span><span class="dv">64</span>, _L_out<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>model</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>NetLightRegression(
+  (layers): Sequential(
+    (0): Linear(in_features=64, out_features=32, bias=True)
+    (1): Swish()
+    (2): Dropout(p=0.08951095646892425, inplace=False)
+    (3): Linear(in_features=32, out_features=16, bias=True)
+    (4): Swish()
+    (5): Dropout(p=0.08951095646892425, inplace=False)
+    (6): Linear(in_features=16, out_features=16, bias=True)
+    (7): Swish()
+    (8): Dropout(p=0.08951095646892425, inplace=False)
+    (9): Linear(in_features=16, out_features=8, bias=True)
+    (10): Swish()
+    (11): Dropout(p=0.08951095646892425, inplace=False)
+    (12): Linear(in_features=8, out_features=11, bias=True)
+  )
+)</code></pre>
+</div>
+</div>
+<div id="9fb81647" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># from spotPython.utils.eda import visualize_activations</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize_activations(model, color=f"C{0}")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./025_spot_hpt_river_friedman_amfr.html" class="pagination-link  aria-label=" &lt;span="" hyperparameter="" tuning:="" mondrian="" tree="" regressor="" with="" friedman="" drift="" data&lt;="" span&gt;"="">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./032_spot_lightning_rnn_diabetes.html" class="pagination-link" aria-label="<span class='chapter-number'>21</span>&nbsp; <span class='chapter-title'>HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span>">
+        <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
