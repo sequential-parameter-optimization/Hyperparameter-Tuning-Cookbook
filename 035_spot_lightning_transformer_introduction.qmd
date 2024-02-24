@@ -1,0 +1,185 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# HPT PyTorch Lightning Transformer: Introduction
+
+In this tutorial, we will introduce transformer.
+
+## Decoder-Only Transformer
+
+### Embedding
+
+#### Neural Network for Embeddings
+
+Idea for word embeddings: use a relatively simple NN that has one input for every token (word, symbol) in the vocabulary. The output of the NN is a vector of a fixed size, which is the word embedding. For simplicity, we will use a 2-dimensional output vector. The weights of the NN are randomly initialized, and are learned during training.
+
+All tokens are embedded in this way. For each token there are two numerical values, the embedding vector.
+The same network is used for embedding all tokens.
+If a longer input is added, it can be embedded with the same net.
+
+#### Positional Encoding for the Embeddings
+
+Positional encoding is added to the input embeddings to give the model some information about the relative or absolute position of the tokens in the sequence. The positional encodings have the same dimension as the embeddings so that the two can be summed.
+
+If a token occurs several times, it is embedded several times and receives different embedding vectors, as the position is taken into account by the positional encoding.
+
+### Masked Self-Attention
+
+How similar is each token to itself and to all preceding tokens in the input (sentence)?
+Masked self-attention is an autoregressive mechanism, which means that the attention mechanism is only allowed to look at the tokens that have already been processed.
+Calculation of the mask self-attention:
+
+1. Queries: Calculate two new values from the (two) values of the embedding vector using an NN, which are referred to as query values.
+2. Keys: Calculate two new values, called key values, from the (two) values of the embedding vector using an NN.
+3. Dot product: Calculate the dot product of the query values and the key values. This is a measure of the similarity of the query and key values.
+4. Softmax: Apply the softmax function to the outputs from the dot product. This is a measure of the attention that a token pays to other tokens.
+5. Values: Calculate two new values from the (two) values of the embedding vector using an NN, which are referred to as value values.
+6. The values are multiplied (weighted) by the values of the softmax function.
+7. The weighted values are summed. Now we have the mask-self attention value for the token.
+
+If the masked self-attention method is applied to the first token, the masked self-attention value is exactly the value of the first token, as it only takes itself into account.
+For the other tokens, the masked self-attention value is a weighted sum of the values of the previous tokens. The weighting is determined by the similarity of the query values and the key values (dot product and softmax).
+
+### Generation of outputs
+
+To calculate the output, we use a residual connector that adds the output of the neural network and the output of the masked self-attention method. We thus obtain the residual connection values. The residual connector is used to facilitate training.
+
+To generate the next token, we use another neural network that calculates the output from the (two) residual connection values.
+The input layer of the neural network has the size of the residual connection values, the output layer has the number of tokens in the vocabulary as a dimension.
+
+If we now enter the residual connection value of the first token, we receive the token (or the probabilities using Softmax) that is to come next as the output of the neural network. 
+This makes sense even if we already know the second token (as with the first token): We can use it to calculate the error of the neural network and train the network.
+In addition, the decoder-transformer uses the masked self-attention method to calculate the output, i.e. the encoding and generation of new tokens is done with exactly the same elements of the network.
+
+Note: ChatGPT does not use a new neural network, but the same network that was already used to calculate the embedding. The network is therefore used for embedding, masked self-attention and calculating the output. In the last calculation, the network is inverted, i.e. it is run in the opposite direction to obtain the tokens and not the embeddings as in the original run.
+
+### End-Of-Sequence-Token
+
+The end-of-sequence token is used to signal the end of the input and also to start generating new tokens after the input.
+The EOS token recognizes all other tokens, as it comes after all tokens.
+When generating tokens, it is important to consider the relationships between the input tokens and the generation of new tokens. With a decoder-only transformer, the masked self-attention method is used to take the relationships into account.
+
+# Example: Word Predictor
+
+* The following code is based on [https://github.com/phlippe/uvadlc_notebooks/tree/master](https://github.com/phlippe/uvadlc_notebooks/tree/master) (Author: Phillip Lippe)
+
+```{python}
+
+## Standard libraries
+import os
+import numpy as np
+import random
+import math
+import json
+from functools import partial
+
+## Imports for plotting
+import matplotlib.pyplot as plt
+plt.set_cmap('cividis')
+%matplotlib inline
+from IPython.display import set_matplotlib_formats
+set_matplotlib_formats('svg', 'pdf') # For export
+from matplotlib.colors import to_rgb
+import matplotlib
+matplotlib.rcParams['lines.linewidth'] = 2.0
+import seaborn as sns
+sns.reset_orig()
+
+## tqdm for loading bars
+from tqdm.notebook import tqdm
+
+## PyTorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils.data as data
+import torch.optim as optim
+
+## Torchvision
+import torchvision
+from torchvision.datasets import CIFAR100
+from torchvision import transforms
+
+# PyTorch Lightning
+try:
+    import pytorch_lightning as pl
+except ModuleNotFoundError: # Google Colab does not have PyTorch Lightning installed by default. Hence, we do it here if necessary
+    !pip install --quiet pytorch-lightning>=1.4
+    import pytorch_lightning as pl
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+
+# Path to the folder where the datasets are/should be downloaded (e.g. CIFAR10)
+DATASET_PATH = "../data"
+# Path to the folder where the pretrained models are saved
+CHECKPOINT_PATH = "../saved_models/tutorial6"
+
+# Setting the seed
+pl.seed_everything(42)
+
+# Ensure that all operations are deterministic on GPU (if used) for reproducibility
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+print("Device:", device)
+```
+
+```{python}
+import urllib.request
+from urllib.error import HTTPError
+# Github URL where saved models are stored for this tutorial
+base_url = "https://raw.githubusercontent.com/phlippe/saved_models/main/tutorial6/"
+# Files to download
+pretrained_files = ["ReverseTask.ckpt", "SetAnomalyTask.ckpt"]
+
+# Create checkpoint path if it doesn't exist yet
+os.makedirs(CHECKPOINT_PATH, exist_ok=True)
+
+# For each file, check whether it already exists. If not, try downloading it.
+for file_name in pretrained_files:
+    file_path = os.path.join(CHECKPOINT_PATH, file_name)
+    if "/" in file_name:
+        os.makedirs(file_path.rsplit("/",1)[0], exist_ok=True)
+    if not os.path.isfile(file_path):
+        file_url = base_url + file_name
+        print(f"Downloading {file_url}...")
+        try:
+            urllib.request.urlretrieve(file_url, file_path)
+        except HTTPError as e:
+            print("Something went wrong. Please try to download the file from the GDrive folder, or contact the author with the full output including the following error:\n", e)
+```
+
+```{python}
+def scaled_dot_product(q, k, v, mask=None):
+    d_k = q.size()[-1]
+    attn_logits = torch.matmul(q, k.transpose(-2, -1))
+    attn_logits = attn_logits / math.sqrt(d_k)
+    if mask is not None:
+        attn_logits = attn_logits.masked_fill(mask == 0, -9e15)
+    attention = F.softmax(attn_logits, dim=-1)
+    values = torch.matmul(attention, v)
+    return values, attention
+```
+
+
+
+```{python}
+seq_len, d_k = 3, 2
+pl.seed_everything(42)
+q = torch.randn(seq_len, d_k)
+k = torch.randn(seq_len, d_k)
+v = torch.randn(seq_len, d_k)
+values, attention = scaled_dot_product(q, k, v)
+print("Q\n", q)
+print("K\n", k)
+print("V\n", v)
+print("Values\n", values)
+print("Attention\n", attention)
+```
+
