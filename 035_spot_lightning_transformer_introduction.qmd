@@ -9,22 +9,38 @@ jupyter: python3
 
 # HPT PyTorch Lightning Transformer: Introduction
 
-In this chapter, we will introduce transformer.
-The paper from @vasw17a is the original paper on the transformer architecture. The transformer architecture is a neural network architecture that is based on the attention mechanism. It is particularly well suited for sequence-to-sequence tasks, such as machine translation, text summarization, and more. The transformer architecture has been a breakthrough in the field of natural language processing (NLP) and has been the basis for many state-of-the-art models in the field. 
+In this chapter, we will introduce transformer. The transformer architecture is a neural network architecture that is based on the attention mechanism [@vasw17a]. It is particularly well suited for sequence-to-sequence tasks, such as machine translation, text summarization, and more. The transformer architecture has been a breakthrough in the field of natural language processing (NLP) and has been the basis for many state-of-the-art models in the field. 
 
-We start with a simple Decoder-Only Transformer in @sec-decoder-only-transformer, which is a simplified version of the original transformer architecture. 
+We start with a description of the transformer basics in @sec-transformer-basics. 
+@sec-details-implementation provides a detailed description of the implementation of the transformer architecture.
+Finally, an example of a transformer implemented in PyTorch Lightning in presented in @sec-transformer-in-lightning.
 
-## Decoder-Only Transformer {#sec-decoder-only-transformer}
+## Transformer Basics {#sec-transformer-basics}
 
 ### Embedding
 
+Word embedding is a technique where words or phrases (so-called tokens) from the vocabulary are mapped to vectors of real numbers.
+These vectors capture the semantic properties of the words. Words that are similar in meaning are mapped to vectors that are close to each other in the vector space, and words that are dissimilar are mapped to vectors that are far apart.
+Word embeddings are needed for transformers for several reasons:
+
+* Dimensionality Reduction: Word embeddings reduce the dimensionality of the data. Instead of dealing with high-dimensional sparse vectors (like one-hot encoded vectors), we deal with dense vectors of much lower dimensionality.
+* Capturing Semantic Similarities: Word embeddings capture semantic similarities between words. This is crucial for tasks like text classification, sentiment analysis, etc., where the meaning of the words is important.
+* Handling Unknown Words: If a word is not present in the training data but appears in the test data, one-hot encoding cannot handle it. But word embeddings can handle such situations by mapping the unknown word to a vector that is similar to known words.
+* Input to Neural Networks: Transformers, like other neural networks, work with numerical data. Word embeddings provide a way to convert text data into numerical form that can be fed into these networks.
+
+In the context of transformers, word embeddings are used as the initial input representation. The transformer then learns more complex representations by considering the context in which each token appears.
+
 #### Neural Network for Embeddings
 
-Idea for word embeddings: use a relatively simple NN that has one input for every token (word, symbol) in the vocabulary. The output of the NN is a vector of a fixed size, which is the word embedding. For simplicity, we will use a 2-dimensional output vector. The weights of the NN are randomly initialized, and are learned during training.
+Idea for word embeddings: use a relatively simple NN that has one input for every token (word, symbol) in the vocabulary. The output of the NN is a vector of a fixed size, which is the word embedding. The network that is used in this chapter is visualized in @fig-transformer-attention. For simplicity, a 2-dimensional output vector is used in this visualization. The weights of the NN are randomly initialized, and are learned during training.
+
+![Transformer. Computation of the self attention. In this example, we consider two inputs, i.e.,  (1,0) and (0,1). For each input, there are two values, which results in a $2 \times 2$ matrix. In general, when there are $T$ inputs, a $T \times T$ matrix will be generated. Figure credits: [Starmer, Josh: Decoder-Only Transformers, ChatGPTs specific Transformer, Clearly Explained](https://youtu.be/bQ5BoolX9Ag?si=vO5N_cHUULcl-dBn).](./figures_static/transformer.png){#fig-transformer-attention}
 
 All tokens are embedded in this way. For each token there are two numerical values, the embedding vector.
 The same network is used for embedding all tokens.
 If a longer input is added, it can be embedded with the same net.
+
+
 
 #### Positional Encoding for the Embeddings
 
@@ -32,11 +48,16 @@ Positional encoding is added to the input embeddings to give the model some info
 
 If a token occurs several times, it is embedded several times and receives different embedding vectors, as the position is taken into account by the positional encoding.
 
-### Masked Self-Attention
+### Attention
 
-How similar is each token to itself and to all preceding tokens in the input (sentence)?
-Masked self-attention is an autoregressive mechanism, which means that the attention mechanism is only allowed to look at the tokens that have already been processed.
-Calculation of the mask self-attention:
+Attention describes how similar is each token to itself and to all other tokens in the input, e.g., in a sentence.
+The attention mechanism can be implemented as a set of layers in neural networks. There are a lot of different possible definitions of "attention" in the literature, but the one we will use here is the following: _the attention mechanism describes a weighted average of (sequence) elements with the weights dynamically computed based on an input query and elements' keys_ [@lipp22a].
+
+The goal is to take an average over the features of multiple elements. 
+However, instead of weighting each element equally, we want to weight them depending on their actual values.
+In other words, we want to dynamically decide on which inputs we want to "attend" more than others.
+
+Calculation of the self-attention:
 
 1. Queries: Calculate two new values from the (two) values of the embedding vector using an NN, which are referred to as query values.
 2. Keys: Calculate two new values, called key values, from the (two) values of the embedding vector using an NN.
@@ -44,10 +65,23 @@ Calculation of the mask self-attention:
 4. Softmax: Apply the softmax function to the outputs from the dot product. This is a measure of the attention that a token pays to other tokens.
 5. Values: Calculate two new values from the (two) values of the embedding vector using an NN, which are referred to as value values.
 6. The values are multiplied (weighted) by the values of the softmax function.
-7. The weighted values are summed. Now we have the mask-self attention value for the token.
+7. The weighted values are summed. Now we have the self attention value for the token.
 
+
+### Self-Attention {#sec-self-attention}
+
+Most attention mechanisms differ in terms of what queries they use, how the key and value vectors are defined, and what score function is used. The attention applied inside the Transformer architecture is called "self-attention". In self-attention, each sequence element provides a key, value, and query. For each element, we perform an attention layer where based on its query, we check the similarity of the all sequence elements' keys, and returned a different, averaged value vector for each element. 
+
+
+### Masked Self-Attention
+
+Masked self-attention is a variant of the self-attention method described in @sec-self-attention. It asks the question:
+How similar is each token to itself and to all preceding tokens in the input (sentence)?
+Masked self-attention is an autoregressive mechanism, which means that the attention mechanism is only allowed to look at the tokens that have already been processed.
+Calculation of the mask self-attention is identical to the self-attention, but the attention is only calculated for the tokens that have already been processed.
 If the masked self-attention method is applied to the first token, the masked self-attention value is exactly the value of the first token, as it only takes itself into account.
 For the other tokens, the masked self-attention value is a weighted sum of the values of the previous tokens. The weighting is determined by the similarity of the query values and the key values (dot product and softmax).
+
 
 ### Generation of Outputs
 
@@ -62,32 +96,47 @@ In addition, the decoder-transformer uses the masked self-attention method to ca
 
 Note: ChatGPT does not use a new neural network, but the same network that was already used to calculate the embedding. The network is therefore used for embedding, masked self-attention and calculating the output. In the last calculation, the network is inverted, i.e. it is run in the opposite direction to obtain the tokens and not the embeddings as in the original run.
 
+
 ### End-Of-Sequence-Token
 
 The end-of-sequence token is used to signal the end of the input and also to start generating new tokens after the input.
 The EOS token recognizes all other tokens, as it comes after all tokens.
-When generating tokens, it is important to consider the relationships between the input tokens and the generation of new tokens. With a decoder-only transformer, the masked self-attention method is used to take the relationships into account.
+When generating tokens, it is important to consider the relationships between the input tokens and the generation of new tokens. 
 
-### Summary
+## Details of the Implementation {#sec-details-implementation}
 
-The computation of the self attention is visualized in @fig-transformer-attention.
+We will now go into a bit more detail by first looking at the specific implementation of the attention mechanism which is in the Transformer case the (scaled) dot product attention.
+The variables shown in @tbl-transformer-variables are used in the Transformer architecture.
 
-![Transformer. Computation of the self attention](./figures_static/transformer.png){#fig-transformer-attention}
+Symbol | Variable | Description |
+|--|----|----|
+| $Q$ | `query` | The query vectors. |
+| $K$ | `key` | The key vectors. |
+| $V$ | `value` | The value vectors. |
+| $d_{\text{model}}$ | `d_model` | The dimensionality of the input and output features of the Transformer. |
+| $d_k$ | `d_k` | The hidden dimensionality of the key and query vectors. |
+| $d_v$ | `d_v` | The hidden dimensionality of the value vectors. |
+| $h$ | `num_heads` | The number of heads in the Multi-Head Attention layer. |
+| $B$ | `batch_size` | The batch size. |
+| $T$ | `seq_length` | The sequence length. |
+| $X$ | `x` | The input features (input elements in the sequence). |
+| $W^{Q}$ | `qkv_proj` | The weight matrix to transform the input to the query vectors. |
+| $W^{K}$ | `qkv_proj` | The weight matrix to transform the input to the key vectors. |
+| $W^{V}$ | `qkv_proj` | The weight matrix to transform the input to the value vectors. |
+| $W^{O}$ | `o_proj` | The weight matrix to transform the concatenated output of the Multi-Head Attention layer to the final output. |
+| $N$ | `num_layers` | The number of layers in the Transformer. |
+| $PE_{(pos,i)}$ | `positional_encoding` | The positional encoding for position $pos$ and hidden dimensionality $i$. |
+
+: Variables used in the Transformer architecture. {#tbl-transformer-variables}
 
 
+Summarizing the ideas from @sec-transformer-basics, an attention mechanism has usually four parts we need to specify [@lipp22a]:
 
-## What is Attention?
+* *Query*: The query is a feature vector that describes what we are looking for in the sequence, i.e., what would we maybe want to pay attention to.
+* *Keys*: For each input element, we have a key which is again a feature vector. This feature vector roughly describes what the element is "offering", or when it might be important. The keys should be designed such that we can identify the elements we want to pay attention to based on the query.
+* *Score function*: To rate which elements we want to pay attention to, we need to specify a score function $f_{attn}$. The score function takes the query and a key as input, and output the score/attention weight of the query-key pair. It is usually implemented by simple similarity metrics like a dot product, or a small MLP.
+* *Values*: For each input element, we also have a value vector. This feature vector is the one we want to average over.
 
-The following part is based on the tutorial by @lipp22a.
-
-The attention mechanism describes a recent new group of layers in neural networks that has attracted a lot of interest in the past few years, especially in sequence tasks. There are a lot of different possible definitions of "attention" in the literature, but the one we will use here is the following: _the attention mechanism describes a weighted average of (sequence) elements with the weights dynamically computed based on an input query and elements' keys_. So what does this exactly mean? The goal is to take an average over the features of multiple elements. However, instead of weighting each element equally, we want to weight them depending on their actual values. In other words, we want to dynamically decide on which inputs we want to "attend" more than others.
-
-In particular, an attention mechanism has usually four parts we need to specify:
-
-* **Query**: The query is a feature vector that describes what we are looking for in the sequence, i.e. what would we maybe want to pay attention to.
-* **Keys**: For each input element, we have a key which is again a feature vector. This feature vector roughly describes what the element is "offering", or when it might be important. The keys should be designed such that we can identify the elements we want to pay attention to based on the query.
-* **Values**: For each input element, we also have a value vector. This feature vector is the one we want to average over.
-* **Score function**: To rate which elements we want to pay attention to, we need to specify a score function $f_{attn}$. The score function takes the query and a key as input, and output the score/attention weight of the query-key pair. It is usually implemented by simple similarity metrics like a dot product, or a small MLP.
 
 The weights of the average are calculated by a softmax over all score function outputs. Hence, we assign those value vectors a higher weight whose corresponding key is most similar to the query. If we try to describe it with pseudo-math, we can write: 
 
@@ -97,27 +146,26 @@ $$
 
 Visually, we can show the attention over a sequence of words as follows:
 
-![Attention over a sequence of words. Figure taken from @lipp22a](./figures_static/attention_example.png)
+![Attention over a sequence of words. For every word, we have one key and one value vector. The query is compared to all keys with a score function (in this case the dot product) to determine the weights. The softmax is not visualized for simplicity. Finally, the value vectors of all words are averaged using the attention weights. Figure taken from @lipp22a](./figures_static/attention_example.png)
 
 
-For every word, we have one key and one value vector. The query is compared to all keys with a score function (in this case the dot product) to determine the weights. The softmax is not visualized for simplicity. Finally, the value vectors of all words are averaged using the attention weights.
 
-Most attention mechanisms differ in terms of what queries they use, how the key and value vectors are defined, and what score function is used. The attention applied inside the Transformer architecture is called **self-attention**. In self-attention, each sequence element provides a key, value, and query. For each element, we perform an attention layer where based on its query, we check the similarity of the all sequence elements' keys, and returned a different, averaged value vector for each element. We will now go into a bit more detail by first looking at the specific implementation of the attention mechanism which is in the Transformer case the scaled dot product attention.
+
+### Dot Product Attention
+
+ Our goal is to have an attention mechanism with which any element in a sequence can attend to any other while still being efficient to compute. The dot product attention takes as input a set of queries $Q\in\mathbb{R}^{T\times d_k}$, keys $K\in\mathbb{R}^{T\times d_k}$ and values $V\in\mathbb{R}^{T\times d_v}$ where $T$ is the sequence length, and $d_k$ and $d_v$ are the hidden dimensionality for queries/keys and values respectively. For simplicity, we neglect the batch dimension for now. The attention value from element $i$ to $j$ is based on its similarity of the query $Q_i$ and key $K_j$, using the dot product as the similarity metric (in @fig-transformer-attention, we considered $Q_2$ and $K_1$ as well as $Q_2$ and $K_2$). 
+ The dot product attention is calculated as follows:
+
+$$
+\text{Attention}(Q,K,V)=\text{softmax}\left(QK^T\right) V 
+$$ {#eq-dot-product-attention}
+
+The matrix multiplication $QK^T$ performs the dot product for every possible pair of queries and keys, resulting in a matrix of the shape $T\times T$. Each row represents the attention logits for a specific element $i$ to all other elements in the sequence. On these, we apply a softmax and multiply with the value vector to obtain a weighted mean (the weights being determined by the attention). 
 
 ### Scaled Dot Product Attention
 
-The core concept behind self-attention is the scaled dot product attention. Our goal is to have an attention mechanism with which any element in a sequence can attend to any other while still being efficient to compute. The dot product attention takes as input a set of queries $Q\in\mathbb{R}^{T\times d_k}$, keys $K\in\mathbb{R}^{T\times d_k}$ and values $V\in\mathbb{R}^{T\times d_v}$ where $T$ is the sequence length, and $d_k$ and $d_v$ are the hidden dimensionality for queries/keys and values respectively. For simplicity, we neglect the batch dimension for now. The attention value from element $i$ to $j$ is based on its similarity of the query $Q_i$ and key $K_j$, using the dot product as the similarity metric. In math, we calculate the dot product attention as follows:
-
-$$
-\text{Attention}(Q,K,V)=\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
-$$
-
-The matrix multiplication $QK^T$ performs the dot product for every possible pair of queries and keys, resulting in a matrix of the shape $T\times T$. Each row represents the attention logits for a specific element $i$ to all other elements in the sequence. On these, we apply a softmax and multiply with the value vector to obtain a weighted mean (the weights being determined by the attention). Another perspective on this attention mechanism offers the computation graph which is visualized in @fig-scaled-dot-product-attn.
-
-
-![Scaled dot product attention. Figure credit @vasw17a](./figures_static/scaled_dot_product_attn.png){#fig-scaled-dot-product-attn}
-
-One aspect we have not discussed yet is the scaling factor of $1/\sqrt{d_k}$. This scaling factor is crucial to maintain an appropriate variance of attention values after initialization. Remember that we intialize our layers with the intention of having equal variance throughout the model, and hence, $Q$ and $K$ might also have a variance close to $1$. However, performing a dot product over two vectors with a variance $\sigma^2$ results in a scalar having $d_k$-times higher variance: 
+An additional aspect is the scaling of the dot product using a scaling factor of $1/\sqrt{d_k}$. This scaling factor is crucial to maintain an appropriate variance of attention values after initialization.
+We initialize our layers with the intention of having equal variance throughout the model, and hence, $Q$ and $K$ might also have a variance close to $1$. However, performing a dot product over two vectors with a variance $\sigma^2$ results in a scalar having $d_k$-times higher variance: 
 
 $$
 q_i \sim \mathcal{N}(0,\sigma^2), k_i \sim \mathcal{N}(0,\sigma^2) \to \text{Var}\left(\sum_{i=1}^{d_k} q_i\cdot k_i\right) = \sigma^4\cdot d_k
@@ -125,40 +173,43 @@ $$
 
 
 If we do not scale down the variance back to $\sim\sigma^2$, the softmax over the logits will already saturate to $1$ for one random element and $0$ for all others. The gradients through the softmax will be close to zero so that we can't learn the parameters appropriately. Note that the extra factor of $\sigma^2$, i.e., having $\sigma^4$ instead of $\sigma^2$, is usually not an issue, since we keep the original variance $\sigma^2$ close to $1$ anyways.
+@eq-dot-product-attention can be modified as follows to calculate the dot product attention:
+
+$$
+\text{Attention}(Q,K,V)=\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V.
+$$
+
+Another perspective on this scaled dot product attention mechanism offers the computation graph which is visualized in @fig-scaled-dot-product-attn.
+
+![Scaled dot product attention. Figure credit @vasw17a](./figures_static/scaled_dot_product_attn.png){#fig-scaled-dot-product-attn}
 
 The block `Mask (opt.)` in the diagram above represents the optional masking of specific entries in the attention matrix. This is for instance used if we stack multiple sequences with different lengths into a batch. To still benefit from parallelization in PyTorch, we pad the sentences to the same length and mask out the padding tokens during the calculation of the attention values. This is usually done by setting the respective attention logits to a very low value. 
 
 After we have discussed the details of the scaled dot product attention block, we can write a function below which computes the output features given the triple of queries, keys, and values:
 
 
-## Example: Transformer in Lightning
+## Example: Transformer in Lightning {#sec-transformer-in-lightning}
 
 The following code is based on [https://github.com/phlippe/uvadlc_notebooks/tree/master](https://github.com/phlippe/uvadlc_notebooks/tree/master) (Author: Phillip Lippe)
 
 First, we import the necessary libraries and download the pretrained models.
 
 ```{python}
-
-## Standard libraries
 import os
 import numpy as np
 import random
 import math
 import json
 from functools import partial
-
-## Imports for plotting
 import matplotlib.pyplot as plt
 plt.set_cmap('cividis')
-%matplotlib inline
-from IPython.display import set_matplotlib_formats
-set_matplotlib_formats('svg', 'pdf') # For export
 from matplotlib.colors import to_rgb
 import matplotlib
 matplotlib.rcParams['lines.linewidth'] = 2.0
 import seaborn as sns
-sns.reset_orig()
+```
 
+```{python}
 ## tqdm for loading bars
 from tqdm.notebook import tqdm
 
@@ -169,31 +220,29 @@ import torch.nn.functional as F
 import torch.utils.data as data
 import torch.optim as optim
 
-## Torchvision
-import torchvision
-from torchvision.datasets import CIFAR100
-from torchvision import transforms
-
 # PyTorch Lightning
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
-# Path to the folder where the datasets are/should be downloaded (e.g. CIFAR10)
-DATASET_PATH = "../data"
 # Path to the folder where the pretrained models are saved
 CHECKPOINT_PATH = "../saved_models/tutorial6"
-
-# Setting the seed
-pl.seed_everything(42)
 
 # Ensure that all operations are deterministic on GPU (if used) for reproducibility
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+```
 
+```{python}
 from spotPython.utils.device import getDevice
 device = getDevice()
 print("Device:", device)
 ```
+
+```{python}
+# Setting the seed
+pl.seed_everything(42)
+```
+
 
 Two pre-trained models are downloaded below. Make sure to have adjusted your `CHECKPOINT_PATH` before running this code if not already done.
 
@@ -232,6 +281,30 @@ We will implement the Transformer architecture by hand. As the architecture is s
 
 ```{python}
 def scaled_dot_product(q, k, v, mask=None):
+    """
+    Compute scaled dot product attention.
+    Args:
+        q: Queries
+        k: Keys
+        v: Values
+        mask: Mask to apply to the attention logits
+
+    Returns:
+        Tuple of (Values, Attention weights)
+
+    Examples:
+    >>> seq_len, d_k = 1, 2
+        pl.seed_everything(42)
+        q = torch.randn(seq_len, d_k)
+        k = torch.randn(seq_len, d_k)
+        v = torch.randn(seq_len, d_k)
+        values, attention = scaled_dot_product(q, k, v)
+        print("Q\n", q)
+        print("K\n", k)
+        print("V\n", v)
+        print("Values\n", values)
+        print("Attention\n", attention)
+    """
     d_k = q.size()[-1]
     attn_logits = torch.matmul(q, k.transpose(-2, -1))
     attn_logits = attn_logits / math.sqrt(d_k)
@@ -273,8 +346,11 @@ We refer to this as Multi-Head Attention layer with the learnable parameters $W_
 
 ![Multi-Head Attention. Figure taken from @vasw17a](./figures_static/multihead_attention.png){#fig-multihead-attention}
 
+How are we applying a Multi-Head Attention layer in a neural network, where we do not have an arbitrary query, key, and value vector as input?
+Looking at the computation graph in @fig-multihead-attention, a simple but effective implementation is to set the current feature map in a NN, $X\in\mathbb{R}^{B\times T\times d_{\text{model}}}$, as $Q$, $K$ and $V$ ($B$ being the batch size, $T$ the sequence length, $d_{\text{model}}$ the hidden dimensionality of $X$). The consecutive weight matrices $W^{Q}$, $W^{K}$, and $W^{V}$ can transform $X$ to the corresponding feature vectors that represent the queries, keys, and values of the input. Using this approach, we can implement the Multi-Head Attention module below.
 
-How are we applying a Multi-Head Attention layer in a neural network, where we don't have an arbitrary query, key, and value vector as input? Looking at the computation graph in @fig-multihead-attention, a simple but effective implementation is to set the current feature map in a NN, $X\in\mathbb{R}^{B\times T\times d_{\text{model}}}$, as $Q$, $K$ and $V$ ($B$ being the batch size, $T$ the sequence length, $d_{\text{model}}$ the hidden dimensionality of $X$). The consecutive weight matrices $W^{Q}$, $W^{K}$, and $W^{V}$ can transform $X$ to the corresponding feature vectors that represent the queries, keys, and values of the input. Using this approach, we can implement the Multi-Head Attention module below.
+As a consequence, if the embedding dimension is 4, then 1, 2 or 4 heads can be used, but not 3. If 4 heads are used, then the dimension of the query, key and value vectors is 1. If 2 heads are used, then the dimension of the query, key and value vectors is $D=2$. If 1 head is used, then the dimension of the query, key and value vectors is $D=4$. The number of heads is a hyperparameter that can be adjusted. The number of heads is usually 8 or 16.
+
 
 ```{python}
 # Helper function to support different mask shapes.
@@ -342,7 +418,7 @@ class MultiheadAttention(nn.Module):
 
 ### Permutation Equivariance
 
-One crucial characteristic of the multi-head attention is that it is permutation-equivariant with respect to its inputs. This means that if we switch two input elements in the sequence, e.g. $X_1\leftrightarrow X_2$ (neglecting the batch dimension for now), the output is exactly the same besides the elements 1 and 2 switched. Hence, the multi-head attention is actually looking at the input not as a sequence, but as a set of elements. This property makes the multi-head attention block and the Transformer architecture so powerful and widely applicable! But what if the order of the input is actually important for solving the task, like language modeling? The answer is to encode the position in the input features, which we will take a closer look at later (topic _Positional encodings_ below).
+One crucial characteristic of the multi-head attention is that it is permutation-equivariant with respect to its inputs. This means that if we switch two input elements in the sequence, e.g. $X_1\leftrightarrow X_2$ (neglecting the batch dimension for now), the output is exactly the same besides the elements 1 and 2 switched. Hence, the multi-head attention is actually looking at the input not as a sequence, but as a set of elements. This property makes the multi-head attention block and the Transformer architecture so powerful and widely applicable! But what if the order of the input is actually important for solving the task, like language modeling? The answer is to encode the position in the input features, which we will take a closer look in @sec-positional-encoding.
 
 
 ### Transformer Encoder
@@ -358,6 +434,7 @@ The encoder consists of $N$ identical blocks that are applied in sequence. Takin
 2. Without the residual connection, the information about the original sequence is lost. Remember that the Multi-Head Attention layer ignores the position of elements in a sequence, and can only learn it based on the input features. Removing the residual connections would mean that this information is lost after the first attention layer (after initialization), and with a randomly initialized query and key vector, the output vectors for position $i$ has no relation to its original input. All outputs of the attention are likely to represent similar/same information, and there is no chance for the model to distinguish which information came from which input element. An alternative option to residual connection would be to fix at least one head to focus on its original input, but this is very inefficient and does not have the benefit of the improved gradient flow.
 
 ### Layer Normalization and Feed-Forward Network
+
 The Layer Normalization also plays an important role in the Transformer architecture as it enables faster training and provides small regularization. Additionally, it ensures that the features are in a similar magnitude among the elements in the sequence.
 
 We are not using Batch Normalization because it depends on the batch size which is often small with Transformers (they require a lot of GPU memory), and BatchNorm has shown to perform particularly bad in language as the features of words tend to have a much higher variance (there are many, very rare words which need to be considered for a good distribution estimate).
@@ -443,9 +520,9 @@ class TransformerEncoder(nn.Module):
         return attention_maps
 ```
 
-### Positional encoding
+### Positional Encoding {#sec-positional-encoding}
 
-We have discussed before that the Multi-Head Attention block is permutation-equivariant, and cannot distinguish whether an input comes before another one in the sequence or not. In tasks like language understanding, however, the position is important for interpreting the input words. The position information can therefore be added via the input features. We could learn a embedding for every possible position, but this would not generalize to a dynamical input sequence length. Hence, the better option is to use feature patterns that the network can identify from the features and potentially generalize to larger sequences. The specific pattern chosen by Vaswani et al. are sine and cosine functions of different frequencies, as follows:
+We have discussed before that the Multi-Head Attention block is permutation-equivariant, and cannot distinguish whether an input comes before another one in the sequence or not. In tasks like language understanding, however, the position is important for interpreting the input words. The position information can therefore be added via the input features. We could learn a embedding for every possible position, but this would not generalize to a dynamical input sequence length. Hence, the better option is to use feature patterns that the network can identify from the features and potentially generalize to larger sequences. The specific pattern chosen by @vasw17a are sine and cosine functions of different frequencies, as follows:
 
 $$
 PE_{(pos,i)} = \begin{cases}
@@ -456,7 +533,7 @@ $$
 
 $PE_{(pos,i)}$ represents the position encoding at position $pos$ in the sequence, and hidden dimensionality $i$. These values, concatenated for all hidden dimensions, are added to the original input features (in the Transformer visualization above, see "Positional encoding"), and constitute the position information. We distinguish between even ($i \text{ mod } 2=0$) and uneven ($i \text{ mod } 2=1$) hidden dimensionalities where we apply a sine/cosine respectively. The intuition behind this encoding is that you can represent $PE_{(pos+k,:)}$ as a linear function of $PE_{(pos,:)}$, which might allow the model to easily attend to relative positions. The wavelengths in different dimensions range from $2\pi$ to $10000\cdot 2\pi$.
 
-The positional encoding is implemented below. The code is taken from the [PyTorch tutorial](https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model) about Transformers on NLP and adjusted for our purposes.
+The positional encoding is implemented below. The code is taken from the PyTorch tutorial [https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model](https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model) about Transformers on NLP and adjusted for our purposes.
 
 ```{python}
 class PositionalEncoding(nn.Module):
