@@ -22,6 +22,7 @@ This chapter describes the data preparation and processing in `spotPython`. The 
 * The parameter `DEVICE` specifies the device to use for training.
 
 ```{python}
+import torch
 from spotPython.utils.device import getDevice
 from math import inf
 WORKERS = 0
@@ -52,6 +53,7 @@ import numpy as np
 fun_control = fun_control_init(
     _L_in=10,
     _L_out=1,
+    _torchmetric="mean_squared_error",
     PREFIX=PREFIX,
     device=DEVICE,
     enable_progress_bar=False,
@@ -67,7 +69,7 @@ Here, we load the Diabetes data set from `spotPython`'s `data` module.
 
 ```{python}
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 print(len(dataset))
 ```
 
@@ -102,12 +104,12 @@ Then a Lightning Trainer is used to train (`fit`) the model, validate it, and te
 ```{python}
 from torch.utils.data import DataLoader
 from spotPython.data.diabetes import Diabetes
-from spotPython.light.regression.netlightregression import NetLightRegression
+from spotPython.light.regression.netlightregression2 import NetLightRegression2
 from torch import nn
 import lightning as L
 import torch
 BATCH_SIZE = 8
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 train1_set, test_set = torch.utils.data.random_split(dataset, [0.6, 0.4])
 train_set, val_set = torch.utils.data.random_split(train1_set, [0.6, 0.4])
 train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, drop_last=True, pin_memory=True)
@@ -116,7 +118,7 @@ val_loader = DataLoader(val_set, batch_size=BATCH_SIZE)
 batch_x, batch_y = next(iter(train_loader))
 print(f"batch_x.shape: {batch_x.shape}")
 print(f"batch_y.shape: {batch_y.shape}")
-net_light_base = NetLightRegression(l1=128,
+net_light_base = NetLightRegression2(l1=128,
                                     epochs=10,
                                     batch_size=BATCH_SIZE,
                                     initialization='Default',
@@ -126,7 +128,8 @@ net_light_base = NetLightRegression(l1=128,
                                     lr_mult=0.1,
                                     patience=5,
                                     _L_in=10,
-                                    _L_out=1)
+                                    _L_out=1,
+                                    _torchmetric="mean_squared_error")
 trainer = L.Trainer(max_epochs=10,  enable_progress_bar=False)
 trainer.fit(net_light_base, train_loader)
 trainer.validate(net_light_base, val_loader)
@@ -140,7 +143,7 @@ trainer.test(net_light_base, test_loader)
 ```{python}
 from spotPython.hyperparameters.values import set_control_key_value
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 set_control_key_value(control_dict=fun_control,
                         key="data_set",
                         value=dataset,
@@ -318,7 +321,7 @@ The `train_dataloader()` method can be used as follows:
 ```{python}
 from spotPython.data.lightdatamodule import LightDataModule
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
 print(f"Training set size: {len(data_module.data_train)}")
@@ -353,7 +356,7 @@ The `val_dataloader()` method can be used as follows:
 ```{python}
 from spotPython.data.lightdatamodule import LightDataModule
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
 print(f"Validation set size: {len(data_module.data_val)}")
@@ -389,7 +392,7 @@ The `test_dataloader()` method can be used as follows:
 ```{python}
 from spotPython.data.lightdatamodule import LightDataModule
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
 print(f"Test set size: {len(data_module.data_test)}")
@@ -427,7 +430,7 @@ The `predict_dataloader()` method can be used as follows:
 ```{python}
 from spotPython.data.lightdatamodule import LightDataModule
 from spotPython.data.diabetes import Diabetes
-dataset = Diabetes()
+dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
 print(f"Test set size: {len(data_module.data_predict)}")
