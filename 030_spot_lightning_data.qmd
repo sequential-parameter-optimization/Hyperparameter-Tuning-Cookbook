@@ -9,16 +9,14 @@ execute:
 # HPT PyTorch Lightning: Data 
 
 In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
-training workflow for a regression task.
+training workflow. 
 
-This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+This chapter describes the data preparation and processing in `spotPython`. The Diabetes data set is used as an example. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
 
 
-## Step 1: Setup {#sec-setup-31}
+## Setup {#sec-setup-30}
 
 * Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. 
-* The parameter `MAX_TIME` specifies the maximum run time in seconds.
-* The parameter `INIT_SIZE` specifies the initial design size.
 * The parameter `WORKERS` specifies the number of workers. 
 * The prefix `PREFIX` is used for the experiment name and the name of the log file.
 * The parameter `DEVICE` specifies the device to use for training.
@@ -26,25 +24,14 @@ This chapter describes the hyperparameter tuning of a `PyTorch Lightning` networ
 ```{python}
 from spotPython.utils.device import getDevice
 from math import inf
-
-MAX_TIME = 1
-FUN_EVALS = inf
-INIT_SIZE = 5
 WORKERS = 0
-PREFIX="031"
+PREFIX="030"
 DEVICE = getDevice()
 DEVICES = 1
-TEST_SIZE = 0.1
+TEST_SIZE = 0.4
 ```
 
-::: {.callout-caution}
-### Caution: Run time and initial design size should be increased for real experiments
 
-* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.
-* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.
-* `WORKERS` is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.
-
-:::
 
 ::: {.callout-note}
 ### Note: Device selection
@@ -55,7 +42,7 @@ TEST_SIZE = 0.1
 :::
 
 
-## Step 2: Initialization of the `fun_control` Dictionary
+## Initialization of the `fun_control` Dictionary
 
 `spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
@@ -66,20 +53,15 @@ fun_control = fun_control_init(
     _L_in=10,
     _L_out=1,
     PREFIX=PREFIX,
-    TENSORBOARD_CLEAN=True,
     device=DEVICE,
     enable_progress_bar=False,
-    fun_evals=FUN_EVALS,
-    log_level=10,
-    max_time=MAX_TIME,
     num_workers=WORKERS,
     show_progress=True,
-    test_size=0.1,
-    tolerance_x=np.sqrt(np.spacing(1)),
+    test_size=TEST_SIZE,
     )
 ```
 
-## Step 3: Loading the Diabetes Data Set
+## Loading the Diabetes Data Set
 
 Here, we load the Diabetes data set from `spotPython`'s `data` module.
 
@@ -184,7 +166,7 @@ fun_control = fun_control_init(
     enable_progress_bar=False,
     num_workers=0,
     show_progress=True,
-    test_size=0.1,
+    test_size=0.4,
     test_seed=42,    
     )
 ```
@@ -204,316 +186,326 @@ print(f"train_model(): Test set size: {len(dm.data_test)}")
 print(f"train_model(): Train set size: {len(dm.data_train)}")
 ```
 
+## The LightDataModule
 
-## Step 4: Preprocessing {#sec-preprocessing-31}
+The steps described above are handled by the `LightDataModule` class. This class is used to create the data loaders for the training, validation, and test sets. The `LightDataModule` class is part of the `spotPython` package.
+The `LightDataModule` class provides the following methods:
+
+* `prepare_data()`: This method is used to prepare the data set.
+* `setup()`: This method is used to create the data loaders for the training, validation, and test sets.
+* `train_dataloader()`: This method is used to return the data loader for the training set.
+* `val_dataloader()`: This method is used to return the data loader for the validation set.
+* `test_dataloader()`: This method is used to return the data loader for the test set.
+* `predict_dataloader()`: This method is used to return the data loader for the prediction set.
+
+### The `prepare_data()` Method
+
+The `prepare_data()` method is used to prepare the data set. This method is called only once and on a single process. It can be used to download the data set. In our case, the data set is already available, so this method uses a simple `pass` statement.
+
+### The `setup()` Method
+
+Splits the data for use in training, validation, and testing. It uses `torch.utils.data.random_split()` to split the data.
+Splitting is based on the `test_size` and `test_seed`. 
+The `test_size` can be a float or an int.
+
+#### Determine the Sizes of the Data Sets
+
+
+```{python}
+from torch.utils.data import random_split
+data_full = dataset
+test_size = fun_control["test_size"]
+test_seed=fun_control["test_seed"]
+# if test_size is float, then train_size is 1 - test_size
+if isinstance(test_size, float):
+    full_train_size = round(1.0 - test_size, 2)
+    val_size = round(full_train_size * test_size, 2)
+    train_size = round(full_train_size - val_size, 2)
+else:
+    # if test_size is int, then train_size is len(data_full) - test_size
+    full_train_size = len(data_full) - test_size
+    val_size = int(full_train_size * test_size / len(data_full))
+    train_size = full_train_size - val_size
+
+print(f"LightDataModule setup(): full_train_size: {full_train_size}")
+print(f"LightDataModule setup(): val_size: {val_size}")
+print(f"LightDataModule setup(): train_size: {train_size}")
+print(f"LightDataModule setup(): test_size: {test_size}")
+```
+
+
+`stage` is used to define the data set to be returned.
+The `stage` can be `None`, `fit`, `test`, or `predict`.
+If `stage` is `None`, the method returns the training (`fit`), testing (`test`) and prediction (`predict`) data sets.
+
+#### Stage "fit" {#sec-stage-fit-30}
+```{python}
+stage = "fit"
+if stage == "fit" or stage is None:
+    generator_fit = torch.Generator().manual_seed(test_seed)
+    data_train, data_val, _ = random_split(data_full, [train_size, val_size, test_size], generator=generator_fit)
+print(f"LightDataModule setup(): Train set size: {len(data_train)}")
+print(f"LightDataModule setup(): Validation set size: {len(data_val)}")
+```
+
+#### Stage "test" {#sec-stage-test-30}
+```{python}
+stage = "test"
+if stage == "test" or stage is None:
+    generator_test = torch.Generator().manual_seed(test_seed)
+    data_test, _ = random_split(data_full, [test_size, full_train_size], generator=generator_test)
+print(f"LightDataModule setup(): Test set size: {len(data_test)}")
+# Set batch size for DataLoader
+batch_size = 5
+# Create DataLoader
+from torch.utils.data import DataLoader
+dataloader = DataLoader(data_test, batch_size=batch_size, shuffle=False)
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+#### Stage "predict" {#sec-stage-predict-30}
+
+Prediction and testing use the same data set.
+
+
+```{python}
+stage = "predict"
+if stage == "predict" or stage is None:
+    generator_predict = torch.Generator().manual_seed(test_seed)
+    data_predict, _ = random_split(
+        data_full, [test_size, full_train_size], generator=generator_predict
+    )
+print(f"LightDataModule setup(): Predict set size: {len(data_predict)}")
+# Set batch size for DataLoader
+batch_size = 5
+# Create DataLoader
+from torch.utils.data import DataLoader
+dataloader = DataLoader(data_predict, batch_size=batch_size, shuffle=False)
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+### The `train_dataloader()` Method
+
+Returns the training dataloader, i.e., a Pytorch DataLoader instance using the training dataset.
+It simply returns a DataLoader with the `data_train` set that was created in the `setup()` method as described in @sec-stage-fit-30.
+
+```{python}
+#| eval: false
+def train_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_train, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+The `train_dataloader()` method can be used as follows:
+
+```{python}
+from spotPython.data.lightdatamodule import LightDataModule
+from spotPython.data.diabetes import Diabetes
+dataset = Diabetes()
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Training set size: {len(data_module.data_train)}")
+dl = data_module.train_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+### The `val_dataloader()` Method
+
+Returns the validation dataloader, i.e., a Pytorch DataLoader instance using the validation dataset.
+It simply returns a DataLoader with the `data_val` set that was created in the `setup()` method as desccribed in @sec-stage-fit-30.
+
+```{python}
+#| eval: false
+def val_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_val, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+
+The `val_dataloader()` method can be used as follows:
+
+```{python}
+from spotPython.data.lightdatamodule import LightDataModule
+from spotPython.data.diabetes import Diabetes
+dataset = Diabetes()
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Validation set size: {len(data_module.data_val)}")
+dl = data_module.val_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+
+### The `test_dataloader()` Method
+
+Returns the test dataloader, i.e., a Pytorch DataLoader instance using the test dataset.
+It simply returns a DataLoader with the `data_test` set that was created in the `setup()` method as described in @sec-stage-test-30.
+
+```{python}
+#| eval: false
+def test_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_test, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+
+The `test_dataloader()` method can be used as follows:
+
+```{python}
+from spotPython.data.lightdatamodule import LightDataModule
+from spotPython.data.diabetes import Diabetes
+dataset = Diabetes()
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Test set size: {len(data_module.data_test)}")
+dl = data_module.test_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+
+### The `predict_dataloader()` Method
+
+Returns the prediction dataloader, i.e., a Pytorch DataLoader instance using the prediction dataset.
+It simply returns a DataLoader with the `data_predict` set that was created in the `setup()` method as described in @sec-stage-predict-30.
+
+::: {.callout-warning}
+The `batch_size` is set to the length of the `data_predict` set.
+:::
+```{python}
+#| eval: false
+def predict_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_predict, batch_size=len(self.data_predict), num_workers=self.num_workers)
+``` 
+
+The `predict_dataloader()` method can be used as follows:
+
+```{python}
+from spotPython.data.lightdatamodule import LightDataModule
+from spotPython.data.diabetes import Diabetes
+dataset = Diabetes()
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Test set size: {len(data_module.data_predict)}")
+dl = data_module.predict_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+## Using the `LightDataModule` in the `train_model()` Method
+
+First, a `LightDataModule` object is created and the `setup()` method is called.
+```{python}
+#| eval: false
+dm = LightDataModule(
+    dataset=fun_control["data_set"],
+    batch_size=config["batch_size"],
+    num_workers=fun_control["num_workers"],
+    test_size=fun_control["test_size"],
+    test_seed=fun_control["test_seed"],
+)
+dm.setup()
+```
+
+Then, the `Trainer` is initialized.
+```{python}
+#| eval: false
+# Init trainer
+trainer = L.Trainer(
+    default_root_dir=os.path.join(fun_control["CHECKPOINT_PATH"], config_id),
+    max_epochs=model.hparams.epochs,
+    accelerator=fun_control["accelerator"],
+    devices=fun_control["devices"],
+    logger=TensorBoardLogger(
+        save_dir=fun_control["TENSORBOARD_PATH"],
+        version=config_id,
+        default_hp_metric=True,
+        log_graph=fun_control["log_graph"],
+    ),
+    callbacks=[
+        EarlyStopping(monitor="val_loss", patience=config["patience"], mode="min", strict=False, verbose=False)
+    ],
+    enable_progress_bar=enable_progress_bar,
+)
+```
+Next, the `fit()` method is called to train the model.
+
+```{python}
+#| eval: false
+# Pass the datamodule as arg to trainer.fit to override model hooks :)
+trainer.fit(model=model, datamodule=dm)
+```
+
+Finally, the `validate()` method is called to validate the model.
+The `validate()` method returns the validation loss.
+
+```{python}
+#| eval: false
+# Test best model on validation and test set
+# result = trainer.validate(model=model, datamodule=dm, ckpt_path="last")
+result = trainer.validate(model=model, datamodule=dm)
+# unlist the result (from a list of one dict)
+result = result[0]
+return result["val_loss"]
+```
+
+
+## Further Information 
+
+### Preprocessing {#sec-preprocessing-30}
 
 Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.
-
-## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-31}
-
-`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. 
-The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
-
-* Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:
-
-```{python}
-from spotPython.light.regression.netlightregression import NetLightRegression
-from spotPython.hyperdict.light_hyper_dict import LightHyperDict
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
-add_core_model_to_fun_control(fun_control=fun_control,
-                              core_model=NetLightRegression,
-                              hyper_dict=LightHyperDict)
-```
-
-The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).
-
-
-
-## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-31}
-
- `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. 
-
-::: {.callout-caution}
-### Caution: Small number of epochs for demonstration purposes
-
-* `epochs` and `patience` are set to small values for demonstration purposes. These values are too small for a real application.
-* More resonable values are, e.g.:
-  * `set_control_hyperparameter_value(fun_control, "epochs", [7, 9])` and
-  * `set_control_hyperparameter_value(fun_control, "patience", [2, 7])`
-:::
-
-```{python}
-from spotPython.hyperparameters.values import set_control_hyperparameter_value
-
-set_control_hyperparameter_value(fun_control, "l1", [4, 6])
-set_control_hyperparameter_value(fun_control, "epochs", [9, 10])
-set_control_hyperparameter_value(fun_control, "batch_size", [4, 5])
-set_control_hyperparameter_value(fun_control, "optimizer", [
-                "Adadelta",
-                "Adagrad",
-                "Adam",
-                "AdamW",
-                "Adamax",                
-                "NAdam",
-                "RAdam",
-                "RMSprop",
-                "Rprop"
-            ])
-set_control_hyperparameter_value(fun_control, "dropout_prob", [0.01, 0.1])
-set_control_hyperparameter_value(fun_control, "lr_mult", [0.5, 5.0])
-set_control_hyperparameter_value(fun_control, "patience", [5, 7])
-set_control_hyperparameter_value(fun_control, "act_fn",[
-                "Sigmoid",
-                "ReLU",
-                "LeakyReLU",
-                "Swish"
-            ] )
-```
-
-Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:
-
-```{python}
-#| fig-cap: Experimental design for the hyperparameter tuning.
-#| fig-label: tbl-design-31
-from spotPython.utils.eda import gen_design_table
-print(gen_design_table(fun_control))
-```
-
-This allows to check if all information is available and if the information is correct.
-
-::: {.callout-note}
-### Note: Hyperparameters of the Tuned Model and the `fun_control` Dictionary
-The updated `fun_control` dictionary can be shown with the command `fun_control["core_model_hyper_dict"]`.
-:::
-
-
-## Step 7: Data Splitting, the Objective (Loss) Function and the Metric
-
-### Evaluation  {#sec-selection-of-target-function-31}
-
-The evaluation procedure requires the specification of two elements:
-
-1. the way how the data is split into a train and a test set
-2. the loss function (and a metric).
-
-::: {.callout-caution}
-### Caution: Data Splitting in Lightning
-
-The data splitting is handled by `Lightning`.
-
-:::
-
-### Loss Function {#sec-loss-function-31}
-
-The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)
-We will use MSE.
-
-### Metric {#sec-metric-31}
-
-* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).
-
-::: {.callout-caution}
-### Caution: Loss Function and Metric in Lightning
-
-* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.
-* They are handled by `Lightning`.
-
-:::
-
-
-## Step 8: Calling the SPOT Function
-
-### Preparing the SPOT Call {#sec-prepare-spot-call-31}
-
-
-```{python}
-from spotPython.utils.init import design_control_init, surrogate_control_init
-design_control = design_control_init(init_size=INIT_SIZE)
-
-surrogate_control = surrogate_control_init(noise=True,
-                                            n_theta=2)
-```
-
-::: {.callout-note}
-### Note: Modifying Values in the Control Dictionaries 
-
-* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:
-
-```{raw}
-set_control_key_value(control_dict=surrogate_control,
-                        key="noise",
-                        value=True,
-                        replace=True)                       
-set_control_key_value(control_dict=surrogate_control,
-                        key="n_theta",
-                        value=2,
-                        replace=True)      
-
-```
-:::
-
-### The Objective Function `fun` {#sec-the-objective-function-31}
-
-The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
-
-```{python}
-from spotPython.fun.hyperlight import HyperLight
-fun = HyperLight(log_level=50).fun
-```
-
-### Showing the fun_control Dictionary {#sec-show-fun-control-31}
-
-```{python}
-import pprint
-pprint.pprint(fun_control)
-```
-
-
-### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}
-
-The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).
-
-```{python}
-from spotPython.spot import spot
-spot_tuner = spot.Spot(fun=fun,
-                       fun_control=fun_control,
-                       design_control=design_control,
-                       surrogate_control=surrogate_control)
-spot_tuner.run()
-```
-
-## Step 9: Tensorboard {#sec-tensorboard-31}
-
-The textual output shown in the console (or code cell) can be visualized with Tensorboard.
-
-```{raw}
-tensorboard --logdir="runs/"
-```
-
-Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.
-
-
-
-## Step 10: Results {#sec-results-31}
-
-After the hyperparameter tuning run is finished, the results can be analyzed.
-
-```{python}
-#| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.
-#| fig-label: fig-progress-31
-spot_tuner.plot_progress(log_y=False,
-    filename="./figures/" + PREFIX +"_progress.png")
-```
-
-```{python}
-#| fig-cap: Results of the hyperparameter tuning.
-#| fig-label: tbl-results-31
-from spotPython.utils.eda import gen_design_table
-print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
-```
-
-```{python}
-#| fig-cap: 'Variable importance plot, threshold 0.025.'
-#| fig-label: fig-importance-31
-spot_tuner.plot_importance(threshold=0.025,
-    filename="./figures/" + PREFIX + "_importance.png")
-```
-
-### Get the Tuned Architecture {#sec-get-spot-results-31}
-
-```{python}
-from spotPython.hyperparameters.values import get_tuned_architecture
-config = get_tuned_architecture(spot_tuner, fun_control)
-print(config)
-```
-
-* Test on the full data set
-
-```{python}
-from spotPython.light.testmodel import test_model
-test_model(config, fun_control)
-```
-
-```{python}
-from spotPython.light.loadmodel import load_light_from_checkpoint
-
-model_loaded = load_light_from_checkpoint(config, fun_control)
-```
-
-```{python}
-#| fig-cap: Contour plots.
-#| fig-label: fig-contour-31
-filename = "./figures/" + PREFIX
-spot_tuner.plot_important_hyperparameter_contour(filename=filename)
-```
-
-### Parallel Coordinates Plot
-
-```{python}
-#| fig-cap: Parallel coordinates plots
-#| fig-label: fig-parallel-31
-spot_tuner.parallel_plot()
-```
-
-### Cross Validation With Lightning
-
-* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
-* These mechanism is used to generate the folds for the final evaluation of the model.
-* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
-* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).
-
-```{python}
-from spotPython.light.cvmodel import cv_model
-set_control_key_value(control_dict=fun_control,
-                        key="k_folds",
-                        value=2,
-                        replace=True)
-set_control_key_value(control_dict=fun_control,
-                        key="test_size",
-                        value=0.6,
-                        replace=True)
-cv_model(config, fun_control)
-```
-
-### Plot all Combinations of Hyperparameters
-
-* Warning: this may take a while.
-
-```{python}
-PLOT_ALL = False
-if PLOT_ALL:
-    n = spot_tuner.k
-    for i in range(n-1):
-        for j in range(i+1, n):
-            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)
-```
-
-### Visualizing the Activation Distribution (Under Development)
-
-::: {.callout-note}
-### Reference:
-
-* The following code is based on [[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]](https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html), Author: Phillip Lippe, License: [[CC BY-SA]](https://creativecommons.org/licenses/by-sa/3.0/), Generated: 2023-03-15T09:52:39.179933.
-
-:::
-
-After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:
-
-```{python}
-from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
-act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
-```
-
-```{python}
-from spotPython.hyperparameters.values import get_one_config_from_X
-X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
-config = get_one_config_from_X(X, fun_control)
-model = fun_control["core_model"](**config, _L_in=64, _L_out=11)
-model
-```
-
-```{python}
-# from spotPython.utils.eda import visualize_activations
-# visualize_activations(model, color=f"C{0}")
-```
 
