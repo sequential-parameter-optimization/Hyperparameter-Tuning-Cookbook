@@ -202,14 +202,10 @@ import math
 import json
 from functools import partial
 import matplotlib.pyplot as plt
-plt.set_cmap('cividis')
 from matplotlib.colors import to_rgb
 import matplotlib
-matplotlib.rcParams['lines.linewidth'] = 2.0
 import seaborn as sns
-```
 
-```{python}
 ## tqdm for loading bars
 from tqdm.notebook import tqdm
 
@@ -223,7 +219,9 @@ import torch.optim as optim
 # PyTorch Lightning
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+```
 
+```{python}
 # Path to the folder where the pretrained models are saved
 CHECKPOINT_PATH = "../saved_models/tutorial6"
 
@@ -257,7 +255,12 @@ pretrained_files = ["ReverseTask.ckpt", "SetAnomalyTask.ckpt"]
 
 # Create checkpoint path if it doesn't exist yet
 os.makedirs(CHECKPOINT_PATH, exist_ok=True)
+```
 
+### Downloading the Pretrained Models
+
+
+```{python}
 # For each file, check whether it already exists. If not, try downloading it.
 for file_name in pretrained_files:
     file_path = os.path.join(CHECKPOINT_PATH, file_name)
@@ -428,7 +431,11 @@ Next, we will look at how to apply the multi-head attention block inside the Tra
 ![Transformer architecture. Figure credit: @vasw17a](./figures_static/transformer_architecture.png){#fig-transformer-architecture}
 
 
-The encoder consists of $N$ identical blocks that are applied in sequence. Taking as input $x$, it is first passed through a Multi-Head Attention block as we have implemented above. The output is added to the original input using a residual connection, and we apply a consecutive Layer Normalization on the sum. Overall, it calculates $\text{LayerNorm}(x+\text{Multihead}(x,x,x))$ ($x$ being $Q$, $K$ and $V$ input to the attention layer). The residual connection is crucial in the Transformer architecture for two reasons: 
+The encoder consists of $N$ identical blocks that are applied in sequence. Taking as input $x$, it is first passed through a Multi-Head Attention block as we have implemented above. The output is added to the original input using a residual connection, and we apply a consecutive Layer Normalization on the sum. Overall, it calculates 
+$$
+\text{LayerNorm}(x+\text{Multihead}(x,x,x))
+$$
+($x$ being $Q$, $K$ and $V$ input to the attention layer). The residual connection is crucial in the Transformer architecture for two reasons: 
 
 1. Similar to ResNets, Transformers are designed to be very deep. Some models contain more than 24 blocks in the encoder. Hence, the residual connections are crucial for enabling a smooth gradient flow through the model.
 2. Without the residual connection, the information about the original sequence is lost. Remember that the Multi-Head Attention layer ignores the position of elements in a sequence, and can only learn it based on the input features. Removing the residual connections would mean that this information is lost after the first attention layer (after initialization), and with a randomly initialized query and key vector, the output vectors for position $i$ has no relation to its original input. All outputs of the attention are likely to represent similar/same information, and there is no chance for the model to distinguish which information came from which input element. An alternative option to residual connection would be to fix at least one head to focus on its original input, but this is very inefficient and does not have the benefit of the improved gradient flow.
@@ -570,6 +577,8 @@ class PositionalEncoding(nn.Module):
 To understand the positional encoding, we can visualize it below. We will generate an image of the positional encoding over hidden dimensionality and position in a sequence. Each pixel, therefore, represents the change of the input feature we perform to encode the specific position. Let's do it below.
 
 ```{python}
+matplotlib.rcParams['lines.linewidth'] = 2.0
+plt.set_cmap('cividis')
 encod_block = PositionalEncoding(d_model=48, max_len=96)
 pe = encod_block.pe.squeeze().T.cpu().numpy()
 
@@ -607,7 +616,7 @@ plt.show()
 
 As we can see, the patterns between the hidden dimension $1$ and $2$ only differ in the starting angle. The wavelength is $2\pi$, hence the repetition after position $6$. The hidden dimensions $2$ and $3$ have about twice the wavelength. 
 
-### Learning rate warm-up
+### Learning Rate Warm-up
 
 One commonly used technique for training a Transformer is learning rate warm-up. This means that we gradually increase the learning rate from 0 on to our originally specified learning rate in the first few iterations. Thus, we slowly start learning instead of taking very large steps from the beginning. In fact, training a deep Transformer without learning rate warm-up can make the model diverge and achieve a much worse performance on training and testing. Take for instance the following plot by [Liu et al. (2019)](https://arxiv.org/pdf/1908.03265.pdf) comparing Adam-vanilla (i.e. Adam without warm-up) vs Adam with a warm-up:
 
@@ -660,7 +669,8 @@ In the first 100 iterations, we increase the learning rate factor from 0 to 1, w
 
 Finally, we can embed the Transformer architecture into a PyTorch lightning module. PyTorch Lightning simplifies our training and test code, as well as structures the code nicely in separate functions. We will implement a template for a classifier based on the Transformer encoder. Thereby, we have a prediction output per sequence element. If we would need a classifier over the whole sequence, the common approach is to add an additional `[CLS]` token to the sequence (`CLS` stands for classification, i.e., the first token of every sequence is always a special classification token, `CLS`). However, here we focus on tasks where we have an output per element. 
 
-Additionally to the Transformer architecture, we add a small input network (maps input dimensions to model dimensions), the positional encoding, and an output network (transforms output encodings to predictions). We also add the learning rate scheduler, which takes a step each iteration instead of once per epoch. This is needed for the warmup and the smooth cosine decay. The training, validation, and test step is left empty for now and will be filled for our task-specific models.
+Additionally to the Transformer architecture, we add a small input network (maps input dimensions to model dimensions), the positional encoding, and an output network (transforms output encodings to predictions).
+We also add the learning rate scheduler, which takes a step each iteration instead of once per epoch. This is needed for the warmup and the smooth cosine decay. The training, validation, and test step is left empty for now and will be filled for our task-specific models.
 
 ```{python}
 class TransformerPredictor(pl.LightningModule):
@@ -758,6 +768,8 @@ After having finished the implementation of the Transformer architecture, we can
 
 A Sequence-to-Sequence task represents a task where the input _and_ the output is a sequence, not necessarily of the same length. Popular tasks in this domain include machine translation and summarization. For this, we usually have a Transformer encoder for interpreting the input sequence, and a decoder for generating the output in an autoregressive manner. Here, however, we will go back to a much simpler example task and use only the encoder. Given a sequence of $N$ numbers between $0$ and $M$, the task is to reverse the input sequence. In Numpy notation, if our input is $x$, the output should be $x$[::-1]. Although this task sounds very simple, RNNs can have issues with such because the task requires long-term dependencies. Transformers are built to support such, and hence, we expect it to perform very well. 
 
+### Dataset and Data Loaders
+
 First, let's create a dataset class below.
 
 ```{python}
@@ -801,7 +813,9 @@ print("Labels:    ", labels)
 
 During training, we pass the input sequence through the Transformer encoder and predict the output for each input token. We use the standard Cross-Entropy loss to perform this. Every number is represented as a one-hot vector. Remember that representing the categories as single scalars decreases the expressiveness of the model extremely as $0$ and $1$ are not closer related than $0$ and $9$ in our example. An alternative to a one-hot vector is using a learned embedding vector as it is provided by the PyTorch module `nn.Embedding`. However, using a one-hot vector with an additional linear layer as in our case has the same effect as an embedding layer (`self.input_net` maps one-hot vector to a dense vector, where each row of the weight matrix represents the embedding for a specific category).
 
-To implement the training dynamic, we create a new class inheriting from `TransformerPredictor` and overwriting the training, validation and test step functions.
+### The Reverse Predictor Class
+
+To implement the training dynamic, we create a new class inheriting from `TransformerPredictor` and overwriting the training, validation and test step functions, which were left empty in the base class. We also add a `_calculate_loss` function to calculate the loss and accuracy for a batch.
 
 ```{python}
 class ReversePredictor(TransformerPredictor):
@@ -832,7 +846,17 @@ class ReversePredictor(TransformerPredictor):
         _ = self._calculate_loss(batch, mode="test")
 ```
 
-Finally, we can create a training function. We create a `pl.Trainer` object, running for $N$ epochs, logging in TensorBoard, and saving our best model based on the validation. Afterward, we test our models on the test set. An additional parameter we pass to the trainer here is `gradient_clip_val`. This clips the norm of the gradients for all parameters before taking an optimizer step and prevents the model from diverging if we obtain very high gradients at, for instance, sharp loss surfaces (see many good blog posts on gradient clipping, like [DeepAI glossary](https://deepai.org/machine-learning-glossary-and-terms/gradient-clipping)). For Transformers, gradient clipping can help to further stabilize the training during the first few iterations, and also afterward. In plain PyTorch, you can apply gradient clipping via `torch.nn.utils.clip_grad_norm_(...)` (see [documentation](https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html#torch.nn.utils.clip_grad_norm_)). The clip value is usually between 0.5 and 10, depending on how harsh you want to clip large gradients. After having explained this, let's implement the training function:
+Finally, we can create a training function. We create a `pl.Trainer` object, running for $N$ epochs, logging in TensorBoard, and saving our best model based on the validation. Afterward, we test our models on the test set. 
+
+### Gradient Clipping
+
+An additional parameter we pass to the trainer here is `gradient_clip_val`. This clips the norm of the gradients for all parameters before taking an optimizer step and prevents the model from diverging if we obtain very high gradients at, for instance, sharp loss surfaces (see many good blog posts on gradient clipping, like [DeepAI glossary](https://deepai.org/machine-learning-glossary-and-terms/gradient-clipping)).
+For Transformers, gradient clipping can help to further stabilize the training during the first few iterations, and also afterward.
+In plain PyTorch, you can apply gradient clipping via `torch.nn.utils.clip_grad_norm_(...)` (see [documentation](https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html#torch.nn.utils.clip_grad_norm_)). The clip value is usually between 0.5 and 10, depending on how harsh you want to clip large gradients. 
+
+### Implementation of the Lightning Trainer
+
+The Lightning trainer can be implemented as follows:
 
 ```{python}
 def train_reverse(**kwargs):
@@ -866,6 +890,7 @@ def train_reverse(**kwargs):
     return model, result
 ``` 
 
+### Training the Model
 
 Finally, we can train the model. In this setup, we will use a single encoder block and a single head in the Multi-Head Attention. This is chosen because of the simplicity of the task, and in this case, the attention can actually be interpreted as an "explanation" of the predictions (compared to the other papers above dealing with deep Transformers). 
 
@@ -935,6 +960,9 @@ def plot_attention_maps(input_data, attn_maps, idx=0):
             ax[row][column].set_yticklabels(input_data.tolist())
             ax[row][column].set_title(f"Layer {row+1}, Head {column+1}")
     fig.subplots_adjust(hspace=0.5)
+    cax = fig.add_axes([0.95, 0.15, 0.01, 0.7])
+    cbar = fig.colorbar(ax[0][0].imshow(attn_maps[0][0], origin='lower', vmin=0), cax=cax)
+    cbar.set_label('Attention')
     plt.show()
 ```
 
