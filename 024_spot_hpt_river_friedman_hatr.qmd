@@ -31,6 +31,7 @@ Before we consider the detailed experimental setup, we select the parameters tha
 
 
 ```{python}
+#| label: 024_setup
 MAX_TIME = 1
 INIT_SIZE = 5
 PREFIX="24-river"
@@ -39,6 +40,7 @@ K = 0.1
 
 ```{python}
 #| echo: false
+#| label: 024_imports
 import os
 from math import inf
 import numpy as np
@@ -60,6 +62,7 @@ warnings.filterwarnings("ignore")
 The `fun_control` dictionary is the central data structure that is used to control the optimization process. It is initialized as follows:
 
 ```{python}
+#| label: 024_fun_control_init
 from spotPython.utils.init import fun_control_init
 fun_control = fun_control_init(
     PREFIX=PREFIX,
@@ -92,6 +95,7 @@ The following parameters are used to generate and handle the data set:
 
 
 ```{python}
+#| label: 024_data_size
 horizon = 7*24
 n_samples = int(K*100_000)
 p_1 = int(K*25_000)
@@ -101,6 +105,7 @@ n_train = 1_000
 ```
 
 ```{python}
+#| label: 024_data_generation_drift
 from river.datasets import synth
 import pandas as pd
 dataset = synth.FriedmanDrift(
@@ -114,6 +119,7 @@ dataset = synth.FriedmanDrift(
 
 
 ```{python}
+#| label: 024_convert_to_df_data
 from spotRiver.utils.data_conversion import convert_to_df
 target_column = "y"
 df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
@@ -123,6 +129,7 @@ df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
 * Then split the data frame into a training and test data set. The train and test data sets are stored in the `fun_control` dictionary.
 
 ```{python}
+#| label: 024_train_test_split
 from spotPython.hyperparameters.values import set_control_key_value
 df.columns = [f"x{i}" for i in range(1, 11)] + ["y"]
 set_control_key_value(control_dict=fun_control,
@@ -139,6 +146,7 @@ set_control_key_value(fun_control, "target_column", target_column, replace=True)
 * We use the `StandardScaler` [[SOURCE]](https://riverml.xyz/dev/api/preprocessing/StandardScaler/) from `river` as the preprocessing model. The `StandardScaler` is used to standardize the data set, i.e., it has zero mean and unit variance.
 
 ```{python}
+#| label: 024_preprocessing_standard_scaler
 from river import preprocessing
 prep_model = preprocessing.StandardScaler()
 set_control_key_value(fun_control, "prep_model", prep_model, replace=True)
@@ -160,6 +168,7 @@ The method `add_core_model_to_fun_control` adds the model and the hyperparameter
 Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json) is loaded from the `spotRiver` package.
 
 ```{python}
+#| label: 024_add_core_model_to_fun_control
 from river.tree import HoeffdingAdaptiveTreeRegressor
 from spotRiver.data.river_hyper_dict import RiverHyperDict
 from spotPython.hyperparameters.values import add_core_model_to_fun_control
@@ -218,6 +227,7 @@ The `oml_grace_period` defines the number of observations that are used for the 
 Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.
 
 ```{python}
+#| label: 024_weights_setup
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 
@@ -244,6 +254,7 @@ set_control_key_value(fun_control, "metric_sklearn", mean_absolute_error, True)
 The objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py) is selected next.
 
 ```{python}
+#| label: 024_fun_oml_horizon
 from spotRiver.fun.hyperriver import HyperRiver
 fun = HyperRiver().fun_oml_horizon
 ```
@@ -251,6 +262,7 @@ fun = HyperRiver().fun_oml_horizon
 The following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the `Spot` function.
 
 ```{python}
+#| label: 024_get_default_hyperparameters_as_array
 from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 ```
@@ -274,6 +286,7 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
+#| label: 024_spot_run
 from spotPython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init()
 set_control_key_value(control_dict=design_control,
@@ -304,6 +317,7 @@ tensorboard --logdir="./runs"
 The TensorBoard path can be printed with the following command:
 
 ```{python}
+#| label: 024_tensorboard_path
 from spotPython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
@@ -325,10 +339,11 @@ The TensorBoard plot illustrates how `spotPython` can be used as a microscope fo
 After the hyperparameter tuning run is finished, results can be printed:
 
 ```{python}
-spot_tuner.print_results()
+#| label: 024_print_results
+spot_tuner.print_results(print_screen=False)
 ```
 
-The tuned hyperparameters can be obtained with the following command:
+The tuned hyperparameters can be obtained as a dictionary with the following command:
 
 ```{python}
 from spotPython.hyperparameters.values import get_tuned_hyperparameters
@@ -351,7 +366,7 @@ if SAVE_AND_LOAD == True:
 After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
 
 ```{python}
-spot_tuner.plot_progress(log_y=True, filename="./figures/" + experiment_name+"_progress.pdf")
+spot_tuner.plot_progress(log_y=True, filename=None)
 ```
 
 Results can also be printed in tabular form.
@@ -363,10 +378,10 @@ print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 A histogram can be used to visualize the most important hyperparameters.
 
 ```{python}
-spot_tuner.plot_importance(threshold=0.0025, filename="./figures/" + experiment_name+"_importance.pdf")
+spot_tuner.plot_importance(threshold=0.0025, filename=None)
 ```
 
-## The Larger Data Set 
+## The Larger Data Set
 
 After the hyperparamter were tuned on a small data set, we can now apply the hyperparameter configuration to a larger data set. The following code snippet shows how to generate the larger data set.
 
@@ -411,7 +426,6 @@ from spotPython.hyperparameters.values import get_one_core_model_from_X
 from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
-```
 model_default
 ```
 
@@ -436,9 +450,10 @@ df_eval_default, df_true_default = eval_oml_horizon(
                 )
 ```
 
-The three performance criteria, i.e., scaoe (metric), runtime, and memory consumption, can be visualized with the following commands:
+The three performance criteria, i.e., score (metric), runtime, and memory consumption, can be visualized with the following commands:
 
 ```{python}
+#| label: 024_plot_bml_oml_horizon_metrics_default
 from spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions
 df_labels=["default"]
 plot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control["metric_sklearn"])
@@ -451,13 +466,10 @@ plot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels
     * We use 100 data points, i.e., $m \pm 50$ as the visualization window.
 
 ```{python}
+#| label: 024_plot_bml_oml_horizon_predictions_default
 m = fun_control["test"].shape[0]
 a = int(m/2)-50
 b = int(m/2)
-```
-
-
-```{python}
 plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)
 ```
 
@@ -466,12 +478,14 @@ plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column
 In a similar way, we can obtain the hyperparameters found by `spotPython`.
 
 ```{python}
+#| label: 024_get_one_core_model_from_X
 from spotPython.hyperparameters.values import get_one_core_model_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 model_spot = get_one_core_model_from_X(X, fun_control)
 ```
 
 ```{python}
+#| label: 024_eval_om_horizon
 df_eval_spot, df_true_spot = eval_oml_horizon(
                     model=model_spot,
                     train=fun_control["train"],
@@ -484,15 +498,18 @@ df_eval_spot, df_true_spot = eval_oml_horizon(
 ```
 
 ```{python}
+#| label: 024_plot_bml_oml_horizon_metrics
 df_labels=["default", "spot"]
-plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control["metric_sklearn"], filename="./figures/" + experiment_name+"_metrics.pdf")
+plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control["metric_sklearn"], filename="None)
 ```
 
 ```{python}
-plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels, filename="./figures/" + experiment_name+"_predictions.pdf")
+#| label: 024_plot_bml_oml_horizon_predictions
+plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels)
 ```
 
 ```{python}
+#| label: 024_plot_actual_vs_predicted
 from spotPython.plot.validation import plot_actual_vs_predicted
 plot_actual_vs_predicted(y_test=df_true_default[target_column], y_pred=df_true_default["Prediction"], title="Default")
 plot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot["Prediction"], title="SPOT")
@@ -501,7 +518,9 @@ plot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot
 ## Visualize Regression Trees
 
 ```{python}
+#| label: 024_model_default_learn_one
 dataset_f = dataset.take(n_samples)
+print(f"n_samples: {n_samples}")
 for x, y in dataset_f:
     model_default.learn_one(x, y)
 ```
@@ -517,12 +536,15 @@ for x, y in dataset_f:
 ```
 
 ```{python}
+#| label: 024_model_default_summary
 model_default.summary
 ```
 
 ### Spot Model
 
 ```{python}
+#| label: 024_model_spot_learn_one
+print(f"n_samples: {n_samples}")
 dataset_f = dataset.take(n_samples)
 for x, y in dataset_f:
     model_spot.learn_one(x, y)
@@ -539,10 +561,12 @@ for x, y in dataset_f:
 ```
 
 ```{python}
+#| label: 024_model_spot_summary
 model_spot.summary
 ```
 
 ```{python}
+#| label: 024_compare_two_tree_models
 from spotPython.utils.eda import compare_two_tree_models
 print(compare_two_tree_models(model_default, model_spot))
 ```
@@ -550,13 +574,14 @@ print(compare_two_tree_models(model_default, model_spot))
 ## Detailed Hyperparameter Plots
 
 ```{python}
-filename = "./figures/" + experiment_name
-spot_tuner.plot_important_hyperparameter_contour(filename=filename)
+#| label: 024_plot_important_hyperparameter_contour
+spot_tuner.plot_important_hyperparameter_contour()
 ```
 
 ## Parallel Coordinates Plots
 
 ```{python}
+#| label: 024_parallel_plot
 spot_tuner.parallel_plot()
 ```
 
