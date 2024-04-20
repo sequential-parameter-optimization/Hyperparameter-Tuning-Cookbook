@@ -508,77 +508,151 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="code-optimization-experiment-37" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.<span class="bu">file</span> <span class="im">import</span> save_experiment, load_experiment</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> (</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    fun_control_init,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    design_control_init,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    surrogate_control_init,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    optimizer_control_init)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_branin</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>            PREFIX<span class="op">=</span><span class="st">"branin"</span>,</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>            SUMMARY_WRITER<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>            lower <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>]),</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>            upper <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>]),</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            fun_evals<span class="op">=</span><span class="dv">8</span>,</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>            fun_repeats<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>            max_time<span class="op">=</span>inf,</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>            tolerance_x<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>            ocba_delta<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            infill_criterion<span class="op">=</span><span class="st">"ei"</span>,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>            n_points<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">20</span>,</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            show_models<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>            show_progress<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            init_size<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            repeats<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            model_fun_evals<span class="op">=</span><span class="dv">10000</span>,</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            min_theta<span class="op">=-</span><span class="dv">3</span>,</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            max_theta<span class="op">=</span><span class="dv">3</span>,</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            theta_init_zero<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>            n_p<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>            optim_p<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">124</span>)</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>optimizer_control <span class="op">=</span> optimizer_control_init(</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>            max_iter<span class="op">=</span><span class="dv">1000</span>,</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">125</span>)</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>            fun_control<span class="op">=</span>fun_control,</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            design_control<span class="op">=</span>design_control,</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>            surrogate_control<span class="op">=</span>surrogate_control,</span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>            optimizer_control<span class="op">=</span>optimizer_control)</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>pkl_name <span class="op">=</span> save_experiment(</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    spot_tuner<span class="op">=</span>spot_tuner,</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>    fun_control<span class="op">=</span>fun_control,</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    design_control<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    surrogate_control<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>    optimizer_control<span class="op">=</span><span class="va">None</span></span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"pkl_name: </span><span class="sc">{</span>pkl_name<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.spot <span class="im">import</span> spot</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.init <span class="im">import</span> (</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    fun_control_init,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    design_control_init,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    surrogate_control_init,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    optimizer_control_init)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_branin</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>            PREFIX<span class="op">=</span><span class="st">"branin"</span>,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>            SUMMARY_WRITER<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>            lower <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>]),</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            upper <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>]),</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>            fun_evals<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>            fun_repeats<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>            max_time<span class="op">=</span>inf,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>            tolerance_x<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>            ocba_delta<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>            infill_criterion<span class="op">=</span><span class="st">"ei"</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>            n_points<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>            show_models<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>            show_progress<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            init_size<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>            repeats<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            model_fun_evals<span class="op">=</span><span class="dv">10000</span>,</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            min_theta<span class="op">=-</span><span class="dv">3</span>,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            max_theta<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>            theta_init_zero<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>            n_p<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            optim_p<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">124</span>)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>optimizer_control <span class="op">=</span> optimizer_control_init(</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>            max_iter<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">125</span>)</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>            design_control<span class="op">=</span>design_control,</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>            surrogate_control<span class="op">=</span>surrogate_control,</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>            optimizer_control<span class="op">=</span>optimizer_control)</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> fun_control[<span class="st">"PREFIX"</span>]</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>filename <span class="op">=</span> get_experiment_filename(PREFIX)</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(filename<span class="op">=</span>filename)</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"filename: </span><span class="sc">{</span>filename<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>spotPython tuning: 4.7932399644479124 [########--] 75.00% 
 spotPython tuning: 2.0379795645847087 [#########-] 87.50% 
 spotPython tuning: 1.986328241945829 [##########] 100.00% Done...
 
-Experiment saved as spot_branin_experiment.pickle
-pkl_name: spot_branin_experiment.pickle</code></pre>
+{'CHECKPOINT_PATH': 'runs/saved_models/',
+ 'DATASET_PATH': 'data/',
+ 'PREFIX': 'branin',
+ 'RESULTS_PATH': 'results/',
+ 'TENSORBOARD_PATH': 'runs/',
+ '_L_in': None,
+ '_L_out': None,
+ '_torchmetric': None,
+ 'accelerator': 'auto',
+ 'converters': None,
+ 'core_model': None,
+ 'core_model_name': None,
+ 'counter': 8,
+ 'data': None,
+ 'data_dir': './data',
+ 'data_module': None,
+ 'data_set': None,
+ 'data_set_name': None,
+ 'db_dict_name': None,
+ 'design': None,
+ 'device': None,
+ 'devices': 1,
+ 'enable_progress_bar': False,
+ 'eval': None,
+ 'fun_evals': 8,
+ 'fun_repeats': 1,
+ 'horizon': None,
+ 'infill_criterion': 'ei',
+ 'k_folds': 3,
+ 'log_graph': False,
+ 'log_level': 20,
+ 'loss_function': None,
+ 'lower': array([0, 0]),
+ 'max_surrogate_points': 30,
+ 'max_time': inf,
+ 'metric_params': {},
+ 'metric_river': None,
+ 'metric_sklearn': None,
+ 'metric_sklearn_name': None,
+ 'metric_torch': None,
+ 'model_dict': {},
+ 'n_points': 1,
+ 'n_samples': None,
+ 'n_total': None,
+ 'noise': False,
+ 'num_workers': 0,
+ 'ocba_delta': 0,
+ 'oml_grace_period': None,
+ 'optimizer': None,
+ 'path': None,
+ 'prep_model': None,
+ 'prep_model_name': None,
+ 'progress_file': None,
+ 'save_model': False,
+ 'scenario': None,
+ 'seed': 123,
+ 'show_batch_interval': 1000000,
+ 'show_models': False,
+ 'show_progress': True,
+ 'shuffle': None,
+ 'sigma': 0.0,
+ 'spot_tensorboard_path': None,
+ 'spot_writer': None,
+ 'target_column': None,
+ 'target_type': None,
+ 'task': None,
+ 'test': None,
+ 'test_seed': 1234,
+ 'test_size': 0.4,
+ 'tolerance_x': 0,
+ 'train': None,
+ 'upper': array([10, 10]),
+ 'var_name': None,
+ 'var_type': ['num', 'num'],
+ 'verbosity': 0,
+ 'weight_coeff': 0.0,
+ 'weights': 1.0,
+ 'weights_entry': None}
+filename: spot_branin_experiment.pickle</code></pre>
 </div>
 </div>
 <div id="code-reload-optimization-experiment-37" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(spot_tuner_1, fun_control_1, design_control_1,</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(pkl_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(filename)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The progress of the original experiment is shown in <a href="#fig-plot-progress-37a" class="quarto-xref">Figure&nbsp;<span>29.1</span></a> and the reloaded experiment in <a href="#fig-plot-progress-37b" class="quarto-xref">Figure&nbsp;<span>29.2</span></a>.</p>
 <div id="cell-fig-plot-progress-37a" class="cell" data-execution_count="3">
@@ -761,8 +835,8 @@ Table&nbsp;29.3: The Diabetes data set
 <span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    tolerance_x<span class="op">=</span>np.sqrt(np.spacing(<span class="dv">1</span>)),</span>
 <span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_03_24_14_26_27
-Created spot_tensorboard_path: runs/spot_logs/037_p040025_2024-03-24_14-26-27 for SummaryWriter()</code></pre>
+<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_04_20_14_36_50
+Created spot_tensorboard_path: runs/spot_logs/037_p040025_2024-04-20_14-36-50 for SummaryWriter()</code></pre>
 </div>
 </div>
 </section>
@@ -903,7 +977,227 @@ LightDataModule.setup(): stage: TrainerFn.VALIDATING
 LightDataModule.val_dataloader(). Val. set size: 106
 train_model result: {'val_loss': 4107.67431640625, 'hp_metric': 4107.67431640625}
 spotPython tuning: 3977.69482421875 [##########] 100.00% Done...
-</code></pre>
+
+{'CHECKPOINT_PATH': 'runs/saved_models/',
+ 'DATASET_PATH': 'data/',
+ 'PREFIX': '037',
+ 'RESULTS_PATH': 'results/',
+ 'TENSORBOARD_PATH': 'runs/',
+ '_L_in': 10,
+ '_L_out': 1,
+ '_torchmetric': 'mean_squared_error',
+ 'accelerator': 'auto',
+ 'converters': None,
+ 'core_model': &lt;class 'spotPython.light.regression.netlightregression.NetLightRegression'&gt;,
+ 'core_model_hyper_dict': {'act_fn': {'class_name': 'spotPython.torch.activation',
+                                      'core_model_parameter_type': 'instance()',
+                                      'default': 'ReLU',
+                                      'levels': ['ReLU', 'LeakyReLU'],
+                                      'lower': 0,
+                                      'transform': 'None',
+                                      'type': 'factor',
+                                      'upper': 1},
+                           'batch_size': {'default': 4,
+                                          'lower': 4,
+                                          'transform': 'transform_power_2_int',
+                                          'type': 'int',
+                                          'upper': 5},
+                           'dropout_prob': {'default': 0.01,
+                                            'lower': 0.01,
+                                            'transform': 'None',
+                                            'type': 'float',
+                                            'upper': 0.1},
+                           'epochs': {'default': 4,
+                                      'lower': 4,
+                                      'transform': 'transform_power_2_int',
+                                      'type': 'int',
+                                      'upper': 5},
+                           'initialization': {'core_model_parameter_type': 'str',
+                                              'default': 'Default',
+                                              'levels': ['Default',
+                                                         'Kaiming',
+                                                         'Xavier'],
+                                              'lower': 0,
+                                              'transform': 'None',
+                                              'type': 'factor',
+                                              'upper': 2},
+                           'l1': {'default': 3,
+                                  'lower': 3,
+                                  'transform': 'transform_power_2_int',
+                                  'type': 'int',
+                                  'upper': 8},
+                           'lr_mult': {'default': 1.0,
+                                       'lower': 0.05,
+                                       'transform': 'None',
+                                       'type': 'float',
+                                       'upper': 1.0},
+                           'optimizer': {'class_name': 'torch.optim',
+                                         'core_model_parameter_type': 'str',
+                                         'default': 'SGD',
+                                         'levels': ['Adam', 'RAdam'],
+                                         'lower': 0,
+                                         'transform': 'None',
+                                         'type': 'factor',
+                                         'upper': 1},
+                           'patience': {'default': 2,
+                                        'lower': 2,
+                                        'transform': 'transform_power_2_int',
+                                        'type': 'int',
+                                        'upper': 3}},
+ 'core_model_hyper_dict_default': {'act_fn': {'class_name': 'spotPython.torch.activation',
+                                              'core_model_parameter_type': 'instance()',
+                                              'default': 'ReLU',
+                                              'levels': ['Sigmoid',
+                                                         'Tanh',
+                                                         'ReLU',
+                                                         'LeakyReLU',
+                                                         'ELU',
+                                                         'Swish'],
+                                              'lower': 0,
+                                              'transform': 'None',
+                                              'type': 'factor',
+                                              'upper': 5},
+                                   'batch_size': {'default': 4,
+                                                  'lower': 1,
+                                                  'transform': 'transform_power_2_int',
+                                                  'type': 'int',
+                                                  'upper': 4},
+                                   'dropout_prob': {'default': 0.01,
+                                                    'lower': 0.0,
+                                                    'transform': 'None',
+                                                    'type': 'float',
+                                                    'upper': 0.25},
+                                   'epochs': {'default': 4,
+                                              'lower': 4,
+                                              'transform': 'transform_power_2_int',
+                                              'type': 'int',
+                                              'upper': 9},
+                                   'initialization': {'core_model_parameter_type': 'str',
+                                                      'default': 'Default',
+                                                      'levels': ['Default',
+                                                                 'Kaiming',
+                                                                 'Xavier'],
+                                                      'lower': 0,
+                                                      'transform': 'None',
+                                                      'type': 'factor',
+                                                      'upper': 2},
+                                   'l1': {'default': 3,
+                                          'lower': 3,
+                                          'transform': 'transform_power_2_int',
+                                          'type': 'int',
+                                          'upper': 8},
+                                   'lr_mult': {'default': 1.0,
+                                               'lower': 0.1,
+                                               'transform': 'None',
+                                               'type': 'float',
+                                               'upper': 10.0},
+                                   'optimizer': {'class_name': 'torch.optim',
+                                                 'core_model_parameter_type': 'str',
+                                                 'default': 'SGD',
+                                                 'levels': ['Adadelta',
+                                                            'Adagrad',
+                                                            'Adam',
+                                                            'AdamW',
+                                                            'SparseAdam',
+                                                            'Adamax',
+                                                            'ASGD',
+                                                            'NAdam',
+                                                            'RAdam',
+                                                            'RMSprop',
+                                                            'Rprop',
+                                                            'SGD'],
+                                                 'lower': 0,
+                                                 'transform': 'None',
+                                                 'type': 'factor',
+                                                 'upper': 11},
+                                   'patience': {'default': 2,
+                                                'lower': 2,
+                                                'transform': 'transform_power_2_int',
+                                                'type': 'int',
+                                                'upper': 6}},
+ 'core_model_name': None,
+ 'counter': 8,
+ 'data': None,
+ 'data_dir': './data',
+ 'data_module': None,
+ 'data_set': &lt;spotPython.data.diabetes.Diabetes object at 0x3857cb790&gt;,
+ 'data_set_name': None,
+ 'db_dict_name': None,
+ 'design': None,
+ 'device': 'mps',
+ 'devices': 1,
+ 'enable_progress_bar': False,
+ 'eval': None,
+ 'fun_evals': 8,
+ 'fun_repeats': 1,
+ 'horizon': None,
+ 'infill_criterion': 'y',
+ 'k_folds': 3,
+ 'log_graph': False,
+ 'log_level': 50,
+ 'loss_function': None,
+ 'lower': array([3. , 4. , 1. , 0. , 0. , 0. , 0.1, 2. , 0. ]),
+ 'max_surrogate_points': 30,
+ 'max_time': 1,
+ 'metric_params': {},
+ 'metric_river': None,
+ 'metric_sklearn': None,
+ 'metric_sklearn_name': None,
+ 'metric_torch': None,
+ 'model_dict': {},
+ 'n_points': 1,
+ 'n_samples': None,
+ 'n_total': None,
+ 'noise': False,
+ 'num_workers': 0,
+ 'ocba_delta': 0,
+ 'oml_grace_period': None,
+ 'optimizer': None,
+ 'path': None,
+ 'prep_model': None,
+ 'prep_model_name': None,
+ 'progress_file': None,
+ 'save_model': False,
+ 'scenario': None,
+ 'seed': 123,
+ 'show_batch_interval': 1000000,
+ 'show_models': False,
+ 'show_progress': True,
+ 'shuffle': None,
+ 'sigma': 0.0,
+ 'spot_tensorboard_path': 'runs/spot_logs/037_p040025_2024-04-20_14-36-50',
+ 'spot_writer': &lt;torch.utils.tensorboard.writer.SummaryWriter object at 0x38070ed50&gt;,
+ 'target_column': None,
+ 'target_type': None,
+ 'task': None,
+ 'test': None,
+ 'test_seed': 1234,
+ 'test_size': 0.4,
+ 'tolerance_x': 1.4901161193847656e-08,
+ 'train': None,
+ 'upper': array([ 8.  ,  9.  ,  4.  ,  5.  , 11.  ,  0.25, 10.  ,  6.  ,  2.  ]),
+ 'var_name': ['l1',
+              'epochs',
+              'batch_size',
+              'act_fn',
+              'optimizer',
+              'dropout_prob',
+              'lr_mult',
+              'patience',
+              'initialization'],
+ 'var_type': ['int',
+              'int',
+              'int',
+              'factor',
+              'factor',
+              'float',
+              'float',
+              'int',
+              'factor'],
+ 'verbosity': 0,
+ 'weight_coeff': 0.0,
+ 'weights': 1.0,
+ 'weights_entry': None}</code></pre>
 </div>
 <div id="code-start-hyperparameter-tuning-37-1" class="cell-output cell-output-display">
 <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -978,7 +1272,7 @@ spotPython tuning: 3977.69482421875 [##########] 100.00% Done...
 </pre>
 </div>
 <div id="code-start-hyperparameter-tuning-37-9" class="cell-output cell-output-display" data-execution_count="10">
-<pre><code>&lt;spotPython.spot.spot.Spot at 0x36fee8d50&gt;</code></pre>
+<pre><code>&lt;spotPython.spot.spot.Spot at 0x3858b4090&gt;</code></pre>
 </div>
 </div>
 <p>The tuned hyperparameters can be obtained as a dictionary with the following code.</p>
@@ -1013,26 +1307,21 @@ spotPython tuning: 3977.69482421875 [##########] 100.00% Done...
 </div>
 </div>
 <div id="code-save-experiment-37" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pkl_name <span class="op">=</span> save_experiment(</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    spot_tuner<span class="op">=</span>spot_tuner,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    fun_control<span class="op">=</span>fun_control,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    design_control<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    surrogate_control<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    optimizer_control<span class="op">=</span><span class="va">None</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"pkl_name: </span><span class="sc">{</span>pkl_name<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> fun_control[<span class="st">"PREFIX"</span>]</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>filename <span class="op">=</span> get_experiment_filename(PREFIX)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(filename<span class="op">=</span>filename)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"filename: </span><span class="sc">{</span>filename<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Experiment saved as spot_037_experiment.pickle
-pkl_name: spot_037_experiment.pickle</code></pre>
+<pre><code>filename: spot_037_experiment.pickle</code></pre>
 </div>
 </div>
 <p>The results from the experiment are stored in the pickle file spot_037_experiment.pickle. The experiment can be reloaded with the following code.</p>
 <div id="code-reload-hyper-experiment-37" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>(spot_tuner_1, fun_control_1, design_control_1,</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(pkl_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(filename)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Plot the progress of the original experiment are identical to the reloaded experiment.</p>
-<div id="652d3fc6" class="cell" data-execution_count="15">
+<div id="fe4f25f6" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>spot_tuner_1.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
@@ -1051,7 +1340,7 @@ pkl_name: spot_037_experiment.pickle</code></pre>
 </div>
 </div>
 <p>Finally, the tuned hyperparameters can be obtained as a dictionary from the reloaded experiment with the following code.</p>
-<div id="2a438513" class="cell" data-execution_count="16">
+<div id="8894be71" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>get_tuned_hyperparameters(spot_tuner_1, fun_control_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
 <pre><code>{'l1': 7.0,
@@ -1089,7 +1378,7 @@ Summary: Saving and Loading Hyperparameter-Tuning Experiments
 <section id="sec-get-spot-results-31" class="level3" data-number="29.3.1">
 <h3 data-number="29.3.1" class="anchored" data-anchor-id="sec-get-spot-results-31"><span class="header-section-number">29.3.1</span> Get the Tuned Architecture</h3>
 <p>In contrast to the function <code>get_tuned_hyperparameters</code>, the function <code>get_tuned_architecture</code> returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model. The <code>config</code> dictionary can be passed to the model without any modifications.</p>
-<div id="620ee5c9" class="cell" data-execution_count="17">
+<div id="6ff24fea" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.values <span class="im">import</span> get_tuned_architecture</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner, fun_control)</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>pprint.pprint(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1106,7 +1395,7 @@ Summary: Saving and Loading Hyperparameter-Tuning Experiments
 </div>
 </div>
 <p>After getting the tuned architecture, the model can be created and tested with the following code.</p>
-<div id="a733cdd4" class="cell" data-execution_count="18">
+<div id="eb239350" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.testmodel <span class="im">import</span> test_model</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>test_model(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1135,7 +1424,7 @@ test_model result: {'val_loss': 7709.06640625, 'hp_metric': 7709.06640625}</code
 </section>
 <section id="load-a-model-from-checkpoint" class="level3" data-number="29.3.2">
 <h3 data-number="29.3.2" class="anchored" data-anchor-id="load-a-model-from-checkpoint"><span class="header-section-number">29.3.2</span> Load a Model from Checkpoint</h3>
-<div id="39a14740" class="cell" data-execution_count="19">
+<div id="1c822b38" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.light.loadmodel <span class="im">import</span> load_light_from_checkpoint</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>model_loaded <span class="op">=</span> load_light_from_checkpoint(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1160,7 +1449,7 @@ Model: NetLightRegression(
 )</code></pre>
 </div>
 </div>
-<div id="4c5b263e" class="cell" data-execution_count="20">
+<div id="647062fa" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="bu">vars</span>(model_loaded)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="20">
 <pre><code>{'training': False,
@@ -1265,14 +1554,14 @@ Model: NetLightRegression(
  "patience":       8}</code></pre>
 </div>
 </div>
-<div id="df75f3fd" class="cell" data-execution_count="21">
+<div id="e346ca1a" class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>torch.save(model_loaded, <span class="st">"model.pt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="332be7cc" class="cell" data-execution_count="22">
+<div id="8ffb53e1" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>mymodel <span class="op">=</span> torch.load(<span class="st">"model.pt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a687d6ef" class="cell" data-execution_count="23">
+<div id="12b8d207" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># show all attributes of the model</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="bu">vars</span>(mymodel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
@@ -1386,7 +1675,7 @@ Model: NetLightRegression(
 <h3 data-number="29.4.1" class="anchored" data-anchor-id="the-function-get_removed_attributes_and_base_net"><span class="header-section-number">29.4.1</span> The Function <code>get_removed_attributes_and_base_net</code></h3>
 <p><code>spotPython</code> provides a function to covert a <code>PyTorch Lightning</code> model to a plain <code>PyTorch</code> model. The function <code>get_removed_attributes_and_base_net</code> returns a tuple with the removed attributes and the base net. The base net is a plain <code>PyTorch</code> model. The removed attributes are the attributes of the <code>PyTorch Lightning</code> model that are not part of the base net.</p>
 <p>This conversion can be reverted.</p>
-<div id="b11a9f5e" class="cell" data-execution_count="24">
+<div id="203b54b9" class="cell" data-execution_count="24">
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.utils.device <span class="im">import</span> getDevice</span>
@@ -1395,41 +1684,10 @@ Model: NetLightRegression(
 <span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotPython.hyperparameters.optimizer <span class="im">import</span> optimizer_handler</span>
 <span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>removed_attributes, torch_net <span class="op">=</span> get_removed_attributes_and_base_net(net<span class="op">=</span>mymodel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="3d221faa" class="cell" data-execution_count="25">
+<div id="77f82a9c" class="cell" data-execution_count="25">
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(removed_attributes)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>{'_L_in': 10, '_example_input_array': tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]), '_trainer': None, 'allow_zero_length_dataloader_with_multiple_devices': False, '_fabric': None, '_compiler_ctx': None, '_automatic_optimization': True, '_L_out': 1, 'prepare_data_per_node': True, '_torchmetric': 'mean_squared_error', '_log_hyperparams': True, '_metric_attributes': None, '_param_requires_grad_state': {}, '_fabric_optimizers': [], '_hparams': "act_fn":         ReLU()
+<pre><code>{'_hparams_name': 'kwargs', '_trainer': None, '_device': device(type='mps', index=0), '_L_in': 10, 'prepare_data_per_node': True, '_current_fx_name': None, '_torchmetric': 'mean_squared_error', '_L_out': 1, '_param_requires_grad_state': {}, '_fabric': None, 'metric': &lt;function mean_squared_error at 0x354d67b00&gt;, '_automatic_optimization': True, '_metric_attributes': None, '_log_hyperparams': True, '_fabric_optimizers': [], '_compiler_ctx': None, '_hparams_initial': "act_fn":         ReLU()
 "batch_size":     32
 "dropout_prob":   0.04938283618350054
 "epochs":         32
@@ -1437,7 +1695,38 @@ Model: NetLightRegression(
 "l1":             128
 "lr_mult":        0.4445552938072223
 "optimizer":      Adam
-"patience":       8, 'metric': &lt;function mean_squared_error at 0x175f72480&gt;, '_device': device(type='mps', index=0), '_hparams_name': 'kwargs', '_current_fx_name': None, '_dtype': torch.float32, '_hparams_initial': "act_fn":         ReLU()
+"patience":       8, '_example_input_array': tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]), 'allow_zero_length_dataloader_with_multiple_devices': False, '_dtype': torch.float32, '_hparams': "act_fn":         ReLU()
 "batch_size":     32
 "dropout_prob":   0.04938283618350054
 "epochs":         32
@@ -1448,7 +1737,7 @@ Model: NetLightRegression(
 "patience":       8}</code></pre>
 </div>
 </div>
-<div id="1d6a6ac5" class="cell" data-execution_count="26">
+<div id="27c1c926" class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(torch_net)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>NetLightRegression(
@@ -1473,7 +1762,7 @@ Model: NetLightRegression(
 </section>
 <section id="an-example-how-to-use-the-plain-torch-net" class="level3" data-number="29.4.2">
 <h3 data-number="29.4.2" class="anchored" data-anchor-id="an-example-how-to-use-the-plain-torch-net"><span class="header-section-number">29.4.2</span> An Example how to use the Plain Torch Net</h3>
-<div id="45581b47" class="cell" data-execution_count="27">
+<div id="b4ba5b0c" class="cell" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>

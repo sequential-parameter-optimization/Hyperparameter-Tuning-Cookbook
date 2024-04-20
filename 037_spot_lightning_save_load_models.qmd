@@ -31,7 +31,8 @@ If `spotPython` is used as an optimizer, no dictionary of hyperparameters has be
 #| label: code-optimization-experiment-37
 import os
 import pprint
-from spotPython.utils.file import save_experiment, load_experiment
+from spotPython.utils.file import load_experiment
+from spotPython.utils.file import get_experiment_filename
 import numpy as np
 from math import inf
 from spotPython.spot import spot
@@ -82,20 +83,16 @@ spot_tuner = spot.Spot(fun=fun,
             surrogate_control=surrogate_control,
             optimizer_control=optimizer_control)
 spot_tuner.run()
-pkl_name = save_experiment(
-    spot_tuner=spot_tuner,
-    fun_control=fun_control,
-    design_control=None,
-    surrogate_control=None,
-    optimizer_control=None
-)
-print(f"pkl_name: {pkl_name}")
+PREFIX = fun_control["PREFIX"]
+filename = get_experiment_filename(PREFIX)
+spot_tuner.save_experiment(filename=filename)
+print(f"filename: {filename}")
 ```
 
 ```{python}
 #| label: code-reload-optimization-experiment-37
 (spot_tuner_1, fun_control_1, design_control_1,
-    surrogate_control_1, optimizer_control_1) = load_experiment(pkl_name)
+    surrogate_control_1, optimizer_control_1) = load_experiment(filename)
 ```
 
 The progress of the original experiment is shown in @fig-plot-progress-37a and the reloaded experiment in @fig-plot-progress-37b.
@@ -288,24 +285,20 @@ get_tuned_hyperparameters(spot_tuner, fun_control)
 
 ```{python}
 #| label: code-save-experiment-37
-pkl_name = save_experiment(
-    spot_tuner=spot_tuner,
-    fun_control=fun_control,
-    design_control=None,
-    surrogate_control=None,
-    optimizer_control=None
-)
-print(f"pkl_name: {pkl_name}")
+PREFIX = fun_control["PREFIX"]
+filename = get_experiment_filename(PREFIX)
+spot_tuner.save_experiment(filename=filename)
+print(f"filename: {filename}")
 ```
 
-The results from the experiment are stored in the pickle file `{python} pkl_name`.
+The results from the experiment are stored in the pickle file `{python} filename`.
 The experiment can be reloaded with the following code.
 
 
 ```{python}
 #| label: code-reload-hyper-experiment-37
 (spot_tuner_1, fun_control_1, design_control_1,
-    surrogate_control_1, optimizer_control_1) = load_experiment(pkl_name)
+    surrogate_control_1, optimizer_control_1) = load_experiment(filename)
 ```
 
 Plot the progress of the original experiment are identical to the reloaded experiment.
