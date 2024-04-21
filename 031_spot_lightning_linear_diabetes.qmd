@@ -4,6 +4,7 @@ execute:
   eval: true
   echo: true
   warning: false
+jupyter: python3
 ---
 
 # HPT PyTorch Lightning: Diabetes
@@ -22,6 +23,7 @@ This chapter describes the hyperparameter tuning of a `PyTorch Lightning` networ
 * The parameter `WORKERS` specifies the number of workers. 
 * The prefix `PREFIX` is used for the experiment name and the name of the log file.
 * The parameter `DEVICE` specifies the device to use for training.
+
 
 ```{python}
 from spotPython.utils.device import getDevice
@@ -92,6 +94,7 @@ set_control_key_value(control_dict=fun_control,
                         value=dataset,
                         replace=True)
 print(len(dataset))
+print(dataset.names)
 ```
 
 ::: {.callout-note}
@@ -167,7 +170,7 @@ set_control_hyperparameter_value(fun_control, "optimizer", [
                 "Adagrad",
                 "Adam",
                 "AdamW",
-                "Adamax",                
+                "Adamax",
                 "NAdam",
                 "RAdam",
                 "RMSprop",
@@ -239,7 +242,6 @@ We will use MSE.
 
 ### Preparing the SPOT Call {#sec-prepare-spot-call-31}
 
-
 ```{python}
 from spotPython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init(init_size=INIT_SIZE)
@@ -249,7 +251,7 @@ surrogate_control = surrogate_control_init(noise=True,
 ```
 
 ::: {.callout-note}
-### Note: Modifying Values in the Control Dictionaries 
+### Note: Modifying Values in the Control Dictionaries
 
 * The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:
 
@@ -257,11 +259,11 @@ surrogate_control = surrogate_control_init(noise=True,
 set_control_key_value(control_dict=surrogate_control,
                         key="noise",
                         value=True,
-                        replace=True)                       
+                        replace=True)
 set_control_key_value(control_dict=surrogate_control,
                         key="n_theta",
                         value=2,
-                        replace=True)      
+                        replace=True)
 
 ```
 :::
@@ -274,14 +276,6 @@ The objective function `fun` from the class `HyperLight` [[SOURCE]](https://gith
 from spotPython.fun.hyperlight import HyperLight
 fun = HyperLight(log_level=50).fun
 ```
-
-### Showing the fun_control Dictionary {#sec-show-fun-control-31}
-
-```{python}
-import pprint
-pprint.pprint(fun_control)
-```
-
 
 ### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}
 
@@ -306,7 +300,18 @@ tensorboard --logdir="runs/"
 
 Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.
 
+## Load the saved experiment and get the hyperparameters (tuned architecture)
 
+```{python}
+from spotPython.utils.file import load_experiment
+import pprint
+PREFIX="031"
+experiment_name = "spot_" + PREFIX + "_experiment.pickle"
+spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(experiment_name)
+from spotPython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner, fun_control)
+pprint.pprint(config)
+```
 
 ## Step 10: Results {#sec-results-31}
 
@@ -315,8 +320,7 @@ After the hyperparameter tuning run is finished, the results can be analyzed.
 ```{python}
 #| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.
 #| fig-label: fig-progress-31
-spot_tuner.plot_progress(log_y=False,
-    filename="./figures/" + PREFIX +"_progress.png")
+spot_tuner.plot_progress(log_y=False)
 ```
 
 ```{python}
@@ -329,36 +333,16 @@ print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```{python}
 #| fig-cap: 'Variable importance plot, threshold 0.025.'
 #| fig-label: fig-importance-31
-spot_tuner.plot_importance(threshold=0.025,
-    filename="./figures/" + PREFIX + "_importance.png")
+spot_tuner.plot_importance(threshold=0.025)
 ```
 
-### Get the Tuned Architecture {#sec-get-spot-results-31}
-
-```{python}
-from spotPython.hyperparameters.values import get_tuned_architecture
-config = get_tuned_architecture(spot_tuner, fun_control)
-print(config)
-```
-
-* Test on the full data set
-
-```{python}
-from spotPython.light.testmodel import test_model
-test_model(config, fun_control)
-```
-
-```{python}
-from spotPython.light.loadmodel import load_light_from_checkpoint
-
-model_loaded = load_light_from_checkpoint(config, fun_control)
-```
+### Contour Plots of the Hyperparameters
 
 ```{python}
 #| fig-cap: Contour plots.
 #| fig-label: fig-contour-31
-filename = "./figures/" + PREFIX
-spot_tuner.plot_important_hyperparameter_contour(filename=filename)
+filename = None
+spot_tuner.plot_important_hyperparameter_contour(filename=filename, max_imp=3)
 ```
 
 ### Parallel Coordinates Plot
@@ -378,6 +362,7 @@ spot_tuner.parallel_plot()
 
 ```{python}
 from spotPython.light.cvmodel import cv_model
+from spotPython.hyperparameters.values import set_control_key_value
 set_control_key_value(control_dict=fun_control,
                         key="k_folds",
                         value=2,
@@ -389,20 +374,58 @@ set_control_key_value(control_dict=fun_control,
 cv_model(config, fun_control)
 ```
 
-### Plot all Combinations of Hyperparameters
-
-* Warning: this may take a while.
+## Test on the full data set
 
 ```{python}
-PLOT_ALL = False
-if PLOT_ALL:
-    n = spot_tuner.k
-    for i in range(n-1):
-        for j in range(i+1, n):
-            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)
+from spotPython.light.testmodel import test_model
+test_model(config, fun_control)
 ```
 
-### Visualizing the Activation Distribution (Under Development)
+## Load the last model
+
+```{python}
+from spotPython.light.loadmodel import load_light_from_checkpoint
+model_loaded = load_light_from_checkpoint(config, fun_control)
+```
+
+## Attributions
+
+```{python}
+from spotPython.utils.file import load_experiment
+from spotPython.hyperparameters.values import get_tuned_architecture
+from spotPython.plot.xai import get_attributions, plot_attributions
+
+spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment("spot_031_experiment.pickle")
+config = get_tuned_architecture(spot_tuner, fun_control)
+feature_names = fun_control["data_set"].names
+```
+
+### Integrated Gradients
+
+```{python}
+
+df = get_attributions(spot_tuner, fun_control, feature_names=feature_names, attr_method="IntegratedGradients")
+print(df)
+plot_attributions(df)
+```
+
+### Deep Lift
+
+```{python}
+df = get_attributions(spot_tuner, fun_control, feature_names=feature_names, attr_method="DeepLift")
+print(df)
+plot_attributions(df,  attr_method="DeepLift")
+```
+
+### Feature Ablation
+
+```{python}
+df = get_attributions(spot_tuner, fun_control, feature_names=feature_names, attr_method="FeatureAblation")
+print(df)
+plot_attributions(df, attr_method="FeatureAblation")
+```
+
+## Visualizing the Activations, Weights, and Gradients
 
 ::: {.callout-note}
 ### Reference:
@@ -414,20 +437,71 @@ if PLOT_ALL:
 After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:
 
 ```{python}
-from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
-act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
+from spotPython.plot.xai import (get_activations, get_gradients, get_weights, plot_nn_values_hist, plot_nn_values_scatter, visualize_weights, visualize_gradients, visualize_activations, visualize_activations_distributions, visualize_gradient_distributions, visualize_weights_distributions)
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_config_from_X
-X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
-config = get_one_config_from_X(X, fun_control)
-model = fun_control["core_model"](**config, _L_in=64, _L_out=11, _torchmetric=TORCH_METRIC)
-model
+from spotPython.utils.file import load_experiment
+PREFIX = "031"
+experiment_name = "spot_" + PREFIX + "_experiment.pickle"
+spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(experiment_name)
 ```
 
 ```{python}
-# from spotPython.utils.eda import visualize_activations
-# visualize_activations(model, color=f"C{0}")
+from spotPython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner, fun_control)
 ```
+
+```{python}
+from spotPython.light.loadmodel import load_light_from_checkpoint
+
+model_loaded = load_light_from_checkpoint(config, fun_control)
+model = model_loaded.to("cpu")
+```
+
+### Activations
+
+```{python}
+batch_size = config["batch_size"]
+print(batch_size)
+```
+
+```{python}
+get_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+```
+
+```{python}
+visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu", cmap="BlueWhiteRed", absolute=False)
+```
+
+* Absolute values of the activations are plotted:
+
+```{python}
+visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu", absolute=True)
+```
+
+```{python}
+visualize_activations_distributions(net=model, fun_control=fun_control, batch_size=batch_size, device="cpu", color="C0", columns=2) 
+```
+
+### Weights
+
+```{python}
+visualize_weights(model, absolute=True, cmap="gray", figsize=(6, 6))
+```
+
+```{python}
+visualize_weights_distributions(model, color=f"C{0}")
+```
+
+### Gradients
+
+```{python}
+visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="BlueWhiteRed", figsize=(6, 6))
+```
+
+```{python}
+visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}")
+```
+
 
