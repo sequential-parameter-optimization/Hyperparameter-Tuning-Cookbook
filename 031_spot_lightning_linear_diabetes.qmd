@@ -427,6 +427,20 @@ plot_attributions(df, attr_method="FeatureAblation")
 
 ## Visualizing the Activations, Weights, and Gradients
 
+In neural networks, activations, weights, and gradients are fundamental concepts that play different.
+
+1. Activations:
+
+   Activations refer to the outputs of neurons after applying an activation function. In neural networks, the input passes through each neuron of the network layers, where each unit calculates a weighted sum of its inputs and then applies a non-linear activation function (such as ReLU, Sigmoid, or Tanh). These activation functions help introduce non-linearity into the model, enabling the neural network to learn complex relationships between the input data and the predictions. In short, activations are the outputs that are forwarded by the neurons after applying the activation function.
+
+2. Weights:
+
+   Weights are parameters within a neural network that control the strength of the connection between two neurons in successive layers. They are adjusted during the training process to enable the neural network to perform the desired task as well as possible. Each input is multiplied by a weight, and the neural network learns by adjusting these weights based on the error between the predictions and the actual values. Adjusting the weights allows the network to recognize patterns and relationships in the input data and use them for predictions or classifications.
+
+3. Gradients:
+
+   In the context of machine learning and specifically in neural networks, gradients are a measure of the rate of change or the slope of the loss function (a function that measures how well the network performs in predicting the desired output) with respect to the weights. During the training process, the goal is to minimize the value of the loss function to improve the model’s performance. The gradients indicate the direction and size of the steps that need to be taken to adjust the weights in a way that minimizes the loss (known as gradient descent). By repeatedly adjusting the weights in the opposite direction of the gradient, the network can be effectively trained to improve its prediction accuracy.
+
 ::: {.callout-note}
 ### Reference:
 
@@ -438,6 +452,7 @@ After we have trained the models, we can look at the actual activation values th
 
 ```{python}
 from spotPython.plot.xai import (get_activations, get_gradients, get_weights, plot_nn_values_hist, plot_nn_values_scatter, visualize_weights, visualize_gradients, visualize_activations, visualize_activations_distributions, visualize_gradient_distributions, visualize_weights_distributions)
+import pprint
 ```
 
 ```{python}
@@ -450,24 +465,40 @@ spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = 
 ```{python}
 from spotPython.hyperparameters.values import get_tuned_architecture
 config = get_tuned_architecture(spot_tuner, fun_control)
-```
-
-```{python}
-from spotPython.light.loadmodel import load_light_from_checkpoint
-
-model_loaded = load_light_from_checkpoint(config, fun_control)
-model = model_loaded.to("cpu")
-```
-
-### Activations
-
-```{python}
+pprint.pprint(config)
 batch_size = config["batch_size"]
 print(batch_size)
 ```
 
 ```{python}
-get_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+from spotPython.light.loadmodel import load_light_from_checkpoint
+model_loaded = load_light_from_checkpoint(config, fun_control)
+model = model_loaded.to("cpu")
+```
+
+### Weights
+
+
+```{python}
+weights = get_weights(model)
+pprint.pprint(weights)
+```
+
+
+```{python}
+visualize_weights(model, absolute=True, cmap="gray", figsize=(6, 6))
+```
+
+```{python}
+visualize_weights_distributions(model, color=f"C{0}")
+```
+
+
+### Activations
+
+
+```{python}
+activations = get_activations(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
 ```
 
 ```{python}
@@ -481,20 +512,15 @@ visualize_activations(model, fun_control=fun_control, batch_size=batch_size, dev
 ```
 
 ```{python}
-visualize_activations_distributions(net=model, fun_control=fun_control, batch_size=batch_size, device="cpu", color="C0", columns=2) 
+visualize_activations_distributions(net=model, fun_control=fun_control, batch_size=batch_size, device="cpu", color="C0", columns=2)
 ```
 
-### Weights
-
-```{python}
-visualize_weights(model, absolute=True, cmap="gray", figsize=(6, 6))
-```
-
-```{python}
-visualize_weights_distributions(model, color=f"C{0}")
-```
 
 ### Gradients
+
+```{python}
+gradients = get_gradients(model, fun_control, batch_size, device="cpu")
+```
 
 ```{python}
 visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="BlueWhiteRed", figsize=(6, 6))
