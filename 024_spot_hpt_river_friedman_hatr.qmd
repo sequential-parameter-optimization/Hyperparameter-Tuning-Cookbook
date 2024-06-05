@@ -4,12 +4,155 @@ execute:
   eval: true
   echo: true
   warning: false
+title: '`river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data'
 jupyter: python3
 ---
 
-# `river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data {#sec-river-hpt}
 
 This chapter demonstrates hyperparameter tuning for `river`'s `Hoeffding Adaptive Tree Regressor` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Hoeffding Adaptive Tree Regressor` is a decision tree that uses the Hoeffding bound to limit the number of splits evaluated at each node. The `Hoeffding Adaptive Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample. The `Hoeffding Adaptive Tree Regressor` is a drift aware model, i.e., it can handle concept drifts.
+
+## The Friedman Drift Data Set
+
+We will use the Friedman drift data set for this demonstration. The Friedman drift data set is a synthetic data set with 10 features and 1 target. It will be generated using the `river` library as shown below.
+
+
+```{python}
+#| label: 024_data_set
+
+from river.datasets import synth
+import pandas as pd
+from spotRiver.utils.data_conversion import convert_to_df
+from spotRiver.utils.data_conversion import split_df
+
+seed = 123
+shuffle = True
+n_train = 60_000
+n_test = 40_000
+target_column = "y"
+
+train_dataset = synth.FriedmanDrift(
+   drift_type='gra',
+   position=(n_train/4, n_train/2),
+   seed=123
+)
+
+train = convert_to_df(train_dataset, n_total=n_train)
+train.columns = [f"x{i}" for i in range(1, 11)] + [target_column]
+
+
+test_dataset = synth.FriedmanDrift(
+   drift_type='gra',
+   position=(n_train/4, n_train/2),
+   seed=123
+)
+test = convert_to_df(test_dataset, n_total=n_test)
+test.columns = [f"x{i}" for i in range(1, 11)] + [target_column]
+```
+
+## Setup
+
+```{python}
+from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init
+from spotRiver.fun.hyperriver import HyperRiver
+from spotGUI.tuner.spotRun import get_metric_sklearn, get_prep_model, get_core_model_from_name
+from spotPython.hyperparameters.values import (
+    add_core_model_to_fun_control,
+    update_fun_control_with_hyper_num_cat_dicts,
+)
+from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
+
+PREFIX = "024"
+core_model_name = "tree.HoeffdingAdaptiveTreeRegressor"
+fun_evals = 10
+horizon = 24
+max_time = 1
+init_size = 5
+metric_sklearn_name = "mean_absolute_error"
+prep_model_name = "MinMaxScaler"
+hyperdict = RiverHyperDict
+
+fun = HyperRiver().fun_oml_horizon
+
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    TENSORBOARD_CLEAN=False,
+    core_model_name=core_model_name,
+    fun_evals=fun_evals,
+    horizon=horizon,
+    max_time=max_time,
+    metric_sklearn=get_metric_sklearn(metric_sklearn_name),
+    metric_sklearn_name=metric_sklearn_name,
+    noise=True,
+    prep_model_name=prep_model_name,
+    prep_model=get_prep_model(prep_model_name),
+    seed=seed,
+    target_column=target_column,
+    test=test,
+    train=train)
+
+coremodel, core_model_instance = get_core_model_from_name(core_model_name)
+add_core_model_to_fun_control(
+    core_model=core_model_instance,
+    fun_control=fun_control,
+    hyper_dict=hyperdict,
+    filename=None,
+)
+dict = hyperdict().hyper_dict[coremodel]
+
+design_control = design_control_init(
+    init_size=init_size,
+)
+
+surrogate_control = surrogate_control_init(
+    noise=True,
+    n_theta=2,
+)
+
+optimizer_control = optimizer_control_init()
+```
+
+```{python}
+import numpy as np
+from spotPython.hyperparameters.values import set_control_key_value
+
+weights = np.array([1, 1/1000, 1/1000])*10_000.0
+oml_grace_period = 2
+step = 100
+weight_coeff = 1.0
+
+set_control_key_value(control_dict=fun_control,
+                        key="horizon",
+                        value=horizon,
+                        replace=True)
+set_control_key_value(fun_control, "oml_grace_period", oml_grace_period, True)
+set_control_key_value(fun_control, "weights", weights, True)
+set_control_key_value(fun_control, "step", step, True)
+set_control_key_value(fun_control, "weight_coeff", weight_coeff, True)
+# set_control_key_value(fun_control, "metric_sklearn", mean_absolute_error, True)
+```
+
+```{python}
+import pprint
+pprint.pprint(fun_control)
+```
+
+```{python}
+from spotPython.utils.eda import gen_design_table
+from spotPython.spot import spot
+print(gen_design_table(fun_control))
+spot_tuner = spot.Spot(
+    fun=fun,
+    fun_control=fun_control,
+    design_control=design_control,
+    surrogate_control=surrogate_control,
+    optimizer_control=optimizer_control,
+)
+spot_tuner.run()
+```
+
+
+
+
 
 
 ## Setup {#sec-setup-13}
@@ -29,13 +172,11 @@ Before we consider the detailed experimental setup, we select the parameters tha
 * `K` is the multiplier for the number of samples. If it is set to 1, then `100_000`samples are taken. It is set to 0.1 for demonstration purposes. For real experiments, this should be increased to at least 1.
 :::
 
-
 ```{python}
 #| label: 024_setup
 MAX_TIME = 1
 INIT_SIZE = 5
 PREFIX="24-river"
-K = 0.1
 ```
 
 ```{python}
@@ -49,7 +190,6 @@ if not os.path.exists('./figures'):
     os.makedirs('./figures')
 warnings.filterwarnings("ignore")
 ```
-
 
 * This notebook exemplifies hyperparameter tuning with SPOT (spotPython and spotRiver).
 * The hyperparameter software SPOT is available in Python. It was developed in R (statistical programming language), see Open Access book "Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide", available here: [https://link.springer.com/book/10.1007/978-981-19-5170-1](https://link.springer.com/book/10.1007/978-981-19-5170-1).
@@ -93,9 +233,9 @@ The following parameters are used to generate and handle the data set:
 * position: The position of the concept drifts.
 * n_train: The number of samples used for training.
 
-
 ```{python}
 #| label: 024_data_size
+K = 0.1
 horizon = 7*24
 n_samples = int(K*100_000)
 p_1 = int(K*25_000)
@@ -117,12 +257,10 @@ dataset = synth.FriedmanDrift(
 
 * We will use `spotRiver`'s `convert_to_df` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/utils/data_conversion.py) to convert the `river` data set to a `pandas` data frame.
 
-
 ```{python}
 #| label: 024_convert_to_df_data
 from spotRiver.utils.data_conversion import convert_to_df
-target_column = "y"
-df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
+df = convert_to_df(dataset, n_total=n_samples)
 ```
 
 * Add column names x1 until x10 to the first 10 columns of the dataframe and the column name y to the last column of the dataframe.
@@ -204,7 +342,6 @@ from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
 
-
 ## Selection of the Objective (Loss) Function
 
 The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.
@@ -245,6 +382,11 @@ set_control_key_value(fun_control, "weights", weights, True)
 set_control_key_value(fun_control, "step", step, True)
 set_control_key_value(fun_control, "weight_coeff", weight_coeff, True)
 set_control_key_value(fun_control, "metric_sklearn", mean_absolute_error, True)
+```
+
+```{python}
+import pprint
+pprint.pprint(fun_control)
 ```
 
 ## Calling the SPOT Function
@@ -321,6 +463,7 @@ The TensorBoard path can be printed with the following command:
 from spotPython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
+
 :::
 
 We can access the TensorBoard web server with the following URL:
@@ -349,7 +492,6 @@ The tuned hyperparameters can be obtained as a dictionary with the following com
 from spotPython.hyperparameters.values import get_tuned_hyperparameters
 get_tuned_hyperparameters(spot_tuner, fun_control)
 ```
-
 
 The results can be saved and reloaded with the following commands:
 
@@ -409,6 +551,7 @@ dataset = synth.FriedmanDrift(
 ```
 
 The larger data set is converted to a Pandas data frame and passed to the `fun_control` dictionary.
+
 ```{python}
 df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
 df.columns = [f"x{i}" for i in range(1, 11)] + ["y"]
@@ -421,6 +564,7 @@ set_control_key_value(fun_control, "target_column", target_column, True)
 ## Get Default Hyperparameters
 
 The default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:
+
 ```{python}
 from spotPython.hyperparameters.values import get_one_core_model_from_X
 from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
