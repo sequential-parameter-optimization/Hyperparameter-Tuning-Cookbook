@@ -22,9 +22,157 @@ warnings.filterwarnings("ignore")
 
 This chapter demonstrates hyperparameter tuning for `river`'s `Hoeffding Adaptive Tree Regressor` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Hoeffding Adaptive Tree Regressor` is a decision tree that uses the Hoeffding bound to limit the number of splits evaluated at each node. The `Hoeffding Adaptive Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample. The `Hoeffding Adaptive Tree Regressor` is a drift aware model, i.e., it can handle concept drifts.
 
+
 ## The Friedman Drift Data Set
 
-We will use the Friedman synthetic dataset with concept drifts [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). Each observation is composed of ten features. Each feature value is sampled uniformly in [0, 1]. Only the first five features are relevant. The target is defined by different functions depending on the type of the drift. Global Recurring Abrupt drift will be used, i.e., the concept drift appears over the whole instance space. There are two points of concept drift. At the second point of drift the old concept reoccurs.
+We will use the Friedman synthetic dataset with concept drifts [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/), see also @frie91a and @ikon11a.
+Each observation is composed of ten features. Each feature value is sampled uniformly in [0, 1]. Only the first five features are relevant. The target is defined by different functions depending on the type of the drift. Global Recurring Abrupt drift will be used, i.e., the concept drift appears over the whole instance space.
+
+The target is defined by the following function:
+$$
+y = 10 \sin(\pi x_0 x_1) + 20 (x_2 - 0.5)^2 + 10 x_3 + 5 x_4 + \epsilon,
+$$
+where $\epsilon \sim \mathcal{N}(0, 1)$ is normally distributed noise.
+
+We will use the Global Recurring Abrupt drift variant of the Friedman Drift dataset.
+There are two points of concept drift, namely $p_1$ and $p_2$.
+At the second point, the concept changes to:
+$$
+y = 10 \sin(\pi x_3 x_5) + 20 (x_1 - 0.5)^2 + 10 x_0 + 5 x_2 + \epsilon,
+$$
+At the second point of drift the old concept reoccurs.
+This can be implemented as follows, see [https://riverml.xyz/latest/api/datasets/synth/FriedmanDrift/](https://riverml.xyz/latest/api/datasets/synth/FriedmanDrift/):
+
+```python
+def __iter__(self):
+    rng = random.Random(self.seed)
+
+    i = 0
+    while True:
+        x = {i: rng.uniform(a=0, b=1) for i in range(10)}
+        y = self._global_recurring_abrupt_gen(x, i) + rng.gauss(mu=0, sigma=1)
+
+        yield x, y
+        i += 1
+```
+
+
+```python
+def _global_recurring_abrupt_gen(self, x, index: int):
+    if index < self._change_point1 or index >= self._change_point2:
+        # The initial concept is recurring
+        return (
+            10 * math.sin(math.pi * x[0] * x[1]) + 20 * (x[2] - 0.5) ** 2 + 10 * x[3] + 5 * x[4]
+        )
+    else:
+        # Drift: the positions of the features are swapped
+        return (
+            10 * math.sin(math.pi * x[3] * x[5]) + 20 * (x[1] - 0.5) ** 2 + 10 * x[0] + 5 * x[2]
+        )
+```
+
+Plotting the first 1000 samples of the Friedman Drift dataset, we can not see the concept drifts at $p_1$ and $p_2$.
+Drift can be visualized by plotting the target values over time for constant features, e,g, if $x_0$ is set to $1$ and all other features are set to $0$. This is illustrated in the following plot.
+
+```{python}
+import matplotlib.pyplot as plt
+import math
+import random
+
+class FriedmanDriftDataset:
+    def __init__(self, change_point1=50, change_point2=75, seed=None, constant=False):
+        self._change_point1 = change_point1
+        self._change_point2 = change_point2
+        self.seed = seed
+        self.index = 0
+        self.rng = random.Random(self.seed)
+        self.constant = constant
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index >= 100:  # Specifying end of generation
+            raise StopIteration
+        if self.constant:
+            # x[0] is set to 1, all others to 0
+            x = {0: 1}
+            x.update({i: 0 for i in range(1, 10)})  # All x[i] are 0 for i > 0
+        else:
+            x = {i: self.rng.uniform(a=0, b=1) for i in range(10)}
+        y = self._global_recurring_abrupt_gen(x, self.index) + self.rng.gauss(mu=0, sigma=1)
+        result = (x, y, self.index)
+        self.index += 1
+        return result
+
+    def _global_recurring_abrupt_gen(self, x, index):
+        if index < self._change_point1 or index >= self._change_point2:
+            return (
+                10 * math.sin(math.pi * x[0] * x[1]) +
+                20 * (x[2] - 0.5) ** 2 +
+                10 * x[3] + 5 * x[4]
+            )
+        else:
+            return (
+                10 * math.sin(math.pi * x[3] * x[5]) +
+                20 * (x[1] - 0.5) ** 2 +
+                10 * x[0] + 5 * x[2]
+            )
+```
+
+```{python}
+data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75)
+data = [data for data in data_generator]  # Now this should work
+
+indices = [i for _, _, i in data]
+values = {f"x{i}": [] for i in range(5)}
+values["y"] = []
+
+for x, y, _ in data:
+    for i in range(5):
+        values[f"x{i}"].append(x[i])
+    values["y"].append(y)
+
+plt.figure(figsize=(10, 6))
+
+for label, series in values.items():
+    plt.plot(indices, series, label=label)
+
+plt.xlabel('Index')
+plt.ylabel('Value')
+plt.title('')
+plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')
+plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+```{python}
+
+# Generation of the dataset with constant x-values
+data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75, constant=True)
+data = [next(data_generator) for _ in range(100)]
+
+# Extracting y-values and indices for plotting
+y_values = [y for _, y, _ in data]
+indices = range(100)
+
+# Plotting the y-values
+plt.figure(figsize=(10, 6))
+plt.plot(indices, y_values, label="y Value")
+
+plt.xlabel('Index')
+plt.ylabel('y Value')
+plt.title('')
+plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')
+plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+
 
 The following parameters are used to generate and handle the data set:
 
@@ -70,6 +218,61 @@ dataset = synth.FriedmanDrift(
 )
 test = convert_to_df(dataset, n_total=n_test)
 test.columns = [f"x{i}" for i in range(1, 11)] + [target_column]
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+# Assuming train is your prepared DataFrame from the provided code snippet.
+indices = range(len(train))
+y_values = train[target_column]
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(indices, y_values, label="y Value", color='blue')
+
+# Marking drift points
+drift_points = [n_train / 4, n_train / 2]
+for dp in drift_points:
+    plt.axvline(x=dp, color='red', linestyle='--', label=f'Drift Point at {int(dp)}')
+
+# To avoid duplicate labels in the legend
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys())
+
+plt.xlabel('Index')
+plt.ylabel('Target Value (y)')
+plt.title('Train Data')
+plt.grid(True)
+plt.show()
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+indices = range(len(test))
+y_values = test[target_column]
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(indices, y_values, label="y Value", color='blue')
+
+# Marking drift points
+drift_points = [n_test / 4, n_test / 2]
+for dp in drift_points:
+    plt.axvline(x=dp, color='red', linestyle='--', label=f'Drift Point at {int(dp)}')
+
+# To avoid duplicate labels in the legend
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys())
+
+plt.xlabel('Index')
+plt.ylabel('Target Value (y)')
+plt.title('Train Data')
+plt.grid(True)
+plt.show()
 ```
 
 ## Setup
@@ -144,28 +347,29 @@ Results from the beginning have a lower weight than results from the end if weig
 ```{python}
 from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init
 from spotRiver.fun.hyperriver import HyperRiver
-from spotGUI.tuner.spotRun import get_metric_sklearn, get_prep_model, get_core_model_from_name
-from spotPython.hyperparameters.values import (
-    add_core_model_to_fun_control,
-)
 from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
 
+# experiment setup
 PREFIX = "024"
-# core_model_name = "tree.HoeffdingAdaptiveTreeRegressor"
-core_model_name = "tree.HoeffdingTreeRegressor"
 fun_evals = inf
-horizon = 7*24
-max_time = 10
+max_time = 1
 init_size = 10
-metric_sklearn_name = "mean_absolute_error"
-prep_model_name = "StandardScaler"
-hyperdict = RiverHyperDict
 
+# evaluation setup
+horizon = 7*24
+metric_sklearn_name = "mean_absolute_error"
 oml_grace_period = horizon
 weight_coeff = 1.0
 weights = np.array([1, 0.01, 0.01])
-
 fun = HyperRiver().fun_oml_horizon
+
+# data preparation
+prep_model_name = "StandardScaler"
+
+# model setup
+core_model_name = "tree.HoeffdingAdaptiveTreeRegressor"
+# core_model_name = "tree.HoeffdingTreeRegressor"
+hyperdict = RiverHyperDict
 
 fun_control = fun_control_init(
     PREFIX=PREFIX,
@@ -173,13 +377,12 @@ fun_control = fun_control_init(
     core_model_name=core_model_name,
     fun_evals=fun_evals,
     horizon=horizon,
+    hyperdict=hyperdict,
     max_time=max_time,
-    metric_sklearn=get_metric_sklearn(metric_sklearn_name),
     metric_sklearn_name=metric_sklearn_name,
     noise=True,
     oml_grace_period=oml_grace_period,
     prep_model_name=prep_model_name,
-    prep_model=get_prep_model(prep_model_name),
     seed=seed,
     target_column=target_column,
     test=test,
@@ -187,13 +390,6 @@ fun_control = fun_control_init(
     weight_coeff=weight_coeff,
     weights=weights,)
 
-coremodel, core_model_instance = get_core_model_from_name(core_model_name)
-add_core_model_to_fun_control(
-    core_model=core_model_instance,
-    fun_control=fun_control,
-    hyper_dict=hyperdict,
-    filename=None,
-)
 
 design_control = design_control_init(
     init_size=init_size,
@@ -240,7 +436,6 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
-
 spot_tuner = spot.Spot(
     fun=fun,
     fun_control=fun_control,
@@ -480,5 +675,4 @@ spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 #| label: 024_parallel_plot
 spot_tuner.parallel_plot()
 ```
-
 
