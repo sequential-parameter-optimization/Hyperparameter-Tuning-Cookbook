@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.554">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Hyperparameter Tuning Cookbook - 16&nbsp; Data-Driven Modeling and Optimization</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./016_spot_hpt_sklearn.html" rel="next">
+<link href="./015_num_spot_correlation_p.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta name="twitter:title" content="Hyperparameter Tuning Cookbook - 16&nbsp; Data-Driven Modeling and Optimization">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar docked">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ddmo.html">Data-Driven Modeling and Optimization”</a></li><li class="breadcrumb-item"><a href="./ddmo.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Hyperparameter Tuning Cookbook</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/sequential-parameter-optimization/spotPython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <div class="dropdown">
+      <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Share"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./001_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Numerical Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./005_num_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./006_num_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotPython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./008_num_spot_multidim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./009_num_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotPython</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./012_num_spot_ei.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./013_num_spot_noisy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./015_num_spot_correlation_p.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Data-Driven Modeling and Optimization”</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ddmo.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with Sklearn</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./016_spot_hpt_sklearn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">HPT: sklearn</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./017_spot_hpt_sklearn_classification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC on Moons Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with River</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./022_spot_hpt_river.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">HPT: River</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./023_spot_river_gui.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Simplifying Hyperparameter Tuning in Online Machine Learning—The spotRiverGUI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./024_spot_hpt_river_friedman_hatr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./025_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with PyTorch Lightning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./030_spot_lightning_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./031_spot_lightning_linear_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./032_spot_lightning_rnn_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Diabetes Using a Recurrent Neural Network</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./033_spot_lightning_linear_sensitive.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: User Specified Data Set and Regression Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./034_spot_lightning_xai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Explainable AI with SpotPython and Pytorch</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./035_spot_lightning_transformer_introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./036_spot_lightning_transformer_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Diabetes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./037_spot_lightning_save_load_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Saving and Loading</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_01_intro_to_notebooks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_02_git_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Git Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_03_python_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Python Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_04_spot_doc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">D</span>&nbsp; <span class="chapter-title">Documentation of the Sequential Parameter Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#statquest-videos" id="toc-statquest-videos" class="nav-link active" data-scroll-target="#statquest-videos"><span class="header-section-number">16.1</span> StatQuest Videos</a></li>
+  <li><a href="#introduction-to-statistical-learning" id="toc-introduction-to-statistical-learning" class="nav-link" data-scroll-target="#introduction-to-statistical-learning"><span class="header-section-number">16.2</span> Introduction to Statistical Learning</a>
+  <ul class="collapse">
+  <li><a href="#opening-remarks-and-examples" id="toc-opening-remarks-and-examples" class="nav-link" data-scroll-target="#opening-remarks-and-examples"><span class="header-section-number">16.2.1</span> Opening Remarks and Examples</a></li>
+  </ul></li>
+  <li><a href="#basics" id="toc-basics" class="nav-link" data-scroll-target="#basics"><span class="header-section-number">16.3</span> Basics</a>
+  <ul class="collapse">
+  <li><a href="#histograms" id="toc-histograms" class="nav-link" data-scroll-target="#histograms"><span class="header-section-number">16.3.1</span> Histograms</a></li>
+  <li><a href="#probability-distributions" id="toc-probability-distributions" class="nav-link" data-scroll-target="#probability-distributions"><span class="header-section-number">16.3.2</span> Probability Distributions</a></li>
+  <li><a href="#discrete-distributions" id="toc-discrete-distributions" class="nav-link" data-scroll-target="#discrete-distributions"><span class="header-section-number">16.3.3</span> Discrete Distributions</a></li>
+  </ul></li>
+  <li><a href="#continuous-distributions" id="toc-continuous-distributions" class="nav-link" data-scroll-target="#continuous-distributions"><span class="header-section-number">16.4</span> Continuous Distributions</a>
+  <ul class="collapse">
+  <li><a href="#distribution-functions-pdfs-and-cdfs" id="toc-distribution-functions-pdfs-and-cdfs" class="nav-link" data-scroll-target="#distribution-functions-pdfs-and-cdfs"><span class="header-section-number">16.4.1</span> Distribution functions: PDFs and CDFs</a></li>
+  <li><a href="#expectation-continuous" id="toc-expectation-continuous" class="nav-link" data-scroll-target="#expectation-continuous"><span class="header-section-number">16.4.2</span> Expectation (Continuous)</a></li>
+  <li><a href="#variance-and-standard-deviation-continuous" id="toc-variance-and-standard-deviation-continuous" class="nav-link" data-scroll-target="#variance-and-standard-deviation-continuous"><span class="header-section-number">16.4.3</span> Variance and Standard Deviation (Continuous)</a></li>
+  <li><a href="#uniform-distribution" id="toc-uniform-distribution" class="nav-link" data-scroll-target="#uniform-distribution"><span class="header-section-number">16.4.4</span> Uniform Distribution</a></li>
+  <li><a href="#normal-distribution" id="toc-normal-distribution" class="nav-link" data-scroll-target="#normal-distribution"><span class="header-section-number">16.4.5</span> Normal Distribution</a></li>
+  <li><a href="#the-mean-the-median-and-the-mode" id="toc-the-mean-the-median-and-the-mode" class="nav-link" data-scroll-target="#the-mean-the-median-and-the-mode"><span class="header-section-number">16.4.6</span> The Mean, the Median, and the Mode</a></li>
+  <li><a href="#the-exponential-distribution" id="toc-the-exponential-distribution" class="nav-link" data-scroll-target="#the-exponential-distribution"><span class="header-section-number">16.4.7</span> The Exponential Distribution</a></li>
+  <li><a href="#population-and-estimated-parameters" id="toc-population-and-estimated-parameters" class="nav-link" data-scroll-target="#population-and-estimated-parameters"><span class="header-section-number">16.4.8</span> Population and Estimated Parameters</a></li>
+  <li><a href="#calculating-the-mean-variance-and-standard-deviation" id="toc-calculating-the-mean-variance-and-standard-deviation" class="nav-link" data-scroll-target="#calculating-the-mean-variance-and-standard-deviation"><span class="header-section-number">16.4.9</span> Calculating the Mean, Variance, and Standard Deviation</a></li>
+  <li><a href="#what-is-a-mathematical-model" id="toc-what-is-a-mathematical-model" class="nav-link" data-scroll-target="#what-is-a-mathematical-model"><span class="header-section-number">16.4.10</span> What is a Mathematical Model?</a></li>
+  <li><a href="#sampling-from-a-distribution" id="toc-sampling-from-a-distribution" class="nav-link" data-scroll-target="#sampling-from-a-distribution"><span class="header-section-number">16.4.11</span> Sampling from a Distribution</a></li>
+  <li><a href="#hypothesis-testing-and-the-null-hypothesis" id="toc-hypothesis-testing-and-the-null-hypothesis" class="nav-link" data-scroll-target="#hypothesis-testing-and-the-null-hypothesis"><span class="header-section-number">16.4.12</span> Hypothesis Testing and the Null Hypothesis</a></li>
+  <li><a href="#alternative-hypotheses" id="toc-alternative-hypotheses" class="nav-link" data-scroll-target="#alternative-hypotheses"><span class="header-section-number">16.4.13</span> Alternative Hypotheses</a></li>
+  <li><a href="#p-values-what-they-are-and-how-to-interpret-them" id="toc-p-values-what-they-are-and-how-to-interpret-them" class="nav-link" data-scroll-target="#p-values-what-they-are-and-how-to-interpret-them"><span class="header-section-number">16.4.14</span> p-values: What They Are and How to Interpret Them</a></li>
+  <li><a href="#how-to-calculate-p-values" id="toc-how-to-calculate-p-values" class="nav-link" data-scroll-target="#how-to-calculate-p-values"><span class="header-section-number">16.4.15</span> How to Calculate p-values</a></li>
+  <li><a href="#p-hacking-what-it-is-and-how-to-avoid-it" id="toc-p-hacking-what-it-is-and-how-to-avoid-it" class="nav-link" data-scroll-target="#p-hacking-what-it-is-and-how-to-avoid-it"><span class="header-section-number">16.4.16</span> p-hacking: What It Is and How to Avoid It</a></li>
+  <li><a href="#covariance" id="toc-covariance" class="nav-link" data-scroll-target="#covariance"><span class="header-section-number">16.4.17</span> Covariance</a></li>
+  <li><a href="#pearsons-correlation" id="toc-pearsons-correlation" class="nav-link" data-scroll-target="#pearsons-correlation"><span class="header-section-number">16.4.18</span> Pearson’s Correlation</a></li>
+  <li><a href="#boxplots" id="toc-boxplots" class="nav-link" data-scroll-target="#boxplots"><span class="header-section-number">16.4.19</span> Boxplots</a></li>
+  <li><a href="#r-squared" id="toc-r-squared" class="nav-link" data-scroll-target="#r-squared"><span class="header-section-number">16.4.20</span> R-squared</a></li>
+  <li><a href="#the-main-ideas-of-fitting-a-line-to-data" id="toc-the-main-ideas-of-fitting-a-line-to-data" class="nav-link" data-scroll-target="#the-main-ideas-of-fitting-a-line-to-data"><span class="header-section-number">16.4.21</span> The Main Ideas of Fitting a Line to Data</a></li>
+  <li><a href="#linear-regression" id="toc-linear-regression" class="nav-link" data-scroll-target="#linear-regression"><span class="header-section-number">16.4.22</span> Linear Regression</a></li>
+  <li><a href="#multiple-regression" id="toc-multiple-regression" class="nav-link" data-scroll-target="#multiple-regression"><span class="header-section-number">16.4.23</span> Multiple Regression</a></li>
+  </ul></li>
+  <li><a href="#supervised-learning" id="toc-supervised-learning" class="nav-link" data-scroll-target="#supervised-learning"><span class="header-section-number">16.5</span> Supervised Learning</a>
+  <ul class="collapse">
+  <li><a href="#statistical-learning-and-regression" id="toc-statistical-learning-and-regression" class="nav-link" data-scroll-target="#statistical-learning-and-regression"><span class="header-section-number">16.5.1</span> Statistical Learning and Regression</a></li>
+  <li><a href="#optimal-predictor" id="toc-optimal-predictor" class="nav-link" data-scroll-target="#optimal-predictor"><span class="header-section-number">16.5.2</span> Optimal Predictor</a></li>
+  <li><a href="#curse-of-dimensionality-and-parametric-models" id="toc-curse-of-dimensionality-and-parametric-models" class="nav-link" data-scroll-target="#curse-of-dimensionality-and-parametric-models"><span class="header-section-number">16.5.3</span> Curse of Dimensionality and Parametric Models</a></li>
+  <li><a href="#assessing-model-accuracy-and-bias-variance-trade-off" id="toc-assessing-model-accuracy-and-bias-variance-trade-off" class="nav-link" data-scroll-target="#assessing-model-accuracy-and-bias-variance-trade-off"><span class="header-section-number">16.5.4</span> Assessing Model Accuracy and Bias-Variance Trade-off</a></li>
+  <li><a href="#classification-problems-and-k-nearest-neighbors" id="toc-classification-problems-and-k-nearest-neighbors" class="nav-link" data-scroll-target="#classification-problems-and-k-nearest-neighbors"><span class="header-section-number">16.5.5</span> Classification Problems and K-Nearest Neighbors</a></li>
+  <li><a href="#k-nearest-neighbor-classification" id="toc-k-nearest-neighbor-classification" class="nav-link" data-scroll-target="#k-nearest-neighbor-classification"><span class="header-section-number">16.5.6</span> k-Nearest Neighbor Classification</a></li>
+  <li><a href="#minkowski-distance" id="toc-minkowski-distance" class="nav-link" data-scroll-target="#minkowski-distance"><span class="header-section-number">16.5.7</span> Minkowski Distance</a></li>
+  <li><a href="#unsuperivsed-learning-classification" id="toc-unsuperivsed-learning-classification" class="nav-link" data-scroll-target="#unsuperivsed-learning-classification"><span class="header-section-number">16.5.8</span> Unsuperivsed Learning: Classification</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ddmo.html">Data-Driven Modeling and Optimization”</a></li><li class="breadcrumb-item"><a href="./ddmo.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="statquest-videos" class="level2" data-number="16.1">
+<h2 data-number="16.1" class="anchored" data-anchor-id="statquest-videos"><span class="header-section-number">16.1</span> StatQuest Videos</h2>
+<ul>
+<li><a href="https://youtu.be/qBigTkBLU6g">Histograms, Clearly Explained</a></li>
+<li><a href="https://youtu.be/oI3hZJqXJuc">The Main Ideas behind Probability Distributions</a></li>
+<li><a href="https://youtu.be/rzFX5NWojp0">The Normal Distribution, Clearly Explained!!!</a></li>
+<li>[The mean, the media, and the mode]</li>
+<li><a href="#the-exponential-distribution">The exponential distribution</a></li>
+<li><a href="https://youtu.be/vikkiwjQqfU">Population and Estimated Parameters, Clearly Explained!!!</a></li>
+<li><a href="https://youtu.be/SzZ6GpcfoQY">Calculating the Mean, Variance and Standard Deviation, Clearly Explained!!!</a></li>
+<li><a href="#what-is-a-mathematical-model">What is a mathematical model?</a></li>
+<li><a href="https://youtu.be/XLCWeSVzHUU">Sampling from a Distribution, Clearly Explained!!!</a></li>
+<li>[Hypothesis Testing and the Null-Hypothesis, Clearly Explained!!!]</li>
+<li>[Alternative Hypotheses, Main Ideas]</li>
+<li><a href="#p-values-what-they-are-and-how-to-interpret-them">p-values: What they are and how to interpret them</a></li>
+<li><a href="#how-to-calculate-p-values">How to calculate p-values</a></li>
+<li><a href="#p-hacking-what-it-is-and-how-to-avoid-it">p-hacking: What it is and how to avoid it</a></li>
+<li>[Covariance, Clearly Explained!!!]</li>
+<li>[Pearson’s Correlation, Clearly Explained]</li>
+<li>[Boxplots are Awesome]</li>
+<li><a href="https://youtu.be/2AQKmw14mHM">R-squared, Clearly Explained</a>
+<ul>
+<li>Note: When I first made this video, I was thinking about how R-squared relates to Linear Regression, which will not fit a line worse than the mean of the y-axis values. This is because if the values along the x-axis are truly useless in terms of predicting y-axis values, then the slope of the line used to make predictions will be 0, and the intercept will equal the mean. However, it is possible to simply draw a line that fits the data worse than the mean and get a negative R^2.</li>
+</ul></li>
+<li><a href="https://www.youtube.com/embed/PaFPbb66DxQ">The main ideas of fitting a line to data (The main ideas of least squares and linear regression.)</a></li>
+<li><a href="https://youtu.be/nk2CQITm_eo">Linear Regression, Clearly Explained</a></li>
+<li>[Multiple Regression, Clearly Explained]</li>
+</ul>
+</section>
+<section id="introduction-to-statistical-learning" class="level2" data-number="16.2">
+<h2 data-number="16.2" class="anchored" data-anchor-id="introduction-to-statistical-learning"><span class="header-section-number">16.2</span> Introduction to Statistical Learning</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Parts of this course are based on the book <strong>An Introduction to Statistical Learning</strong>, <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>. Some of the figures in this presentation are taken from <strong>An Introduction to Statistical Learning</strong> (Springer, 2013) with permission from the authors: G. James, D. Witten, T. Hastie and R. Tibshirani.</p>
+</div>
+</div>
+<section id="opening-remarks-and-examples" class="level3" data-number="16.2.1">
+<h3 data-number="16.2.1" class="anchored" data-anchor-id="opening-remarks-and-examples"><span class="header-section-number">16.2.1</span> Opening Remarks and Examples</h3>
+<ul>
+<li>Artificial Intelligence (AI)</li>
+<li>Machine learning (ML)</li>
+<li>Deep Learning (DL)</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./figures_static/aimldl.png" class="img-fluid figure-img"></p>
+<figcaption>AI, ML, and DL. Taken fron <span class="citation" data-cites="chol18b">Chollet and Allaire (<a href="references.html#ref-chol18b" role="doc-biblioref">2018</a>)</span></figcaption>
+</figure>
+</div>
+<ul>
+<li>1980’s neural networks.</li>
+<li>Statistical learning.</li>
+<li>IBM Watson supercomputer.</li>
+</ul>
+<p>Statistical learning problems include:</p>
+<ol type="1">
+<li><p>Identification of prostate cancer through PSA and other measurements such as age, Gleason score, etc. Scatter plots help reveal the nature of the data and its correlations. Using transformed data (log scale) can highlight typos in the data; for example, a patient with a 449-gram prostate. Recommendation: Always examine the data before conducting any sophisticated analysis.</p></li>
+<li><p>Classification of phonemes, specifically between “aa” and “ao.”</p></li>
+<li><p>Prediction of heart attacks, which can be visualized through colored scatter plots.</p></li>
+<li><p>Detection of email spam, based on the frequency of words within the messages, using 57 features.</p></li>
+<li><p>Identification of numbers in handwritten zip codes, which involves pattern recognition.</p></li>
+<li><p>Classification of tissue samples into cancer classes based on gene expression profiles, utilizing heat maps for visualization.</p></li>
+<li><p>Establishing the relationship between salary and demographic variables like income (wage) versus age, year, and education level, employing regression models.</p></li>
+<li><p>Classification of pixels in LANDSAT images by their usage, using nearest neighbor methods.</p></li>
+</ol>
+<section id="supervised-and-unsupervised-learning" class="level4" data-number="16.2.1.1">
+<h4 data-number="16.2.1.1" class="anchored" data-anchor-id="supervised-and-unsupervised-learning"><span class="header-section-number">16.2.1.1</span> Supervised and Unsupervised Learning</h4>
+<p>Two important types: supervised and unsupervised learning. There is even more, e.g., semi-supervised learning.</p>
+<section id="starting-point" class="level5" data-number="16.2.1.1.1">
+<h5 data-number="16.2.1.1.1" class="anchored" data-anchor-id="starting-point"><span class="header-section-number">16.2.1.1.1</span> Starting point</h5>
+<ul>
+<li>Outcome measurement <span class="math inline">\(Y\)</span> (dependent variable, response, target).</li>
+<li>Vector of <span class="math inline">\(p\)</span> predictor measurements <span class="math inline">\(X\)</span> (inputs, regressors, covariates, features, independent variables).</li>
+<li>Training data <span class="math inline">\((x_1, y1), \ldots ,(x_N, y_N)\)</span>. These are observations (examples, instances) of these measurements.</li>
+</ul>
+<p>In the <em>regression</em> problem, <span class="math inline">\(Y\)</span> is quantitative (e.g., price, blood pressure). In the <em>classification</em> problem, <span class="math inline">\(Y\)</span> takes values in a finite, unordered set (e.g., survived/died, digit 0-9, cancer class of tissue sample).</p>
+</section>
+<section id="philosophy" class="level5" data-number="16.2.1.1.2">
+<h5 data-number="16.2.1.1.2" class="anchored" data-anchor-id="philosophy"><span class="header-section-number">16.2.1.1.2</span> Philosophy</h5>
+<p>It is important to understand the ideas behind the various techniques, in order to know how and when to use them. One has to understand the simpler methods first, in order to grasp the more sophisticated ones. It is important to accurately assess the performance of a method, to know how well or how badly it is working (simpler methods often perform as well as fancier ones!) This is an exciting research area, having important applications in science, industry and finance. Statistical learning is a fundamental ingredient in the training of a modern data scientist.</p>
+</section>
+</section>
+</section>
+</section>
+<section id="basics" class="level2" data-number="16.3">
+<h2 data-number="16.3" class="anchored" data-anchor-id="basics"><span class="header-section-number">16.3</span> Basics</h2>
+<section id="histograms" class="level3" data-number="16.3.1">
+<h3 data-number="16.3.1" class="anchored" data-anchor-id="histograms"><span class="header-section-number">16.3.1</span> Histograms</h3>
+<p>Creating a histogram and calculating the probabilities from a dataset can be approached with scientific precision</p>
+<ol type="1">
+<li><p>Data Collection: Obtain the dataset you wish to analyze. This dataset could represent any quantitative measure, such to examine its distribution.</p></li>
+<li><p>Decide on the Number of Bins: The number of bins influences the histogram’s granularity. There are several statistical rules to determine an optimal number of bins:</p>
+<ul>
+<li>Square-root rule: suggests using the square root of the number of data points as the number of bins.</li>
+<li>Sturges’ formula: <span class="math inline">\(k = 1 + 3.322 \log_{10}(n)\)</span>, where <span class="math inline">\(n\)</span> is the number of data points and <span class="math inline">\(k\)</span> is the suggested number of bins.</li>
+<li>Freedman-Diaconis rule: uses the interquartile range (IQR) and the cube root of the number of data points <span class="math inline">\(n\)</span> to calculate bin width as <span class="math inline">\(2 \dfrac{IQR}{n^{1/3}}\)</span>.</li>
+</ul></li>
+<li><p>Determine Range and Bin Width: Calculate the range of data by subtracting the minimum data point value from the maximum. Divide this range by the number of bins to determine the width of each bin.</p></li>
+<li><p>Allocate Data Points to Bins: Iterate through the data, sorting each data point into the appropriate bin based on its value.</p></li>
+<li><p>Draw the Histogram: Use a histogram to visualize the frequency or relative frequency (probability) of data points within each bin.</p></li>
+<li><p>Calculate Probabilities: The relative frequency of data within each bin represents the probability of a randomly selected data point falling within that bin’s range.</p></li>
+</ol>
+<p>Below is a Python script that demonstrates how to generate a histogram and compute probabilities using the <code>matplotlib</code> library for visualization and <code>numpy</code> for data manipulation.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample data: Randomly generated for demonstration</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> np.random.normal(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1000</span>)  <span class="co"># 1000 data points with a normal distribution</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Decide on the number of bins</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>num_bins <span class="op">=</span> <span class="bu">int</span>(np.ceil(<span class="dv">1</span> <span class="op">+</span> <span class="fl">3.322</span> <span class="op">*</span> np.log10(<span class="bu">len</span>(data))))  <span class="co"># Sturges' formula</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Determine range and bin width -- handled internally by matplotlib</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Steps 4 &amp; 5: Sort data into bins and draw the histogram</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>n, bins, patches <span class="op">=</span> ax.hist(data, bins<span class="op">=</span>num_bins, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.75</span>, edgecolor<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate probabilities (relative frequencies) manually, if needed</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>bin_width <span class="op">=</span> np.diff(bins)  <span class="co"># np.diff finds the difference between adjacent bin boundaries</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>probabilities <span class="op">=</span> n <span class="op">*</span> bin_width  <span class="co"># n is already normalized to form a probability density if `density=True`</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Adding labels and title for clarity</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Data Value'</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Probability Density'</span>)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Histogram with Probability Density'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="fig-histogram" class="cell quarto-figure quarto-figure-center quarto-float anchored" data-execution_count="1">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div id="fig-histogram-1" class="cell-output cell-output-display quarto-figure quarto-figure-center quarto-float anchored" data-execution_count="1">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-histogram-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<pre id="fig-histogram-1" class="cell-output cell-output-display" data-execution_count="1"><code>Text(0.5, 1.0, 'Histogram with Probability Density')</code></pre>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-histogram-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) Histogram with Probability Density
+</figcaption>
+</figure>
+</div>
+<div class="cell-output cell-output-display">
+<div id="fig-histogram-2" class="quarto-figure quarto-figure-center quarto-float anchored" height="449" width="597">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-histogram-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="ddmo_files/figure-html/fig-histogram-output-2.png" id="fig-histogram-2" data-ref-parent="fig-histogram" width="597" height="449" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-histogram-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-histogram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.1
+</figcaption>
+</figure>
+</div>
+</div>
+<div id="faef2131" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, prob <span class="kw">in</span> <span class="bu">enumerate</span>(probabilities):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Bin </span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss"> Probability: </span><span class="sc">{</span>prob<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure probabilities sum to 1 (or very close, due to floating-point arithmetic)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sum of probabilities: </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">sum</span>(probabilities)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Bin 1 Probability: 0.0080
+Bin 2 Probability: 0.0190
+Bin 3 Probability: 0.0900
+Bin 4 Probability: 0.1800
+Bin 5 Probability: 0.2510
+Bin 6 Probability: 0.2360
+Bin 7 Probability: 0.1400
+Bin 8 Probability: 0.0520
+Bin 9 Probability: 0.0200
+Bin 10 Probability: 0.0030
+Bin 11 Probability: 0.0010
+Sum of probabilities: 1.0</code></pre>
+</div>
+</div>
+<p>This code segment goes through the necessary steps to generate a histogram and calculate probabilities for a synthetic dataset. It demonstrates important scientific and computational practices including binning, visualization, and probability calculation in Python.</p>
+<p>Key Points: - The histogram represents the distribution of data, with the histogram’s bins outlining the data’s spread and density. - The option <code>density=True</code> in <code>ax.hist()</code> normalizes the histogram so that the total area under the histogram sums to 1, thereby converting frequencies to probability densities. - The choice of bin number and width has a significant influence on the histogram’s shape and the insights that can be drawn from it, highlighting the importance of selecting appropriate binning strategies based on the dataset’s characteristics and the analysis objectives.</p>
+</section>
+<section id="probability-distributions" class="level3" data-number="16.3.2">
+<h3 data-number="16.3.2" class="anchored" data-anchor-id="probability-distributions"><span class="header-section-number">16.3.2</span> Probability Distributions</h3>
+<p>Probability distributions offer a powerful solution to the challenges posed by limited data in estimating probabilities. When data is scarce, constructing a histogram to determine the probability of certain outcomes can lead to inaccurate or unreliable results due to the lack of detail in the dataset. However, collecting vast amounts of data to populate a histogram for more precise estimates can often be impractical, time-consuming, and expensive.</p>
+<p>A probability distribution is a mathematical function that provides the probabilities of occurrence of different possible outcomes for an experiment. It is a more efficient approach to understanding the likelihood of various outcomes than relying solely on extensive data collection. For continuous data, this is often represented graphically by a smooth curve.</p>
+<section id="the-normal-distribution-a-common-example" class="level4" data-number="16.3.2.1">
+<h4 data-number="16.3.2.1" class="anchored" data-anchor-id="the-normal-distribution-a-common-example"><span class="header-section-number">16.3.2.1</span> The Normal Distribution: A Common Example</h4>
+<p>A commonly encountered probability distribution is the normal distribution, known for its characteristic bell-shaped curve. This curve represents how the values of a variable are distributed: most of the observations cluster around the mean (or center) of the distribution, with frequencies gradually decreasing as values move away from the mean.</p>
+<p>The normal distribution is particularly useful because of its defined mathematical properties. It is determined entirely by its mean (mu, μ) and its standard deviation (sigma, <span class="math inline">\(\sigma\)</span>). The area under the curve represents probability, making it possible to calculate the likelihood of a random variable falling within a specific range.</p>
+</section>
+<section id="practical-example-estimating-probabilities" class="level4" data-number="16.3.2.2">
+<h4 data-number="16.3.2.2" class="anchored" data-anchor-id="practical-example-estimating-probabilities"><span class="header-section-number">16.3.2.2</span> Practical Example: Estimating Probabilities</h4>
+<p>Consider we are interested in the heights of adults in a population. Instead of measuring the height of every adult (which would be impractical), we can use the normal distribution to estimate the probability of adults’ heights falling within certain intervals, assuming we know the mean and standard deviation of the heights.</p>
+<div id="c7b60839" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> norm</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters for the normal distribution: mean and standard deviation</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> <span class="dv">170</span>  <span class="co"># e.g., mean height of adults in cm</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>std_dev <span class="op">=</span> <span class="dv">10</span>  <span class="co"># e.g., standard deviation of heights in cm</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a range of height values</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>heights <span class="op">=</span> np.linspace(mean <span class="op">-</span> <span class="dv">3</span><span class="op">*</span>std_dev, mean <span class="op">+</span> <span class="dv">3</span><span class="op">*</span>std_dev, <span class="dv">1000</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the probability density function for the normal distribution</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> norm.pdf(heights, mean, std_dev)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the normal distribution curve</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>plt.plot(heights, pdf, color<span class="op">=</span><span class="st">'blue'</span>, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>plt.fill_between(heights, pdf, where<span class="op">=</span>(heights <span class="op">&gt;=</span> <span class="dv">160</span>) <span class="op">&amp;</span> (heights <span class="op">&lt;=</span> <span class="dv">180</span>), color<span class="op">=</span><span class="st">'red'</span>, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Normal Distribution of Adult Heights'</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Height (cm)'</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Probability Density'</span>)</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ddmo_files/figure-html/cell-4-output-1.png" width="606" height="449" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This Python code snippet generates a plot of the normal distribution for adult heights, with a mean of 170 cm and a standard deviation of 10 cm. It visually approximates a histogram with a blue bell-shaped curve, and highlights (in red) the area under the curve between 160 cm and 180 cm. This area corresponds to the probability of randomly selecting an individual whose height falls within this range.</p>
+<p>By using the area under the curve, we can efficiently estimate probabilities without needing to collect and analyze a vast amount of data. This method not only saves time and resources but also provides a clear and intuitive way to understand and communicate statistical probabilities.</p>
+</section>
+</section>
+<section id="discrete-distributions" class="level3" data-number="16.3.3">
+<h3 data-number="16.3.3" class="anchored" data-anchor-id="discrete-distributions"><span class="header-section-number">16.3.3</span> Discrete Distributions</h3>
+<p>Discrete probability distributions are essential tools in statistics, providing a mathematical foundation to model and analyze situations with discrete outcomes. Histograms, which can be seen as discrete distributions with data organized into bins, offer a way to visualize and estimate probabilities based on the collected data. However, they come with limitations, especially when data is scarce or when we encounter gaps in the data (blank spaces in histograms). These gaps can make it challenging to accurately estimate probabilities.</p>
+<p>A more efficient approach, especially for discrete data, is to use mathematical equations—particularly those defining discrete probability distributions—to calculate probabilities directly, thus bypassing the intricacies of data collection and histogram interpretation.</p>
+<section id="bernoulli-distribution" class="level4" data-number="16.3.3.1">
+<h4 data-number="16.3.3.1" class="anchored" data-anchor-id="bernoulli-distribution"><span class="header-section-number">16.3.3.1</span> Bernoulli Distribution</h4>
+<p>The Bernoulli distribution, named after Swiss scientist Jacob Bernoulli, is a discrete probability distribution, which takes value <span class="math inline">\(1\)</span> with success probability <span class="math inline">\(p\)</span> and value <span class="math inline">\(0\)</span> with failure probability <span class="math inline">\(q = 1-p\)</span>. So if <span class="math inline">\(X\)</span> is a random variable with this distribution, we have: <span class="math display">\[
+P(X=1) = 1-P(X=0) = p = 1-q.
+\]</span></p>
+<p>The Binomial Distribution is a prime example of a discrete probability distribution that is particularly useful for binary outcomes (e.g., success/failure, yes/no, pumpkin pie/blueberry pie). It leverages simple mathematical principles to calculate the probability of observing a specific number of successes (preferred outcomes) in a fixed number of trials, given the probability of success in each trial.</p>
+</section>
+<section id="an-illustrative-example-pie-preference" class="level4" data-number="16.3.3.2">
+<h4 data-number="16.3.3.2" class="anchored" data-anchor-id="an-illustrative-example-pie-preference"><span class="header-section-number">16.3.3.2</span> An Illustrative Example: Pie Preference</h4>
+<p>Consider a scenario from “StatLand” where 70% of people prefer pumpkin pie over blueberry pie. The question is: What is the probability that, out of three people asked, the first two prefer pumpkin pie and the third prefers blueberry pie?</p>
+<p>Using the concept of the Binomial Distribution, the probability of such an outcome can be calculated without the need to layout every possible combination by hand. This process not only simplifies calculations but also provides a clear and precise method to determine probabilities in scenarios involving discrete choices. We will use Python to calculate the probability of observing exactly two out of three people prefer pumpkin pie, given the 70% preference rate:</p>
+<div id="a468a6f9" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> binom</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">3</span>  <span class="co"># Number of trials (people asked)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> <span class="fl">0.7</span>  <span class="co"># Probability of success (preferring pumpkin pie)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="dv">2</span>  <span class="co"># Number of successes (people preferring pumpkin pie)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Probability calculation using Binomial Distribution</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>prob <span class="op">=</span> binom.pmf(x, n, p)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"The probability that exactly 2 out of 3 people prefer pumpkin pie is: </span><span class="sc">{</span>prob<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The probability that exactly 2 out of 3 people prefer pumpkin pie is: 0.441</code></pre>
+</div>
+</div>
+<p>This code uses the <code>binom.pmf()</code> function from <code>scipy.stats</code> to calculate the probability mass function (PMF) of observing exactly <code>x</code> successes in <code>n</code> trials, where each trial has a success probability of <code>p</code>.</p>
+<p>A r.v.~is the sum of <span class="math inline">\(n\)</span> i.i.d. Bernoulli r.v.s. We may indicate a random variable <span class="math inline">\(X\)</span> with Bernoulli distribution using the notation <span class="math inline">\(X \sim \mathrm{Bi}(1,\theta)\)</span>. Then, the notation for the Binomial is <span class="math inline">\(X \sim \mathrm{Bi}(n,\theta)\)</span>. Its probability and distribution functions are, respectively, <span class="math display">\[
+p_X(x) = {n\choose x}\theta^x(1-\theta)^{n-x}, \qquad F_X(x) = \Pr\{X \le x\} = \sum_{i=0}^{x} {n\choose i}\theta^i(1-\theta)^{n-i}.
+\]</span></p>
+<p>The mean of the binomial distribution is <span class="math inline">\(\text{E}[X] = n\theta\)</span>. The variance of the distribution is <span class="math inline">\(\text{Var}[X] = n\theta(1-\theta)\)</span> (see next section).</p>
+<p>A process consists of a sequence of <span class="math inline">\(n\)</span> independent trials, i.e., the outcome of each trial does not depend on the outcome of previous trials. The outcome of each trial is either a success or a failure. The probability of success is denoted as <span class="math inline">\(p\)</span>, and <span class="math inline">\(p\)</span> is constant for each trial. Coin tossing is a classical example for this setting.</p>
+<p>The binomial distribution is a statistical distribution giving the probability of obtaining a specified number of successes in a binomial experiment; written Binomial(n, p), where <span class="math inline">\(n\)</span> is the number of trials, and <span class="math inline">\(p\)</span> the probability of success in each.</p>
+<div id="def-binom" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.1 (Binomial Distribution)</strong></span> The binomial distribution with parameters <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span>, where <span class="math inline">\(n\)</span> is the number of trials, and <span class="math inline">\(p\)</span> the probability of success in each, is <span class="math display">\[\begin{equation}
+p(x) = { n \choose k } p^x(1-p)^{n-x} \qquad x = 0,1, \ldots, n.
+\end{equation}\]</span> The mean <span class="math inline">\(\mu\)</span> and the variance <span class="math inline">\(\sigma^2\)</span> of the binomial distribution are <span class="math display">\[\begin{equation}
+\mu = np
+\end{equation}\]</span> and <span class="math display">\[\begin{equation}
+\sigma^2 = np(1-p).
+\end{equation}\]</span></p>
+</div>
+<p>Note, the Bernoulli distribution is simply Binomial(1,p).</p>
+</section>
+</section>
+</section>
+<section id="continuous-distributions" class="level2" data-number="16.4">
+<h2 data-number="16.4" class="anchored" data-anchor-id="continuous-distributions"><span class="header-section-number">16.4</span> Continuous Distributions</h2>
+<p>Our considerations regarding probability distributions, expectations, and standard deviations will be extended from discrete distributions to continuous distributions. One simple example of a continuous distribution is the uniform distribution. Continuous distributions are defined by probability density functions.</p>
+<section id="distribution-functions-pdfs-and-cdfs" class="level3" data-number="16.4.1">
+<h3 data-number="16.4.1" class="anchored" data-anchor-id="distribution-functions-pdfs-and-cdfs"><span class="header-section-number">16.4.1</span> Distribution functions: PDFs and CDFs</h3>
+<p>The density for a continuous distribution is a measure of the relative probability of “getting a value close to <span class="math inline">\(x\)</span>.”</p>
+<p>Probability density functions <span class="math inline">\(f\)</span> and cumulative distribution function <span class="math inline">\(F\)</span> are related as follows. <span class="math display">\[\begin{equation}
+f(x) = \frac{d}{dx} F(x)
+\end{equation}\]</span></p>
+</section>
+<section id="expectation-continuous" class="level3" data-number="16.4.2">
+<h3 data-number="16.4.2" class="anchored" data-anchor-id="expectation-continuous"><span class="header-section-number">16.4.2</span> Expectation (Continuous)</h3>
+<div id="def-expectation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.2 (Expectation (Continuous))</strong></span> <span class="math display">\[\begin{equation}
+  \text{E}(X) = \int_{-\infty}^\infty x f(x) \, dx
+  \end{equation}\]</span></p>
+</div>
+</section>
+<section id="variance-and-standard-deviation-continuous" class="level3" data-number="16.4.3">
+<h3 data-number="16.4.3" class="anchored" data-anchor-id="variance-and-standard-deviation-continuous"><span class="header-section-number">16.4.3</span> Variance and Standard Deviation (Continuous)</h3>
+<div id="def-variance" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.3 (Variance (Continuous))</strong></span> Variance can be calculated with <span class="math inline">\(\text{E}(X)\)</span> and <span class="math display">\[\begin{equation}
+  \text{E}(X^2) = \int_{-\infty}^\infty x^2 f(x) \, dx
+\end{equation}\]</span> as <span class="math display">\[\begin{equation*}
+  \text{Var}(X) = \text{E}(X^2) - [ E(X)]^2.
+  \end{equation*}\]</span> <span class="math inline">\(\Box\)</span></p>
+</div>
+<div id="def-standard-deviation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.4 (Standard Deviation (Continuous))</strong></span> Standard deviation can be calculated as <span class="math display">\[\begin{equation*}
+  \text{sd}(X) = \sqrt{\text{Var}(X)}.
+  \end{equation*}\]</span> <span class="math inline">\(\Box\)</span></p>
+</div>
+</section>
+<section id="uniform-distribution" class="level3" data-number="16.4.4">
+<h3 data-number="16.4.4" class="anchored" data-anchor-id="uniform-distribution"><span class="header-section-number">16.4.4</span> Uniform Distribution</h3>
+<p>This variable is defined in the interval <span class="math inline">\([a,b]\)</span>. We write it as <span class="math inline">\(X \sim U[a,b]\)</span>. Its density and cumulative distribution functions are, respectively, <span class="math display">\[
+f_X(x) = \frac{I_{[a,b]}(x)}{b-a},  \quad\quad F_X(x) = \frac{1}{b-a}\int\limits_{-\infty}\limits^x I_{[a,b]}(t) \mathrm{d}t = \frac{x-a}{b-a},
+\]</span> where <span class="math inline">\(I_{[a,b]}(\cdot)\)</span> is the indicator function of the interval <span class="math inline">\([a,b]\)</span>. Note that, if we set <span class="math inline">\(a=0\)</span> and <span class="math inline">\(b=1\)</span>, we obtain <span class="math inline">\(F_X(x) = x\)</span>, <span class="math inline">\(x\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\([0,1]\)</span>.</p>
+<p>A typical example is the following: the cdf of a continuous r.v. is uniformly distributed in <span class="math inline">\([0,1]\)</span>. The proof of this statement is as follows: For <span class="math inline">\(u\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\([0,1]\)</span>, we have <span class="math display">\[\begin{eqnarray*}
+\Pr\{F_X(X) \leq u\} &amp;=&amp; \Pr\{F_X^{-1}(F_X(X)) \leq F_X^{-1}(u)\} = \Pr\{X \leq F_X^{-1}(u)\} \\
+                      &amp;=&amp; F_X(F_X^{-1}(u)) = u.     
+\end{eqnarray*}\]</span> This means that, when <span class="math inline">\(X\)</span> is continuous, there is a one-to-one relationship (given by the cdf) between <span class="math inline">\(x\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\(D_X\)</span> and <span class="math inline">\(u\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\([0,1]\)</span>.</p>
+<p>The has a constant density over a specified interval, say <span class="math inline">\([a,b]\)</span>. The uniform <span class="math inline">\(U(a,b)\)</span> distribution has density <span class="math display">\[\begin{equation}
+f(x) =
+\left\{
+  \begin{array}{ll}
+  1/(b-a) &amp; \textrm{ if } a &lt; x &lt; b,\\
+  0 &amp; \textrm{ otherwise}
+  \end{array}
+  \right.
+  \end{equation}\]</span></p>
+</section>
+<section id="normal-distribution" class="level3" data-number="16.4.5">
+<h3 data-number="16.4.5" class="anchored" data-anchor-id="normal-distribution"><span class="header-section-number">16.4.5</span> Normal Distribution</h3>
+<div id="def-normal" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.5 (Normal Distribution)</strong></span> This variable is defined on the support <span class="math inline">\(D_X = \mathbb{R}\)</span> and its density function is given by <span class="math display">\[
+f_X(x) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left \{-\frac{1}{2\sigma^2}(x-\mu)^2 \right \}.
+\]</span> The density function is identified by the pair of parameters <span class="math inline">\((\mu,\sigma^2)\)</span>, where <span class="math inline">\(\mu\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\(\mathbb{R}\)</span> is the mean (or location parameter) and <span class="math inline">\(\sigma^2 &gt; 0\)</span> is the variance (or dispersion parameter) of <span class="math inline">\(X\)</span>. <span class="math inline">\(\Box\)</span></p>
+</div>
+<p>The density function is symmetric around <span class="math inline">\(\mu\)</span>. The normal distribution belongs to the location-scale family distributions. This means that, if <span class="math inline">\(Z \sim N(0,1)\)</span> (read, <span class="math inline">\(Z\)</span> has a standard normal distribution; i.e., with <span class="math inline">\(\mu=0\)</span> and <span class="math inline">\(\sigma^2=1\)</span>), and we consider the linear transformation <span class="math inline">\(X = \mu + \sigma Z\)</span>, then <span class="math inline">\(X \sim N(\mu,\sigma^2)\)</span> (read, <span class="math inline">\(X\)</span> has a normal distribution with mean <span class="math inline">\(\mu\)</span> and variance <span class="math inline">\(\sigma^2\)</span>). This means that one can obtain the probability of any interval <span class="math inline">\((-\infty,x]\)</span>, <span class="math inline">\(x\)</span> <span class="math inline">\(\in\)</span> <span class="math inline">\(R\)</span> for any normal distribution (i.e., for any pair of the parameters <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\sigma\)</span>) once the quantiles of the standard normal distribution are known. Indeed <span class="math display">\[\begin{eqnarray*}
+F_X(x) &amp;=&amp; \Pr\left\{X \leq x \right\} = \Pr\left\{\frac{X-\mu}{\sigma} \leq \frac{x-\mu}{\sigma} \right\} \\
+           &amp;=&amp; \Pr\left\{Z \leq \frac{x-\mu}{\sigma}\right\}  = F_Z\left(\frac{x-\mu}{\sigma}\right)    \qquad x \in \mathbb{R}.
+\end{eqnarray*}\]</span> The quantiles of the standard normal distribution are available in any statistical program. The density and cumulative distribution function of the standard normal r.v.~at point <span class="math inline">\(x\)</span> are usually denoted by the symbols <span class="math inline">\(\phi(x)\)</span> and <span class="math inline">\(\Phi(x)\)</span>.</p>
+<p>The standard normal distribution is based on the <span id="eq-standardization"><span class="math display">\[
+\text{Var}phi(z) = \frac{1}{\sqrt{2\pi}} \exp \left(- \frac{z^2}{2} \right).
+\tag{16.1}\]</span></span></p>
+<p>An important application of the standardization introduced in <a href="#eq-standardization" class="quarto-xref">Equation&nbsp;<span>16.1</span></a> reads as follows. In case the distribution of <span class="math inline">\(X\)</span> is approximately normal, the distribution of X^{*} is approximately standard normal. That is <span class="math display">\[\begin{equation*}
+  P(X\leq b) = P( \frac{X-\mu}{\sigma} \leq \frac{b-\mu}{\sigma}) = P(X^{*} \leq \frac{b-\mu}{\sigma})
+\end{equation*}\]</span> The probability <span class="math inline">\(P(X\leq b)\)</span> can be approximated by <span class="math inline">\(\Phi(\frac{b-\mu}{\sigma})\)</span>, where <span class="math inline">\(\Phi\)</span> is the standard normal cumulative distribution function.</p>
+<p>If <span class="math inline">\(X\)</span> is a normal random variable with mean <span class="math inline">\(\mu\)</span> and variance <span class="math inline">\(\sigma^2\)</span>, i.e., <span class="math inline">\(X \sim \cal{N} (\mu, \sigma^2)\)</span>, then <span class="math display">\[\begin{equation}
+  X = \mu + \sigma Z \textrm{ where } Z \sim \cal{N}(0,1).
+  \end{equation}\]</span></p>
+<p>If <span class="math inline">\(Z \sim \cal{N}(0,1)\)</span> and <span class="math inline">\(X\sim \cal{N}(\mu, \sigma^2)\)</span>, then <span class="math display">\[\begin{equation*}
+  X = \mu + \sigma Z.
+\end{equation*}\]</span></p>
+<p>The probability of getting a value in a particular interval is the area under the corresponding part of the curve. Consider the density function of the normal distribution. It can be plotted using the following commands. The result is shown in <a href="#fig-normal-density" class="quarto-xref">Figure&nbsp;<span>16.2</span></a>.</p>
+<div id="cell-fig-normal-density" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> norm</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generating a sequence of numbers from -4 to 4 with 0.1 intervals</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculating the normal distribution's density function values for each point in x</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> norm.pdf(x, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting the results, where 'type="l"' in R corresponds to a line plot in Python</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>plt.plot(x, y, linestyle<span class="op">=</span><span class="st">'-'</span>, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Normal Distribution'</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'X'</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Density'</span>)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div id="fig-normal-density" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-normal-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="ddmo_files/figure-html/fig-normal-density-output-1.png" width="597" height="449" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-normal-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.2: Normal Distribution Density Function
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The (CDF) describes the probability of “hitting” <span class="math inline">\(x\)</span> or less in a given distribution. We consider the CDF function of the normal distribution. It can be plotted using the following commands. The result is shown in <span class="citation" data-cites="fig">(<a href="references.html#ref-fig" role="doc-biblioref"><strong>fig?</strong></a>)</span>-</p>
+<div id="000b23c0" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> norm</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generating a sequence of numbers from -4 to 4 with 0.1 intervals</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculating the cumulative distribution function value of the normal distribution for each point in x</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> norm.cdf(x, <span class="dv">0</span>, <span class="dv">1</span>)  <span class="co"># mean=0, stddev=1</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting the results. The equivalent of 'type="l"' in R (line plot) becomes the default plot type in matplotlib.</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>plt.plot(x, y, linestyle<span class="op">=</span><span class="st">'-'</span>, linewidth<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Normal Distribution CDF'</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'X'</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Cumulative Probability'</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ddmo_files/figure-html/cell-7-output-1.png" width="589" height="449" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="the-mean-the-median-and-the-mode" class="level3" data-number="16.4.6">
+<h3 data-number="16.4.6" class="anchored" data-anchor-id="the-mean-the-median-and-the-mode"><span class="header-section-number">16.4.6</span> The Mean, the Median, and the Mode</h3>
+</section>
+<section id="the-exponential-distribution" class="level3" data-number="16.4.7">
+<h3 data-number="16.4.7" class="anchored" data-anchor-id="the-exponential-distribution"><span class="header-section-number">16.4.7</span> The Exponential Distribution</h3>
+<p>The exponential distribution is a continuous probability distribution that describes the time between events in a Poisson process, where events occur continuously and independently at a constant average rate. It is characterized by a single parameter, the rate parameter <span class="math inline">\(\lambda\)</span>, which represents the average number of events per unit time.</p>
+</section>
+<section id="population-and-estimated-parameters" class="level3" data-number="16.4.8">
+<h3 data-number="16.4.8" class="anchored" data-anchor-id="population-and-estimated-parameters"><span class="header-section-number">16.4.8</span> Population and Estimated Parameters</h3>
+</section>
+<section id="calculating-the-mean-variance-and-standard-deviation" class="level3" data-number="16.4.9">
+<h3 data-number="16.4.9" class="anchored" data-anchor-id="calculating-the-mean-variance-and-standard-deviation"><span class="header-section-number">16.4.9</span> Calculating the Mean, Variance, and Standard Deviation</h3>
+</section>
+<section id="what-is-a-mathematical-model" class="level3" data-number="16.4.10">
+<h3 data-number="16.4.10" class="anchored" data-anchor-id="what-is-a-mathematical-model"><span class="header-section-number">16.4.10</span> What is a Mathematical Model?</h3>
+</section>
+<section id="sampling-from-a-distribution" class="level3" data-number="16.4.11">
+<h3 data-number="16.4.11" class="anchored" data-anchor-id="sampling-from-a-distribution"><span class="header-section-number">16.4.11</span> Sampling from a Distribution</h3>
+</section>
+<section id="hypothesis-testing-and-the-null-hypothesis" class="level3" data-number="16.4.12">
+<h3 data-number="16.4.12" class="anchored" data-anchor-id="hypothesis-testing-and-the-null-hypothesis"><span class="header-section-number">16.4.12</span> Hypothesis Testing and the Null Hypothesis</h3>
+</section>
+<section id="alternative-hypotheses" class="level3" data-number="16.4.13">
+<h3 data-number="16.4.13" class="anchored" data-anchor-id="alternative-hypotheses"><span class="header-section-number">16.4.13</span> Alternative Hypotheses</h3>
+</section>
+<section id="p-values-what-they-are-and-how-to-interpret-them" class="level3" data-number="16.4.14">
+<h3 data-number="16.4.14" class="anchored" data-anchor-id="p-values-what-they-are-and-how-to-interpret-them"><span class="header-section-number">16.4.14</span> p-values: What They Are and How to Interpret Them</h3>
+</section>
+<section id="how-to-calculate-p-values" class="level3" data-number="16.4.15">
+<h3 data-number="16.4.15" class="anchored" data-anchor-id="how-to-calculate-p-values"><span class="header-section-number">16.4.15</span> How to Calculate p-values</h3>
+</section>
+<section id="p-hacking-what-it-is-and-how-to-avoid-it" class="level3" data-number="16.4.16">
+<h3 data-number="16.4.16" class="anchored" data-anchor-id="p-hacking-what-it-is-and-how-to-avoid-it"><span class="header-section-number">16.4.16</span> p-hacking: What It Is and How to Avoid It</h3>
+</section>
+<section id="covariance" class="level3" data-number="16.4.17">
+<h3 data-number="16.4.17" class="anchored" data-anchor-id="covariance"><span class="header-section-number">16.4.17</span> Covariance</h3>
+</section>
+<section id="pearsons-correlation" class="level3" data-number="16.4.18">
+<h3 data-number="16.4.18" class="anchored" data-anchor-id="pearsons-correlation"><span class="header-section-number">16.4.18</span> Pearson’s Correlation</h3>
+</section>
+<section id="boxplots" class="level3" data-number="16.4.19">
+<h3 data-number="16.4.19" class="anchored" data-anchor-id="boxplots"><span class="header-section-number">16.4.19</span> Boxplots</h3>
+</section>
+<section id="r-squared" class="level3" data-number="16.4.20">
+<h3 data-number="16.4.20" class="anchored" data-anchor-id="r-squared"><span class="header-section-number">16.4.20</span> R-squared</h3>
+</section>
+<section id="the-main-ideas-of-fitting-a-line-to-data" class="level3" data-number="16.4.21">
+<h3 data-number="16.4.21" class="anchored" data-anchor-id="the-main-ideas-of-fitting-a-line-to-data"><span class="header-section-number">16.4.21</span> The Main Ideas of Fitting a Line to Data</h3>
+</section>
+<section id="linear-regression" class="level3" data-number="16.4.22">
+<h3 data-number="16.4.22" class="anchored" data-anchor-id="linear-regression"><span class="header-section-number">16.4.22</span> Linear Regression</h3>
+</section>
+<section id="multiple-regression" class="level3" data-number="16.4.23">
+<h3 data-number="16.4.23" class="anchored" data-anchor-id="multiple-regression"><span class="header-section-number">16.4.23</span> Multiple Regression</h3>
+</section>
+</section>
+<section id="supervised-learning" class="level2" data-number="16.5">
+<h2 data-number="16.5" class="anchored" data-anchor-id="supervised-learning"><span class="header-section-number">16.5</span> Supervised Learning</h2>
+<p>Objectives of supervised learning: On the basis of the training data we would like to:</p>
+<ul>
+<li>Accurately predict unseen test cases.</li>
+<li>Understand which inputs affect the outcome, and how.</li>
+<li>Assess the quality of our predictions and inferences.</li>
+</ul>
+<p>Note: Supervised means <span class="math inline">\(Y\)</span> is known.</p>
+<div id="exr-starting-point" class="theorem exercise">
+<p><span class="theorem-title"><strong>Exercise 16.1</strong></span> &nbsp;</p>
+<ul>
+<li>Do children learn supervised?</li>
+<li>When do you learn supervised?</li>
+<li>Can learning be unsupervised?</li>
+</ul>
+</div>
+<section id="unsupervised-learning" class="level5" data-number="16.5.0.0.1">
+<h5 data-number="16.5.0.0.1" class="anchored" data-anchor-id="unsupervised-learning"><span class="header-section-number">16.5.0.0.1</span> Unsupervised Learning</h5>
+<p>No outcome variable, just a set of predictors (features) measured on a set of samples. The objective is more fuzzy—find groups of samples that behave similarly, find features that behave similarly, find linear combinations of features with the most variation. It is difficult to know how well your are doing. Unsupervised learning different from supervised learning, but can be useful as a pre-processing step for supervised learning. Clustering and principle component analysis are important techniques.</p>
+<p>Unsupervised: <span class="math inline">\(Y\)</span> is unknown, there is no <span class="math inline">\(Y\)</span>, no trainer, no teacher, but: distances between the inputs values (features). A distance (or similarity) measure is necessary.</p>
+</section>
+<section id="statistical-learning" class="level5" data-number="16.5.0.0.2">
+<h5 data-number="16.5.0.0.2" class="anchored" data-anchor-id="statistical-learning"><span class="header-section-number">16.5.0.0.2</span> Statistical Learning</h5>
+<p>We consider supervised learning first.</p>
+<div id="fig-0201" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0201-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0201.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0201-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.3: Sales as a function of TV, radio and newspaper. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Sales figures from a marketing campaign, see <a href="#fig-0201" class="quarto-xref">Figure&nbsp;<span>16.3</span></a>. Trend shown using regression. First seems to be stronger than the third.</p>
+<p>Can we predict <span class="math inline">\(Y\)</span> = Sales using these three? Perhaps we can do better using a model <span class="math display">\[
+Y = Sales \approx  f(X_1 = TV,  X_2 = Radio, X_3= Newspaper)
+\]</span> modeling the joint relationsship.</p>
+<p>Here Sales is a response or target that we wish to predict. We generically refer to the response as <span class="math inline">\(Y\)</span>. TV is a feature, or input, or predictor; we name it <span class="math inline">\(X_1\)</span>. Likewise name Radio as <span class="math inline">\(X_2\)</span>, and so on. We can refer to the input vector collectively as <span class="math display">\[
+X =
+\begin{pmatrix}
+X_1\\
+X_2\\
+X_3
+\end{pmatrix}
+\]</span></p>
+<p>Now we write our model as <span class="math display">\[
+Y = f(X) + \epsilon
+\]</span> where <span class="math inline">\(\epsilon\)</span> captures measurement errors and other discrepancies.</p>
+<p>What is <span class="math inline">\(f\)</span> good for? With a good <span class="math inline">\(f\)</span> we can make predictions of <span class="math inline">\(Y\)</span> at new points <span class="math inline">\(X = x\)</span>. We can understand which components of <span class="math inline">\(X = (X_1, X_2, \ldots X_p)\)</span> are important in explaining <span class="math inline">\(Y\)</span>, and which are irrelevant.</p>
+<p>For example, Seniority and Years of Education have a big impact on Income, but Marital Status typically does not. Depending on the complexity of <span class="math inline">\(f\)</span>, we may be able to understand how each component <span class="math inline">\(X_j\)</span> of <span class="math inline">\(X\)</span> affects <span class="math inline">\(Y\)</span>.</p>
+</section>
+<section id="statistical-learning-and-regression" class="level3" data-number="16.5.1">
+<h3 data-number="16.5.1" class="anchored" data-anchor-id="statistical-learning-and-regression"><span class="header-section-number">16.5.1</span> Statistical Learning and Regression</h3>
+<section id="regression-function" class="level4" data-number="16.5.1.1">
+<h4 data-number="16.5.1.1" class="anchored" data-anchor-id="regression-function"><span class="header-section-number">16.5.1.1</span> Regression Function</h4>
+<div id="fig-0202a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0202a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0202a.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0202a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.4: Scatter plot of 2000 points (population). What is a good function <span class="math inline">\(f\)</span>? There are many function values at <span class="math inline">\(X=4\)</span>. A function can return only one value. We can take the mean from these values as a return value. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Consider <a href="#fig-0202a" class="quarto-xref">Figure&nbsp;<span>16.4</span></a>. Is there an ideal <span class="math inline">\(f(X)\)</span>? In particular, what is a good value for <span class="math inline">\(f(X)\)</span> at any selected value of <span class="math inline">\(X\)</span>, say <span class="math inline">\(X = 4\)</span>? There can be many <span class="math inline">\(Y\)</span> values at <span class="math inline">\(X=4\)</span>. A good value is <span class="math display">\[
+f(4) = E(Y |X = 4).
+\]</span></p>
+<p><span class="math inline">\(E(Y |X = 4)\)</span> means <strong>expected value</strong> (average) of <span class="math inline">\(Y\)</span> given <span class="math inline">\(X = 4\)</span>.</p>
+<p>The ideal <span class="math inline">\(f(x) = E(Y |X = x)\)</span> is called the <strong>regression function</strong>. Read: The regression function gives the conditional expectation of <span class="math inline">\(Y\)</span> given <span class="math inline">\(X\)</span>.</p>
+<p>The regression function <span class="math inline">\(f(x)\)</span> is also defined for the vector <span class="math inline">\(X\)</span>; e.g., <span class="math inline">\(f(x) = f(x_1, x_2, x_3) = E(Y | X_1 =x_1, X_2 =x_2, X_3 =x_3).\)</span></p>
+</section>
+</section>
+<section id="optimal-predictor" class="level3 {def-optimal-predictor}" data-number="16.5.2">
+<h3 data-number="16.5.2" class="anchored" data-anchor-id="optimal-predictor"><span class="header-section-number">16.5.2</span> Optimal Predictor</h3>
+<p>The regression function is the <strong>ideal</strong> or <strong>optimal predictor</strong> of <span class="math inline">\(Y\)</span> with regard to mean-squared prediction error: It means that <span class="math inline">\(f(x) = E(Y | X = x)\)</span> is the function that minimizes <span class="math display">\[
+E[(Y - g(X))^2|X = x]
+\]</span> over all functions <span class="math inline">\(g\)</span> at all points <span class="math inline">\(X = x\)</span>.</p>
+</section>
+<section id="residuals-reducible-and-irreducible-error" class="level4" data-number="16.5.2.1">
+<h4 data-number="16.5.2.1" class="anchored" data-anchor-id="residuals-reducible-and-irreducible-error"><span class="header-section-number">16.5.2.1</span> Residuals, Reducible and Irreducible Error</h4>
+<p>At each point <span class="math inline">\(X\)</span> we make mistakes: <span class="math display">\[
+\epsilon = Y-f(x)
+\]</span> is the <strong>residual</strong>. Even if we knew <span class="math inline">\(f(x)\)</span>, we would still make errors in prediction, since at each <span class="math inline">\(X=x\)</span> there is typically a distribution of possible <span class="math inline">\(Y\)</span> values as is illustrated in <a href="#fig-0202a" class="quarto-xref">Figure&nbsp;<span>16.4</span></a>.</p>
+<p>For any estimate <span class="math inline">\(\hat{f}(x)\)</span> of <span class="math inline">\(f(x)\)</span>, we have <span class="math display">\[
+E\left[ ( Y - \hat{f}(X))^2 | X = x\right] = \left[ f(x) - \hat{f}(x) \right]^2 + \text{var}(\epsilon),
+\]</span> and <span class="math inline">\(\left[ f(x) - \hat{f}(x) \right]^2\)</span> is the <strong>reducible</strong> error, because it depends on the model (changing the model <span class="math inline">\(f\)</span> might reduce this error), and <span class="math inline">\(\text{var}(\epsilon)\)</span> is the <strong>irreducible</strong> error.</p>
+</section>
+<section id="local-regression-smoothing" class="level4" data-number="16.5.2.2">
+<h4 data-number="16.5.2.2" class="anchored" data-anchor-id="local-regression-smoothing"><span class="header-section-number">16.5.2.2</span> Local Regression (Smoothing)</h4>
+<p>Typically we have few if any data points with <span class="math inline">\(X = 4\)</span> exactly. So we cannot compute <span class="math inline">\(E(Y |X = x)\)</span>! Idea: Relax the definition and let <span class="math display">\[
+\hat{f}(x)=  Ave(Y|X \in  \cal{N}(x)),
+\]</span> where <span class="math inline">\(\cal{N} (x)\)</span> is some neighborhood of <span class="math inline">\(x\)</span>, see <a href="#fig-0203a" class="quarto-xref">Figure&nbsp;<span>16.5</span></a>.</p>
+<div id="fig-0203a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0203a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0203a.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0203a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.5: Relaxing the definition. There is no <span class="math inline">\(Y\)</span> value at <span class="math inline">\(X=4\)</span>. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Nearest neighbor averaging can be pretty good for small <span class="math inline">\(p\)</span>, i.e., <span class="math inline">\(p \leq 4\)</span> and large-ish <span class="math inline">\(N\)</span>. We will discuss smoother versions, such as kernel and spline smoothing later in the course.</p>
+</section>
+<section id="curse-of-dimensionality-and-parametric-models" class="level3" data-number="16.5.3">
+<h3 data-number="16.5.3" class="anchored" data-anchor-id="curse-of-dimensionality-and-parametric-models"><span class="header-section-number">16.5.3</span> Curse of Dimensionality and Parametric Models</h3>
+<div id="fig-0204a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0204a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0204a.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0204a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.6: A 10% neighborhood in high dimensions need no longer be local. Left: Values of two variables <span class="math inline">\(x_1\)</span> and <span class="math inline">\(x_2\)</span>, uniformly distributed. Form two 10% neighborhoods: (a) the first is just involving <span class="math inline">\(x_1\)</span> ignoring <span class="math inline">\(x_2\)</span>. (b) is the neighborhood in two dimension. Notice that the radius of the circle is much larger than the lenght of the interval in one dimension. Right: radius plotted against fraction of the volume. In 10 dim, you have to break out the interval <span class="math inline">\([-1;+1]\)</span> to get 10% of the data. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Local, e.g., nearest neighbor, methods can be lousy when <span class="math inline">\(p\)</span> is large. Reason: <strong>the curse of dimensionality</strong>, i.e., nearest neighbors tend to be far away in high dimensions. We need to get a reasonable fraction of the <span class="math inline">\(N\)</span> values of <span class="math inline">\(y_i\)</span> to average to bring the variance down—e.g., 10%. A 10% neighborhood in high dimensions need no longer be local, so we lose the spirit of estimating <span class="math inline">\(E(Y |X = x)\)</span> by local averaging, see <a href="#fig-0204a" class="quarto-xref">Figure&nbsp;<span>16.6</span></a>. If the curse of dimensionality does not exist, nearest neighbor models would be perfect prediction models.</p>
+<p>We will use structured (parametric) models to deal with the curse of dimensionality. The linear model is an important example of a parametric model: <span class="math display">\[
+f_L(X) = \beta_0 + \beta_1 X_1 + \ldots + \beta_p X_p.
+\]</span> A linear model is specified in terms of <span class="math inline">\(p + 1\)</span> parameters $ _1, _2, , _p$. We estimate the parameters by fitting the model to . Although it is almost never correct, a linear model often serves as a good and interpretable approximation to the unknown true function <span class="math inline">\(f(X)\)</span>.</p>
+<p>The linear model is avoiding the curse of dimensionality, because it is not relying on any local properties. Linear models belong to the class of approaches: they replace the problem of estimating <span class="math inline">\(f\)</span> with estimating a fixed set of coefficients <span class="math inline">\(\beta_i\)</span>, with <span class="math inline">\(i=1,2, \ldots, p\)</span>.</p>
+<div id="fig-0301a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0301a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0301a.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0301a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.7: A linear model <span class="math inline">\(\hat{f}_L\)</span> gives a reasonable fit. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0302a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0302a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0302a.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0302a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.8: A quadratic model <span class="math inline">\(\hat{f}_Q\)</span> fits slightly better. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>A linear model <span class="math display">\[
+\hat{f}_L(X) = \hat{\beta}_0 + \hat{\beta}_1 X
+\]</span> gives a reasonable fit, see <a href="#fig-0301a" class="quarto-xref">Figure&nbsp;<span>16.7</span></a>. A quadratic model <span class="math display">\[
+\hat{f}_Q(X) = \hat{\beta}_0 + \hat{\beta}_1 X + \hat{\beta}_2 X^2
+\]</span> gives a slightly improved fit, see <a href="#fig-0302a" class="quarto-xref">Figure&nbsp;<span>16.8</span></a>.</p>
+<p><a href="#fig-0203" class="quarto-xref">Figure&nbsp;<span>16.9</span></a> shows a simulated example. Red points are simulated values for income from the model <span class="math display">\[
+income = f(education, seniority) + \epsilon
+\]</span> <span class="math inline">\(f\)</span> is the blue surface.</p>
+<div id="fig-0203" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0203-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0203.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0203-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.9: The true model. Red points are simulated values for income from the model, <span class="math inline">\(f\)</span> is the blue surface. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0204" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0204-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0204.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0204-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.10: Linear regression fit to the simulated data (red points). Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>The linear regression model <span class="math display">\[
+\hat{f}(education, seniority) = \hat{\beta}_0 + \hat{\beta}_1 \times education +
+\hat{\beta}_2 \times seniority
+\]</span> captures the important information. But it does not capture everything. More flexible regression model <span class="math display">\[
+\hat{f}_S (education, seniority)
+\]</span> fit to the simulated data. Here we use a technique called a <strong>thin-plate spline</strong> to fit a flexible surface. Even more flexible spline regression model <span class="math display">\[
+\hat{f}_S (education, seniority)
+\]</span> fit to the simulated data. Here the fitted model makes no errors on the training data! Also known as <strong>overfitting</strong>.</p>
+<div id="fig-0205" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0205-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0205.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0205-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.11: Thin-plate spline models <span class="math inline">\(\hat{f}_S (education, seniority)\)</span> fitted to the model from <a href="#fig-0203" class="quarto-xref">Figure&nbsp;<span>16.9</span></a>. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0206" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0206-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0206.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0206-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.12: Thin-plate spline models <span class="math inline">\(\hat{f}_S (education, seniority)\)</span> fitted to the model from <a href="#fig-0203" class="quarto-xref">Figure&nbsp;<span>16.9</span></a>. The model makes no errors on the training data (overfitting). Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<section id="trade-offs" class="level4" data-number="16.5.3.1">
+<h4 data-number="16.5.3.1" class="anchored" data-anchor-id="trade-offs"><span class="header-section-number">16.5.3.1</span> Trade-offs</h4>
+<ul>
+<li>Prediction accuracy versus interpretability: Linear models are easy to interpret; thin-plate splines are not.</li>
+<li>Good fit versus over-fit or under-fit: How do we know when the fit is just right?</li>
+<li>Parsimony (Occam’s razor) versus black-box: We often prefer a simpler model involving fewer variables over a black-box predictor involving them all.</li>
+</ul>
+<p>The trad-offs are visualized in <a href="#fig-0207" class="quarto-xref">Figure&nbsp;<span>16.13</span></a>.</p>
+<div id="fig-0207" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0207-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0207.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0207-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.13: Interpretability versus flexibility. Flexibility corresponds with the number of model parameters. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="assessing-model-accuracy-and-bias-variance-trade-off" class="level3" data-number="16.5.4">
+<h3 data-number="16.5.4" class="anchored" data-anchor-id="assessing-model-accuracy-and-bias-variance-trade-off"><span class="header-section-number">16.5.4</span> Assessing Model Accuracy and Bias-Variance Trade-off</h3>
+<div id="fig-0303a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0303a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0303a.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0303a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.14: Black curve is truth. Red curve on right is <span class="math inline">\(MSETe\)</span>, grey curve is <span class="math inline">\(MSETr\)</span>. Orange, blue and green curves/squares correspond to fits of different flexibility. The dotted line represents the irreducible error, i.e., <span class="math inline">\(var(\epsilon)\)</span>. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0210" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0210-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0210.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0210-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.15: Here, the truth is smoother. Black curve is truth. Red curve on right is <span class="math inline">\(MSETe\)</span>, grey curve is <span class="math inline">\(MSETr\)</span>. Orange, blue and green curves/squares correspond to fits of different flexibility. The dotted line represents the irreducible error, i.e., <span class="math inline">\(var(\epsilon)\)</span>. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0211" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0211-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0211.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0211-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.16: Here the truth is wiggly and the noise is low, so the more flexible fits do the best. Black curve is truth. Red curve on right is <span class="math inline">\(MSETe\)</span>, grey curve is <span class="math inline">\(MSETr\)</span>. Orange, blue and green curves/squares correspond to fits of different flexibility. The dotted line represents the irreducible error, i.e., <span class="math inline">\(var(\epsilon)\)</span>. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Suppose we fit a model <span class="math inline">\(f(x)\)</span> to some training data <span class="math inline">\(Tr = \{x_i, y_i \}^N_1\)</span>, and we wish to see how well it performs. We could compute the average squared prediction error over <span class="math inline">\(Tr\)</span>: <span class="math display">\[
+MSE_{Tr} = Ave_{i \in Tr}[y_i - \hat{f}(x_i)]^2.
+\]</span> This may be biased toward more overfit models. Instead we should, if possible, compute it using fresh <strong>test data</strong> <span class="math inline">\(Te== \{x_i, y_i \}^N_1\)</span>: <span class="math display">\[
+MSE_{Te} = Ave_{i \in Te}[y_i - \hat{f}(x_i)]^2.
+\]</span> The red curve, which illustrated the test error, can be estimated by holding out some data to get the test-data set.</p>
+<section id="bias-variance-trade-off" class="level4" data-number="16.5.4.1">
+<h4 data-number="16.5.4.1" class="anchored" data-anchor-id="bias-variance-trade-off"><span class="header-section-number">16.5.4.1</span> Bias-Variance Trade-off</h4>
+<p>Suppose we have fit a model <span class="math inline">\(f(x)\)</span> to some training data <span class="math inline">\(Tr\)</span>, and let <span class="math inline">\((x_0, y_0)\)</span> be a test observation drawn from the population. If the true model is <span class="math display">\[
+Y = f(X) + \epsilon  \qquad \text{ with } f(x) = E(Y|X=x),
+\]</span> then <span id="eq-biasvariance"><span class="math display">\[
+E \left( y_0 - \hat{f}(x_0) \right)^2 = \text{var} (\hat{f}(x_0)) + [Bias(\hat{f}(x_0))]^2 + \text{var}(\epsilon).
+\tag{16.2}\]</span></span></p>
+<p>Here, <span class="math inline">\(\text{var}(\epsilon)\)</span> is the irreducible error. The reducible error consists of two components:</p>
+<ul>
+<li><span class="math inline">\(\text{var} (\hat{f}(x_0))\)</span> is the variance that comes from different training sets. Different training sets result in different functions <span class="math inline">\(\hat{f}\)</span>.</li>
+<li><span class="math inline">\(Bias(\hat{f}(x_0)) = E[\hat{f}(x_0)] - f(x_0)\)</span>.</li>
+</ul>
+<p>The expectation averages over the variability of <span class="math inline">\(y_0\)</span> as well as the variability in <span class="math inline">\(Tr\)</span>. Note that <span class="math display">\[
+Bias(\hat{f}(x_0)) = E[\hat{f}(x_0)] - f(x_0).
+\]</span> Typically as the flexibility of <span class="math inline">\(\hat{f}\)</span> increases, its variance increases (because the fits differ from training set to trainig set), and its bias decreases. So choosing the flexibility based on average test error amounts to a bias-variance trade-off, see <a href="#fig-0212" class="quarto-xref">Figure&nbsp;<span>16.17</span></a>.</p>
+<div id="fig-0212" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0212-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0212.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0212-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.17: Bias-variance trade-off for the three examples. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>If we add the two components (reducible and irreducible error), we get the MSE in <a href="#fig-0212" class="quarto-xref">Figure&nbsp;<span>16.17</span></a> as can be seen in <a href="#eq-biasvariance" class="quarto-xref">Equation&nbsp;<span>16.2</span></a>.</p>
+</section>
+</section>
+<section id="classification-problems-and-k-nearest-neighbors" class="level3" data-number="16.5.5">
+<h3 data-number="16.5.5" class="anchored" data-anchor-id="classification-problems-and-k-nearest-neighbors"><span class="header-section-number">16.5.5</span> Classification Problems and K-Nearest Neighbors</h3>
+<p>In classification we have a qualitative response variable.</p>
+<div id="fig-0218a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0218a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0218a.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0218a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.18: Classification. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p>Here the response variable <span class="math inline">\(Y\)</span> is qualitative, e.g., email is one of <span class="math inline">\(\cal{C} = (spam, ham)\)</span>, where ham is good email, digit class is one of <span class="math inline">\(\cal{C} = \{ 0, 1, \ldots, 9 \}\)</span>. Our goals are to:</p>
+<ul>
+<li>Build a classifier <span class="math inline">\(C(X)\)</span> that assigns a class label from <span class="math inline">\(\cal{C}\)</span> to a future unlabeled observation <span class="math inline">\(X\)</span>.</li>
+<li>Assess the uncertainty in each classification</li>
+<li>Understand the roles of the different predictors among <span class="math inline">\(X = (X_1,X_2, \ldots, X_p)\)</span>.</li>
+</ul>
+<p>Simulation example depicted in@fig-0218a. <span class="math inline">\(Y\)</span> takes two values, zero and one, and <span class="math inline">\(X\)</span> has only one value. Big sample: each single vertical bar indicates an occurrance of a zero (orange) or one (blue) as a function of the <span class="math inline">\(X\)</span>s. Black curve generated the data: it is the probability of generating a one. For high values of <span class="math inline">\(X\)</span>, the probability of ones is increasing. What is an ideal classifier <span class="math inline">\(C(X)\)</span>?</p>
+<p>Suppose the <span class="math inline">\(K\)</span> elements in <span class="math inline">\(\cal{C}\)</span> are numbered <span class="math inline">\(1,2,\ldots, K\)</span>. Let <span class="math display">\[
+p_k(x) = Pr(Y = k|X = x), k = 1,2,\ldots,K.
+\]</span></p>
+<p>These are the <strong>conditional class probabilities</strong> at <span class="math inline">\(x\)</span>; e.g.&nbsp;see little barplot at <span class="math inline">\(x = 5\)</span>. Then the <strong>Bayes optimal classifier</strong> at <span class="math inline">\(x\)</span> is <span class="math display">\[
+C(x) = j \qquad \text{ if }  p_j(x) = \max \{p_1(x),p_2(x),\ldots, p_K(x)\}.
+\]</span> At <span class="math inline">\(x=5\)</span> there is an 80% probability of one, and an 20% probability of a zero. So, we classify this point to the class with the highest probability, the majority class.</p>
+<p>Nearest-neighbor averaging can be used as before. This is illustrated in Fig.~<span class="math inline">\(\ref{fig:0219a}\)</span>. Here, we consider 100 points only. Nearest-neighbor averaging also breaks down as dimension grows. However, the impact on <span class="math inline">\(\hat{C}(x)\)</span> is less than on <span class="math inline">\(\hat{p}_k (x)\)</span>, <span class="math inline">\(k = 1, \ldots, K\)</span>.</p>
+<div id="fig-0219a" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0219a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0219a.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0219a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.19: Classification. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<section id="classification-some-details" class="level4" data-number="16.5.5.1">
+<h4 data-number="16.5.5.1" class="anchored" data-anchor-id="classification-some-details"><span class="header-section-number">16.5.5.1</span> Classification: Some Details</h4>
+<p>Average number of errors made to measure the performance. Typically we measure the performance of <span class="math inline">\(\hat{C}(x)\)</span> using the <strong>misclassification error rate</strong>: <span class="math display">\[
+Err_{Te} = Ave_{i\in Te} I[y_i \neq \hat{C} (x_i) ].
+\]</span> The Bayes classifier (using the true <span class="math inline">\(p_k(x)\)</span>) has smallest error (in the population).</p>
+</section>
+</section>
+<section id="k-nearest-neighbor-classification" class="level3" data-number="16.5.6">
+<h3 data-number="16.5.6" class="anchored" data-anchor-id="k-nearest-neighbor-classification"><span class="header-section-number">16.5.6</span> k-Nearest Neighbor Classification</h3>
+<p>Consider k-nearest neighbors in two dimensions. Orange and blue dots label the true class memberships of the underlying points in the 2-dim plane. Dotted line is the decision boundary, that is the contour with equal probability for both classes.</p>
+<p>Nearest-neighbor averaging in 2-dim. At any given point we want to classify, we spread out a little neighborhood, say <span class="math inline">\(K=10\)</span> points from the neighborhood and calulated the percentage of blue and orange. We assign the color with the highest probability to this point. If this is done for every point in the plane, we obtain the solid black curve as the esitmated decsion boundary.</p>
+<p>We can use <span class="math inline">\(K=1\)</span>. This is the <strong>nearest-neighbor classifier</strong>. The decision boundary is piecewise linear. Islands occur. Approximation is rather noisy.</p>
+<p><span class="math inline">\(K=100\)</span> leads to a smooth decision boundary. But gets uninteresting.</p>
+<div id="fig-0213" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0213-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0213.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0213-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.20: K-nearest neighbors in two dimensions. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0215" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0215-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0215.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0215-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.21: K-nearest neighbors in two dimensions. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<div id="fig-0216" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0216-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0216.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0216-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.22: K-nearest neighbors in two dimensions. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+<p><span class="math inline">\(K\)</span> large means higher bias, so <span class="math inline">\(1/K\)</span> is chosen, because we go from low to high complexity on the <span class="math inline">\(x\)</span>-error, see <a href="#fig-0217" class="quarto-xref">Figure&nbsp;<span>16.23</span></a>. Horizontal dotted line is the base error.</p>
+<div id="fig-0217" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-0217-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/0217.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-0217-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.23: K-nearest neighbors classification error. Taken from <span class="citation" data-cites="Jame14a">James et al. (<a href="references.html#ref-Jame14a" role="doc-biblioref">2014</a>)</span>
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="minkowski-distance" class="level3 {def-minkowski-distance}" data-number="16.5.7">
+<h3 data-number="16.5.7" class="anchored" data-anchor-id="minkowski-distance"><span class="header-section-number">16.5.7</span> Minkowski Distance</h3>
+<p>The Minkowski distance of order <span class="math inline">\(p\)</span> (where <span class="math inline">\(p\)</span> is an integer) between two points <span class="math inline">\(X=(x_1,x_2,\ldots,x_n)\text{ and }Y=(y_1,y_2,\ldots,y_n) \in \mathbb{R}^n\)</span> is defined as: <span class="math display">\[
+D \left( X,Y \right) = \left( \sum_{i=1}^n |x_i-y_i|^p \right)^\frac{1}{p}.
+\]</span></p>
+</section>
+<section id="unsuperivsed-learning-classification" class="level3" data-number="16.5.8">
+<h3 data-number="16.5.8" class="anchored" data-anchor-id="unsuperivsed-learning-classification"><span class="header-section-number">16.5.8</span> Unsuperivsed Learning: Classification</h3>
+<section id="k-means-algorithm" class="level4" data-number="16.5.8.1">
+<h4 data-number="16.5.8.1" class="anchored" data-anchor-id="k-means-algorithm"><span class="header-section-number">16.5.8.1</span> k-Means Algorithm</h4>
+<p>The <span class="math inline">\(k\)</span>-means algorithm is an unsupervised learning algorithm that has a loose relationship to the <span class="math inline">\(k\)</span>-nearest neighbor classifier. The <span class="math inline">\(k\)</span>-means algorithm works as follows:</p>
+<ul>
+<li>Step 1: Randomly choose <span class="math inline">\(k\)</span> centers. Assign points to cluster.</li>
+<li>Step 2: Determine the distances of each data point to the centroids and re-assign each point to the closest cluster centroid based upon minimum distance</li>
+<li>Step 3: Calculate cluster centroids again</li>
+<li>Step 4: Repeat steps 2 and 3 until we reach global optima where no improvements are possible and no switching of data points from one cluster to other.</li>
+</ul>
+<p>The basic principle of the <span class="math inline">\(k\)</span>-means algorithm is illustrated in <a href="#fig-kmeans1" class="quarto-xref">Figure&nbsp;<span>16.24</span></a>, <a href="#fig-kmeans2" class="quarto-xref">Figure&nbsp;<span>16.25</span></a>, <a href="#fig-kmeans3" class="quarto-xref">Figure&nbsp;<span>16.26</span></a>, and <a href="#fig-kmeans4" class="quarto-xref">Figure&nbsp;<span>16.27</span></a>.</p>
+<div id="fig-kmeans1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kmeans1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/kmeans1.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kmeans1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.24: k-means algorithm. Step 1. Randomly choose <span class="math inline">\(k\)</span> centers. Assign points to cluster. <span class="math inline">\(k\)</span> initial means(in this case <span class="math inline">\(k=3\)</span>) are randomly generated within the data domain (shown in color). Attribution: I, Weston.pace, CC BY-SA 3.0 <a href="http://creativecommons.org/licenses/by-sa/3.0/" class="uri">http://creativecommons.org/licenses/by-sa/3.0/</a>, via Wikimedia Commons
+</figcaption>
+</figure>
+</div>
+<div id="fig-kmeans2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kmeans2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/kmeans2.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kmeans2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.25: k-means algorithm. Step 2. <span class="math inline">\(k\)</span> clusters are created by associating every observation with the nearest mean. The partitions here represent the Voronoi diagram generated by the means. Attribution: I, Weston.pace, CC BY-SA 3.0 <a href="http://creativecommons.org/licenses/by-sa/3.0/" class="uri">http://creativecommons.org/licenses/by-sa/3.0/</a>, via Wikimedia Commons
+</figcaption>
+</figure>
+</div>
+<div id="fig-kmeans3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kmeans3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/kmeans3.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kmeans3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.26: k-means algorithm. Step 3. The centroid of each of the <span class="math inline">\(k\)</span> clusters becomes the new mean. Attribution: I, Weston.pace, CC BY-SA 3.0 <a href="http://creativecommons.org/licenses/by-sa/3.0/" class="uri">http://creativecommons.org/licenses/by-sa/3.0/</a>, via Wikimedia Commons
+</figcaption>
+</figure>
+</div>
+<div id="fig-kmeans4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kmeans4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./figures_static/kmeans4.png" class="img-fluid figure-img" style="width:70.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kmeans4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.27: k-means algorithm. Step 4. Steps 2 and 3 are repeated until convergence has been reached. Attribution: I, Weston.pace, CC BY-SA 3.0 <a href="http://creativecommons.org/licenses/by-sa/3.0/" class="uri">http://creativecommons.org/licenses/by-sa/3.0/</a>, via Wikimedia Commons
+</figcaption>
+</figure>
+</div>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-chol18b" class="csl-entry" role="listitem">
+Chollet, Francoise, and J. J. Allaire. 2018. <em>Deep Learning with Python</em>. Manning.
+</div>
+<div id="ref-Jame14a" class="csl-entry" role="listitem">
+James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2014. <em><span class="nocase">An Introduction to Statistical Learning with Applications in R</span></em>. 7th ed. Springer.
+</div>
+</div>
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./015_num_spot_correlation_p.html" class="pagination-link" aria-label="Kriging with Varying Correlation-p">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./016_spot_hpt_sklearn.html" class="pagination-link" aria-label="HPT: sklearn">
+        <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">HPT: sklearn</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
