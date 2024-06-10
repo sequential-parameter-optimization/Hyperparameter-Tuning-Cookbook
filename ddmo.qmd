@@ -177,6 +177,14 @@ Key Points:
 
 ### Probability Distributions
 
+What happens when we use smaller bins in a histogram? The histogram becomes more detailed, revealing the distribution of data points with greater precision. However, as the bin size decreases, the number of data points within each bin may decrease, leading to sparse or empty bins. This sparsity can make it challenging to estimate probabilities accurately, especially for data points that fall within these empty bins.
+
+Advantages, when using a probability distribution, include:
+
+  * Blanks can be filled
+  * Probabilities can be calculated
+  * Parameters are sufficiemnt to describe the distribution, e.g., mean and variance for the normal distribution
+
 Probability distributions offer a powerful solution to the challenges posed by limited data in estimating probabilities. When data is scarce, constructing a histogram to determine the probability of certain outcomes can lead to inaccurate or unreliable results due to the lack of detail in the dataset. However, collecting vast amounts of data to populate a histogram for more precise estimates can often be impractical, time-consuming, and expensive.
 
 A probability distribution is a mathematical function that provides the probabilities of occurrence of different possible outcomes for an experiment. It is a more efficient approach to understanding the likelihood of various outcomes than relying solely on extensive data collection. For continuous data, this is often represented graphically by a smooth curve.
@@ -185,38 +193,33 @@ A probability distribution is a mathematical function that provides the probabil
 
 A commonly encountered probability distribution is the normal distribution, known for its characteristic bell-shaped curve. This curve represents how the values of a variable are distributed: most of the observations cluster around the mean (or center) of the distribution, with frequencies gradually decreasing as values move away from the mean.
 
-The normal distribution is particularly useful because of its defined mathematical properties. It is determined entirely by its mean (mu, μ) and its standard deviation (sigma, $\sigma$). The area under the curve represents probability, making it possible to calculate the likelihood of a random variable falling within a specific range.
+The normal distribution is particularly useful because of its defined mathematical properties. It is determined entirely by its mean (mu, $\mu$) and its standard deviation (sigma, $\sigma$). The area under the curve represents probability, making it possible to calculate the likelihood of a random variable falling within a specific range.
 
 #### Practical Example: Estimating Probabilities
 
 Consider we are interested in the heights of adults in a population. Instead of measuring the height of every adult (which would be impractical), we can use the normal distribution to estimate the probability of adults' heights falling within certain intervals, assuming we know the mean and standard deviation of the heights.
 
 ```{python}
+#| label: fig-normal-distribution
+#| fig-cap: "Normal Distribution Curve with Highlighted Probability Area. 95 percent of the data falls within two standard deviations of the mean."
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-
-# Parameters for the normal distribution: mean and standard deviation
-mean = 170  # e.g., mean height of adults in cm
-std_dev = 10  # e.g., standard deviation of heights in cm
-
-# Create a range of height values
-heights = np.linspace(mean - 3*std_dev, mean + 3*std_dev, 1000)
-
+mu = 170  # e.g., mu height of adults in cm
+sd = 10  # e.g., standard deviation of heights in cm
+heights = np.linspace(mu - 3*sd, mu + 3*sd, 1000)
 # Calculate the probability density function for the normal distribution
-pdf = norm.pdf(heights, mean, std_dev)
-
+pdf = norm.pdf(heights, mu, sd)
 # Plot the normal distribution curve
 plt.plot(heights, pdf, color='blue', linewidth=2)
-plt.fill_between(heights, pdf, where=(heights >= 160) & (heights <= 180), color='red', alpha=0.5)
-
-plt.title('Normal Distribution of Adult Heights')
+plt.fill_between(heights, pdf, where=(heights >= mu - 2 * sd) & (heights <= mu + 2*sd), color='grey', alpha=0.5)
 plt.xlabel('Height (cm)')
 plt.ylabel('Probability Density')
 plt.show()
 ```
 
-This Python code snippet generates a plot of the normal distribution for adult heights, with a mean of 170 cm and a standard deviation of 10 cm. It visually approximates a histogram with a blue bell-shaped curve, and highlights (in red) the area under the curve between 160 cm and 180 cm. This area corresponds to the probability of randomly selecting an individual whose height falls within this range. 
+This Python code snippet generates a plot of the normal distribution for adult heights, with a mean of 170 cm and a standard deviation of 10 cm. It visually approximates a histogram with a blue bell-shaped curve, and highlights (in grey) the area under the curve between $\mu \pm 2 \times \sigma$.
+This area corresponds to the probability of randomly selecting an individual whose height falls within this range. 
 
 By using the area under the curve, we can efficiently estimate probabilities without needing to collect and analyze a vast amount of data. This method not only saves time and resources but also provides a clear and intuitive way to understand and communicate statistical probabilities.
 
@@ -229,15 +232,12 @@ A more efficient approach, especially for discrete data, is to use mathematical 
 
 #### Bernoulli Distribution
 
-The Bernoulli distribution, named after Swiss scientist Jacob Bernoulli, 
-is a discrete probability distribution, which takes value $1$ with success 
-probability $p$ and value $0$ with failure probability $q = 1-p$. So if $X$ 
-is a random variable with this distribution, we have:
+The Bernoulli distribution, named after Swiss scientist Jacob Bernoulli, is a discrete probability distribution, which takes value $1$ with success probability $p$ and value $0$ with failure probability $q = 1-p$. So if $X$ is a random variable with this distribution, we have:
 $$
 P(X=1) = 1-P(X=0) = p = 1-q.
 $$
 
-
+#### Binomial Distribution
 
 The Binomial Distribution is a prime example of a discrete probability distribution that is particularly useful for binary outcomes (e.g., success/failure, yes/no, pumpkin pie/blueberry pie). It leverages simple mathematical principles to calculate the probability of observing a specific number of successes (preferred outcomes) in a fixed number of trials, given the probability of success in each trial.
 
@@ -250,24 +250,19 @@ We will use Python to calculate the probability of observing exactly two out of 
 
 ```{python}
 from scipy.stats import binom
-
-# Parameters
 n = 3  # Number of trials (people asked)
 p = 0.7  # Probability of success (preferring pumpkin pie)
 x = 2  # Number of successes (people preferring pumpkin pie)
-
 # Probability calculation using Binomial Distribution
 prob = binom.pmf(x, n, p)
-
 print(f"The probability that exactly 2 out of 3 people prefer pumpkin pie is: {prob:.3f}")
 ```
 
-This code uses the `binom.pmf()` function from `scipy.stats` to calculate the probability mass function (PMF) of observing exactly `x` successes in `n` trials, where each trial has a success probability of `p`. 
+This code uses the `binom.pmf()` function from `scipy.stats` to calculate the probability mass function (PMF) of observing exactly `x` successes in `n` trials, where each trial has a success probability of `p`.
 
-A \emph{Binomial} r.v.~is the sum of $n$ i.i.d. Bernoulli r.v.s.
+A Binomial random variable is the sum of $n$ independent, identically distributed Bernoulli random variables, each with probability $p$ of success. 
 We may indicate a random variable $X$ with Bernoulli distribution using the notation $X \sim \mathrm{Bi}(1,\theta)$. Then, the notation for the Binomial is
-$X \sim \mathrm{Bi}(n,\theta)$. Its probability and distribution functions are,
-respectively,
+$X \sim \mathrm{Bi}(n,\theta)$. Its probability and distribution functions are, respectively,
 $$
 p_X(x) = {n\choose x}\theta^x(1-\theta)^{n-x}, \qquad F_X(x) = \Pr\{X \le x\} = \sum_{i=0}^{x} {n\choose i}\theta^i(1-\theta)^{n-i}.
 $$
@@ -275,25 +270,19 @@ $$
 The mean of the binomial distribution is $\text{E}[X] = n\theta$. 
 The variance of the distribution is $\text{Var}[X] = n\theta(1-\theta)$ (see next section).
 
-A process consists of a sequence of $n$ independent trials, i.e.,
-the outcome of each trial does not depend on the outcome of previous trials.
-The outcome of each trial is either a success or a failure.
-The probability of success is denoted as $p$, and $p$ is constant for
-each trial.
-Coin tossing is a classical example for this setting.
+A process consists of a sequence of $n$ independent trials, i.e., the outcome of each trial does not depend on the outcome of previous trials.
+The outcome of each trial is either a success or a failure. The probability of success is denoted as $p$, and $p$ is constant for
+each trial. Coin tossing is a classical example for this setting.
 
-The binomial distribution is a statistical distribution giving the probability 
-of obtaining a specified number of successes in a binomial experiment; 
-written Binomial(n, p), where $n$ is the number of trials, and $p$ the 
-probability of success in each.
+The binomial distribution is a statistical distribution giving the probability of obtaining a specified number of successes in a binomial experiment;
+written Binomial(n, p), where $n$ is the number of trials, and $p$ the probability of success in each.
 
 ::: {#def-binom}
 
 #### Binomial Distribution
 
-The binomial distribution with parameters $n$ and $p$, 
-where $n$ is the number of trials, and $p$ the 
-probability of success in each, is
+The binomial distribution with parameters $n$ and $p$,
+where $n$ is the number of trials, and $p$ the probability of success in each, is
 \begin{equation}
 p(x) = { n \choose k } p^x(1-p)^{n-x} \qquad x = 0,1, \ldots, n.
 \end{equation}
@@ -314,10 +303,9 @@ Note, the Bernoulli distribution is simply Binomial(1,p).
 Our considerations regarding probability distributions, expectations, and standard deviations will be extended from discrete distributions to  continuous distributions. One simple example of a continuous distribution is the uniform distribution. Continuous distributions are defined by probability
  density functions.
 
-### Distribution functions: PDFs and CDFs 
+### Distribution functions: PDFs and CDFs
 
-The density for a continuous distribution is a measure of the relative probability of "getting a value close to $x$."
- 
+The density for a continuous distribution is a measure of the relative probability of "getting a value close to $x$." 
 Probability density functions $f$ and cumulative distribution function $F$  are related as follows.
 \begin{equation}
 f(x) = \frac{d}{dx} F(x)
@@ -431,7 +419,7 @@ $x$ are usually denoted by the symbols $\phi(x)$ and $\Phi(x)$.
 The standard normal distribution is based on the 
 \emph{standard normal density function}
 $$
- \text{Var}phi(z) = \frac{1}{\sqrt{2\pi}} \exp \left(- \frac{z^2}{2} \right).
+ \varphi(z) = \frac{1}{\sqrt{2\pi}} \exp \left(- \frac{z^2}{2} \right).
 $$ {#eq-standardization}
 
 An important application of the standardization introduced in @eq-standardization reads as follows.
@@ -468,14 +456,9 @@ If $Z \sim \cal{N}(0,1)$ and $X\sim \cal{N}(\mu, \sigma^2)$, then
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-
-# Generating a sequence of numbers from -4 to 4 with 0.1 intervals
 x = np.arange(-4, 4, 0.1)
-
 # Calculating the normal distribution's density function values for each point in x
 y = norm.pdf(x, 0, 1)
-
-# Plotting the results, where 'type="l"' in R corresponds to a line plot in Python
 plt.plot(x, y, linestyle='-', linewidth=2)
 plt.title('Normal Distribution')
 plt.xlabel('X')
@@ -488,9 +471,11 @@ plt.show()
 The \emph{cumulative distribution function} (CDF) describes the probability
 of "hitting" $x$ or less in a given distribution.
 We consider the CDF function of the normal distribution. It can be plotted using the following commands.
-The result is shown in @fig-
+The result is shown in @fig-normal-cdf.
 
 ```{python}
+#| label: fig-normal-cdf
+#| fig-cap: "Normal Distribution Cumulative Distribution Function"
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
