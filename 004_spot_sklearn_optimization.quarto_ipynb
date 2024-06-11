@@ -1,0 +1,401 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Sequential Parameter Optimization: Using `scipy` Optimizers {#sec-scipy-optimizers}\n",
+        "\n",
+        "As a default optimizer, `spotPython` uses `differential_evolution` from the `scipy.optimize` package. Alternatively, any other optimizer from the `scipy.optimize` package can be used. This chapter describes how different optimizers from the `scipy optimize` package can be used on the surrogate.\n",
+        "The optimization algorithms are available from [https://docs.scipy.org/doc/scipy/reference/optimize.html](https://docs.scipy.org/doc/scipy/reference/optimize.html)\n"
+      ],
+      "id": "80c47ed0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from scipy.optimize import shgo\n",
+        "from scipy.optimize import direct\n",
+        "from scipy.optimize import differential_evolution\n",
+        "from scipy.optimize import dual_annealing\n",
+        "from scipy.optimize import basinhopping\n",
+        "from spotPython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init"
+      ],
+      "id": "0ab6228b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The Objective Function Branin\n",
+        "\n",
+        "The `spotPython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula. Here we will use the Branin function. The 2-dim Branin function is\n",
+        "\n",
+        "    $$y = a * (x2 - b * x1**2 + c * x1 - r) ** 2 + s * (1 - t) * cos(x1) + s,$$ \n",
+        "    where values of a, b, c, r, s and t are: \n",
+        "    $a = 1, b = 5.1 / (4*pi**2), c = 5 / pi, r = 6, s = 10$ and $t = 1 / (8*pi)$.\n",
+        "\n",
+        "* It has three global minima:\n",
+        "    \n",
+        "    $f(x) = 0.397887$ at $(-\\pi, 12.275)$, $(\\pi, 2.275)$, and $(9.42478, 2.475)$.\n",
+        "\n",
+        "* Input Domain: This function is usually evaluated on the square  x1 in  [-5, 10] x x2 in [0, 15].\n"
+      ],
+      "id": "c0640237"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "lower = np.array([-5,-0])\n",
+        "upper = np.array([10,15])\n",
+        "fun = analytical(seed=123).fun_branin"
+      ],
+      "id": "8795772e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The Optimizer\n",
+        "\n",
+        "Differential Evolution (DE) from the `scikit.optimize` package, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution) is the default optimizer for the search on the surrogate.\n",
+        "Other optimiers that are available in `spotPython`, see [https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization](https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization).\n",
+        "\n",
+        "  * `dual_annealing`\n",
+        "  *  `direct`\n",
+        "  * `shgo`\n",
+        "  * `basinhopping`\n",
+        "\n",
+        "These optimizers can be selected as follows:\n",
+        "\n",
+        "  `surrogate_control = \"model_optimizer\": differential_evolution`\n",
+        "\n",
+        "As noted above, we will use `differential_evolution`. The optimizer can use `1000` evaluations. This value will be passed to the `differential_evolution` method, which has the argument `maxiter` (int). It defines the maximum number of generations over which the entire differential evolution population is evolved, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution)\n",
+        "\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### TensorBoard\n",
+        "\n",
+        "Similar to the one-dimensional case, which is discussed in @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use a similar code, only the prefix is different:\n"
+      ],
+      "id": "1a2a3ba9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control=fun_control_init(\n",
+        "                    lower = lower,\n",
+        "                    upper = upper,\n",
+        "                    fun_evals = 20,\n",
+        "                    PREFIX = \"04_DE_\"\n",
+        "                    )\n",
+        "surrogate_control=surrogate_control_init(\n",
+        "                    n_theta=len(lower))"
+      ],
+      "id": "663d0212",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n"
+      ],
+      "id": "eeb35288"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_de = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_de.run()"
+      ],
+      "id": "f2601094",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### TensorBoard\n",
+        "\n",
+        "If the `prefix` argument in `fun_control_init()`is not `None` (as above, where the `prefix` was set to `04_DE_`) , we can start TensorBoard in the background with the following command:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "We can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "\n",
+        "The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\\theta$ of the Kriging surrogate is plotted against the number of optimization steps.\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/05_tensorboard_01.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "## Print the Results\n"
+      ],
+      "id": "6e468903"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_de.print_results()"
+      ],
+      "id": "bd1d8b9e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Show the Progress\n"
+      ],
+      "id": "2854d4c5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_de.plot_progress(log_y=True)"
+      ],
+      "id": "de237055",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_de.surrogate.plot()"
+      ],
+      "id": "1d03374f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exercises\n",
+        "\n",
+        "\n",
+        "### `dual_annealing`\n",
+        "\n",
+        "* Describe the optimization algorithm, see [scipy.optimize.dual_annealing](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html).\n",
+        "* Use the algorithm as an optimizer on the surrogate.\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "##### Tip: Selecting the Optimizer for the Surrogate\n",
+        "\n",
+        "We can run spotPython with the `dual_annealing` optimizer as follows:\n"
+      ],
+      "id": "0f81f400"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_da = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    optimizer=dual_annealing,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_da.run()\n",
+        "spot_da.print_results()\n",
+        "spot_da.plot_progress(log_y=True)\n",
+        "spot_da.surrogate.plot()"
+      ],
+      "id": "b5ef51de",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "\n",
+        "### `direct`\n",
+        "\n",
+        "* Describe the optimization algorithm\n",
+        "* Use the algorithm as an optimizer on the surrogate\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "##### Tip: Selecting the Optimizer for the Surrogate\n",
+        "\n",
+        "We can run spotPython with the `direct` optimizer as follows:\n"
+      ],
+      "id": "d3f55c26"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_di = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    optimizer=direct,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_di.run()\n",
+        "spot_di.print_results()\n",
+        "spot_di.plot_progress(log_y=True)\n",
+        "spot_di.surrogate.plot()"
+      ],
+      "id": "cd7183be",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "### `shgo`\n",
+        "\n",
+        "* Describe the optimization algorithm\n",
+        "* Use the algorithm as an optimizer on the surrogate\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "##### Tip: Selecting the Optimizer for the Surrogate\n",
+        "\n",
+        "We can run spotPython with the `direct` optimizer as follows:\n"
+      ],
+      "id": "12e11a90"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_sh = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    optimizer=shgo,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_sh.run()\n",
+        "spot_sh.print_results()\n",
+        "spot_sh.plot_progress(log_y=True)\n",
+        "spot_sh.surrogate.plot()"
+      ],
+      "id": "b0476387",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "\n",
+        "\n",
+        "### `basinhopping`\n",
+        "\n",
+        "* Describe the optimization algorithm\n",
+        "* Use the algorithm as an optimizer on the surrogate\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "##### Tip: Selecting the Optimizer for the Surrogate\n",
+        "\n",
+        "We can run spotPython with the `direct` optimizer as follows:\n"
+      ],
+      "id": "c9a3562b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_bh = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    optimizer=basinhopping,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_bh.run()\n",
+        "spot_bh.print_results()\n",
+        "spot_bh.plot_progress(log_y=True)\n",
+        "spot_bh.surrogate.plot()"
+      ],
+      "id": "a32ed270",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "\n",
+        "### Performance Comparison\n",
+        "\n",
+        "Compare the performance and run time of the 5 different optimizers:\n",
+        "\n",
+        "  * `differential_evolution`\n",
+        "  * `dual_annealing`\n",
+        "  *  `direct`\n",
+        "  * `shgo`\n",
+        "  * `basinhopping`.\n",
+        "\n",
+        "The Branin function has three global minima:\n",
+        "\n",
+        "* $f(x) = 0.397887$  at \n",
+        "  * $(-\\pi, 12.275)$, \n",
+        "  * $(\\pi, 2.275)$, and \n",
+        "  * $(9.42478, 2.475)$.    \n",
+        "* Which optima are found by the optimizers?\n",
+        "* Does the `seed` argument in `fun = analytical(seed=123).fun_branin` change this behavior?\n",
+        "\n",
+        "## Jupyter Notebook\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "\n",
+        "* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/004_spot_sklearn_optimization.ipynb)\n",
+        "\n",
+        ":::"
+      ],
+      "id": "50b65dd2"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

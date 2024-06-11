@@ -1,0 +1,693 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "  keep-ipynb: true\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Multi-dimensional Functions {#sec-multi-dim}\n",
+        "\n",
+        "\n",
+        "This chapter illustrates how high-dimensional functions can be optimized and analyzed.\n",
+        "\n",
+        "## Example: `Spot` and the 3-dim Sphere Function\n"
+      ],
+      "id": "a0eb0420"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.utils.init import fun_control_init, surrogate_control_init\n",
+        "from spotPython.spot import spot"
+      ],
+      "id": "e1fa41b3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Objective Function: 3-dim Sphere\n",
+        "\n",
+        "The `spotPython` package provides several classes of objective functions.\n",
+        "We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:\n",
+        "$$\n",
+        "f(x) = \\sum_i^k x_i^2.\n",
+        "$$ \n",
+        "   \n",
+        "It is avaliable as `fun_sphere` in the `analytical` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py).\n"
+      ],
+      "id": "c92445b1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_sphere"
+      ],
+      "id": "78fcfdb2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we will use problem dimension $k=3$, which can be specified by the `lower` bound arrays.\n",
+        "The size of the `lower` bound array determines the problem dimension. If we select `-1.0 * np.ones(3)`, a three-dimensional function is created.\n",
+        "In contrast to the one-dimensional case (@sec-visualizing-tensorboard-01), where only one `theta` value was used, we will use three different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.\n",
+        "The prefix is set to `\"03\"` to distinguish the results from the one-dimensional case.\n",
+        "Again, TensorBoard can be used to monitor the progress of the optimization.\n",
+        "\n",
+        "We can also add interpreable labels to the dimensions, which will be used in the plots. Therefore, we set `var_name=[\"Pressure\", \"Temp\", \"Lambda\"]` instead of the default `var_name=None`, which would result in the labels `x_0`, `x_1`, and `x_2`.\n"
+      ],
+      "id": "69a820cd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(\n",
+        "              PREFIX=\"03\",\n",
+        "              lower = -1.0*np.ones(3),\n",
+        "              upper = np.ones(3),\n",
+        "              var_name=[\"Pressure\", \"Temp\", \"Lambda\"],\n",
+        "              show_progress=True)\n",
+        "surrogate_control = surrogate_control_init(n_theta=3)\n",
+        "spot_3 = spot.Spot(fun=fun,\n",
+        "                  fun_control=fun_control,\n",
+        "                  surrogate_control=surrogate_control)\n",
+        "spot_3.run()"
+      ],
+      "id": "e4c598d5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "Now we can start TensorBoard in the background with the following command:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "and can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "::: \n",
+        "\n",
+        "### Results\n"
+      ],
+      "id": "8ada5bae"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "_ = spot_3.print_results()"
+      ],
+      "id": "f8539cd2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_3.plot_progress()"
+      ],
+      "id": "47b670a3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### A Contour Plot\n",
+        "\n",
+        "We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "#### Note: \n",
+        "\n",
+        "We have specified identical `min_z` and `max_z` values to generate comparable plots.\n",
+        "\n",
+        ":::\n"
+      ],
+      "id": "0025fb60"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_3.plot_contour(i=0, j=1, min_z=0, max_z=2.25)"
+      ],
+      "id": "84308543",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* In a similar manner, we can plot dimension $i=0$ and $j=2$:\n"
+      ],
+      "id": "c71b4806"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_3.plot_contour(i=0, j=2, min_z=0, max_z=2.25)"
+      ],
+      "id": "97011b22",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The final combination is $i=1$ and $j=2$:\n"
+      ],
+      "id": "3f054edd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_3.plot_contour(i=1, j=2, min_z=0, max_z=2.25)"
+      ],
+      "id": "ef54caf5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The three plots look very similar, because the `fun_sphere` is symmetric.\n",
+        "* This can also be seen from the variable importance:\n"
+      ],
+      "id": "521d6d41"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "_ = spot_3.print_importance()"
+      ],
+      "id": "84a2797b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_3.plot_importance()"
+      ],
+      "id": "a383c059",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### TensorBoard\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython process. Objective function values plotted against wall time.](figures_static/02_tensorboard_01.png)\n",
+        "\n",
+        "The second TensorBoard visualization shows the input values, i.e., $x_0, \\ldots, x_2$, plotted against the wall time.\n",
+        "![TensorBoard visualization of the spotPython process.](figures_static/02_tensorboard_02.png)\n",
+        "\n",
+        "The third TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\\theta$ of the Kriging surrogate is plotted against the number of optimization steps.\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython surrogate model.](figures_static/02_tensorboard_03.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "### Conclusion\n",
+        "\n",
+        "Based on this quick analysis, we can conclude that all three dimensions are equally important (as expected, because the analytical function is known).\n",
+        "\n",
+        "## Factorial Variables\n",
+        "\n",
+        "Until now, we have considered continuous variables. However, in many applications, the variables are not continuous, but rather discrete or categorical. For example, the number of layers in a neural network, the number of trees in a random forest, or the type of kernel in a support vector machine are all discrete variables. In the following, we will consider a simple example with two numerical variables and one categorical variable.\n"
+      ],
+      "id": "9a19bef3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "import numpy as np"
+      ],
+      "id": "0b9c8a14",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "First, we generate the test data set for fitting the Kriging model. We use the `spacefilling` class to generate the first two diemnsion of $n=30$ design points.\n",
+        "The third dimension is a categorical variable, which can take the values $0$, $1$, or $2$."
+      ],
+      "id": "2408c376"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "gen = spacefilling(2)\n",
+        "n = 30\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-5,-0])\n",
+        "upper = np.array([10,15])\n",
+        "fun_orig = analytical().fun_branin\n",
+        "fun = analytical().fun_branin_factor\n",
+        "\n",
+        "X0 = gen.scipy_lhd(n, lower=lower, upper = upper)\n",
+        "X1 = np.random.randint(low=0, high=3, size=(n,))\n",
+        "X = np.c_[X0, X1]\n",
+        "print(X[:5,:])"
+      ],
+      "id": "c40d0846",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The objective function is the `fun_branin_factor` in the `analytical` class [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/fun/objectivefunctions/#spotPython.fun.objectivefunctions.analytical.fun_branin_factor).\n",
+        "It calculates the Branin function of $(x_1, x_2)$ with an additional factor based on the value of $x_3$. If $x_3 = 1$, the value of the Branin function is increased by 10. If $x_3 = 2$, the value of the Branin function is decreased by 10. Otherwise, the value of the Branin function is not changed.\n"
+      ],
+      "id": "f45afc11"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y = fun(X)\n",
+        "y_orig = fun_orig(X0)\n",
+        "data = np.c_[X, y_orig, y]\n",
+        "print(data[:5,:])"
+      ],
+      "id": "783da937",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We fit two Kriging models, one with three numerical variables and one with two numerical variables and one categorical variable. We then compare the predictions of the two models.\n"
+      ],
+      "id": "de849fbf"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=3, noise=False, var_type=[\"num\", \"num\", \"num\"])\n",
+        "S.fit(X, y)\n",
+        "Sf = Kriging(name='kriging',  seed=123, log_level=50, n_theta=3, noise=False, var_type=[\"num\", \"num\", \"factor\"])\n",
+        "Sf.fit(X, y)"
+      ],
+      "id": "845e7b24",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can now compare the predictions of the two models. We generate a new test data set and calculate the sum of the absolute differences between the predictions of the two models and the true values of the objective function.\n",
+        "If the categorical variable is important, the sum of the absolute differences should be smaller than if the categorical variable is not important.\n"
+      ],
+      "id": "9ddef622"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "n = 100\n",
+        "k = 100\n",
+        "y_true = np.zeros(n*k)\n",
+        "y_pred= np.zeros(n*k)\n",
+        "y_factor_pred= np.zeros(n*k)\n",
+        "for i in range(k):\n",
+        "  X0 = gen.scipy_lhd(n, lower=lower, upper = upper)\n",
+        "  X1 = np.random.randint(low=0, high=3, size=(n,))\n",
+        "  X = np.c_[X0, X1]\n",
+        "  a = i*n\n",
+        "  b = (i+1)*n\n",
+        "  y_true[a:b] = fun(X)\n",
+        "  y_pred[a:b] = S.predict(X)\n",
+        "  y_factor_pred[a:b] = Sf.predict(X)"
+      ],
+      "id": "061b60ef",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "df = pd.DataFrame({\"y\":y_true, \"Prediction\":y_pred, \"Prediction_factor\":y_factor_pred})\n",
+        "df.head()"
+      ],
+      "id": "ebd12f6f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df.tail()"
+      ],
+      "id": "4b42f842",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "s=np.sum(np.abs(y_pred - y_true))\n",
+        "sf=np.sum(np.abs(y_factor_pred - y_true))\n",
+        "res = (sf - s)\n",
+        "print(res)"
+      ],
+      "id": "60f5b349",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.plot.validation import plot_actual_vs_predicted\n",
+        "plot_actual_vs_predicted(y_test=df[\"y\"], y_pred=df[\"Prediction\"], title=\"Default\")\n",
+        "plot_actual_vs_predicted(y_test=df[\"y\"], y_pred=df[\"Prediction_factor\"], title=\"Factor\")"
+      ],
+      "id": "7afa2a36",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exercises\n",
+        "\n",
+        "\n",
+        "### 1. The Three Dimensional `fun_cubed`\n",
+        "\n",
+        "* The input dimension is `3`. The search range is  $-1 \\leq x \\leq 1$ for all dimensions.\n",
+        "* Generate contour plots\n",
+        "* Calculate the variable importance.\n",
+        "* Discuss the variable importance: \n",
+        "  * Are all variables equally important? \n",
+        "  * If not: \n",
+        "    * Which is the most important variable?\n",
+        "    * Which is the least important variable?\n",
+        "\n",
+        "### 2. The Ten Dimensional `fun_wing_wt`\n",
+        "\n",
+        "* The input dimension is `10`. The search range is  $0 \\leq x \\leq 1$ for all dimensions.\n",
+        "* Calculate the variable importance.\n",
+        "* Discuss the variable importance: \n",
+        "  * Are all variables equally important? \n",
+        "  * If not: \n",
+        "    * Which is the most important variable?\n",
+        "    * Which is the least important variable?\n",
+        "  * Generate contour plots for the three most important variables. Do they confirm your selection?\n",
+        "\n",
+        "### 3. The Three Dimensional `fun_runge`\n",
+        "\n",
+        "* The input dimension is `3`. The search range is  $-5 \\leq x \\leq 5$ for all dimensions.\n",
+        "* Generate contour plots\n",
+        "* Calculate the variable importance.\n",
+        "* Discuss the variable importance: \n",
+        "  * Are all variables equally important? \n",
+        "  * If not: \n",
+        "    * Which is the most important variable?\n",
+        "    * Which is the least important variable?\n",
+        "\n",
+        "### 4. The Three Dimensional `fun_linear`\n",
+        "\n",
+        "* The input dimension is `3`. The search range is  $-5 \\leq x \\leq 5$ for all dimensions.\n",
+        "* Generate contour plots\n",
+        "* Calculate the variable importance.\n",
+        "* Discuss the variable importance: \n",
+        "  * Are all variables equally important? \n",
+        "  * If not: \n",
+        "    * Which is the most important variable?\n",
+        "    * Which is the least important variable?\n",
+        "\n",
+        "### 5. The Two Dimensional Rosenbrock Function `fun_rosen` {#sec-08-exer-rosenbrock}\n",
+        "\n",
+        "* The input dimension is `2`. The search range is  $-5 \\leq x \\leq 10$ for all dimensions.\n",
+        "* See [Rosenbrock function](https://en.wikipedia.org/wiki/Rosenbrock_function) and [Rosenbrock Function](https://www.sfu.ca/~ssurjano/rosen.html) for details.\n",
+        "* Generate contour plots\n",
+        "* Calculate the variable importance.\n",
+        "* Discuss the variable importance: \n",
+        "  * Are all variables equally important? \n",
+        "  * If not: \n",
+        "    * Which is the most important variable?\n",
+        "    * Which is the least important variable?\n",
+        "\n",
+        "\n",
+        "## Selected Solutions\n",
+        "\n",
+        "### Solution to Exercise @sec-08-exer-rosenbrock: The Two-dimensional Rosenbrock Function `fun_rosen`\n"
+      ],
+      "id": "c489a66e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.utils.init import fun_control_init, surrogate_control_init\n",
+        "from spotPython.spot import spot"
+      ],
+      "id": "c132ccac",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### The Objective Function: 2-dim fun_rosen\n",
+        "\n",
+        "The `spotPython` package provides several classes of objective functions.\n",
+        "We will use the `fun_rosen` in the `analytical` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py).\n"
+      ],
+      "id": "3b3d6779"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_rosen = analytical().fun_rosen"
+      ],
+      "id": "a110fc35",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here we will use problem dimension $k=2$, which can be specified by the `lower` bound arrays.\n",
+        "The size of the `lower` bound array determines the problem dimension. If we select `-5.0 * np.ones(2)`, a two-dimensional function is created.\n",
+        "In contrast to the one-dimensional case, where only one `theta` value is used, we will use $k$ different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.\n",
+        "The prefix is set to `\"ROSEN\"`. Again, TensorBoard can be used to monitor the progress of the optimization.\n"
+      ],
+      "id": "49eb8168"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(\n",
+        "              PREFIX=\"ROSEN\",\n",
+        "              lower = -5.0*np.ones(2),\n",
+        "              upper = 10*np.ones(2),\n",
+        "              show_progress=True,\n",
+        "              fun_evals=25)\n",
+        "surrogate_control = surrogate_control_init(n_theta=2)\n",
+        "spot_rosen = spot.Spot(fun=fun_rosen,\n",
+        "                  fun_control=fun_control,\n",
+        "                  surrogate_control=surrogate_control)\n",
+        "spot_rosen.run()"
+      ],
+      "id": "4769a0f0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "Now we can start TensorBoard in the background with the following command:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "and can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "::: \n",
+        "\n",
+        "#### Results\n"
+      ],
+      "id": "9697b1f5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "_ = spot_rosen.print_results()"
+      ],
+      "id": "dcafbb17",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_rosen.plot_progress(log_y=True)"
+      ],
+      "id": "c1506583",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### A Contour Plot\n",
+        "\n",
+        "We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "#### Note: \n",
+        "\n",
+        "For higher dimensions, it might be useful to have identical `min_z` and `max_z` values to generate comparable plots.\n",
+        "The default values are `min_z=None` and `max_z=None`, which will be replaced by the minimum and maximum values of the objective function.\n",
+        ":::\n"
+      ],
+      "id": "d8f77f95"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "min_z = None\n",
+        "max_z = None\n",
+        "spot_rosen.plot_contour(i=0, j=1, min_z=min_z, max_z=max_z)"
+      ],
+      "id": "8f6b17b7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The variable importance can be calculated as follows:\n"
+      ],
+      "id": "fcad7d7a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "_ = spot_rosen.print_importance()"
+      ],
+      "id": "1f15ea29",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_rosen.plot_importance()"
+      ],
+      "id": "a46aac06",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### TensorBoard\n",
+        "\n",
+        "TBD\n",
+        "\n",
+        "## Jupyter Notebook\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "\n",
+        "* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/008_num_spot_multidim.ipynb)\n",
+        "\n",
+        ":::"
+      ],
+      "id": "983ca27a"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

@@ -1,0 +1,808 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# HPT PyTorch Lightning: Data \n",
+        "\n",
+        "In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow. \n",
+        "\n",
+        "This chapter describes the data preparation and processing in `spotPython`. The Diabetes data set is used as an example. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
+        "\n",
+        "\n",
+        "## Setup {#sec-setup-30}\n",
+        "\n",
+        "* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. \n",
+        "* The parameter `WORKERS` specifies the number of workers. \n",
+        "* The prefix `PREFIX` is used for the experiment name and the name of the log file.\n",
+        "* The parameter `DEVICE` specifies the device to use for training.\n"
+      ],
+      "id": "1c8d6018"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import torch\n",
+        "from spotPython.utils.device import getDevice\n",
+        "from math import inf\n",
+        "WORKERS = 0\n",
+        "PREFIX=\"030\"\n",
+        "DEVICE = getDevice()\n",
+        "DEVICES = 1\n",
+        "TEST_SIZE = 0.4"
+      ],
+      "id": "6bc27b00",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Note: Device selection\n",
+        "\n",
+        "* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see \n",
+        "[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. \n",
+        "* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Initialization of the `fun_control` Dictionary\n",
+        "\n",
+        "`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.\n"
+      ],
+      "id": "f366316b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "import numpy as np\n",
+        "fun_control = fun_control_init(\n",
+        "    _L_in=10,\n",
+        "    _L_out=1,\n",
+        "    _torchmetric=\"mean_squared_error\",\n",
+        "    PREFIX=PREFIX,\n",
+        "    device=DEVICE,\n",
+        "    enable_progress_bar=False,\n",
+        "    num_workers=WORKERS,\n",
+        "    show_progress=True,\n",
+        "    test_size=TEST_SIZE,\n",
+        "    )"
+      ],
+      "id": "c1d0d1d4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Loading the Diabetes Data Set\n",
+        "\n",
+        "Here, we load the Diabetes data set from `spotPython`'s `data` module.\n"
+      ],
+      "id": "3a621723"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "print(len(dataset))"
+      ],
+      "id": "ef8a6afd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Data Set and Data Loader\n",
+        "\n",
+        "As shown below, a DataLoader from `torch.utils.data` can be used to check the data.\n"
+      ],
+      "id": "651f848c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Set batch size for DataLoader\n",
+        "batch_size = 5\n",
+        "# Create DataLoader\n",
+        "from torch.utils.data import DataLoader\n",
+        "dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)\n",
+        "\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dataloader:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "7e80bf76",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Preparing Training, Validation, and Test Data\n",
+        "\n",
+        "The following code shows how to split the data into training, validation, and test sets.\n",
+        "Then a Lightning Trainer is used to train (`fit`) the model, validate it, and test it.\n"
+      ],
+      "id": "d3d9f1aa"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from torch.utils.data import DataLoader\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "from spotPython.light.regression.netlightregression import NetLightRegression\n",
+        "from torch import nn\n",
+        "import lightning as L\n",
+        "import torch\n",
+        "BATCH_SIZE = 8\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "train1_set, test_set = torch.utils.data.random_split(dataset, [0.6, 0.4])\n",
+        "train_set, val_set = torch.utils.data.random_split(train1_set, [0.6, 0.4])\n",
+        "train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, drop_last=True, pin_memory=True)\n",
+        "test_loader = DataLoader(test_set, batch_size=BATCH_SIZE)\n",
+        "val_loader = DataLoader(val_set, batch_size=BATCH_SIZE)\n",
+        "batch_x, batch_y = next(iter(train_loader))\n",
+        "print(f\"batch_x.shape: {batch_x.shape}\")\n",
+        "print(f\"batch_y.shape: {batch_y.shape}\")\n",
+        "net_light_base = NetLightRegression(l1=128,\n",
+        "                                    epochs=10,\n",
+        "                                    batch_size=BATCH_SIZE,\n",
+        "                                    initialization='Default',\n",
+        "                                    act_fn=nn.ReLU(),\n",
+        "                                    optimizer='Adam',\n",
+        "                                    dropout_prob=0.1,\n",
+        "                                    lr_mult=0.1,\n",
+        "                                    patience=5,\n",
+        "                                    _L_in=10,\n",
+        "                                    _L_out=1,\n",
+        "                                    _torchmetric=\"mean_squared_error\")\n",
+        "trainer = L.Trainer(max_epochs=10,  enable_progress_bar=False)\n",
+        "trainer.fit(net_light_base, train_loader)\n",
+        "trainer.validate(net_light_base, val_loader)\n",
+        "trainer.test(net_light_base, test_loader)"
+      ],
+      "id": "dc848932",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Dataset for spotPython\n",
+        "\n",
+        "`spotPython` handles the data set, which is added to the `fun_control` dictionary with the key `data_set` as follows: \n"
+      ],
+      "id": "4444a825"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"data_set\",\n",
+        "                        value=dataset,\n",
+        "                        replace=True)\n",
+        "print(len(dataset))"
+      ],
+      "id": "d0eb8afc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "If the data set is in the `fun_control` dictionary, it is used to create a `LightDataModule` object. This object is used to create the data loaders for the training, validation, and test sets.\n",
+        "Therefore, the following information must be provided in the `fun_control` dictionary:\n",
+        "\n",
+        "* `data_set`: the data set\n",
+        "* `batch_size`: the batch size\n",
+        "* `num_workers`: the number of workers\n",
+        "* `test_size`: the size of the test set\n",
+        "* `test_seed`: the seed for the test set\n"
+      ],
+      "id": "30f8dd7f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "import numpy as np\n",
+        "fun_control = fun_control_init(\n",
+        "    data_set=dataset,\n",
+        "    device=\"cpu\",\n",
+        "    enable_progress_bar=False,\n",
+        "    num_workers=0,\n",
+        "    show_progress=True,\n",
+        "    test_size=0.4,\n",
+        "    test_seed=42,    \n",
+        "    )"
+      ],
+      "id": "d2937af9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.lightdatamodule import LightDataModule\n",
+        "dm = LightDataModule(\n",
+        "    dataset=fun_control[\"data_set\"],\n",
+        "    batch_size=8,\n",
+        "    num_workers=fun_control[\"num_workers\"],\n",
+        "    test_size=fun_control[\"test_size\"],\n",
+        "    test_seed=fun_control[\"test_seed\"],\n",
+        ")\n",
+        "dm.setup()\n",
+        "print(f\"train_model(): Test set size: {len(dm.data_test)}\")\n",
+        "print(f\"train_model(): Train set size: {len(dm.data_train)}\")"
+      ],
+      "id": "7be3975c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The LightDataModule\n",
+        "\n",
+        "The steps described above are handled by the `LightDataModule` class. This class is used to create the data loaders for the training, validation, and test sets. The `LightDataModule` class is part of the `spotPython` package.\n",
+        "The `LightDataModule` class provides the following methods:\n",
+        "\n",
+        "* `prepare_data()`: This method is used to prepare the data set.\n",
+        "* `setup()`: This method is used to create the data loaders for the training, validation, and test sets.\n",
+        "* `train_dataloader()`: This method is used to return the data loader for the training set.\n",
+        "* `val_dataloader()`: This method is used to return the data loader for the validation set.\n",
+        "* `test_dataloader()`: This method is used to return the data loader for the test set.\n",
+        "* `predict_dataloader()`: This method is used to return the data loader for the prediction set.\n",
+        "\n",
+        "### The `prepare_data()` Method\n",
+        "\n",
+        "The `prepare_data()` method is used to prepare the data set. This method is called only once and on a single process. It can be used to download the data set. In our case, the data set is already available, so this method uses a simple `pass` statement.\n",
+        "\n",
+        "### The `setup()` Method\n",
+        "\n",
+        "Splits the data for use in training, validation, and testing. It uses `torch.utils.data.random_split()` to split the data.\n",
+        "Splitting is based on the `test_size` and `test_seed`. \n",
+        "The `test_size` can be a float or an int.\n",
+        "\n",
+        "#### Determine the Sizes of the Data Sets\n"
+      ],
+      "id": "dc4f63f6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from torch.utils.data import random_split\n",
+        "data_full = dataset\n",
+        "test_size = fun_control[\"test_size\"]\n",
+        "test_seed=fun_control[\"test_seed\"]\n",
+        "# if test_size is float, then train_size is 1 - test_size\n",
+        "if isinstance(test_size, float):\n",
+        "    full_train_size = round(1.0 - test_size, 2)\n",
+        "    val_size = round(full_train_size * test_size, 2)\n",
+        "    train_size = round(full_train_size - val_size, 2)\n",
+        "else:\n",
+        "    # if test_size is int, then train_size is len(data_full) - test_size\n",
+        "    full_train_size = len(data_full) - test_size\n",
+        "    val_size = int(full_train_size * test_size / len(data_full))\n",
+        "    train_size = full_train_size - val_size\n",
+        "\n",
+        "print(f\"LightDataModule setup(): full_train_size: {full_train_size}\")\n",
+        "print(f\"LightDataModule setup(): val_size: {val_size}\")\n",
+        "print(f\"LightDataModule setup(): train_size: {train_size}\")\n",
+        "print(f\"LightDataModule setup(): test_size: {test_size}\")"
+      ],
+      "id": "4b05d75c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "`stage` is used to define the data set to be returned.\n",
+        "The `stage` can be `None`, `fit`, `test`, or `predict`.\n",
+        "If `stage` is `None`, the method returns the training (`fit`), testing (`test`) and prediction (`predict`) data sets.\n",
+        "\n",
+        "#### Stage \"fit\" {#sec-stage-fit-30}"
+      ],
+      "id": "6a850a24"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "stage = \"fit\"\n",
+        "if stage == \"fit\" or stage is None:\n",
+        "    generator_fit = torch.Generator().manual_seed(test_seed)\n",
+        "    data_train, data_val, _ = random_split(data_full, [train_size, val_size, test_size], generator=generator_fit)\n",
+        "print(f\"LightDataModule setup(): Train set size: {len(data_train)}\")\n",
+        "print(f\"LightDataModule setup(): Validation set size: {len(data_val)}\")"
+      ],
+      "id": "3d073930",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Stage \"test\" {#sec-stage-test-30}"
+      ],
+      "id": "d24662ca"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "stage = \"test\"\n",
+        "if stage == \"test\" or stage is None:\n",
+        "    generator_test = torch.Generator().manual_seed(test_seed)\n",
+        "    data_test, _ = random_split(data_full, [test_size, full_train_size], generator=generator_test)\n",
+        "print(f\"LightDataModule setup(): Test set size: {len(data_test)}\")\n",
+        "# Set batch size for DataLoader\n",
+        "batch_size = 5\n",
+        "# Create DataLoader\n",
+        "from torch.utils.data import DataLoader\n",
+        "dataloader = DataLoader(data_test, batch_size=batch_size, shuffle=False)\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dataloader:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "20eb200e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Stage \"predict\" {#sec-stage-predict-30}\n",
+        "\n",
+        "Prediction and testing use the same data set.\n"
+      ],
+      "id": "7399b589"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "stage = \"predict\"\n",
+        "if stage == \"predict\" or stage is None:\n",
+        "    generator_predict = torch.Generator().manual_seed(test_seed)\n",
+        "    data_predict, _ = random_split(\n",
+        "        data_full, [test_size, full_train_size], generator=generator_predict\n",
+        "    )\n",
+        "print(f\"LightDataModule setup(): Predict set size: {len(data_predict)}\")\n",
+        "# Set batch size for DataLoader\n",
+        "batch_size = 5\n",
+        "# Create DataLoader\n",
+        "from torch.utils.data import DataLoader\n",
+        "dataloader = DataLoader(data_predict, batch_size=batch_size, shuffle=False)\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dataloader:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "3d1e5f7c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `train_dataloader()` Method\n",
+        "\n",
+        "Returns the training dataloader, i.e., a Pytorch DataLoader instance using the training dataset.\n",
+        "It simply returns a DataLoader with the `data_train` set that was created in the `setup()` method as described in @sec-stage-fit-30.\n"
+      ],
+      "id": "245a2047"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "def train_dataloader(self) -> DataLoader:\n",
+        "    return DataLoader(self.data_train, batch_size=self.batch_size, num_workers=self.num_workers)"
+      ],
+      "id": "3d81d549",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `train_dataloader()` method can be used as follows:\n"
+      ],
+      "id": "541af3cc"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.lightdatamodule import LightDataModule\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)\n",
+        "data_module.setup()\n",
+        "print(f\"Training set size: {len(data_module.data_train)}\")\n",
+        "dl = data_module.train_dataloader()\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dl:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "7d93cc27",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `val_dataloader()` Method\n",
+        "\n",
+        "Returns the validation dataloader, i.e., a Pytorch DataLoader instance using the validation dataset.\n",
+        "It simply returns a DataLoader with the `data_val` set that was created in the `setup()` method as desccribed in @sec-stage-fit-30.\n"
+      ],
+      "id": "e9bb8930"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "def val_dataloader(self) -> DataLoader:\n",
+        "    return DataLoader(self.data_val, batch_size=self.batch_size, num_workers=self.num_workers)"
+      ],
+      "id": "eb21cbbd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `val_dataloader()` method can be used as follows:\n"
+      ],
+      "id": "89804fb5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.lightdatamodule import LightDataModule\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)\n",
+        "data_module.setup()\n",
+        "print(f\"Validation set size: {len(data_module.data_val)}\")\n",
+        "dl = data_module.val_dataloader()\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dl:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "e4facb40",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `test_dataloader()` Method\n",
+        "\n",
+        "Returns the test dataloader, i.e., a Pytorch DataLoader instance using the test dataset.\n",
+        "It simply returns a DataLoader with the `data_test` set that was created in the `setup()` method as described in @sec-stage-test-30.\n"
+      ],
+      "id": "8be4a4b8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "def test_dataloader(self) -> DataLoader:\n",
+        "    return DataLoader(self.data_test, batch_size=self.batch_size, num_workers=self.num_workers)"
+      ],
+      "id": "fe76356a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `test_dataloader()` method can be used as follows:\n"
+      ],
+      "id": "80364f7e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.lightdatamodule import LightDataModule\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)\n",
+        "data_module.setup()\n",
+        "print(f\"Test set size: {len(data_module.data_test)}\")\n",
+        "dl = data_module.test_dataloader()\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dl:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "1655c2c7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `predict_dataloader()` Method\n",
+        "\n",
+        "Returns the prediction dataloader, i.e., a Pytorch DataLoader instance using the prediction dataset.\n",
+        "It simply returns a DataLoader with the `data_predict` set that was created in the `setup()` method as described in @sec-stage-predict-30.\n",
+        "\n",
+        "::: {.callout-warning}\n",
+        "The `batch_size` is set to the length of the `data_predict` set.\n",
+        ":::"
+      ],
+      "id": "c41ba0ec"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "def predict_dataloader(self) -> DataLoader:\n",
+        "    return DataLoader(self.data_predict, batch_size=len(self.data_predict), num_workers=self.num_workers)"
+      ],
+      "id": "ae0a84bb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `predict_dataloader()` method can be used as follows:\n"
+      ],
+      "id": "d60939b9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.data.lightdatamodule import LightDataModule\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes(target_type=torch.float)\n",
+        "data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)\n",
+        "data_module.setup()\n",
+        "print(f\"Test set size: {len(data_module.data_predict)}\")\n",
+        "dl = data_module.predict_dataloader()\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dl:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "01aafd04",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Using the `LightDataModule` in the `train_model()` Method\n",
+        "\n",
+        "First, a `LightDataModule` object is created and the `setup()` method is called."
+      ],
+      "id": "ed4ab9a9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "dm = LightDataModule(\n",
+        "    dataset=fun_control[\"data_set\"],\n",
+        "    batch_size=config[\"batch_size\"],\n",
+        "    num_workers=fun_control[\"num_workers\"],\n",
+        "    test_size=fun_control[\"test_size\"],\n",
+        "    test_seed=fun_control[\"test_seed\"],\n",
+        ")\n",
+        "dm.setup()"
+      ],
+      "id": "f841b7d1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Then, the `Trainer` is initialized."
+      ],
+      "id": "1566031e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "# Init trainer\n",
+        "trainer = L.Trainer(\n",
+        "    default_root_dir=os.path.join(fun_control[\"CHECKPOINT_PATH\"], config_id),\n",
+        "    max_epochs=model.hparams.epochs,\n",
+        "    accelerator=fun_control[\"accelerator\"],\n",
+        "    devices=fun_control[\"devices\"],\n",
+        "    logger=TensorBoardLogger(\n",
+        "        save_dir=fun_control[\"TENSORBOARD_PATH\"],\n",
+        "        version=config_id,\n",
+        "        default_hp_metric=True,\n",
+        "        log_graph=fun_control[\"log_graph\"],\n",
+        "    ),\n",
+        "    callbacks=[\n",
+        "        EarlyStopping(monitor=\"val_loss\", patience=config[\"patience\"], mode=\"min\", strict=False, verbose=False)\n",
+        "    ],\n",
+        "    enable_progress_bar=enable_progress_bar,\n",
+        ")"
+      ],
+      "id": "d867079d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Next, the `fit()` method is called to train the model.\n"
+      ],
+      "id": "b185598d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "# Pass the datamodule as arg to trainer.fit to override model hooks :)\n",
+        "trainer.fit(model=model, datamodule=dm)"
+      ],
+      "id": "e319e565",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Finally, the `validate()` method is called to validate the model.\n",
+        "The `validate()` method returns the validation loss.\n"
+      ],
+      "id": "963c256f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| eval: false\n",
+        "# Test best model on validation and test set\n",
+        "# result = trainer.validate(model=model, datamodule=dm, ckpt_path=\"last\")\n",
+        "result = trainer.validate(model=model, datamodule=dm)\n",
+        "# unlist the result (from a list of one dict)\n",
+        "result = result[0]\n",
+        "return result[\"val_loss\"]"
+      ],
+      "id": "da737ed3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Further Information \n",
+        "\n",
+        "### Preprocessing {#sec-preprocessing-30}\n",
+        "\n",
+        "Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.\n"
+      ],
+      "id": "592bb3f5"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

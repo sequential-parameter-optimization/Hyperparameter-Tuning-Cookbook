@@ -1,0 +1,1313 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Expected Improvement {#sec-expected-improvement}\n",
+        "\n",
+        "This chapter describes, analyzes, and compares different infill criterion. An infill criterion defines how the next point $x_{n+1}$ is selected from the surrogate model $S$. Expected improvement is a popular infill criterion in Bayesian optimization.\n",
+        "\n",
+        "## Example: `Spot` and the 1-dim Sphere Function\n"
+      ],
+      "id": "2307f48f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.utils.init import fun_control_init, surrogate_control_init, design_control_init\n",
+        "import matplotlib.pyplot as plt"
+      ],
+      "id": "47d376bd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Objective Function: 1-dim Sphere\n",
+        "\n",
+        "* The `spotPython` package provides several classes of objective functions.\n",
+        "* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:\n",
+        "   $$f(x) = x^2 $$\n"
+      ],
+      "id": "15926854"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_sphere"
+      ],
+      "id": "b496eae5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The size of the `lower` bound vector determines the problem dimension.\n",
+        "* Here we will use `np.array([-1])`, i.e., a one-dim function.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### TensorBoard\n",
+        "\n",
+        "Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:\n"
+      ],
+      "id": "0b86b6aa"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "PREFIX = \"07_Y\"\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    fun_evals = 25,\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([1]),\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)),)\n",
+        "design_control = design_control_init(init_size=10)"
+      ],
+      "id": "aa48c477",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n"
+      ],
+      "id": "f4061924"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1 = spot.Spot(\n",
+        "            fun=fun,\n",
+        "            fun_control=fun_control,\n",
+        "            design_control=design_control)\n",
+        "spot_1.run()"
+      ],
+      "id": "6d486a4f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Results\n"
+      ],
+      "id": "3be95092"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.print_results()"
+      ],
+      "id": "3df25a88",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_progress(log_y=True)"
+      ],
+      "id": "d18a07b0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/07_tensorboard_Y.png){width=\"100%\"}\n",
+        "\n",
+        "## Same, but with EI as infill_criterion\n"
+      ],
+      "id": "9d65bbff"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "PREFIX = \"07_EI_ISO\"\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([1]),\n",
+        "    fun_evals = 25,\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)),\n",
+        "    infill_criterion = \"ei\")"
+      ],
+      "id": "45d6edf4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_ei = spot.Spot(fun=fun,\n",
+        "                     fun_control=fun_control)\n",
+        "spot_1_ei.run()"
+      ],
+      "id": "731e3c17",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_ei.plot_progress(log_y=True)"
+      ],
+      "id": "73456d51",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_ei.print_results()"
+      ],
+      "id": "ec611dee",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.](figures_static/07_tensorboard_EI_ISO.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "## Non-isotropic Kriging\n"
+      ],
+      "id": "05a04585"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "PREFIX = \"07_EI_NONISO\"\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    lower = np.array([-1, -1]),\n",
+        "    upper = np.array([1, 1]),\n",
+        "    fun_evals = 25,\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)),\n",
+        "    infill_criterion = \"ei\")\n",
+        "surrogate_control = surrogate_control_init(\n",
+        "    n_theta=2,\n",
+        "    noise=False,\n",
+        "    )"
+      ],
+      "id": "f0e7de38",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_ei_noniso = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   surrogate_control=surrogate_control)\n",
+        "spot_2_ei_noniso.run()"
+      ],
+      "id": "108952af",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_ei_noniso.plot_progress(log_y=True)"
+      ],
+      "id": "6307c73d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_ei_noniso.print_results()"
+      ],
+      "id": "48dba1f9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_ei_noniso.surrogate.plot()"
+      ],
+      "id": "c8db241f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model. Expected improvement, isotropic Kriging.](figures_static/07_tensorboard_EI_NONISO.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "## Using `sklearn` Surrogates\n",
+        "\n",
+        "### The spot Loop\n",
+        "\n",
+        "The `spot` loop consists of the following steps:\n",
+        "\n",
+        "1. Init: Build initial design $X$\n",
+        "2. Evaluate initial design on real objective $f$: $y = f(X)$\n",
+        "3. Build surrogate: $S = S(X,y)$\n",
+        "4. Optimize on surrogate: $X_0 =  \\text{optimize}(S)$\n",
+        "5. Evaluate on real objective: $y_0 = f(X_0)$\n",
+        "6. Impute (Infill) new points: $X = X \\cup X_0$, $y = y \\cup y_0$.\n",
+        "7. Got 3.\n",
+        "\n",
+        "The `spot` loop is implemented in `R` as follows:\n",
+        "\n",
+        "![Visual representation of the model based search with SPOT. Taken from: Bartz-Beielstein, T., and Zaefferer, M. Hyperparameter tuning approaches. In Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide, E. Bartz, T. Bartz-Beielstein, M. Zaefferer, and O. Mersmann, Eds. Springer, 2022, ch. 4, pp. 67–114. ](figures_static/spotModel.png)\n",
+        "\n",
+        "### spot: The Initial Model\n",
+        "\n",
+        "#### Example: Modifying the initial design size\n",
+        "\n",
+        "This is the \"Example: Modifying the initial design size\"  from Chapter 4.5.1 in [bart21i].\n"
+      ],
+      "id": "fdf4b9f3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_ei = spot.Spot(fun=fun,\n",
+        "                fun_control=fun_control_init(\n",
+        "                lower = np.array([-1,-1]),\n",
+        "                upper= np.array([1,1])), \n",
+        "                design_control = design_control_init(init_size=5))\n",
+        "spot_ei.run()"
+      ],
+      "id": "6f116bef",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_ei.plot_progress()"
+      ],
+      "id": "4ddc04c1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "np.min(spot_1.y), np.min(spot_ei.y)"
+      ],
+      "id": "816d5483",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Init: Build Initial Design\n"
+      ],
+      "id": "a02e061d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "gen = spacefilling(2)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-5,-0])\n",
+        "upper = np.array([10,15])\n",
+        "fun = analytical().fun_branin\n",
+        "\n",
+        "X = gen.scipy_lhd(10, lower=lower, upper = upper)\n",
+        "print(X)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "print(y)"
+      ],
+      "id": "78e83f67",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',  seed=123)\n",
+        "S.fit(X, y)\n",
+        "S.plot()"
+      ],
+      "id": "722c9445",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "gen = spacefilling(2, seed=123)\n",
+        "X0 = gen.scipy_lhd(3)\n",
+        "gen = spacefilling(2, seed=345)\n",
+        "X1 = gen.scipy_lhd(3)\n",
+        "X2 = gen.scipy_lhd(3)\n",
+        "gen = spacefilling(2, seed=123)\n",
+        "X3 = gen.scipy_lhd(3)\n",
+        "X0, X1, X2, X3"
+      ],
+      "id": "8d951017",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Evaluate \n",
+        "\n",
+        "###  Build Surrogate\n",
+        "\n",
+        "### A Simple Predictor\n",
+        "\n",
+        "The code below shows how to use a simple model for prediction.\n",
+        "\n",
+        "* Assume that only two (very costly) measurements are available:\n",
+        "  \n",
+        "  1. f(0) = 0.5\n",
+        "  2. f(2) = 2.5\n",
+        "\n",
+        "* We are interested in the value at $x_0 = 1$, i.e., $f(x_0 = 1)$, but cannot run an additional, third experiment.\n"
+      ],
+      "id": "576b95f8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from sklearn import linear_model\n",
+        "X = np.array([[0], [2]])\n",
+        "y = np.array([0.5, 2.5])\n",
+        "S_lm = linear_model.LinearRegression()\n",
+        "S_lm = S_lm.fit(X, y)\n",
+        "X0 = np.array([[1]])\n",
+        "y0 = S_lm.predict(X0)\n",
+        "print(y0)"
+      ],
+      "id": "b8e3dca4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Central Idea:\n",
+        "  * Evaluation of the surrogate model `S_lm` is much cheaper (or / and much faster) than running the real-world experiment $f$.\n",
+        "\n",
+        "## Gaussian Processes regression: basic introductory example\n",
+        "\n",
+        "This example was taken from [scikit-learn](https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html). After fitting our model, we see that the hyperparameters of the kernel have been optimized. Now, we will use our kernel to compute the mean prediction of the full dataset and plot the 95% confidence interval.\n"
+      ],
+      "id": "9060bb47"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import math as m\n",
+        "from sklearn.gaussian_process import GaussianProcessRegressor\n",
+        "from sklearn.gaussian_process.kernels import RBF\n",
+        "\n",
+        "X = np.linspace(start=0, stop=10, num=1_000).reshape(-1, 1)\n",
+        "y = np.squeeze(X * np.sin(X))\n",
+        "rng = np.random.RandomState(1)\n",
+        "training_indices = rng.choice(np.arange(y.size), size=6, replace=False)\n",
+        "X_train, y_train = X[training_indices], y[training_indices]\n",
+        "\n",
+        "kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))\n",
+        "gaussian_process = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)\n",
+        "gaussian_process.fit(X_train, y_train)\n",
+        "gaussian_process.kernel_\n",
+        "\n",
+        "mean_prediction, std_prediction = gaussian_process.predict(X, return_std=True)\n",
+        "\n",
+        "plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, mean_prediction, label=\"Mean prediction\")\n",
+        "plt.fill_between(\n",
+        "    X.ravel(),\n",
+        "    mean_prediction - 1.96 * std_prediction,\n",
+        "    mean_prediction + 1.96 * std_prediction,\n",
+        "    alpha=0.5,\n",
+        "    label=r\"95% confidence interval\",\n",
+        ")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"sk-learn Version: Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "270abdf1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.build.kriging import Kriging\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "rng = np.random.RandomState(1)\n",
+        "X = np.linspace(start=0, stop=10, num=1_000).reshape(-1, 1)\n",
+        "y = np.squeeze(X * np.sin(X))\n",
+        "training_indices = rng.choice(np.arange(y.size), size=6, replace=False)\n",
+        "X_train, y_train = X[training_indices], y[training_indices]\n",
+        "\n",
+        "\n",
+        "S = Kriging(name='kriging',  seed=123, log_level=50, cod_type=\"norm\")\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "mean_prediction, std_prediction, ei = S.predict(X, return_val=\"all\")\n",
+        "\n",
+        "std_prediction\n",
+        "\n",
+        "plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, mean_prediction, label=\"Mean prediction\")\n",
+        "plt.fill_between(\n",
+        "    X.ravel(),\n",
+        "    mean_prediction - 1.96 * std_prediction,\n",
+        "    mean_prediction + 1.96 * std_prediction,\n",
+        "    alpha=0.5,\n",
+        "    label=r\"95% confidence interval\",\n",
+        ")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"spotPython Version: Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "0b14b764",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The Surrogate: Using scikit-learn models\n",
+        "\n",
+        "Default is the internal `kriging` surrogate.\n"
+      ],
+      "id": "ad79229d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S_0 = Kriging(name='kriging', seed=123)"
+      ],
+      "id": "99b2b2c9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Models from `scikit-learn` can be selected, e.g., Gaussian Process:\n"
+      ],
+      "id": "03191612"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Needed for the sklearn surrogates:\n",
+        "from sklearn.gaussian_process import GaussianProcessRegressor\n",
+        "from sklearn.gaussian_process.kernels import RBF\n",
+        "from sklearn.tree import DecisionTreeRegressor\n",
+        "from sklearn.ensemble import RandomForestRegressor\n",
+        "from sklearn import linear_model\n",
+        "from sklearn import tree\n",
+        "import pandas as pd"
+      ],
+      "id": "2d2e0450",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))\n",
+        "S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)"
+      ],
+      "id": "d311fabb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* and many more:\n"
+      ],
+      "id": "26331184"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S_Tree = DecisionTreeRegressor(random_state=0)\n",
+        "S_LM = linear_model.LinearRegression()\n",
+        "S_Ridge = linear_model.Ridge()\n",
+        "S_RF = RandomForestRegressor(max_depth=2, random_state=0) "
+      ],
+      "id": "0e883171",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The scikit-learn GP model `S_GP` is selected.\n"
+      ],
+      "id": "2bacb837"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = S_GP"
+      ],
+      "id": "18dc5526",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "isinstance(S, GaussianProcessRegressor)\n"
+      ],
+      "id": "1f990534",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "fun = analytical().fun_branin\n",
+        "fun_control = fun_control_init(\n",
+        "    lower = np.array([-5,-0]),\n",
+        "    upper = np.array([10,15]),\n",
+        "    fun_evals = 15)    \n",
+        "design_control = design_control_init(init_size=5)\n",
+        "spot_GP = spot.Spot(fun=fun, \n",
+        "                    fun_control=fun_control,\n",
+        "                    surrogate=S, \n",
+        "                    design_control=design_control)\n",
+        "spot_GP.run()"
+      ],
+      "id": "4935c7fd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_GP.y"
+      ],
+      "id": "e0a1e05b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_GP.plot_progress()"
+      ],
+      "id": "7d3ade88",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_GP.print_results()"
+      ],
+      "id": "a51b3569",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Additional Examples\n"
+      ],
+      "id": "34e6abd5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Needed for the sklearn surrogates:\n",
+        "from sklearn.gaussian_process import GaussianProcessRegressor\n",
+        "from sklearn.gaussian_process.kernels import RBF\n",
+        "from sklearn.tree import DecisionTreeRegressor\n",
+        "from sklearn.ensemble import RandomForestRegressor\n",
+        "from sklearn import linear_model\n",
+        "from sklearn import tree\n",
+        "import pandas as pd"
+      ],
+      "id": "baaf91b6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))\n",
+        "S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)"
+      ],
+      "id": "a88d3fac",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.build.kriging import Kriging\n",
+        "import numpy as np\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "\n",
+        "S_K = Kriging(name='kriging',\n",
+        "              seed=123,\n",
+        "              log_level=50,\n",
+        "              infill_criterion = \"y\",\n",
+        "              n_theta=1,\n",
+        "              noise=False,\n",
+        "              cod_type=\"norm\")\n",
+        "fun = analytical().fun_sphere\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    lower = np.array([-1,-1]),\n",
+        "    upper = np.array([1,1]),\n",
+        "    fun_evals = 25)\n",
+        "\n",
+        "spot_S_K = spot.Spot(fun=fun,\n",
+        "                     fun_control=fun_control,\n",
+        "                     surrogate=S_K,\n",
+        "                     design_control=design_control,\n",
+        "                     surrogate_control=surrogate_control)\n",
+        "spot_S_K.run()"
+      ],
+      "id": "1c7a478e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_S_K.plot_progress(log_y=True)"
+      ],
+      "id": "7729bcf1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_S_K.surrogate.plot()"
+      ],
+      "id": "4b7e5131",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_S_K.print_results()"
+      ],
+      "id": "26d8dee5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Optimize on Surrogate\n",
+        "\n",
+        "### Evaluate on Real Objective\n",
+        "\n",
+        "### Impute / Infill new Points\n",
+        "\n",
+        "## Tests\n"
+      ],
+      "id": "535dfc67"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "\n",
+        "fun_sphere = analytical().fun_sphere\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "                    lower=np.array([-1, -1]),\n",
+        "                    upper=np.array([1, 1]),\n",
+        "                    n_points = 2)\n",
+        "spot_1 = spot.Spot(\n",
+        "    fun=fun_sphere,\n",
+        "    fun_control=fun_control,\n",
+        ")\n",
+        "\n",
+        "# (S-2) Initial Design:\n",
+        "spot_1.X = spot_1.design.scipy_lhd(\n",
+        "    spot_1.design_control[\"init_size\"], lower=spot_1.lower, upper=spot_1.upper\n",
+        ")\n",
+        "print(spot_1.X)\n",
+        "\n",
+        "# (S-3): Eval initial design:\n",
+        "spot_1.y = spot_1.fun(spot_1.X)\n",
+        "print(spot_1.y)\n",
+        "\n",
+        "spot_1.fit_surrogate()\n",
+        "X0 = spot_1.suggest_new_X()\n",
+        "print(X0)\n",
+        "assert X0.size == spot_1.n_points * spot_1.k"
+      ],
+      "id": "eab8393e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## EI: The Famous Schonlau Example\n"
+      ],
+      "id": "fa442baa"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "X_train0 = np.array([1, 2, 3, 4, 12]).reshape(-1,1)\n",
+        "X_train = np.linspace(start=0, stop=10, num=5).reshape(-1, 1)"
+      ],
+      "id": "e17f4216",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.build.kriging import Kriging\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "X_train = np.array([1., 2., 3., 4., 12.]).reshape(-1,1)\n",
+        "y_train = np.array([0., -1.75, -2, -0.5, 5.])\n",
+        "\n",
+        "S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, noise=False, cod_type=\"norm\")\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X = np.linspace(start=0, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, mean_prediction, label=\"Mean prediction\")\n",
+        "if True:\n",
+        "    plt.fill_between(\n",
+        "        X.ravel(),\n",
+        "        mean_prediction - 2 * std_prediction,\n",
+        "        mean_prediction + 2 * std_prediction,\n",
+        "        alpha=0.5,\n",
+        "        label=r\"95% confidence interval\",\n",
+        "    )\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "fcf5cbf8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "# plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, -ei, label=\"Expected Improvement\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "2ddb03c9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S.log"
+      ],
+      "id": "823db83e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## EI: The Forrester Example\n"
+      ],
+      "id": "2e9f778b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.build.kriging import Kriging\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "\n",
+        "# exact x locations are unknown:\n",
+        "X_train = np.array([0.0, 0.175, 0.225, 0.3, 0.35, 0.375, 0.5,1]).reshape(-1,1)\n",
+        "\n",
+        "fun = analytical().fun_forrester\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"07_EI_FORRESTER\",\n",
+        "    sigma=1.0,\n",
+        "    seed=123,)\n",
+        "y_train = fun(X_train, fun_control=fun_control)\n",
+        "\n",
+        "S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, noise=False, cod_type=\"norm\")\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X = np.linspace(start=0, stop=1, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, mean_prediction, label=\"Mean prediction\")\n",
+        "if True:\n",
+        "    plt.fill_between(\n",
+        "        X.ravel(),\n",
+        "        mean_prediction - 2 * std_prediction,\n",
+        "        mean_prediction + 2 * std_prediction,\n",
+        "        alpha=0.5,\n",
+        "        label=r\"95% confidence interval\",\n",
+        "    )\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "b98673d2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "# plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, -ei, label=\"Expected Improvement\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "517eeecf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Noise\n"
+      ],
+      "id": "36dd8650"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_sphere\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"07_Y\",\n",
+        "    sigma=2.0,\n",
+        "    seed=123,)\n",
+        "X = gen.scipy_lhd(10, lower=lower, upper = upper)\n",
+        "print(X)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "print(y)\n",
+        "y.shape\n",
+        "X_train = X.reshape(-1,1)\n",
+        "y_train = y\n",
+        "\n",
+        "S = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=False)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "#plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Sphere: Gaussian process regression on noisy dataset\")"
+      ],
+      "id": "f5389bcf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S.log"
+      ],
+      "id": "54d9390d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=True)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "#plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Sphere: Gaussian process regression with nugget on noisy dataset\")"
+      ],
+      "id": "9fbea45c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S.log"
+      ],
+      "id": "5529bd17",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Cubic Function\n"
+      ],
+      "id": "3ece6d4d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_cubed\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"07_Y\",\n",
+        "    sigma=10.0,\n",
+        "    seed=123,)\n",
+        "\n",
+        "X = gen.scipy_lhd(10, lower=lower, upper = upper)\n",
+        "print(X)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "print(y)\n",
+        "y.shape\n",
+        "X_train = X.reshape(-1,1)\n",
+        "y_train = y\n",
+        "\n",
+        "S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, noise=False)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Cubed: Gaussian process regression on noisy dataset\")"
+      ],
+      "id": "95359336",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',  seed=123, log_level=0, n_theta=1, noise=True)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Cubed: Gaussian process with nugget regression on noisy dataset\")"
+      ],
+      "id": "edf6aa31",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_runge\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"07_Y\",\n",
+        "    sigma=0.25,\n",
+        "    seed=123,)\n",
+        "\n",
+        "X = gen.scipy_lhd(10, lower=lower, upper = upper)\n",
+        "print(X)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "print(y)\n",
+        "y.shape\n",
+        "X_train = X.reshape(-1,1)\n",
+        "y_train = y\n",
+        "\n",
+        "S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, noise=False)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression on noisy dataset\")"
+      ],
+      "id": "c184408f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=True)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression with nugget on noisy dataset\")"
+      ],
+      "id": "e6c3bd6e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Modifying Lambda Search Space\n"
+      ],
+      "id": "aabcba7b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=True,\n",
+        "            min_Lambda=0.1,\n",
+        "            max_Lambda=10)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "print(f\"Lambda: {S.Lambda}\")"
+      ],
+      "id": "9f8f2d2f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "#plt.plot(X, ei, label=\"Expected Improvement\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Gaussian process regression with nugget on noisy dataset. Modified Lambda search space.\")"
+      ],
+      "id": "ca9c2a1c",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

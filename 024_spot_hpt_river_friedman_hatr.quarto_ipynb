@@ -1,0 +1,1039 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "title: '`river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data'\n",
+        "jupyter: python3\n",
+        "---"
+      ],
+      "id": "89e528c4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "#| label: 024_imports\n",
+        "import os\n",
+        "from math import inf\n",
+        "import numpy as np\n",
+        "import warnings\n",
+        "if not os.path.exists('./figures'):\n",
+        "    os.makedirs('./figures')\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "id": "imports",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "This chapter demonstrates hyperparameter tuning for `river`'s `Hoeffding Adaptive Tree Regressor` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Hoeffding Adaptive Tree Regressor` is a decision tree that uses the Hoeffding bound to limit the number of splits evaluated at each node. The `Hoeffding Adaptive Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample. The `Hoeffding Adaptive Tree Regressor` is a drift aware model, i.e., it can handle concept drifts.\n",
+        "\n",
+        "\n",
+        "## The Friedman Drift Data Set\n",
+        "\n",
+        "We will use the Friedman synthetic dataset with concept drifts [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/), see also @frie91a and @ikon11a.\n",
+        "Each observation is composed of ten features. Each feature value is sampled uniformly in [0, 1]. Only the first five features are relevant. The target is defined by different functions depending on the type of the drift. Global Recurring Abrupt drift will be used, i.e., the concept drift appears over the whole instance space.\n",
+        "\n",
+        "The target is defined by the following function:\n",
+        "$$\n",
+        "y = 10 \\sin(\\pi x_0 x_1) + 20 (x_2 - 0.5)^2 + 10 x_3 + 5 x_4 + \\epsilon,\n",
+        "$$\n",
+        "where $\\epsilon \\sim \\mathcal{N}(0, 1)$ is normally distributed noise.\n",
+        "\n",
+        "We will use the Global Recurring Abrupt drift variant of the Friedman Drift dataset.\n",
+        "There are two points of concept drift, namely $p_1$ and $p_2$.\n",
+        "At the second point, the concept changes to:\n",
+        "$$\n",
+        "y = 10 \\sin(\\pi x_3 x_5) + 20 (x_1 - 0.5)^2 + 10 x_0 + 5 x_2 + \\epsilon,\n",
+        "$$\n",
+        "At the second point of drift the old concept reoccurs.\n",
+        "This can be implemented as follows, see [https://riverml.xyz/latest/api/datasets/synth/FriedmanDrift/](https://riverml.xyz/latest/api/datasets/synth/FriedmanDrift/):\n",
+        "\n",
+        "```python\n",
+        "def __iter__(self):\n",
+        "    rng = random.Random(self.seed)\n",
+        "\n",
+        "    i = 0\n",
+        "    while True:\n",
+        "        x = {i: rng.uniform(a=0, b=1) for i in range(10)}\n",
+        "        y = self._global_recurring_abrupt_gen(x, i) + rng.gauss(mu=0, sigma=1)\n",
+        "\n",
+        "        yield x, y\n",
+        "        i += 1\n",
+        "```\n",
+        "\n",
+        "\n",
+        "```python\n",
+        "def _global_recurring_abrupt_gen(self, x, index: int):\n",
+        "    if index < self._change_point1 or index >= self._change_point2:\n",
+        "        # The initial concept is recurring\n",
+        "        return (\n",
+        "            10 * math.sin(math.pi * x[0] * x[1]) + 20 * (x[2] - 0.5) ** 2 + 10 * x[3] + 5 * x[4]\n",
+        "        )\n",
+        "    else:\n",
+        "        # Drift: the positions of the features are swapped\n",
+        "        return (\n",
+        "            10 * math.sin(math.pi * x[3] * x[5]) + 20 * (x[1] - 0.5) ** 2 + 10 * x[0] + 5 * x[2]\n",
+        "        )\n",
+        "```\n",
+        "\n",
+        "Plotting the first 1000 samples of the Friedman Drift dataset, we can not see the concept drifts at $p_1$ and $p_2$.\n",
+        "Drift can be visualized by plotting the target values over time for constant features, e,g, if $x_0$ is set to $1$ and all other features are set to $0$. This is illustrated in the following plot.\n"
+      ],
+      "id": "a7a1f4ef"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "import math\n",
+        "import random\n",
+        "\n",
+        "class FriedmanDriftDataset:\n",
+        "    def __init__(self, change_point1=50, change_point2=75, seed=None, constant=False):\n",
+        "        self._change_point1 = change_point1\n",
+        "        self._change_point2 = change_point2\n",
+        "        self.seed = seed\n",
+        "        self.index = 0\n",
+        "        self.rng = random.Random(self.seed)\n",
+        "        self.constant = constant\n",
+        "\n",
+        "    def __iter__(self):\n",
+        "        return self\n",
+        "\n",
+        "    def __next__(self):\n",
+        "        if self.index >= 100:  # Specifying end of generation\n",
+        "            raise StopIteration\n",
+        "        if self.constant:\n",
+        "            # x[0] is set to 1, all others to 0\n",
+        "            x = {0: 1}\n",
+        "            x.update({i: 0 for i in range(1, 10)})  # All x[i] are 0 for i > 0\n",
+        "        else:\n",
+        "            x = {i: self.rng.uniform(a=0, b=1) for i in range(10)}\n",
+        "        y = self._global_recurring_abrupt_gen(x, self.index) + self.rng.gauss(mu=0, sigma=1)\n",
+        "        result = (x, y, self.index)\n",
+        "        self.index += 1\n",
+        "        return result\n",
+        "\n",
+        "    def _global_recurring_abrupt_gen(self, x, index):\n",
+        "        if index < self._change_point1 or index >= self._change_point2:\n",
+        "            return (\n",
+        "                10 * math.sin(math.pi * x[0] * x[1]) +\n",
+        "                20 * (x[2] - 0.5) ** 2 +\n",
+        "                10 * x[3] + 5 * x[4]\n",
+        "            )\n",
+        "        else:\n",
+        "            return (\n",
+        "                10 * math.sin(math.pi * x[3] * x[5]) +\n",
+        "                20 * (x[1] - 0.5) ** 2 +\n",
+        "                10 * x[0] + 5 * x[2]\n",
+        "            )"
+      ],
+      "id": "cb6251e2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75)\n",
+        "data = [data for data in data_generator]  # Now this should work\n",
+        "\n",
+        "indices = [i for _, _, i in data]\n",
+        "values = {f\"x{i}\": [] for i in range(5)}\n",
+        "values[\"y\"] = []\n",
+        "\n",
+        "for x, y, _ in data:\n",
+        "    for i in range(5):\n",
+        "        values[f\"x{i}\"].append(x[i])\n",
+        "    values[\"y\"].append(y)\n",
+        "\n",
+        "plt.figure(figsize=(10, 6))\n",
+        "\n",
+        "for label, series in values.items():\n",
+        "    plt.plot(indices, series, label=label)\n",
+        "\n",
+        "plt.xlabel('Index')\n",
+        "plt.ylabel('Value')\n",
+        "plt.title('')\n",
+        "plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')\n",
+        "plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')\n",
+        "plt.legend()\n",
+        "plt.grid(True)\n",
+        "plt.show()"
+      ],
+      "id": "423fbd65",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Generation of the dataset with constant x-values\n",
+        "data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75, constant=True)\n",
+        "data = [next(data_generator) for _ in range(100)]\n",
+        "\n",
+        "# Extracting y-values and indices for plotting\n",
+        "y_values = [y for _, y, _ in data]\n",
+        "indices = range(100)\n",
+        "\n",
+        "# Plotting the y-values\n",
+        "plt.figure(figsize=(10, 6))\n",
+        "plt.plot(indices, y_values, label=\"y Value\")\n",
+        "\n",
+        "plt.xlabel('Index')\n",
+        "plt.ylabel('y Value')\n",
+        "plt.title('')\n",
+        "plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')\n",
+        "plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')\n",
+        "plt.legend()\n",
+        "plt.grid(True)\n",
+        "plt.show()"
+      ],
+      "id": "9c975eae",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The following parameters are used to generate and handle the data set:\n",
+        "\n",
+        "* horizon: The prediction horizon in hours.\n",
+        "* n_samples: The number of samples in the data set.\n",
+        "* p_1: The position of the first concept drift.\n",
+        "* p_2: The position of the second concept drift.\n",
+        "* position: The position of the concept drifts.\n",
+        "* n_train: The number of samples used for training.\n",
+        "\n",
+        "We will use `spotRiver`'s `convert_to_df` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/utils/data_conversion.py) to convert the `river` data set to a `pandas` data frame.\n",
+        "Then we add column names x1 until x10 to the first 10 columns of the dataframe and the column name y to the last column of the dataframe.\n"
+      ],
+      "id": "1538ed17"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_data_set\n",
+        "\n",
+        "from river.datasets import synth\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from spotRiver.utils.data_conversion import convert_to_df\n",
+        "\n",
+        "seed = 123\n",
+        "shuffle = True\n",
+        "n_train = 6_000\n",
+        "n_test = 4_000\n",
+        "n_samples = n_train + n_test\n",
+        "target_column = \"y\"\n",
+        "\n",
+        "dataset = synth.FriedmanDrift(\n",
+        "   drift_type='gra',\n",
+        "   position=(n_train/4, n_train/2),\n",
+        "   seed=123\n",
+        ")\n",
+        "\n",
+        "train = convert_to_df(dataset, n_total=n_train)\n",
+        "train.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]\n",
+        "\n",
+        "\n",
+        "dataset = synth.FriedmanDrift(\n",
+        "   drift_type='gra',\n",
+        "   position=(n_test/4, n_test/2),\n",
+        "   seed=123\n",
+        ")\n",
+        "test = convert_to_df(dataset, n_total=n_test)\n",
+        "test.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]"
+      ],
+      "id": "data_set",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "# Assuming train is your prepared DataFrame from the provided code snippet.\n",
+        "indices = range(len(train))\n",
+        "y_values = train[target_column]\n",
+        "\n",
+        "# Plotting\n",
+        "plt.figure(figsize=(10, 6))\n",
+        "plt.plot(indices, y_values, label=\"y Value\", color='blue')\n",
+        "\n",
+        "# Marking drift points\n",
+        "drift_points = [n_train / 4, n_train / 2]\n",
+        "for dp in drift_points:\n",
+        "    plt.axvline(x=dp, color='red', linestyle='--', label=f'Drift Point at {int(dp)}')\n",
+        "\n",
+        "# To avoid duplicate labels in the legend\n",
+        "handles, labels = plt.gca().get_legend_handles_labels()\n",
+        "by_label = dict(zip(labels, handles))\n",
+        "plt.legend(by_label.values(), by_label.keys())\n",
+        "\n",
+        "plt.xlabel('Index')\n",
+        "plt.ylabel('Target Value (y)')\n",
+        "plt.title('Train Data')\n",
+        "plt.grid(True)\n",
+        "plt.show()"
+      ],
+      "id": "69cf8fdd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "indices = range(len(test))\n",
+        "y_values = test[target_column]\n",
+        "\n",
+        "# Plotting\n",
+        "plt.figure(figsize=(10, 6))\n",
+        "plt.plot(indices, y_values, label=\"y Value\", color='blue')\n",
+        "\n",
+        "# Marking drift points\n",
+        "drift_points = [n_test / 4, n_test / 2]\n",
+        "for dp in drift_points:\n",
+        "    plt.axvline(x=dp, color='red', linestyle='--', label=f'Drift Point at {int(dp)}')\n",
+        "\n",
+        "# To avoid duplicate labels in the legend\n",
+        "handles, labels = plt.gca().get_legend_handles_labels()\n",
+        "by_label = dict(zip(labels, handles))\n",
+        "plt.legend(by_label.values(), by_label.keys())\n",
+        "\n",
+        "plt.xlabel('Index')\n",
+        "plt.ylabel('Target Value (y)')\n",
+        "plt.title('Train Data')\n",
+        "plt.grid(True)\n",
+        "plt.show()"
+      ],
+      "id": "d161fe68",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Setup\n",
+        "\n",
+        "Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, size of the data set, and the experiment name.\n",
+        "\n",
+        "* `MAX_TIME`: The maximum run time in seconds for the hyperparameter tuning process.\n",
+        "* `INIT_SIZE`: The initial design size for the hyperparameter tuning process.\n",
+        "* `PREFIX`: The prefix for the experiment name.\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Run time and initial design size should be increased for real experiments\n",
+        "\n",
+        "* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\n",
+        "* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\n",
+        ":::\n",
+        "\n",
+        "The `oml_grace_period` defines the number of observations that are used for the initial training of the model.\n",
+        "\n",
+        "The `weight_coeff` defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations.\n",
+        "Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.\n",
+        "\n",
+        "The `weights` provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.\n",
+        "\n",
+        "The `TENSORBOARD_CLEAN` argument is set to `True` to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch.\n",
+        "If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN` to `False`. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.\n",
+        "\n",
+        "## SelectSelect Model (`algorithm`) and `core_model_hyper_dict`\n",
+        "\n",
+        "`spotPython` hyperparameter tuning approach uses two components:\n",
+        "\n",
+        "1. a model (class) and \n",
+        "2. an associated hyperparameter dictionary. \n",
+        "\n",
+        "Here, the `river` model class `HoeffdingAdaptiveTreeRegressor` [[SOURCE]](https://riverml.xyz/dev/api/tree/HoeffdingAdaptiveTreeRegressor/) is selected.\n",
+        "\n",
+        "The corresponding hyperparameters are loaded from the associated dictionary, which is stored as a JSON file [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json). The JSON file contains hyperparameter type information, names, and bounds. \n",
+        "\n",
+        "The method `add_core_model_to_fun_control` adds the model and the hyperparameter dictionary to the `fun_control` dictionary.\n",
+        "\n",
+        "Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json) is loaded from the `spotRiver` package.\n",
+        "\n",
+        "We use the `StandardScaler` [[SOURCE]](https://riverml.xyz/dev/api/preprocessing/StandardScaler/) from `river` as the preprocessing model. The `StandardScaler` is used to standardize the data set, i.e., it has zero mean and unit variance.\n",
+        "\n",
+        "## Objective Function\n",
+        "\n",
+        "### The Objective Function {#sec-the-objective-function-13}\n",
+        "\n",
+        "The objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py) is selected next.\n",
+        "\n",
+        "## Selection of the Objective (Loss) Function\n",
+        "\n",
+        "The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Additional metrics\n",
+        "`spotRiver` also supports additional metrics. For example, the `metric_river` is used for the river based evaluation via `eval_oml_iter_progressive` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_oml.py). The `metric_river` is implemented to simulate the behaviour of the \"original\" `river` metrics.\n",
+        ":::\n",
+        "\n",
+        "`spotRiver` provides information about the model' s score (metric), memory, and time.\n",
+        "The hyperparamter tuner requires a single objective.\n",
+        "Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the `weights` array.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Weights\n",
+        "The `weights` provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.\n",
+        ":::\n",
+        "\n",
+        "The `oml_grace_period` defines the number of observations that are used for the initial training of the model. The `step` defines the iteration number at which to yield results. This only takes into account the predictions, and not the training steps.  The `weight_coeff` defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations. \n",
+        "Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.\n"
+      ],
+      "id": "0342aca0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init\n",
+        "from spotRiver.fun.hyperriver import HyperRiver\n",
+        "from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict\n",
+        "\n",
+        "# experiment setup\n",
+        "PREFIX = \"024\"\n",
+        "fun_evals = inf\n",
+        "max_time = 1\n",
+        "init_size = 10\n",
+        "\n",
+        "# evaluation setup\n",
+        "horizon = 7*24\n",
+        "metric_sklearn_name = \"mean_absolute_error\"\n",
+        "oml_grace_period = horizon\n",
+        "weight_coeff = 1.0\n",
+        "weights = np.array([1, 0.01, 0.01])\n",
+        "fun = HyperRiver().fun_oml_horizon\n",
+        "\n",
+        "# data preparation\n",
+        "prep_model_name = \"StandardScaler\"\n",
+        "\n",
+        "# model setup\n",
+        "core_model_name = \"tree.HoeffdingAdaptiveTreeRegressor\"\n",
+        "# core_model_name = \"tree.HoeffdingTreeRegressor\"\n",
+        "hyperdict = RiverHyperDict\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    core_model_name=core_model_name,\n",
+        "    fun_evals=fun_evals,\n",
+        "    horizon=horizon,\n",
+        "    hyperdict=hyperdict,\n",
+        "    max_time=max_time,\n",
+        "    metric_sklearn_name=metric_sklearn_name,\n",
+        "    noise=True,\n",
+        "    oml_grace_period=oml_grace_period,\n",
+        "    prep_model_name=prep_model_name,\n",
+        "    seed=seed,\n",
+        "    target_column=target_column,\n",
+        "    test=test,\n",
+        "    train=train,\n",
+        "    weight_coeff=weight_coeff,\n",
+        "    weights=weights,)\n",
+        "\n",
+        "\n",
+        "design_control = design_control_init(\n",
+        "    init_size=init_size,\n",
+        ")\n",
+        "\n",
+        "surrogate_control = surrogate_control_init(\n",
+        "    noise=True,\n",
+        "    n_theta=2,\n",
+        "    min_Lambda=1e-3,\n",
+        "    max_Lambda=10,\n",
+        ")\n",
+        "\n",
+        "optimizer_control = optimizer_control_init()"
+      ],
+      "id": "2fda9b3f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# from spotPython.hyperparameters.values import modify_hyper_parameter_levels\n",
+        "# levels = [\"LinearRegression\"]\n",
+        "# modify_hyper_parameter_levels(fun_control, \"leaf_model\", levels)"
+      ],
+      "id": "43ffc955",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.eda import gen_design_table\n",
+        "from spotPython.spot import spot\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "5f85e663",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Run the `Spot` Optimizer\n",
+        "\n",
+        "The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:\n",
+        "\n",
+        "* `fun`: the objective function\n",
+        "* `fun_control`: the dictionary with the control parameters for the objective function\n",
+        "* `design`: the experimental design\n",
+        "* `design_control`: the dictionary with the control parameters for the experimental design\n",
+        "* `surrogate`: the surrogate model\n",
+        "* `surrogate_control`: the dictionary with the control parameters for the surrogate model\n",
+        "* `optimizer`: the optimizer\n",
+        "* `optimizer_control`: the dictionary with the control parameters for the optimizer\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Total run time\n",
+        " The total run time may exceed the specified `max_time`, because the initial design (here: `init_size` = INIT_SIZE as specified above) is always evaluated, even if this takes longer than `max_time`.\n",
+        ":::\n"
+      ],
+      "id": "287513c6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner = spot.Spot(\n",
+        "    fun=fun,\n",
+        "    fun_control=fun_control,\n",
+        "    design_control=design_control,\n",
+        "    surrogate_control=surrogate_control,\n",
+        "    optimizer_control=optimizer_control,\n",
+        ")\n",
+        "res = spot_tuner.run()"
+      ],
+      "id": "332d348f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Results\n",
+        "\n",
+        "### TensorBoard {#sec-tensorboard-10}\n",
+        "\n",
+        "Now we can start TensorBoard in the background with the following command, where `./runs` is the default directory for the TensorBoard log files:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "#### Tip: TENSORBOARD_PATH\n",
+        "The TensorBoard path can be printed with the following command:\n"
+      ],
+      "id": "ff09c596"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_tensorboard_path\n",
+        "from spotPython.utils.init import get_tensorboard_path\n",
+        "get_tensorboard_path(fun_control)"
+      ],
+      "id": "tensorboard_path",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_print_results\n",
+        "spot_tuner.print_results(print_screen=False)"
+      ],
+      "id": "print_results",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The tuned hyperparameters can be obtained as a dictionary with the following command:\n"
+      ],
+      "id": "170c26ca"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_tuned_hyperparameters\n",
+        "get_tuned_hyperparameters(spot_tuner, fun_control)"
+      ],
+      "id": "80a149e9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The results can be saved and reloaded with the following commands:\n"
+      ],
+      "id": "c5b24d56"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.file import save_pickle, load_pickle\n",
+        "from spotPython.utils.init import get_experiment_name\n",
+        "experiment_name = get_experiment_name(PREFIX)\n",
+        "SAVE_AND_LOAD = False\n",
+        "if SAVE_AND_LOAD == True:\n",
+        "    save_pickle(spot_tuner, experiment_name)\n",
+        "    spot_tuner = load_pickle(experiment_name)"
+      ],
+      "id": "61370c60",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
+      ],
+      "id": "21fb249c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_progress(log_y=True, filename=None)"
+      ],
+      "id": "564648cf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Results can also be printed in tabular form.\n"
+      ],
+      "id": "1c32b392"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "5524d5b2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A histogram can be used to visualize the most important hyperparameters.\n"
+      ],
+      "id": "af8eeeb7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_importance(threshold=0.1)"
+      ],
+      "id": "1508f4b4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Get Default Hyperparameters\n",
+        "\n",
+        "The default hyperparameters, which will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:\n"
+      ],
+      "id": "8ed1a582"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_one_core_model_from_X\n",
+        "from spotPython.hyperparameters.values import get_default_hyperparameters_as_array\n",
+        "X_start = get_default_hyperparameters_as_array(fun_control)\n",
+        "model_default = get_one_core_model_from_X(X_start, fun_control, default=True)\n",
+        "model_default"
+      ],
+      "id": "590b6bfb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note}\n",
+        "#### Note: `spotPython` tunes numpy arrays\n",
+        "* `spotPython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.\n",
+        "::::\n",
+        "\n",
+        "The model with the default hyperparameters can be trained and evaluated with the following commands:\n"
+      ],
+      "id": "3b35abde"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotRiver.evaluation.eval_bml import eval_oml_horizon\n",
+        "\n",
+        "df_eval_default, df_true_default = eval_oml_horizon(\n",
+        "                    model=model_default,\n",
+        "                    train=fun_control[\"train\"],\n",
+        "                    test=fun_control[\"test\"],\n",
+        "                    target_column=fun_control[\"target_column\"],\n",
+        "                    horizon=fun_control[\"horizon\"],\n",
+        "                    oml_grace_period=fun_control[\"oml_grace_period\"],\n",
+        "                    metric=fun_control[\"metric_sklearn\"],\n",
+        "                )"
+      ],
+      "id": "d13e418d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The three performance criteria, i.e., score (metric), runtime, and memory consumption, can be visualized with the following commands:\n"
+      ],
+      "id": "23152a64"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_bml_oml_horizon_metrics_default\n",
+        "from spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions\n",
+        "df_labels=[\"default\"]\n",
+        "plot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])"
+      ],
+      "id": "plot_bml_oml_horizon_metrics_default",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Show Predictions\n",
+        "\n",
+        "* Select a subset of the data set for the visualization of the predictions:\n",
+        "    * We use the mean, $m$, of the data set as the center of the visualization.\n",
+        "    * We use 100 data points, i.e., $m \\pm 50$ as the visualization window.\n"
+      ],
+      "id": "f8ba8860"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_bml_oml_horizon_predictions_default\n",
+        "m = fun_control[\"test\"].shape[0]\n",
+        "a = int(m/2)-50\n",
+        "b = int(m/2)+50\n",
+        "plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)"
+      ],
+      "id": "plot_bml_oml_horizon_predictions_default",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Get SPOT Results\n",
+        "\n",
+        "In a similar way, we can obtain the hyperparameters found by `spotPython`.\n"
+      ],
+      "id": "ebf970ff"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_get_one_core_model_from_X\n",
+        "from spotPython.hyperparameters.values import get_one_core_model_from_X\n",
+        "X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\n",
+        "model_spot = get_one_core_model_from_X(X, fun_control)"
+      ],
+      "id": "get_one_core_model_from_X",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_eval_om_horizon\n",
+        "df_eval_spot, df_true_spot = eval_oml_horizon(\n",
+        "                    model=model_spot,\n",
+        "                    train=fun_control[\"train\"],\n",
+        "                    test=fun_control[\"test\"],\n",
+        "                    target_column=fun_control[\"target_column\"],\n",
+        "                    horizon=fun_control[\"horizon\"],\n",
+        "                    oml_grace_period=fun_control[\"oml_grace_period\"],\n",
+        "                    metric=fun_control[\"metric_sklearn\"],\n",
+        "                )"
+      ],
+      "id": "eval_om_horizon",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_bml_oml_horizon_metrics\n",
+        "df_labels=[\"default\", \"spot\"]\n",
+        "plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])"
+      ],
+      "id": "plot_bml_oml_horizon_metrics",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_bml_oml_horizon_predictions\n",
+        "plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels)"
+      ],
+      "id": "plot_bml_oml_horizon_predictions",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_actual_vs_predicted\n",
+        "from spotPython.plot.validation import plot_actual_vs_predicted\n",
+        "plot_actual_vs_predicted(y_test=df_true_default[target_column], y_pred=df_true_default[\"Prediction\"], title=\"Default\")\n",
+        "plot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot[\"Prediction\"], title=\"SPOT\")"
+      ],
+      "id": "plot_actual_vs_predicted",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Visualize Regression Trees\n"
+      ],
+      "id": "93d722cc"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_model_default_learn_one\n",
+        "dataset_f = dataset.take(n_samples)\n",
+        "print(f\"n_samples: {n_samples}\")\n",
+        "for x, y in dataset_f:\n",
+        "    model_default.learn_one(x, y)"
+      ],
+      "id": "model_default_learn_one",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-caution}\n",
+        "### Caution: Large Trees\n",
+        "* Since the trees are large, the visualization is suppressed by default.\n",
+        "* To visualize the trees, uncomment the following line.\n",
+        ":::\n"
+      ],
+      "id": "e2af8702"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# model_default.draw()"
+      ],
+      "id": "02417db1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_model_default_summary\n",
+        "model_default.summary"
+      ],
+      "id": "model_default_summary",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Spot Model\n"
+      ],
+      "id": "023a69b5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_model_spot_learn_one\n",
+        "print(f\"n_samples: {n_samples}\")\n",
+        "dataset_f = dataset.take(n_samples)\n",
+        "for x, y in dataset_f:\n",
+        "    model_spot.learn_one(x, y)"
+      ],
+      "id": "model_spot_learn_one",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-caution}\n",
+        "### Caution: Large Trees\n",
+        "* Since the trees are large, the visualization is suppressed by default.\n",
+        "* To visualize the trees, uncomment the following line.\n",
+        ":::\n"
+      ],
+      "id": "d6c34d99"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# model_spot.draw()"
+      ],
+      "id": "75639c55",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_model_spot_summary\n",
+        "model_spot.summary"
+      ],
+      "id": "model_spot_summary",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_compare_two_tree_models\n",
+        "from spotPython.utils.eda import compare_two_tree_models\n",
+        "print(compare_two_tree_models(model_default, model_spot))"
+      ],
+      "id": "compare_two_tree_models",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Detailed Hyperparameter Plots\n"
+      ],
+      "id": "54786b1a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_plot_important_hyperparameter_contour\n",
+        "spot_tuner.plot_important_hyperparameter_contour(max_imp=3)"
+      ],
+      "id": "plot_important_hyperparameter_contour",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Parallel Coordinates Plots\n"
+      ],
+      "id": "230471f3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 024_parallel_plot\n",
+        "spot_tuner.parallel_plot()"
+      ],
+      "id": "parallel_plot",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

@@ -1,0 +1,930 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# `river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data {#sec-river-hpt-51}\n",
+        "\n",
+        "This chapter demonstrates hyperparameter tuning for `river`'s `Mondrian Tree Regressor` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Mondrian Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample.\n",
+        "\n",
+        "\n",
+        "## Setup {#sec-setup-51}\n",
+        "\n",
+        "Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, size of the data set, and the experiment name.\n",
+        "\n",
+        "* `MAX_TIME`: The maximum run time in seconds for the hyperparameter tuning process.\n",
+        "* `INIT_SIZE`: The initial design size for the hyperparameter tuning process.\n",
+        "* `PREFIX`: The prefix for the experiment name.\n",
+        "* `K`: The factor that determines the number of samples in the data set.\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Run time and initial design size should be increased for real experiments\n",
+        "\n",
+        "* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\n",
+        "* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\n",
+        "* `K` is the multiplier for the number of samples. If it is set to 1, then `100_000`samples are taken. It is set to 0.1 for demonstration purposes. For real experiments, this should be increased to at least 1.\n",
+        ":::\n"
+      ],
+      "id": "446f654d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "MAX_TIME = 1\n",
+        "INIT_SIZE = 5\n",
+        "PREFIX=\"025RIVER\"\n",
+        "K = 0.1"
+      ],
+      "id": "c8d2dfdf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "import os\n",
+        "import numpy as np\n",
+        "from math import inf\n",
+        "import warnings\n",
+        "if not os.path.exists('./figures'):\n",
+        "    os.makedirs('./figures')\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "id": "ed7f0fbd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* This notebook exemplifies hyperparameter tuning with SPOT (spotPython and spotRiver).\n",
+        "* The hyperparameter software SPOT is available in Python. It was developed in R (statistical programming language), see Open Access book \"Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide\", available here: [https://link.springer.com/book/10.1007/978-981-19-5170-1](https://link.springer.com/book/10.1007/978-981-19-5170-1).\n",
+        "* This notebook demonstrates hyperparameter tuning for `river`. It is based on the notebook \"Incremental decision trees in river: the Hoeffding Tree case\", see: [https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters](https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters).\n",
+        "* Here we will use the river `AMFRegressor` functions, see: [https://riverml.xyz/0.19.0/api/forest/AMFRegressor/](https://riverml.xyz/0.19.0/api/forest/AMFRegressor/).\n",
+        "\n",
+        "## Initialization of the `fun_control` Dictionary\n",
+        "\n",
+        "`spotPython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotPython`.\n",
+        "\n",
+        "First, we define an \"experiment name\" to identify the hyperparameter tuning process. The experiment name is also used to create a directory for the TensorBoard files.\n"
+      ],
+      "id": "6f659077"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    max_time=MAX_TIME,\n",
+        "    fun_evals=inf,\n",
+        "    tolerance_x=np.sqrt(np.spacing(1)))"
+      ],
+      "id": "bb399843",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-tip}\n",
+        "#### Tip: TensorBoard\n",
+        "* Since the `spot_tensorboard_path` argument is not `None`, which is the default, `spotPython` will log the optimization process in the TensorBoard folder.\n",
+        "* @sec-tensorboard-10 describes how to start TensorBoard and access the TensorBoard dashboard.\n",
+        "* The `TENSORBOARD_CLEAN` argument is set to `True` to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch.\n",
+        "If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN` to `False`. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.\n",
+        ":::\n",
+        "\n",
+        "## Load Data: The Friedman Drift Data\n",
+        "\n",
+        "We will use the Friedman synthetic dataset with concept drifts [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). Each observation is composed of ten features. Each feature value is sampled uniformly in [0, 1]. Only the first five features are relevant. The target is defined by different functions depending on the type of the drift. Global Recurring Abrupt drift will be used, i.e., the concept drift appears over the whole instance space. There are two points of concept drift. At the second point of drift the old concept reoccurs.\n",
+        "\n",
+        "The following parameters are used to generate and handle the data set:\n",
+        "\n",
+        "* horizon: The prediction horizon in hours.\n",
+        "* n_samples: The number of samples in the data set.\n",
+        "* p_1: The position of the first concept drift.\n",
+        "* p_2: The position of the second concept drift.\n",
+        "* position: The position of the concept drifts.\n",
+        "* n_train: The number of samples used for training.\n"
+      ],
+      "id": "642c5b9b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "horizon = 7*24\n",
+        "n_samples = int(K*100_000)\n",
+        "p_1 = int(K*25_000)\n",
+        "p_2 = int(K*50_000)\n",
+        "position=(p_1, p_2)\n",
+        "n_train = 1_000"
+      ],
+      "id": "9470324d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from river.datasets import synth\n",
+        "import pandas as pd\n",
+        "dataset = synth.FriedmanDrift(\n",
+        "   drift_type='gra',\n",
+        "   position=position,\n",
+        "   seed=123\n",
+        ")"
+      ],
+      "id": "081d699c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* We will use `spotRiver`'s `convert_to_df` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/utils/data_conversion.py) to convert the `river` data set to a `pandas` data frame.\n"
+      ],
+      "id": "03f7cfb3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotRiver.utils.data_conversion import convert_to_df\n",
+        "target_column = \"y\"\n",
+        "df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)"
+      ],
+      "id": "48f438a9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Add column names x1 until x10 to the first 10 columns of the dataframe and the column name y to the last column of the dataframe.\n",
+        "* Then split the data frame into a training and test data set. The train and test data sets are stored in the `fun_control` dictionary.\n"
+      ],
+      "id": "8d57180e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "df.columns = [f\"x{i}\" for i in range(1, 11)] + [\"y\"]\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"train\",\n",
+        "                        value=df[:n_train],\n",
+        "                        replace=True)\n",
+        "set_control_key_value(fun_control, \"test\", df[n_train:], True)\n",
+        "set_control_key_value(fun_control, \"n_samples\", n_samples, replace=True)\n",
+        "set_control_key_value(fun_control, \"target_column\", target_column, replace=True)"
+      ],
+      "id": "9cec6151",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Specification of the Preprocessing Model\n",
+        "\n",
+        "* We use the `StandardScaler` [[SOURCE]](https://riverml.xyz/dev/api/preprocessing/StandardScaler/) from `river` as the preprocessing model. The `StandardScaler` is used to standardize the data set, i.e., it has zero mean and unit variance.\n"
+      ],
+      "id": "0e0cc62b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from river import preprocessing\n",
+        "prep_model = preprocessing.StandardScaler()\n",
+        "set_control_key_value(fun_control, \"prep_model\", prep_model, replace=True)"
+      ],
+      "id": "e5756efd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## SelectSelect Model (`algorithm`) and `core_model_hyper_dict`\n",
+        "\n",
+        "`spotPython` hyperparameter tuning approach uses two components:\n",
+        "\n",
+        "1. a model (class) and \n",
+        "2. an associated hyperparameter dictionary. \n",
+        "\n",
+        "\n",
+        "The corresponding hyperparameters are loaded from the associated dictionary, which is stored as a JSON file [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json). The JSON file contains hyperparameter type information, names, and bounds. \n",
+        "\n",
+        "The method `add_core_model_to_fun_control` adds the model and the hyperparameter dictionary to the `fun_control` dictionary.\n",
+        "\n",
+        "Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json) is loaded from the `spotRiver` package.\n"
+      ],
+      "id": "cad9444f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from river.forest import AMFRegressor\n",
+        "from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict\n",
+        "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
+        "add_core_model_to_fun_control(core_model=AMFRegressor,\n",
+        "                              fun_control=fun_control,\n",
+        "                              hyper_dict=RiverHyperDict,\n",
+        "                              filename=None)"
+      ],
+      "id": "9322121e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model`\n",
+        "\n",
+        "After the `core_model` and the `core_model_hyper_dict` are added to the `fun_control` dictionary, the hyperparameter tuning can be started.\n",
+        "However, in some settings, the user wants to modify the hyperparameters of the `core_model_hyper_dict`. This can be done with the `modify_hyper_parameter_bounds` and `modify_hyper_parameter_levels` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py).\n",
+        "\n",
+        "The following code shows how hyperparameter of type numeric and integer (boolean) can be modified. The `modify_hyper_parameter_bounds` function is used to modify the bounds of the hyperparameter `delta` and `merit_preprune`. Similar option exists for the `modify_hyper_parameter_levels` function to modify the levels of categorical hyperparameters.\n"
+      ],
+      "id": "3787fbc4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# from spotPython.hyperparameters.values import modify_hyper_parameter_bounds\n",
+        "# modify_hyper_parameter_bounds(fun_control, \"n_estimators\", bounds=[2,100])\n",
+        "\n",
+        "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
+        "set_control_hyperparameter_value(fun_control, \"n_estimators\", [2, 100])"
+      ],
+      "id": "b650317e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "#### Note: Active and Inactive Hyperparameters\n",
+        "Hyperparameters can be excluded from the tuning procedure by selecting identical values for the lower and upper bounds.\n"
+      ],
+      "id": "2a3cc839"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "ceb98e68",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Selection of the Objective (Loss) Function\n",
+        "\n",
+        "The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Additional metrics\n",
+        "`spotRiver` also supports additional metrics. For example, the `metric_river` is used for the river based evaluation via `eval_oml_iter_progressive` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_oml.py). The `metric_river` is implemented to simulate the behaviour of the \"original\" `river` metrics.\n",
+        ":::\n",
+        "\n",
+        "`spotRiver` provides information about the model' s score (metric), memory, and time.\n",
+        "The hyperparamter tuner requires a single objective.\n",
+        "Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the `weights` array.\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Weights\n",
+        "The `weights` provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.\n",
+        ":::\n",
+        "\n",
+        "The `oml_grace_period` defines the number of observations that are used for the initial training of the model. The `step` defines the iteration number at which to yield results. This only takes into account the predictions, and not the training steps.  The `weight_coeff` defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations. \n",
+        "Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.\n"
+      ],
+      "id": "d1cfeb22"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from sklearn.metrics import mean_absolute_error\n",
+        "\n",
+        "weights = np.array([1, 1/1000, 1/1000])*10_000.0\n",
+        "oml_grace_period = 2\n",
+        "step = 100\n",
+        "weight_coeff = 1.0\n",
+        "\n",
+        "# fun_control.update({\n",
+        "#                \"horizon\": horizon,\n",
+        "#                \"oml_grace_period\": oml_grace_period,\n",
+        "#                \"weights\": weights,\n",
+        "#                \"step\": step,\n",
+        "#                \"weight_coeff\": weight_coeff,\n",
+        "#                \"metric_sklearn\": mean_absolute_error\n",
+        "#                })\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"horizon\",\n",
+        "                        value=horizon,\n",
+        "                        replace=True)\n",
+        "set_control_key_value(fun_control, \"oml_grace_period\", oml_grace_period, True)\n",
+        "set_control_key_value(fun_control, \"weights\", weights, True)\n",
+        "set_control_key_value(fun_control, \"step\", step, True)\n",
+        "set_control_key_value(fun_control, \"weight_coeff\", weight_coeff, True)\n",
+        "set_control_key_value(fun_control, \"metric_sklearn\", mean_absolute_error, True)"
+      ],
+      "id": "a5f7e157",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Calling the SPOT Function\n",
+        "\n",
+        "\n",
+        "### The Objective Function {#sec-the-objective-function-51}\n",
+        "\n",
+        "The objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py) is selected next.\n"
+      ],
+      "id": "6ac19a78"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotRiver.fun.hyperriver import HyperRiver\n",
+        "fun = HyperRiver().fun_oml_horizon"
+      ],
+      "id": "9df6cd1b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the `Spot` function.\n"
+      ],
+      "id": "722025b1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_default_hyperparameters_as_array\n",
+        "X_start = get_default_hyperparameters_as_array(fun_control)"
+      ],
+      "id": "642d6edd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Run the `Spot` Optimizer\n",
+        "\n",
+        "The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:\n",
+        "\n",
+        "* `fun`: the objective function\n",
+        "* `fun_control`: the dictionary with the control parameters for the objective function\n",
+        "* `design`: the experimental design\n",
+        "* `design_control`: the dictionary with the control parameters for the experimental design\n",
+        "* `surrogate`: the surrogate model\n",
+        "* `surrogate_control`: the dictionary with the control parameters for the surrogate model\n",
+        "* `optimizer`: the optimizer\n",
+        "* `optimizer_control`: the dictionary with the control parameters for the optimizer\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "#### Note: Total run time\n",
+        " The total run time may exceed the specified `max_time`, because the initial design (here: `init_size` = INIT_SIZE as specified above) is always evaluated, even if this takes longer than `max_time`.\n",
+        ":::\n"
+      ],
+      "id": "b737c96d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
+        "design_control = design_control_init()\n",
+        "set_control_key_value(control_dict=design_control,\n",
+        "                        key=\"init_size\",\n",
+        "                        value=INIT_SIZE,\n",
+        "                        replace=True)\n",
+        "\n",
+        "surrogate_control = surrogate_control_init(noise=True,\n",
+        "                                           n_theta=2)"
+      ],
+      "id": "ea224485",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.spot import spot\n",
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   design_control=design_control,\n",
+        "                   surrogate_control=surrogate_control)\n",
+        "spot_tuner.run(X_start=X_start)"
+      ],
+      "id": "1a23b9ba",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### TensorBoard {#sec-tensorboard-10}\n",
+        "\n",
+        "Now we can start TensorBoard in the background with the following command, where `./runs` is the default directory for the TensorBoard log files:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        ":::{.callout-tip}\n",
+        "#### Tip: TENSORBOARD_PATH\n",
+        "The TensorBoard path can be printed with the following command:\n"
+      ],
+      "id": "69266698"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import get_tensorboard_path\n",
+        "get_tensorboard_path(fun_control)"
+      ],
+      "id": "c7bf001a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "We can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "\n",
+        "The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\\theta$ of the Kriging surrogate [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/build/kriging.py) is plotted against the number of optimization steps.\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/13_tensorboard_01.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "### Results\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:\n"
+      ],
+      "id": "73ecaaaa"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.file import save_pickle,  load_pickle\n",
+        "from spotPython.utils.init import get_experiment_name\n",
+        "experiment_name = get_experiment_name(PREFIX)\n",
+        "SAVE_AND_LOAD = False\n",
+        "if SAVE_AND_LOAD == True:\n",
+        "    save_pickle(spot_tuner, experiment_name)\n",
+        "    spot_tuner = load_pickle(experiment_name)"
+      ],
+      "id": "af2fa1ea",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
+      ],
+      "id": "9a9db62c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_progress(log_y=True, filename=\"./figures/\" + experiment_name+\"_progress.pdf\")"
+      ],
+      "id": "67816768",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Results can also be printed in tabular form.\n"
+      ],
+      "id": "b7e9e017"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "5b7dd99b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A histogram can be used to visualize the most important hyperparameters.\n"
+      ],
+      "id": "625da819"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_importance(threshold=0.0025, filename=\"./figures/\" + experiment_name+\"_importance.pdf\")"
+      ],
+      "id": "0569e022",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The Larger Data Set \n",
+        "\n",
+        "After the hyperparameter were tuned on a small data set, we can now apply the hyperparameter configuration to a larger data set. The following code snippet shows how to generate the larger data set.\n",
+        "\n",
+        ":::{.callout-caution}\n",
+        "#### Caution: Increased Friedman-Drift Data Set\n",
+        "\n",
+        "* The Friedman-Drift Data Set is increased by a factor of two to show the transferability of the hyperparameter tuning results.\n",
+        "* Larger values of `K` lead to a longer run time.\n",
+        ":::\n"
+      ],
+      "id": "b578f30c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "K = 0.2\n",
+        "n_samples = int(K*100_000)\n",
+        "p_1 = int(K*25_000)\n",
+        "p_2 = int(K*50_000)\n",
+        "position=(p_1, p_2)"
+      ],
+      "id": "04051fe8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "dataset = synth.FriedmanDrift(\n",
+        "   drift_type='gra',\n",
+        "   position=position,\n",
+        "   seed=123\n",
+        ")"
+      ],
+      "id": "c1a933e9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The larger data set is converted to a Pandas data frame and passed to the `fun_control` dictionary."
+      ],
+      "id": "0555b4c7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)\n",
+        "df.columns = [f\"x{i}\" for i in range(1, 11)] + [\"y\"]\n",
+        "# fun_control.update({\"train\": df[:n_train],\n",
+        "#                     \"test\": df[n_train:],\n",
+        "#                     \"n_samples\": n_samples,\n",
+        "#                     \"target_column\": target_column})\n",
+        "set_control_key_value(fun_control, \"train\", df[:n_train], True)\n",
+        "set_control_key_value(fun_control, \"test\", df[n_train:], True)\n",
+        "set_control_key_value(fun_control, \"n_samples\", n_samples, True)\n",
+        "set_control_key_value(fun_control, \"target_column\", target_column, True)"
+      ],
+      "id": "31b47ccd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Get Default Hyperparameters\n",
+        "\n",
+        "The default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:"
+      ],
+      "id": "252ad103"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_one_core_model_from_X\n",
+        "from spotPython.hyperparameters.values import get_default_hyperparameters_as_array\n",
+        "X_start = get_default_hyperparameters_as_array(fun_control)\n",
+        "model_default = get_one_core_model_from_X(X_start, fun_control, default=True)"
+      ],
+      "id": "aa6160e1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note}\n",
+        "#### Note: `spotPython` tunes numpy arrays\n",
+        "* `spotPython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.\n",
+        "::::\n",
+        "\n",
+        "The model with the default hyperparameters can be trained and evaluated with the following commands:\n"
+      ],
+      "id": "540ebd1f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotRiver.evaluation.eval_bml import eval_oml_horizon\n",
+        "\n",
+        "df_eval_default, df_true_default = eval_oml_horizon(\n",
+        "                    model=model_default,\n",
+        "                    train=fun_control[\"train\"],\n",
+        "                    test=fun_control[\"test\"],\n",
+        "                    target_column=fun_control[\"target_column\"],\n",
+        "                    horizon=fun_control[\"horizon\"],\n",
+        "                    oml_grace_period=fun_control[\"oml_grace_period\"],\n",
+        "                    metric=fun_control[\"metric_sklearn\"],\n",
+        "                )"
+      ],
+      "id": "b15a95c9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The three performance criteria, i.e., scaoe (metric), runtime, and memory consumption, can be visualized with the following commands:\n"
+      ],
+      "id": "12a38a12"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions\n",
+        "df_labels=[\"default\"]\n",
+        "plot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])"
+      ],
+      "id": "da6e2d51",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Show Predictions\n",
+        "\n",
+        "* Select a subset of the data set for the visualization of the predictions:\n",
+        "    * We use the mean, $m$, of the data set as the center of the visualization.\n",
+        "    * We use 100 data points, i.e., $m \\pm 50$ as the visualization window.\n"
+      ],
+      "id": "7b32200e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "m = fun_control[\"test\"].shape[0]\n",
+        "a = int(m/2)-50\n",
+        "b = int(m/2)"
+      ],
+      "id": "5cc27926",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)"
+      ],
+      "id": "075236c1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Get SPOT Results\n",
+        "\n",
+        "In a similar way, we can obtain the hyperparameters found by `spotPython`.\n"
+      ],
+      "id": "034640e5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_one_core_model_from_X\n",
+        "X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\n",
+        "model_spot = get_one_core_model_from_X(X, fun_control)"
+      ],
+      "id": "961b2925",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df_eval_spot, df_true_spot = eval_oml_horizon(\n",
+        "                    model=model_spot,\n",
+        "                    train=fun_control[\"train\"],\n",
+        "                    test=fun_control[\"test\"],\n",
+        "                    target_column=fun_control[\"target_column\"],\n",
+        "                    horizon=fun_control[\"horizon\"],\n",
+        "                    oml_grace_period=fun_control[\"oml_grace_period\"],\n",
+        "                    metric=fun_control[\"metric_sklearn\"],\n",
+        "                )"
+      ],
+      "id": "75427509",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df_labels=[\"default\", \"spot\"]\n",
+        "plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"], filename=\"./figures/\" + experiment_name+\"_metrics.pdf\")"
+      ],
+      "id": "d364075b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels, filename=\"./figures/\" + experiment_name+\"_predictions.pdf\")"
+      ],
+      "id": "4a2abc45",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.plot.validation import plot_actual_vs_predicted\n",
+        "plot_actual_vs_predicted(y_test=df_true_default[target_column], y_pred=df_true_default[\"Prediction\"], title=\"Default\")\n",
+        "plot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot[\"Prediction\"], title=\"SPOT\")"
+      ],
+      "id": "270d9568",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Detailed Hyperparameter Plots\n"
+      ],
+      "id": "95d32636"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "filename = \"./figures/\" + experiment_name\n",
+        "spot_tuner.plot_important_hyperparameter_contour(filename=filename)"
+      ],
+      "id": "32021531",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Parallel Coordinates Plots\n"
+      ],
+      "id": "4db898a8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.parallel_plot()"
+      ],
+      "id": "1c963f1b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Plot all Combinations of Hyperparameters\n",
+        "\n",
+        "* Warning: this may take a while.\n"
+      ],
+      "id": "05b28b9c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "PLOT_ALL = False\n",
+        "if PLOT_ALL:\n",
+        "    n = spot_tuner.k\n",
+        "    for i in range(n-1):\n",
+        "        for j in range(i+1, n):\n",
+        "            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)"
+      ],
+      "id": "56dda148",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

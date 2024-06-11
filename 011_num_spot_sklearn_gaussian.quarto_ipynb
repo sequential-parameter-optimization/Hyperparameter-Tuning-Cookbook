@@ -1,0 +1,412 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Sequential Parameter Optimization:  Gaussian Process Models {#sec-gaussian-process-models}\n",
+        "\n",
+        "This chapter analyzes differences between the `Kriging` implementation in `spotPython` and the `GaussianProcessRegressor` in `scikit-learn`.\n"
+      ],
+      "id": "1acd350d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "from scipy.optimize import shgo\n",
+        "from scipy.optimize import direct\n",
+        "from scipy.optimize import differential_evolution\n",
+        "import matplotlib.pyplot as plt\n",
+        "import math as m\n",
+        "from sklearn.gaussian_process import GaussianProcessRegressor\n",
+        "from sklearn.gaussian_process.kernels import RBF"
+      ],
+      "id": "9097853c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Gaussian Processes Regression: Basic Introductory `scikit-learn` Example\n",
+        "\n",
+        "* This is the example from [scikit-learn: https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html](https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html)\n",
+        "\n",
+        "* After fitting our model, we see that the hyperparameters of the kernel have been optimized. \n",
+        "* Now, we will use our kernel to compute the mean prediction of the full dataset and plot the 95% confidence interval.\n",
+        "\n",
+        "### Train and Test Data\n"
+      ],
+      "id": "db121c42"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "X = np.linspace(start=0, stop=10, num=1_000).reshape(-1, 1)\n",
+        "y = np.squeeze(X * np.sin(X))\n",
+        "rng = np.random.RandomState(1)\n",
+        "training_indices = rng.choice(np.arange(y.size), size=6, replace=False)\n",
+        "X_train, y_train = X[training_indices], y[training_indices]"
+      ],
+      "id": "796bd116",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Building the Surrogate With `Sklearn`\n",
+        "\n",
+        "* The model building with `sklearn` consisits of three steps:\n",
+        "    1. Instantiating the model, then\n",
+        "    2. fitting the model (using `fit`), and\n",
+        "    3. making predictions (using `predict`)\n"
+      ],
+      "id": "5e0789d4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))\n",
+        "gaussian_process = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)\n",
+        "gaussian_process.fit(X_train, y_train)\n",
+        "mean_prediction, std_prediction = gaussian_process.predict(X, return_std=True)"
+      ],
+      "id": "c29b8eb7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Plotting the `Sklearn`Model\n"
+      ],
+      "id": "fb59cec6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, mean_prediction, label=\"Mean prediction\")\n",
+        "plt.fill_between(\n",
+        "    X.ravel(),\n",
+        "    mean_prediction - 1.96 * std_prediction,\n",
+        "    mean_prediction + 1.96 * std_prediction,\n",
+        "    alpha=0.5,\n",
+        "    label=r\"95% confidence interval\",\n",
+        ")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"sk-learn Version: Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "a4f94e9a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `spotPython` Version\n",
+        "\n",
+        "* The `spotPython` version is very similar:\n",
+        "    1. Instantiating the model, then\n",
+        "    2. fitting the model and\n",
+        "    3. making predictions (using `predict`).\n"
+      ],
+      "id": "cb8d31f8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',  seed=123, log_level=50, cod_type=\"norm\")\n",
+        "S.fit(X_train, y_train)\n",
+        "S_mean_prediction, S_std_prediction, S_ei = S.predict(X, return_val=\"all\")"
+      ],
+      "id": "eb61277e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, S_mean_prediction, label=\"Mean prediction\")\n",
+        "plt.fill_between(\n",
+        "    X.ravel(),\n",
+        "    S_mean_prediction - 1.96 * S_std_prediction,\n",
+        "    S_mean_prediction + 1.96 * S_std_prediction,\n",
+        "    alpha=0.5,\n",
+        "    label=r\"95% confidence interval\",\n",
+        ")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"spotPython Version: Gaussian process regression on noise-free dataset\")"
+      ],
+      "id": "eda28636",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Visualizing the Differences Between the `spotPython` and the `sklearn` Model Fits\n"
+      ],
+      "id": "537ce623"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.plot(X, y, label=r\"$f(x) = x \\sin(x)$\", linestyle=\"dotted\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X, S_mean_prediction, label=\"spotPython Mean prediction\")\n",
+        "plt.plot(X, mean_prediction, label=\"Sklearn Mean Prediction\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Comparing Mean Predictions\")"
+      ],
+      "id": "ff9e2b80",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exercises\n",
+        "\n",
+        "### `Schonlau Example Function`\n",
+        "\n",
+        "* The Schonlau Example Function is based on sample points only (there is no analytical function description available):\n"
+      ],
+      "id": "8222ebd2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "X = np.linspace(start=0, stop=13, num=1_000).reshape(-1, 1)\n",
+        "X_train = np.array([1., 2., 3., 4., 12.]).reshape(-1,1)\n",
+        "y_train = np.array([0., -1.75, -2, -0.5, 5.])"
+      ],
+      "id": "fb64f5eb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Describe the function.\n",
+        "* Compare the two models that were build using the `spotPython` and the `sklearn` surrogate.\n",
+        "* Note: Since there is no analytical function available, you might be interested in adding some points and describe the effects.\n",
+        "\n",
+        "### `Forrester Example Function`\n",
+        "\n",
+        "* The Forrester Example Function is defined as follows:\n",
+        "\n",
+        "    `f(x) = (6x- 2)^2 sin(12x-4) for x in [0,1].`\n",
+        "\n",
+        "* Data points are generated as follows:\n"
+      ],
+      "id": "ce9851f2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "X = np.linspace(start=-0.5, stop=1.5, num=1_000).reshape(-1, 1)\n",
+        "X_train = np.array([0.0, 0.175, 0.225, 0.3, 0.35, 0.375, 0.5,1]).reshape(-1,1)\n",
+        "fun = analytical().fun_forrester\n",
+        "fun_control = fun_control_init(sigma = 0.1)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "y_train = fun(X_train, fun_control=fun_control)"
+      ],
+      "id": "eaddc5e9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Describe the function.\n",
+        "* Compare the two models that were build using the `spotPython` and the `sklearn` surrogate.\n",
+        "* Note: Modify the noise level (`\"sigma\"`), e.g., use a value of `0.2`, and compare the two models.\n"
+      ],
+      "id": "20ca73a2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(sigma = 0.2)"
+      ],
+      "id": "b344adc5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_runge Function (1-dim)`\n",
+        "\n",
+        "* The Runge function is defined as follows:\n",
+        "\n",
+        "  `f(x) = 1/ (1 + sum(x_i))^2`\n",
+        "\n",
+        "* Data points are generated as follows:\n"
+      ],
+      "id": "87eb37a1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_runge\n",
+        "fun_control = fun_control_init(sigma = 0.025)\n",
+        "X_train = gen.scipy_lhd(10, lower=lower, upper = upper).reshape(-1,1)\n",
+        "y_train = fun(X, fun_control=fun_control)\n",
+        "X = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "y = fun(X, fun_control=fun_control)"
+      ],
+      "id": "046e7dcf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Describe the function.\n",
+        "* Compare the two models that were build using the `spotPython` and the `sklearn` surrogate.\n",
+        "* Note: Modify the noise level (`\"sigma\"`), e.g., use a value of `0.05`, and compare the two models.\n"
+      ],
+      "id": "e3c4fa94"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(sigma = 0.5)"
+      ],
+      "id": "a9552618",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_cubed (1-dim)`\n",
+        "\n",
+        "* The Cubed function is defined as follows:\n",
+        "\n",
+        "    `np.sum(X[i]** 3)`\n",
+        "\n",
+        "* Data points are generated as follows:\n"
+      ],
+      "id": "c6f3bd6d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "fun_control = fun_control_init(sigma = 0.025,\n",
+        "                lower = np.array([-10]),\n",
+        "                upper = np.array([10]))\n",
+        "fun = analytical().fun_cubed\n",
+        "X_train = gen.scipy_lhd(10, lower=lower, upper = upper).reshape(-1,1)\n",
+        "y_train = fun(X, fun_control=fun_control)\n",
+        "X = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "y = fun(X, fun_control=fun_control)"
+      ],
+      "id": "561786e4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Describe the function.\n",
+        "* Compare the two models that were build using the `spotPython` and the `sklearn` surrogate.\n",
+        "* Note: Modify the noise level (`\"sigma\"`), e.g., use a value of `0.05`, and compare the two models.\n"
+      ],
+      "id": "470c1d1e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(sigma = 0.025)"
+      ],
+      "id": "7e97db84",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Effect of Noise\n",
+        "\n",
+        "How does the behavior of the `spotPython` fit changes when the argument `noise` is set to `True`, i.e.,\n",
+        "    \n",
+        "`S = Kriging(name='kriging',  seed=123, n_theta=1, noise=True)`\n",
+        "\n",
+        "is used?\n"
+      ],
+      "id": "9e51487e"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

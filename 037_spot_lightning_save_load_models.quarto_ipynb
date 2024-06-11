@@ -1,0 +1,729 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Saving and Loading\n",
+        "\n",
+        "This tutorial shows how to save and load objects in `spotPython`.\n",
+        "It is split into the following parts:\n",
+        "- @sec-spotpython-saving-and-loading shows how to save and load objects in `spotPython`, if `spotPython` is used as an optimizer.\n",
+        "- @sec-spotpython-as-a-hyperparameter-tuner-37 shows how to save and load hyperparameter tuning experiments.\n",
+        "- @sec-saving-and-loading-pytorch-lightning-models-37 shows how to save and load `PyTorch Lightning` models.\n",
+        "- @sec-converting-a-lightning-model-to-a-plain-torch-model-37 shows how to convert a `PyTorch Lightning` model to a plain `PyTorch` model.\n",
+        "\n",
+        "## spotPython: Saving and Loading Optimization Experiments {#sec-spotpython-saving-and-loading}\n",
+        "\n",
+        "In this section, we will show how results from `spotPython` can be saved and reloaded.\n",
+        "Here, `spotPython` can be used as an optimizer. \n",
+        "\n",
+        "### spotPython as an Optimizer\n",
+        "\n",
+        "If `spotPython` is used as an optimizer, no dictionary of hyperparameters has be specified. The `fun_control` dictionary is sufficient. \n"
+      ],
+      "id": "77ad67f2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-optimization-experiment-37\n",
+        "import os\n",
+        "import pprint\n",
+        "from spotPython.utils.file import load_experiment\n",
+        "from spotPython.utils.file import get_experiment_filename\n",
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.utils.init import (\n",
+        "    fun_control_init,\n",
+        "    design_control_init,\n",
+        "    surrogate_control_init,\n",
+        "    optimizer_control_init)\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "fun = analytical().fun_branin\n",
+        "fun_control = fun_control_init(\n",
+        "            PREFIX=\"branin\",\n",
+        "            SUMMARY_WRITER=False,\n",
+        "            lower = np.array([0, 0]),\n",
+        "            upper = np.array([10, 10]),\n",
+        "            fun_evals=8,\n",
+        "            fun_repeats=1,\n",
+        "            max_time=inf,\n",
+        "            noise=False,\n",
+        "            tolerance_x=0,\n",
+        "            ocba_delta=0,\n",
+        "            var_type=[\"num\", \"num\"],\n",
+        "            infill_criterion=\"ei\",\n",
+        "            n_points=1,\n",
+        "            seed=123,\n",
+        "            log_level=20,\n",
+        "            show_models=False,\n",
+        "            show_progress=True)\n",
+        "design_control = design_control_init(\n",
+        "            init_size=5,\n",
+        "            repeats=1)\n",
+        "surrogate_control = surrogate_control_init(\n",
+        "            model_fun_evals=10000,\n",
+        "            min_theta=-3,\n",
+        "            max_theta=3,\n",
+        "            n_theta=2,\n",
+        "            theta_init_zero=True,\n",
+        "            n_p=1,\n",
+        "            optim_p=False,\n",
+        "            var_type=[\"num\", \"num\"],\n",
+        "            seed=124)\n",
+        "optimizer_control = optimizer_control_init(\n",
+        "            max_iter=1000,\n",
+        "            seed=125)\n",
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "            fun_control=fun_control,\n",
+        "            design_control=design_control,\n",
+        "            surrogate_control=surrogate_control,\n",
+        "            optimizer_control=optimizer_control)\n",
+        "spot_tuner.run()\n",
+        "PREFIX = fun_control[\"PREFIX\"]\n",
+        "filename = get_experiment_filename(PREFIX)\n",
+        "spot_tuner.save_experiment(filename=filename)\n",
+        "print(f\"filename: {filename}\")"
+      ],
+      "id": "code-optimization-experiment-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-reload-optimization-experiment-37\n",
+        "(spot_tuner_1, fun_control_1, design_control_1,\n",
+        "    surrogate_control_1, optimizer_control_1) = load_experiment(filename)"
+      ],
+      "id": "code-reload-optimization-experiment-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The progress of the original experiment is shown in @fig-plot-progress-37a and the reloaded experiment in @fig-plot-progress-37b."
+      ],
+      "id": "9afe3ea4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: fig-plot-progress-37a\n",
+        "#| fig-cap: Progress of the original experiment\n",
+        "spot_tuner.plot_progress(log_y=True)"
+      ],
+      "id": "fig-plot-progress-37a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: fig-plot-progress-37b\n",
+        "#| fig-cap: Progress of the reloaded experiment\n",
+        "spot_tuner_1.plot_progress(log_y=True)"
+      ],
+      "id": "fig-plot-progress-37b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The results from the original experiment are shown in @tbl-results-37a and the reloaded experiment in @tbl-results-37b.\n"
+      ],
+      "id": "3c83a747"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: tbl-results-37a\n",
+        "spot_tuner.print_results()"
+      ],
+      "id": "tbl-results-37a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: tbl-results-37b\n",
+        "spot_tuner_1.print_results()"
+      ],
+      "id": "tbl-results-37b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Getting the Tuned Hyperparameters\n",
+        "\n",
+        "The tuned hyperparameters can be obtained as a dictionary with the following code.\n"
+      ],
+      "id": "b30e93fd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-get-tuned-optimization-37\n",
+        "from spotPython.hyperparameters.values import get_tuned_hyperparameters\n",
+        "get_tuned_hyperparameters(spot_tuner=spot_tuner)"
+      ],
+      "id": "code-get-tuned-optimization-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Summary: Saving and Loading Optimization Experiments\n",
+        "* If `spotPython` is used as an optimizer (without an hyperparameter dictionary), experiments can be saved and reloaded with the `save_experiment` and `load_experiment` functions.\n",
+        "* The tuned hyperparameters can be obtained with the `get_tuned_hyperparameters` function.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "\n",
+        "## spotPython as a Hyperparameter Tuner {#sec-spotpython-as-a-hyperparameter-tuner-37}\n",
+        "\n",
+        "If `spotPython` is used as a hyperparameter tuner, in addition to the `fun_control` dictionary a `core_model` dictionary have to be specified.\n",
+        "This will be explained in @sec-adding-a-core-model-37.\n",
+        "\n",
+        "Furthermore, a data set has to be selected and added to the `fun_control` dictionary.\n",
+        "Here, we will use the `Diabetes` data set.\n",
+        "\n",
+        "\n",
+        "### The Diabetes Data Set\n",
+        "\n",
+        "The hyperparameter tuning of a `PyTorch Lightning` network on the `Diabetes` data set is used as an example. The `Diabetes` data set is a PyTorch Dataset for regression, which originates from the `scikit-learn` package, see [https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes).\n",
+        "\n",
+        " Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
+        "The `Diabetes` data set is described in @tbl-diabetes-31.\n",
+        "\n",
+        "| Description | Value |\n",
+        "| --- | --- |\n",
+        "| Samples total | 442 |\n",
+        "| Dimensionality | 10 |\n",
+        "| Features | real, -.2 < x < .2 |\n",
+        "| Targets | integer 25 - 346 |\n",
+        ": The Diabetes data set {#tbl-diabetes-31}\n"
+      ],
+      "id": "e259397a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-hyperparameter-tuning-37\n",
+        "from spotPython.utils.device import getDevice\n",
+        "from math import inf\n",
+        "from spotPython.utils.init import fun_control_init\n",
+        "import numpy as np\n",
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "\n",
+        "MAX_TIME = 1\n",
+        "FUN_EVALS = 8\n",
+        "INIT_SIZE = 5\n",
+        "WORKERS = 0\n",
+        "PREFIX=\"037\"\n",
+        "DEVICE = getDevice()\n",
+        "DEVICES = 1\n",
+        "TEST_SIZE = 0.4\n",
+        "TORCH_METRIC = \"mean_squared_error\"\n",
+        "dataset = Diabetes()\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    _L_in=10,\n",
+        "    _L_out=1,\n",
+        "    _torchmetric=TORCH_METRIC,\n",
+        "    PREFIX=PREFIX,\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    data_set=dataset,\n",
+        "    device=DEVICE,\n",
+        "    enable_progress_bar=False,\n",
+        "    fun_evals=FUN_EVALS,\n",
+        "    log_level=50,\n",
+        "    max_time=MAX_TIME,\n",
+        "    num_workers=WORKERS,\n",
+        "    show_progress=True,\n",
+        "    test_size=TEST_SIZE,\n",
+        "    tolerance_x=np.sqrt(np.spacing(1)),\n",
+        "    )"
+      ],
+      "id": "code-hyperparameter-tuning-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Adding a `core_model` to the `fun_control` Dictionary {#sec-adding-a-core-model-37}\n",
+        "\n",
+        "`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/NetLightRegression.py) for configurable neural networks. \n",
+        "The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).\n",
+        "\n",
+        "\n",
+        "The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).\n",
+        "\n",
+        "The `core_model` dictionary contains the hyperparameters of the model to be tuned. These hyperparameters can be specified and modified with as shown in the following code.\n"
+      ],
+      "id": "29f026af"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-add-core-model-to-fun-control-37\n",
+        "from spotPython.light.regression.netlightregression import NetLightRegression\n",
+        "from spotPython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
+        "add_core_model_to_fun_control(fun_control=fun_control,\n",
+        "                              core_model=NetLightRegression,\n",
+        "                              hyper_dict=LightHyperDict)\n",
+        "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
+        "\n",
+        "set_control_hyperparameter_value(fun_control, \"epochs\", [4, 5])\n",
+        "set_control_hyperparameter_value(fun_control, \"batch_size\", [4, 5])\n",
+        "set_control_hyperparameter_value(fun_control, \"optimizer\", [\n",
+        "                \"Adam\",\n",
+        "                \"RAdam\",\n",
+        "            ])\n",
+        "set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n",
+        "set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.05, 1.0])\n",
+        "set_control_hyperparameter_value(fun_control, \"patience\", [2, 3])\n",
+        "set_control_hyperparameter_value(fun_control, \"act_fn\",[\n",
+        "                \"ReLU\",\n",
+        "                \"LeakyReLU\"\n",
+        "            ] )"
+      ],
+      "id": "code-add-core-model-to-fun-control-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `design_control`,  `surrogate_control` Dictionaries and the Objective Function {#sec-specifying-design-surrogate-control-dictionaries-37}\n",
+        "\n",
+        "After specifying the `design_control` and `surrogate_control` dictionaries, the objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.\n",
+        "\n",
+        "Then, the hyperparameter tuning can be started.\n"
+      ],
+      "id": "72450119"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-start-hyperparameter-tuning-37\n",
+        "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
+        "design_control = design_control_init(init_size=INIT_SIZE)\n",
+        "\n",
+        "surrogate_control = surrogate_control_init(noise=True,\n",
+        "                                            n_theta=2)\n",
+        "from spotPython.fun.hyperlight import HyperLight\n",
+        "fun = HyperLight(log_level=50).fun\n",
+        "from spotPython.spot import spot\n",
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "                       fun_control=fun_control,\n",
+        "                       design_control=design_control,\n",
+        "                       surrogate_control=surrogate_control)\n",
+        "spot_tuner.run()"
+      ],
+      "id": "code-start-hyperparameter-tuning-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The tuned hyperparameters can be obtained as a dictionary with the following code.\n"
+      ],
+      "id": "e88a249c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-get-tuned-hyperparameters-37\n",
+        "from spotPython.hyperparameters.values import get_tuned_hyperparameters\n",
+        "get_tuned_hyperparameters(spot_tuner)"
+      ],
+      "id": "code-get-tuned-hyperparameters-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Here , the numerical levels of the hyperparameters are used as keys in the dictionary.\n",
+        "If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. "
+      ],
+      "id": "d59d0e58"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-get-tuned-hyperparameters-fun-ctrl37\n",
+        "get_tuned_hyperparameters(spot_tuner, fun_control)"
+      ],
+      "id": "code-get-tuned-hyperparameters-fun-ctrl37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-save-experiment-37\n",
+        "PREFIX = fun_control[\"PREFIX\"]\n",
+        "filename = get_experiment_filename(PREFIX)\n",
+        "spot_tuner.save_experiment(filename=filename)\n",
+        "print(f\"filename: {filename}\")"
+      ],
+      "id": "code-save-experiment-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The results from the experiment are stored in the pickle file `{python} filename`.\n",
+        "The experiment can be reloaded with the following code.\n"
+      ],
+      "id": "e812535d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: code-reload-hyper-experiment-37\n",
+        "(spot_tuner_1, fun_control_1, design_control_1,\n",
+        "    surrogate_control_1, optimizer_control_1) = load_experiment(filename)"
+      ],
+      "id": "code-reload-hyper-experiment-37",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Plot the progress of the original experiment are identical to the reloaded experiment."
+      ],
+      "id": "9b1bb123"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_progress(log_y=True)\n",
+        "spot_tuner_1.plot_progress(log_y=True)"
+      ],
+      "id": "ed4c73f0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Finally, the tuned hyperparameters can be obtained as a dictionary from the reloaded experiment with the following code.\n"
+      ],
+      "id": "ed908aca"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "get_tuned_hyperparameters(spot_tuner_1, fun_control_1)"
+      ],
+      "id": "a7426d6b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Summary: Saving and Loading Hyperparameter-Tuning Experiments\n",
+        "* If `spotPython` is used as an hyperparameter tuner (with an hyperparameter dictionary), experiments can be saved and reloaded with the `save_experiment` and `load_experiment` functions.\n",
+        "* The tuned hyperparameters can be obtained with the `get_tuned_hyperparameters` function.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Saving and Loading PyTorch Lightning Models {#sec-saving-and-loading-pytorch-lightning-models-37}\n",
+        "\n",
+        "@sec-spotpython-saving-and-loading  and @sec-spotpython-as-a-hyperparameter-tuner-37 explained how to save and load optimization and hyperparameter tuning experiments and how to get the tuned hyperparameters as a dictionary.\n",
+        "This section shows how to save and load `PyTorch Lightning` models.\n",
+        "\n",
+        "\n",
+        "### Get the Tuned Architecture {#sec-get-spot-results-31}\n",
+        "\n",
+        "In contrast to the function `get_tuned_hyperparameters`, the function `get_tuned_architecture` returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model. The `config` dictionary can be passed to the model without any modifications.\n"
+      ],
+      "id": "b519e032"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+        "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+        "pprint.pprint(config)"
+      ],
+      "id": "83ac7e41",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "After getting the tuned architecture, the model can be created and tested with the following code.\n"
+      ],
+      "id": "aa26b563"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.testmodel import test_model\n",
+        "test_model(config, fun_control)"
+      ],
+      "id": "3dd45949",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Load a Model from Checkpoint\n"
+      ],
+      "id": "fb88c0b1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
+        "model_loaded = load_light_from_checkpoint(config, fun_control)"
+      ],
+      "id": "0faf85ac",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "vars(model_loaded)"
+      ],
+      "id": "7fd1c7e5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import torch\n",
+        "torch.save(model_loaded, \"model.pt\")"
+      ],
+      "id": "effd65a1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "mymodel = torch.load(\"model.pt\")"
+      ],
+      "id": "94dd85d9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# show all attributes of the model\n",
+        "vars(mymodel)"
+      ],
+      "id": "7793af41",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Converting a Lightning Model to a Plain Torch Model {#sec-converting-a-lightning-model-to-a-plain-torch-model-37}\n",
+        "\n",
+        "### The Function `get_removed_attributes_and_base_net`\n",
+        "\n",
+        "`spotPython` provides a function to covert a `PyTorch Lightning` model to a plain `PyTorch` model. The function `get_removed_attributes_and_base_net` returns a tuple with the removed attributes and the base net. The base net is a plain `PyTorch` model. The removed attributes are the attributes of the `PyTorch Lightning` model that are not part of the base net.\n",
+        "\n",
+        "This conversion can be reverted.\n"
+      ],
+      "id": "f01c88de"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import torch\n",
+        "from spotPython.utils.device import getDevice\n",
+        "from torch.utils.data import random_split\n",
+        "from spotPython.utils.classes import get_removed_attributes_and_base_net\n",
+        "from spotPython.hyperparameters.optimizer import optimizer_handler\n",
+        "removed_attributes, torch_net = get_removed_attributes_and_base_net(net=mymodel)"
+      ],
+      "id": "750c97f4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(removed_attributes)"
+      ],
+      "id": "aee3ada6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(torch_net)"
+      ],
+      "id": "983dda6a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "###  An Example how to use the Plain Torch Net"
+      ],
+      "id": "de850d1c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "import torch.optim as optim\n",
+        "from torch.utils.data import DataLoader, TensorDataset\n",
+        "from sklearn.datasets import load_diabetes\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.preprocessing import StandardScaler\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "# Load the Diabetes dataset from sklearn\n",
+        "diabetes = load_diabetes()\n",
+        "X = diabetes.data\n",
+        "y = diabetes.target\n",
+        "\n",
+        "# Split the dataset into training and testing sets\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n",
+        "\n",
+        "# Scale the features\n",
+        "scaler = StandardScaler()\n",
+        "X_train = scaler.fit_transform(X_train)\n",
+        "X_test = scaler.transform(X_test)\n",
+        "\n",
+        "# Convert the data to PyTorch tensors\n",
+        "X_train_tensor = torch.tensor(X_train, dtype=torch.float32)\n",
+        "y_train_tensor = torch.tensor(y_train, dtype=torch.float32)\n",
+        "X_test_tensor = torch.tensor(X_test, dtype=torch.float32)\n",
+        "y_test_tensor = torch.tensor(y_test, dtype=torch.float32)\n",
+        "\n",
+        "# Create a PyTorch dataset\n",
+        "train_dataset = TensorDataset(X_train_tensor, y_train_tensor)\n",
+        "test_dataset = TensorDataset(X_test_tensor, y_test_tensor)\n",
+        "\n",
+        "# Create a PyTorch dataloader\n",
+        "batch_size = 32\n",
+        "train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)\n",
+        "test_dataloader = DataLoader(test_dataset, batch_size=batch_size)\n",
+        "\n",
+        "torch_net.to(getDevice(\"cpu\"))\n",
+        "\n",
+        "# train the net\n",
+        "criterion = nn.MSELoss()\n",
+        "optimizer = optim.Adam(torch_net.parameters(), lr=0.01)\n",
+        "n_epochs = 100\n",
+        "losses = []\n",
+        "for epoch in range(n_epochs):\n",
+        "    for inputs, targets in train_dataloader:\n",
+        "        targets = targets.view(-1, 1)\n",
+        "        optimizer.zero_grad()\n",
+        "        outputs = torch_net(inputs)\n",
+        "        loss = criterion(outputs, targets)\n",
+        "        losses.append(loss.item())\n",
+        "        loss.backward()\n",
+        "        optimizer.step()\n",
+        "# visualize the network training\n",
+        "plt.plot(losses)\n",
+        "plt.xlabel(\"Epoch\")\n",
+        "plt.ylabel(\"Loss\")\n",
+        "plt.show()"
+      ],
+      "id": "1482ec37",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

@@ -1,0 +1,414 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Optimal Computational Budget Allocation in `Spot` {#sec-ocba}\n",
+        "\n",
+        "This chapter demonstrates how noisy functions can be handled with Optimal Computational Budget Allocation (OCBA) by `Spot`.\n",
+        "\n",
+        "## Example: `Spot`, OCBA,  and the Noisy Sphere Function\n"
+      ],
+      "id": "c3f53763"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "import matplotlib.pyplot as plt\n",
+        "from spotPython.utils.init import fun_control_init, get_spot_tensorboard_path\n",
+        "from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init\n",
+        "\n",
+        "PREFIX = \"09\""
+      ],
+      "id": "1ae943ee",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Objective Function: Noisy Sphere\n",
+        "\n",
+        "The `spotPython` package provides several classes of objective functions. We will use an analytical objective function with noise, i.e., a function that can be described by a (closed) formula:\n",
+        "   $$f(x) = x^2 + \\epsilon$$\n",
+        "\n",
+        "Since `sigma` is set to `0.1`, noise is added to the function:\n"
+      ],
+      "id": "dc2919ae"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_sphere\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    sigma=0.1)"
+      ],
+      "id": "a69a2dc8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A plot illustrates the noise:\n"
+      ],
+      "id": "9cdfa0f6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = np.linspace(-1,1,100).reshape(-1,1)\n",
+        "y = fun(x, fun_control=fun_control)\n",
+        "plt.figure()\n",
+        "plt.plot(x,y, \"k\")\n",
+        "plt.show()"
+      ],
+      "id": "999b80fc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "`Spot` is adopted as follows to cope with noisy functions:\n",
+        "\n",
+        "  1. `fun_repeats` is set to a value larger than 1 (here: 2)\n",
+        "  2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix\n",
+        "  3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 2)\n"
+      ],
+      "id": "44fac933"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_noisy = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control_init( \n",
+        "                   lower = np.array([-1]),\n",
+        "                   upper = np.array([1]),\n",
+        "                   fun_evals = 20,\n",
+        "                   fun_repeats = 2,\n",
+        "                   infill_criterion=\"ei\",\n",
+        "                   noise = True,\n",
+        "                   tolerance_x=0.0,\n",
+        "                   ocba_delta = 1,                   \n",
+        "                   show_models=True),\n",
+        "                   design_control=design_control_init(init_size=3, repeats=2),\n",
+        "                   surrogate_control=surrogate_control_init(noise=True))"
+      ],
+      "id": "b4f53d65",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_noisy.run()"
+      ],
+      "id": "73f3fb28",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Print the Results\n"
+      ],
+      "id": "184bbdf9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_noisy.print_results()"
+      ],
+      "id": "2d9d2978",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_noisy.plot_progress(log_y=False)"
+      ],
+      "id": "281b7437",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Noise and Surrogates: The Nugget Effect\n",
+        "\n",
+        "### The Noisy Sphere\n",
+        "\n",
+        "#### The Data\n",
+        "\n",
+        "We prepare some data first:\n"
+      ],
+      "id": "068c2ee1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "import spotPython\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.design.spacefilling import spacefilling\n",
+        "from spotPython.build.kriging import Kriging\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "gen = spacefilling(1)\n",
+        "rng = np.random.RandomState(1)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_sphere\n",
+        "fun_control = fun_control_init(    \n",
+        "    sigma=2,\n",
+        "    seed=125)\n",
+        "X = gen.scipy_lhd(10, lower=lower, upper = upper)\n",
+        "y = fun(X, fun_control=fun_control)\n",
+        "X_train = X.reshape(-1,1)\n",
+        "y_train = y"
+      ],
+      "id": "36d8920b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A surrogate without nugget is fitted to these data:\n"
+      ],
+      "id": "b99c7d36"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=False)\n",
+        "S.fit(X_train, y_train)\n",
+        "\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S.predict(X_axis, return_val=\"all\")\n",
+        "\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Sphere: Gaussian process regression on noisy dataset\")"
+      ],
+      "id": "1aa6c11d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In comparison to the surrogate without nugget, we fit a surrogate with nugget to the data:\n"
+      ],
+      "id": "20103d44"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S_nug = Kriging(name='kriging',\n",
+        "            seed=123,\n",
+        "            log_level=50,\n",
+        "            n_theta=1,\n",
+        "            noise=True)\n",
+        "S_nug.fit(X_train, y_train)\n",
+        "X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)\n",
+        "mean_prediction, std_prediction, ei = S_nug.predict(X_axis, return_val=\"all\")\n",
+        "plt.scatter(X_train, y_train, label=\"Observations\")\n",
+        "plt.plot(X_axis, mean_prediction, label=\"mue\")\n",
+        "plt.legend()\n",
+        "plt.xlabel(\"$x$\")\n",
+        "plt.ylabel(\"$f(x)$\")\n",
+        "_ = plt.title(\"Sphere: Gaussian process regression with nugget on noisy dataset\")"
+      ],
+      "id": "c18b0268",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The value of the nugget term can be extracted from the model as follows:\n"
+      ],
+      "id": "d70a5179"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S.Lambda"
+      ],
+      "id": "8e21ac1d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S_nug.Lambda"
+      ],
+      "id": "5c207426",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We see:\n",
+        "\n",
+        "  * the first model `S` has no nugget, \n",
+        "  * whereas the second model has a nugget value (`Lambda`) larger than zero.\n",
+        "\n",
+        "## Exercises\n",
+        "\n",
+        "### Noisy `fun_cubed`\n",
+        "\n",
+        "Analyse the effect of noise on the `fun_cubed` function with the following settings:\n"
+      ],
+      "id": "7bcd323f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_cubed\n",
+        "fun_control = fun_control_init(    \n",
+        "    sigma=10,\n",
+        "    seed=123)\n",
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])"
+      ],
+      "id": "5e890eca",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_runge`\n",
+        "\n",
+        "Analyse the effect of noise on the `fun_runge` function with the following settings:\n"
+      ],
+      "id": "0a737e59"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "lower = np.array([-10])\n",
+        "upper = np.array([10])\n",
+        "fun = analytical().fun_runge\n",
+        "fun_control = fun_control_init(    \n",
+        "    sigma=0.25,\n",
+        "    seed=123)"
+      ],
+      "id": "95aa545f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_forrester`\n",
+        "\n",
+        "Analyse the effect of noise on the `fun_forrester` function with the following settings: \n"
+      ],
+      "id": "37342756"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "lower = np.array([0])\n",
+        "upper = np.array([1])\n",
+        "fun = analytical().fun_forrester\n",
+        "fun_control = {\"sigma\": 5,\n",
+        "               \"seed\": 123}"
+      ],
+      "id": "db9077cf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_xsin`\n",
+        "\n",
+        "Analyse the effect of noise on the `fun_xsin` function with the following settings: \n"
+      ],
+      "id": "3b14a1f4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "lower = np.array([-1.])\n",
+        "upper = np.array([1.])\n",
+        "fun = analytical().fun_xsin\n",
+        "fun_control = fun_control_init(    \n",
+        "    sigma=0.5,\n",
+        "    seed=123)"
+      ],
+      "id": "e08d5329",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

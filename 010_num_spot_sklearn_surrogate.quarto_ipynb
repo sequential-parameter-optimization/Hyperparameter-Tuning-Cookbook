@@ -1,0 +1,975 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "  keep-ipynb: true\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Using `sklearn` Surrogates in `spotPython` {#sec-sklearn-surrogates}\n",
+        "\n",
+        "Besides the internal kriging surrogate, which is used as a default by `spotPython`, any surrogate model from `scikit-learn` can be used as a surrogate in `spotPython`. This chapter explains how to use `scikit-learn` surrogates in `spotPython`.\n"
+      ],
+      "id": "4beb9569"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot"
+      ],
+      "id": "8a6a58bc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Example: Branin Function with `spotPython`'s Internal Kriging Surrogate\n",
+        "\n",
+        "### The Objective Function Branin\n",
+        "\n",
+        "* The `spotPython` package provides several classes of objective functions.\n",
+        "* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula.\n",
+        "* Here we will use the Branin function:\n",
+        "\n",
+        "        y = a * (x2 - b * x1**2 + c * x1 - r) ** 2 + s * (1 - t) * np.cos(x1) + s,\n",
+        "        where values of a, b, c, r, s and t are: a = 1, b = 5.1 / (4*pi**2),\n",
+        "        c = 5 / pi, r = 6, s = 10 and t = 1 / (8*pi).\n",
+        "\n",
+        "* It has three global minima:\n",
+        "\n",
+        "\n",
+        "        f(x) = 0.397887 at (-pi, 12.275), (pi, 2.275), and (9.42478, 2.475).\n"
+      ],
+      "id": "9e311638"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "fun = analytical().fun_branin"
+      ],
+      "id": "ccec66fa",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::{.callout-note}\n",
+        "#### TensorBoard\n",
+        "\n",
+        "Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:\n"
+      ],
+      "id": "c1cdbb9e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init, design_control_init\n",
+        "PREFIX = \"04\"\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    lower = np.array([-5,-0]),\n",
+        "    upper = np.array([10,15]),\n",
+        "    fun_evals=20,\n",
+        "    max_time=inf)\n",
+        "\n",
+        "design_control = design_control_init(\n",
+        "    init_size=10)"
+      ],
+      "id": "0970f6eb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "\n",
+        "### Running the surrogate model based optimizer `Spot`:\n"
+      ],
+      "id": "2b624cbf"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2 = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   design_control=design_control)"
+      ],
+      "id": "1ff63358",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.run()"
+      ],
+      "id": "9143cdb1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### TensorBoard\n",
+        "\n",
+        "Now we can start TensorBoard in the background with the following command:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "We can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "\n",
+        "The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\\theta$ of the Kriging surrogate is plotted against the number of optimization steps.\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/04_tensorboard_01.png){width=\"100%\"}\n",
+        "\n",
+        "\n",
+        "\n",
+        "### Print the Results\n"
+      ],
+      "id": "e76dd7b2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.print_results()"
+      ],
+      "id": "5c6a3e20",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Show the Progress and the Surrogate\n"
+      ],
+      "id": "486f93d7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.plot_progress(log_y=True)"
+      ],
+      "id": "ff1a8562",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.surrogate.plot()"
+      ],
+      "id": "c1eb121a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Example: Using Surrogates From scikit-learn\n",
+        "\n",
+        "* Default is the `spotPython` (i.e., the internal) `kriging` surrogate.\n",
+        "* It can be called explicitely and passed to `Spot`.\n"
+      ],
+      "id": "b6b79f24"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.build.kriging import Kriging\n",
+        "S_0 = Kriging(name='kriging', seed=123)"
+      ],
+      "id": "7c598b8a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Alternatively, models from `scikit-learn` can be selected, e.g., Gaussian Process, RBFs, Regression Trees, etc.\n"
+      ],
+      "id": "c2ba7b64"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Needed for the sklearn surrogates:\n",
+        "from sklearn.gaussian_process import GaussianProcessRegressor\n",
+        "from sklearn.gaussian_process.kernels import RBF\n",
+        "from sklearn.tree import DecisionTreeRegressor\n",
+        "from sklearn.ensemble import RandomForestRegressor\n",
+        "from sklearn import linear_model\n",
+        "from sklearn import tree\n",
+        "import pandas as pd"
+      ],
+      "id": "d49dfd28",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Here are some additional models that might be useful later:\n"
+      ],
+      "id": "0764dba3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "S_Tree = DecisionTreeRegressor(random_state=0)\n",
+        "S_LM = linear_model.LinearRegression()\n",
+        "S_Ridge = linear_model.Ridge()\n",
+        "S_RF = RandomForestRegressor(max_depth=2, random_state=0)"
+      ],
+      "id": "fa3639bc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### GaussianProcessRegressor as a Surrogate\n",
+        "\n",
+        "* To use a Gaussian Process model from `sklearn`, that is similar to `spotPython`'s `Kriging`, we can proceed as follows:\n"
+      ],
+      "id": "7dc06614"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))\n",
+        "S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)"
+      ],
+      "id": "df44939c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The scikit-learn GP model `S_GP` is selected for `Spot` as follows: \n",
+        "\n",
+        "    `surrogate = S_GP`\n",
+        "\n",
+        "* We can check the kind of surogate model with the command `isinstance`:\n"
+      ],
+      "id": "7774f4cb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "isinstance(S_GP, GaussianProcessRegressor) "
+      ],
+      "id": "832b8692",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "isinstance(S_0, Kriging)"
+      ],
+      "id": "087bcd04",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Similar to the `Spot` run with the internal `Kriging` model, we can call the run with the `scikit-learn` surrogate:\n"
+      ],
+      "id": "fb6d3ccb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical(seed=123).fun_branin\n",
+        "spot_2_GP = spot.Spot(fun=fun,\n",
+        "                     fun_control=fun_control,\n",
+        "                     design_control=design_control,\n",
+        "                     surrogate = S_GP)\n",
+        "spot_2_GP.run()"
+      ],
+      "id": "1c9cf873",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_GP.plot_progress()"
+      ],
+      "id": "ac4a7f4a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_GP.print_results()"
+      ],
+      "id": "c7d661dc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Example: One-dimensional Sphere Function With `spotPython`'s Kriging\n",
+        "\n",
+        "* In this example, we will use an one-dimensional function, which allows us to visualize the optimization process.\n",
+        "  * `show_models= True` is added to the argument list.\n"
+      ],
+      "id": "5e110e85"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "fun_control = fun_control_init(\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([1]),\n",
+        "    fun_evals=10,\n",
+        "    max_time=inf,\n",
+        "    show_models= True,\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)))\n",
+        "fun = analytical(seed=123).fun_sphere\n",
+        "design_control = design_control_init(\n",
+        "    init_size=3)"
+      ],
+      "id": "6cb437a2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1 = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    design_control=design_control)\n",
+        "spot_1.run()"
+      ],
+      "id": "50edebf7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Results\n"
+      ],
+      "id": "609eeb9c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.print_results()"
+      ],
+      "id": "4490d147",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_progress(log_y=True)"
+      ],
+      "id": "af36cd14",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The method `plot_model` plots the final surrogate:\n"
+      ],
+      "id": "7168d6f5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_model()"
+      ],
+      "id": "23d38cb0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Example: `Sklearn` Model GaussianProcess\n",
+        "\n",
+        "* This example visualizes the search process on the `GaussianProcessRegression` surrogate from `sklearn`.\n",
+        "* Therefore `surrogate = S_GP` is added to the argument list.\n"
+      ],
+      "id": "dd90c8e4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical(seed=123).fun_sphere\n",
+        "spot_1_GP = spot.Spot(fun=fun,\n",
+        "                      fun_control=fun_control,\n",
+        "                      design_control=design_control,\n",
+        "                      surrogate = S_GP)\n",
+        "spot_1_GP.run()"
+      ],
+      "id": "7770ecec",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_GP.print_results()"
+      ],
+      "id": "0a4e7c05",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_GP.plot_progress(log_y=True)"
+      ],
+      "id": "468eac19",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_GP.plot_model()"
+      ],
+      "id": "a93a1a07",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exercises\n",
+        "\n",
+        "### 1. A decision tree regressor: `DecisionTreeRegressor` {#sec-10-exercise-01}\n",
+        "\n",
+        "* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html).\n",
+        "* Use the surrogate as the model for optimization.\n",
+        "\n",
+        "### 2. A random forest regressor: `RandomForestRegressor` {#sec-10-exercise-02}\n",
+        "\n",
+        "* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html).\n",
+        "* Use the surrogate as the model for optimization.\n",
+        "\n",
+        "### 3. Ordinary least squares Linear Regression: `LinearRegression` {#sec-10-exercise-03}\n",
+        "\n",
+        "* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html).\n",
+        "* Use the surrogate as the model for optimization.\n",
+        "\n",
+        "### 4. Linear least squares with l2 regularization: `Ridge` {#sec-10-exercise-04}\n",
+        "\n",
+        "* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html).\n",
+        "* Use the surrogate as the model for optimization.\n",
+        "\n",
+        "### 5. Gradient Boosting: `HistGradientBoostingRegressor` {#sec-10-exercise-05}\n",
+        "\n",
+        "* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html#sklearn.ensemble.HistGradientBoostingRegressor).\n",
+        "* Use the surrogate as the model for optimization.\n",
+        "\n",
+        "\n",
+        "\n",
+        "### 6. Comparison of Surrogates {#sec-10-exercise-06}\n",
+        "\n",
+        "* Use the following two objective functions\n",
+        "\n",
+        "  1. the 1-dim sphere function [`fun_sphere`](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py) and\n",
+        "  2. the two-dim Branin function [`fun_branin`](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/objectivefunctions.py):\n",
+        "    \n",
+        "    for a comparison of the performance of the five different surrogates: \n",
+        "    * `spotPython`'s internal Kriging\n",
+        "    * `DecisionTreeRegressor`\n",
+        "    * `RandomForestRegressor`\n",
+        "    * `linear_model.LinearRegression`\n",
+        "    * `linear_model.Ridge`.\n",
+        "\n",
+        "* Generate a table with the results (number of function evaluations, best function value, and best parameter vector) for each surrogate and each function as shown in @tbl-results.\n",
+        "\n",
+        "| `surrogate` | `fun` | `fun_evals` | `max_time` | `x_0` | `min_y` | Comments |\n",
+        "|-------------|-------|-------------:|------------|------------------:|---------:|----------|\n",
+        "| `Kriging`     | `fun_sphere` | 10         | `inf`         |          |      |          |\n",
+        "| `Kriging`     | `fun_branin` | 10         | `inf`          |          |      |          |\n",
+        "| `DecisionTreeRegressor`     | `fun_sphere` | 10         | `inf`          |          |      |          |\n",
+        "| ...     | ... | ...         | ...          |          |      |          |\n",
+        "| `Ridge`     | `fun_branin` | 10         | `inf`          |          |      |          |\n",
+        "\n",
+        ": Result table {#tbl-results}\n",
+        "\n",
+        "* Discuss the results. Which surrogate is the best for which function? Why?\n",
+        "\n",
+        "\n",
+        "## Selected Solutions\n",
+        "\n",
+        "### Solution to Exercise @sec-10-exercise-05: Gradient Boosting\n",
+        "\n",
+        "\n",
+        "#### Branin: Using SPOT\n"
+      ],
+      "id": "18ba0d30"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.utils.init import fun_control_init, design_control_init\n",
+        "from spotPython.spot import spot"
+      ],
+      "id": "dc3b70a9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The Objective Function Branin\n"
+      ],
+      "id": "02ca67f5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_branin\n",
+        "PREFIX = \"BRANIN\"\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=PREFIX,\n",
+        "    lower = np.array([-5,-0]),\n",
+        "    upper = np.array([10,15]),\n",
+        "    fun_evals=20,\n",
+        "    max_time=inf)\n",
+        "\n",
+        "design_control = design_control_init(\n",
+        "    init_size=10)"
+      ],
+      "id": "6fd9e154",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "*  Running the surrogate model based optimizer `Spot`:\n"
+      ],
+      "id": "5dec4807"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2 = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   design_control=design_control)\n",
+        "spot_2.run()"
+      ],
+      "id": "99c559b2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Print the results\n"
+      ],
+      "id": "9d398dec"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.print_results()"
+      ],
+      "id": "b426848e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "*  Show the optimization progress:\n"
+      ],
+      "id": "bf1eba93"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.plot_progress(log_y=True)"
+      ],
+      "id": "1b046cf8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Generate a surrogate model plot:\n"
+      ],
+      "id": "19c7089d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.surrogate.plot()"
+      ],
+      "id": "22200008",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Branin: Using Surrogates From scikit-learn\n",
+        "\n",
+        "* The `HistGradientBoostingRegressor` model from `scikit-learn` is selected:\n"
+      ],
+      "id": "fc985ec1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Needed for the sklearn surrogates:\n",
+        "from sklearn.ensemble import HistGradientBoostingRegressor\n",
+        "import pandas as pd\n",
+        "S_XGB = HistGradientBoostingRegressor()"
+      ],
+      "id": "5fd4e1d8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The scikit-learn XGB model `S_XGB` is selected for `Spot` as follows: `surrogate = S_XGB`.\n",
+        "* Similar to the `Spot` run with the internal `Kriging` model, we can call the run with the `scikit-learn` surrogate:\n"
+      ],
+      "id": "7ea3bbcd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical(seed=123).fun_branin\n",
+        "spot_2_XGB = spot.Spot(fun=fun,\n",
+        "                     fun_control=fun_control,\n",
+        "                     design_control=design_control,\n",
+        "                     surrogate = S_XGB)\n",
+        "spot_2_XGB.run()"
+      ],
+      "id": "291a88dc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Print the Results\n"
+      ],
+      "id": "03aa4e47"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_XGB.print_results()"
+      ],
+      "id": "02b2cbdc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "*  Show the Progress\n"
+      ],
+      "id": "3db192ce"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_XGB.plot_progress(log_y=True)"
+      ],
+      "id": "e8db145f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Since the `sklearn` model does not provide a `plot` method, we cannot generate a surrogate model plot.\n",
+        "\n",
+        "\n",
+        "#### One-dimensional Sphere Function With `spotPython`'s Kriging\n",
+        "\n",
+        "* In this example, we will use an one-dimensional function, which allows us to visualize the optimization process.\n",
+        "  * `show_models= True` is added to the argument list.\n"
+      ],
+      "id": "d4bbbb60"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "fun_control = fun_control_init(\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([1]),\n",
+        "    fun_evals=10,\n",
+        "    max_time=inf,\n",
+        "    show_models= True,\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)))\n",
+        "fun = analytical(seed=123).fun_sphere\n",
+        "design_control = design_control_init(\n",
+        "    init_size=3)"
+      ],
+      "id": "bc4ac411",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1 = spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    design_control=design_control)\n",
+        "spot_1.run()"
+      ],
+      "id": "dce77066",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Print the Results\n"
+      ],
+      "id": "0d6a3c4a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.print_results()"
+      ],
+      "id": "04ee40b1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Show the Progress"
+      ],
+      "id": "96d0bdd7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_progress(log_y=True)"
+      ],
+      "id": "02a35b5b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The method `plot_model` plots the final surrogate:\n"
+      ],
+      "id": "5e7f360e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_model()"
+      ],
+      "id": "ebcad28b",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### One-dimensional Sphere Function With `Sklearn` Model HistGradientBoostingRegressor\n",
+        "\n",
+        "* This example visualizes the search process on the `HistGradientBoostingRegressor` surrogate from `sklearn`.\n",
+        "* Therefore `surrogate = S_XGB` is added to the argument list.\n"
+      ],
+      "id": "b5b62863"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([1]),\n",
+        "    fun_evals=10,\n",
+        "    max_time=inf,\n",
+        "    show_models= True,\n",
+        "    tolerance_x = np.sqrt(np.spacing(1)))\n",
+        "fun = analytical(seed=123).fun_sphere\n",
+        "design_control = design_control_init(\n",
+        "    init_size=3)\n",
+        "spot_1_XGB = spot.Spot(fun=fun,\n",
+        "                      fun_control=fun_control,\n",
+        "                      design_control=design_control,\n",
+        "                      surrogate = S_XGB)\n",
+        "spot_1_XGB.run()"
+      ],
+      "id": "eb95332d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_XGB.print_results()"
+      ],
+      "id": "1ffa85d9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_XGB.plot_progress(log_y=True)"
+      ],
+      "id": "ef0e42d5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1_XGB.plot_model()"
+      ],
+      "id": "b820c974",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Jupyter Notebook\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "\n",
+        "* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/010_num_spot_sklearn_surrogate.ipynb)\n",
+        "\n",
+        ":::"
+      ],
+      "id": "ce0b25c8"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

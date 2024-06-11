@@ -1,0 +1,445 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Kriging with Varying Correlation-p {#sec-num-spot-correlation-p}\n",
+        "\n",
+        "\n",
+        "This chapter illustrates the difference between Kriging models with varying p. The difference is illustrated with the help of the `spotPython` package. \n",
+        "\n",
+        "## Example: `Spot` Surrogate and the 2-dim Sphere Function\n"
+      ],
+      "id": "a05da3db"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.spot import spot\n",
+        "from spotPython.utils.init import fun_control_init, surrogate_control_init\n",
+        "PREFIX=\"015\""
+      ],
+      "id": "01d2efb4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Objective Function: 2-dim Sphere\n",
+        "\n",
+        "* The `spotPython` package provides several classes of objective functions.\n",
+        "* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:\n",
+        "   $$f(x, y) = x^2 + y^2$$\n",
+        "* The size of the `lower` bound vector determines the problem dimension.\n",
+        "* Here we will use `np.array([-1, -1])`, i.e., a two-dim function.\n"
+      ],
+      "id": "fa381aa2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_sphere\n",
+        "fun_control = fun_control_init(PREFIX=PREFIX,\n",
+        "                               lower = np.array([-1, -1]),\n",
+        "                               upper = np.array([1, 1]))"
+      ],
+      "id": "08288c6e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Although the default `spot` surrogate model is an isotropic Kriging model, we will explicitly set the `theta` parameter to a value of `1` for both dimensions. This is done to illustrate the difference between isotropic and anisotropic Kriging models.\n"
+      ],
+      "id": "34b25137"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "surrogate_control=surrogate_control_init(n_p=1,\n",
+        "                                         p_val=2.0,)"
+      ],
+      "id": "82df440e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2 = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   surrogate_control=surrogate_control)\n",
+        "\n",
+        "spot_2.run()"
+      ],
+      "id": "fb1a0bf9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Results\n"
+      ],
+      "id": "61c18e6d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.print_results()"
+      ],
+      "id": "1f5a66dc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.plot_progress(log_y=True)"
+      ],
+      "id": "bc366de6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.surrogate.plot()"
+      ],
+      "id": "baddfd68",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Example With Modified p\n",
+        "\n",
+        "* We can use set `p` to a value other than `2` to obtain a different Kriging model.\n"
+      ],
+      "id": "472d7d4e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "surrogate_control = surrogate_control_init(n_p=1,\n",
+        "                                           p_val=1.0)\n",
+        "spot_2_p1= spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_2_p1.run()"
+      ],
+      "id": "c84aa926",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* The search progress of the optimization with the anisotropic model can be visualized:\n"
+      ],
+      "id": "561de1f7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_p1.plot_progress(log_y=True)"
+      ],
+      "id": "d82007ec",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_p1.print_results()"
+      ],
+      "id": "838a5dd8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_p1.surrogate.plot()"
+      ],
+      "id": "5ffcd98e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Taking a Look at the `p` Values\n",
+        "\n",
+        "#### `p` Values from the `spot` Model\n",
+        "\n",
+        "* We can check, which `p` values the `spot` model has used:\n",
+        "* The `p` values from the surrogate can be printed as follows:\n"
+      ],
+      "id": "496c92bd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_p1.surrogate.p"
+      ],
+      "id": "90333a0e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Since the surrogate from the isotropic setting was stored as `spot_2`, we can also take a look at the `theta` value from this model:\n"
+      ],
+      "id": "7194eacb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2.surrogate.p"
+      ],
+      "id": "73779466",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Optimization of the `p` Values\n"
+      ],
+      "id": "9687de5f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "surrogate_control = surrogate_control_init(n_p=1,\n",
+        "                                           optim_p=True)\n",
+        "spot_2_pm= spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_2_pm.run()"
+      ],
+      "id": "d0c8586f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pm.plot_progress(log_y=True)"
+      ],
+      "id": "77f71a41",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pm.print_results()"
+      ],
+      "id": "c345e6c8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pm.surrogate.plot()"
+      ],
+      "id": "69783c7c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pm.surrogate.p"
+      ],
+      "id": "b285ead0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Optimization of Multiple `p` Values\n"
+      ],
+      "id": "1159a14f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "surrogate_control = surrogate_control_init(n_p=2,\n",
+        "                                           optim_p=True)\n",
+        "spot_2_pmo= spot.Spot(fun=fun,\n",
+        "                    fun_control=fun_control,\n",
+        "                    surrogate_control=surrogate_control)\n",
+        "spot_2_pmo.run()"
+      ],
+      "id": "24579130",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pmo.plot_progress(log_y=True)"
+      ],
+      "id": "f30554ad",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pmo.print_results()"
+      ],
+      "id": "de34f41d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pmo.surrogate.plot()"
+      ],
+      "id": "1913baf9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_2_pmo.surrogate.p"
+      ],
+      "id": "8cc9aaaa",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Exercises\n",
+        "\n",
+        "\n",
+        "###  `fun_branin`\n",
+        "\n",
+        "* Describe the function.\n",
+        "  * The input dimension is `2`. The search range is  $-5 \\leq x_1 \\leq 10$ and $0 \\leq x_2 \\leq 15$.\n",
+        "* Compare the results from `spotPython` runs with different options for `p`.\n",
+        "* Modify the termination criterion: instead of the number of evaluations (which is specified via `fun_evals`), the time should be used as the termination criterion. This can be done as follows (`max_time=1` specifies a run time of one minute):\n"
+      ],
+      "id": "392e9be6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_evals=inf,\n",
+        "max_time=1,"
+      ],
+      "id": "e46a4cfb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### `fun_sin_cos`\n",
+        "\n",
+        "* Describe the function.\n",
+        "  *  The input dimension is `2`. The search range is  $-2\\pi \\leq x_1 \\leq 2\\pi$ and $-2\\pi \\leq x_2 \\leq 2\\pi$.\n",
+        "* Compare the results from `spotPython` run a) with isotropic and b) anisotropic surrogate models.\n",
+        "* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.\n",
+        "\n",
+        "###  `fun_runge`\n",
+        "\n",
+        "* Describe the function.\n",
+        "  *  The input dimension is `2`. The search range is  $-5 \\leq x_1 \\leq 5$ and $-5 \\leq x_2 \\leq 5$.\n",
+        "* Compare the results from `spotPython` runs with different options for `p`.\n",
+        "* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.\n",
+        "\n",
+        "###  `fun_wingwt`\n",
+        "\n",
+        "* Describe the function.\n",
+        "  *  The input dimension is `10`. The search ranges are between 0 and 1 (values are mapped internally to their natural bounds).\n",
+        "* Compare the results from `spotPython` runs with different options for `p`.\n",
+        "* Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Jupyter Notebook\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "\n",
+        "* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/015_num_spot_correlation_p.ipynb)\n",
+        "\n",
+        ":::\n"
+      ],
+      "id": "9b28b1b5"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

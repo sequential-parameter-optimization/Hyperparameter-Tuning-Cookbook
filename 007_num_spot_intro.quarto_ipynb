@@ -1,0 +1,359 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Introduction to spotPython {#sec-spot}\n",
+        "\n",
+        "Surrogate model based optimization methods are common approaches in simulation and optimization. SPOT was developed because there is a great need for sound statistical analysis of simulation and optimization algorithms. SPOT includes methods for tuning based on classical regression and analysis of variance techniques.\n",
+        "It presents tree-based models such as classification and regression trees and random forests as well as Bayesian optimization (Gaussian process models, also known as Kriging). Combinations of different meta-modeling approaches are possible. SPOT comes with a sophisticated surrogate model based optimization method, that can handle discrete and continuous inputs. Furthermore, any model implemented in `scikit-learn` can be used out-of-the-box as a surrogate in `spotPython`.\n",
+        "\n",
+        "SPOT implements key techniques such as exploratory fitness landscape analysis and sensitivity analysis. It can be used to understand the performance of various algorithms, while simultaneously giving insights into their algorithmic behavior.\n",
+        "\n",
+        "The `spot` loop consists of the following steps:\n",
+        "\n",
+        "1. Init: Build initial design $X$\n",
+        "2. Evaluate initial design on real objective $f$: $y = f(X)$\n",
+        "3. Build surrogate: $S = S(X,y)$\n",
+        "4. Optimize on surrogate: $X_0 =  \\text{optimize}(S)$\n",
+        "5. Evaluate on real objective: $y_0 = f(X_0)$\n",
+        "6. Impute (Infill) new points: $X = X \\cup X_0$, $y = y \\cup y_0$.\n",
+        "7. Goto 3.\n",
+        "\n",
+        "Central Idea: Evaluation of the surrogate model `S` is much cheaper (or / and much faster) than running the real-world experiment $f$.\n",
+        "We start with a small example.\n",
+        "\n",
+        "## Example: `Spot` and the Sphere Function\n"
+      ],
+      "id": "0c7a1c0b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import numpy as np\n",
+        "from math import inf\n",
+        "from spotPython.fun.objectivefunctions import analytical\n",
+        "from spotPython.utils.init import fun_control_init, design_control_init\n",
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "from spotPython.spot import spot\n",
+        "import matplotlib.pyplot as plt"
+      ],
+      "id": "5f629082",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The Objective Function: Sphere\n",
+        "\n",
+        "The `spotPython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:\n",
+        "$$\n",
+        "f(x) = x^2\n",
+        "$$\n"
+      ],
+      "id": "b9542464"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun = analytical().fun_sphere"
+      ],
+      "id": "c65eb691",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can apply the function `fun` to input values and plot the result:\n"
+      ],
+      "id": "8de052eb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "x = np.linspace(-1,1,100).reshape(-1,1)\n",
+        "y = fun(x)\n",
+        "plt.figure()\n",
+        "plt.plot(x, y, \"k\")\n",
+        "plt.show()"
+      ],
+      "id": "94a6c129",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### The `Spot` Method as an Optimization Algorithm Using a Surrogate Model\n",
+        "\n",
+        "We initialize the `fun_control` dictionary.\n",
+        "The `fun_control` dictionary contains the parameters for the objective function.\n",
+        "The `fun_control` dictionary is passed to the `Spot` method.\n"
+      ],
+      "id": "40fc2133"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control=fun_control_init(lower = np.array([-1]),\n",
+        "                     upper = np.array([1]))\n",
+        "spot_0 = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control)\n",
+        "spot_0.run()"
+      ],
+      "id": "579d09e1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The method `print_results()` prints the results, i.e., the best objective function value (\"min y\") and the corresponding input value (\"x0\").\n"
+      ],
+      "id": "ca14d81d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_0.print_results()"
+      ],
+      "id": "8705a726",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "To plot the search progress, the method `plot_progress()` can be used. The parameter `log_y` is used to plot the objective function values on a logarithmic scale.\n"
+      ],
+      "id": "13ae0b32"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: fig-spot-progress\n",
+        "#| fig-cap: 'Visualization of the search progress of the `Spot` method. The black elements (points and line) represent the initial design, before the surrogate is build. The red elements represent the search on the surrogate.'\n",
+        "spot_0.plot_progress(log_y=True)"
+      ],
+      "id": "fig-spot-progress",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "If the dimension of the input space is one, the method `plot_model()` can be used to visualize the model and the underlying objective function values.\n"
+      ],
+      "id": "a8c9f1bb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: fig-spot-model-1d\n",
+        "#| fig-cap: Visualization of the model and the underlying objective function values.\n",
+        "spot_0.plot_model()"
+      ],
+      "id": "fig-spot-model-1d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## `Spot` Parameters: `fun_evals`, `init_size` and `show_models`\n",
+        "\n",
+        "We will modify three parameters:\n",
+        "\n",
+        "  1. The number of function evaluations (`fun_evals`) will be set to `10` (instead of 15, which is the default value) in the `fun_control` dictionary.\n",
+        "  2. The parameter `show_models`, which visualizes the search process for each single iteration for 1-dim functions, in the `fun_control` dictionary.\n",
+        "  3. The size of the initial design (`init_size`) in the `design_control` dictionary.\n",
+        "\n",
+        "\n",
+        "The full list of the `Spot` parameters is shown in code reference on GitHub, see [Spot](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/spot/spot/#spotPython.spot.spot).\n"
+      ],
+      "id": "7ec3cad5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control=fun_control_init(lower = np.array([-1]),\n",
+        "                     upper = np.array([1]),\n",
+        "                     fun_evals = 10,\n",
+        "                     show_models = True)               \n",
+        "design_control = design_control_init(init_size=9)\n",
+        "spot_1 = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   design_control=design_control)\n",
+        "spot_1.run()"
+      ],
+      "id": "1c58460c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Print the Results\n"
+      ],
+      "id": "720a6383"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.print_results()"
+      ],
+      "id": "2510a397",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Show the Progress\n"
+      ],
+      "id": "4ee49ab1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_1.plot_progress()"
+      ],
+      "id": "06b4c1fd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Visualizing the Optimization and Hyperparameter Tuning Process with TensorBoard {#sec-visualizing-tensorboard-01}\n",
+        "\n",
+        "`spotPython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotPython`.\n",
+        "\n",
+        "First, we define an \"PREFIX\" to identify the hyperparameter tuning process. The PREFIX is used to create a directory for the TensorBoard files.\n"
+      ],
+      "id": "999fd953"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fun_control = fun_control_init(\n",
+        "    PREFIX = \"01\",\n",
+        "    lower = np.array([-1]),\n",
+        "    upper = np.array([2]))\n",
+        "design_control = design_control_init(init_size=5)"
+      ],
+      "id": "8103dd84",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Since the `PREFIX` is not None, `spotPython` will log the optimization process in the TensorBoard files. \n"
+      ],
+      "id": "430fb92b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "                   fun_control=fun_control,\n",
+        "                   design_control=design_control)\n",
+        "spot_tuner.run()\n",
+        "spot_tuner.print_results()"
+      ],
+      "id": "3ac46a75",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Now we can start TensorBoard in the background. The TensorBoard process will read the TensorBoard files and visualize the hyperparameter tuning process.\n",
+        "From the terminal, we can start TensorBoard with the following command:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"./runs\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "`logdir` is the directory where the TensorBoard files are stored. In our case, the TensorBoard files are stored in the directory `./runs`.\n",
+        "\n",
+        "TensorBoard will start a web server on port 6006. We can access the TensorBoard web server with the following URL:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "http://localhost:6006/\n",
+        "```\n",
+        "\n",
+        "\n",
+        "The first TensorBoard visualization shows the objective function values plotted against the wall time. The wall time is the time that has passed since the start of the hyperparameter tuning process. The five initial design points are shown in the upper left region of the plot. The line visualizes the optimization process.\n",
+        "![TensorBoard visualization of the spotPython process. Objective function values plotted against wall time.](figures_static/01_tensorboard_01.png)\n",
+        "\n",
+        "The second TensorBoard visualization shows the input values, i.e., $x_0$, plotted against the wall time.\n",
+        "![TensorBoard visualization of the spotPython process.](figures_static/01_tensorboard_02.png)\n",
+        "\n",
+        "The third TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\\theta$ of the Kriging surrogate is plotted against the number of optimization steps.\n",
+        "\n",
+        "![TensorBoard visualization of the spotPython process.](figures_static/01_tensorboard_03.png){width=\"50%\"}\n",
+        "\n",
+        "\n",
+        "## Jupyter Notebook\n",
+        "\n",
+        ":::{.callout-note}\n",
+        "\n",
+        "* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/007_num_spot_intro.ipynb)\n",
+        "\n",
+        ":::"
+      ],
+      "id": "d94cfc48"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

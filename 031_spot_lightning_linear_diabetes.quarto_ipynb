@@ -1,0 +1,1325 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# HPT PyTorch Lightning: Diabetes\n",
+        "\n",
+        "In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow for a regression task.\n",
+        "\n",
+        "This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
+        "\n",
+        "\n",
+        "## Step 1: Setup {#sec-setup-31}\n",
+        "\n",
+        "* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. \n",
+        "* The parameter `MAX_TIME` specifies the maximum run time in seconds.\n",
+        "* The parameter `INIT_SIZE` specifies the initial design size.\n",
+        "* The parameter `WORKERS` specifies the number of workers. \n",
+        "* The prefix `PREFIX` is used for the experiment name and the name of the log file.\n",
+        "* The parameter `DEVICE` specifies the device to use for training.\n"
+      ],
+      "id": "bdeb573f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.device import getDevice\n",
+        "from math import inf\n",
+        "\n",
+        "MAX_TIME = 1\n",
+        "FUN_EVALS = inf\n",
+        "INIT_SIZE = 5\n",
+        "WORKERS = 0\n",
+        "PREFIX=\"031\"\n",
+        "DEVICE = getDevice()\n",
+        "DEVICES = 1\n",
+        "TEST_SIZE = 0.1\n",
+        "TORCH_METRIC = \"mean_squared_error\""
+      ],
+      "id": "62addb27",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-caution}\n",
+        "### Caution: Run time and initial design size should be increased for real experiments\n",
+        "\n",
+        "* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\n",
+        "* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\n",
+        "* `WORKERS` is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: Device selection\n",
+        "\n",
+        "* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see \n",
+        "[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. \n",
+        "* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 2: Initialization of the `fun_control` Dictionary\n",
+        "\n",
+        "`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.\n"
+      ],
+      "id": "ab37c8a5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "import numpy as np\n",
+        "fun_control = fun_control_init(\n",
+        "    _L_in=10,\n",
+        "    _L_out=1,\n",
+        "    _torchmetric=TORCH_METRIC,\n",
+        "    PREFIX=PREFIX,\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    device=DEVICE,\n",
+        "    enable_progress_bar=False,\n",
+        "    fun_evals=FUN_EVALS,\n",
+        "    log_level=10,\n",
+        "    max_time=MAX_TIME,\n",
+        "    num_workers=WORKERS,\n",
+        "    show_progress=True,\n",
+        "    test_size=0.1,\n",
+        "    tolerance_x=np.sqrt(np.spacing(1)),\n",
+        "    )"
+      ],
+      "id": "106868f1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Step 3: Loading the Diabetes Data Set\n",
+        "\n",
+        "### Data Exploration of the sklearn Diabetes Data Set\n"
+      ],
+      "id": "842ccdfc"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from sklearn.datasets import load_diabetes\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "X, y = load_diabetes(return_X_y=True, as_frame=False)\n",
+        "feature_names = [\"age\", \"sex\", \"bmi\", \"bp\", \"s1_tc\", \"s2_ldl\", \"s3_hdl\", \"s4_tch\", \"s5_ltg\", \"s6_glu\"]"
+      ],
+      "id": "2abcff1c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Note:\n",
+        "* Each of these 10 feature variables have been mean centered and scaled by the standard deviation times the square root of n_samples (i.e. the sum of squares of each column totals 1).\n"
+      ],
+      "id": "5174c070"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "fig, axs = plt.subplots(nrows = 5, ncols=2, figsize=(30, 20))\n",
+        "for i, (ax, col) in enumerate(zip(axs.flat, feature_names)):\n",
+        "    x = X[:,i]\n",
+        "    pf = np.polyfit(x, y, 1)\n",
+        "    p = np.poly1d(pf)\n",
+        "\n",
+        "    ax.plot(x, y, 'o')\n",
+        "    ax.plot(x, p(x),\"r--\")\n",
+        "\n",
+        "    ax.set_title(col + ' vs disease progression')\n",
+        "    ax.set_xlabel(col)\n",
+        "    ax.set_ylabel('disease progression')"
+      ],
+      "id": "33332b56",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* HDL (high-density lipoprotein) cholesterol, sometimes called “good” cholesterol, absorbs cholesterol in the blood and carries it back to the liver.\n",
+        "* The liver then flushes it from the body.\n",
+        "* High levels of HDL cholesterol can lower your risk for heart disease and stroke.\n"
+      ],
+      "id": "035c9182"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE, random_state=0)"
+      ],
+      "id": "a5dbe4d3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from sklearn import linear_model\n",
+        "\n",
+        "lin_regr = linear_model.LinearRegression()\n",
+        "lin_regr.fit(X_train, y_train)\n",
+        "\n",
+        "# determine the mse of the model\n",
+        "from sklearn.metrics import mean_squared_error\n",
+        "y_pred = lin_regr.predict(X_test)\n",
+        "mse = mean_squared_error(y_test, y_pred)\n",
+        "print(f\"Mean squared error: {mse}\")"
+      ],
+      "id": "c14672b0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "print(lin_regr.coef_)"
+      ],
+      "id": "9b4cd4f7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "# plot the coefficients of the model\n",
+        "fig, ax = plt.subplots()\n",
+        "ax.bar(feature_names, lin_regr.coef_)\n",
+        "ax.set_title(\"Coefficients of the linear regression model\")\n",
+        "ax.set_ylabel(\"Coefficient\")\n",
+        "ax.set_xlabel(\"Feature\")\n",
+        "plt.show()"
+      ],
+      "id": "d72bb00c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Coefficients are indeed well suited to tell us what happens when we change the value of an input feature, but they are not a good means in themselves to measure the general importance of a feature.\n",
+        "* This is because the value of each coefficient depends on the scale of the input features.\n",
+        "* For example, if we were to measure the age of a person in minutes instead of years, then the coefficients for the feature \"age\" would be -38.78231462 / 525600 = 0.000073.\n",
+        "* It is clear that the number of years is no more important than the number of minutes.\n",
+        "* This means that the size of a coefficient is not necessarily a good measure of the importance of a feature in a linear model.\n"
+      ],
+      "id": "ae02a0bc"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "-38.78231462 / (3652460)"
+      ],
+      "id": "a53cc14f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Mutual Information\n"
+      ],
+      "id": "08a38944"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "# determine the mutual information of the model\n",
+        "from sklearn.feature_selection import mutual_info_regression\n",
+        "mi = mutual_info_regression(X_train, y_train)\n",
+        "print(f\"Mutual information: {mi}\")\n",
+        "# generate a bar plot of the mutual information\n",
+        "plt.bar(feature_names, mi)\n",
+        "plt.ylabel('Mutual information')\n",
+        "plt.xlabel('Feature')\n",
+        "plt.title('Mutual information of features')\n",
+        "plt.show()"
+      ],
+      "id": "00c7e6f1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### SHAP\n",
+        "\n",
+        "* SHAP (SHapley Additive exPlanations) is a game theoretic approach to explain the output of any machine learning model. It connects optimal credit allocation with local explanations using the classic Shapley values from game theory and their related extensions\n"
+      ],
+      "id": "976d4200"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "import shap\n",
+        "# rather than use the whole training set to estimate expected values, we summarize with\n",
+        "# a set of weighted kmeans, each weighted by the number of points they represent.\n",
+        "X_train_summary = shap.kmeans(X_train, 10)\n",
+        "ex = shap.KernelExplainer(lin_regr.predict, X_train_summary)\n",
+        "shap_values = ex.shap_values(X_test)\n",
+        "shap.summary_plot(shap_values, X_test)"
+      ],
+      "id": "900d71da",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## The PyTorch data set\n"
+      ],
+      "id": "f2dd2570"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes()\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"data_set\",\n",
+        "                        value=dataset,\n",
+        "                        replace=True)\n",
+        "print(len(dataset))\n",
+        "print(dataset.names)"
+      ],
+      "id": "f7151a64",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Note: Data Set and Data Loader\n",
+        "\n",
+        "* As shown below, a DataLoader from `torch.utils.data` can be used to check the data.\n"
+      ],
+      "id": "9cd966b0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "# Set batch size for DataLoader\n",
+        "batch_size = 5\n",
+        "# Create DataLoader\n",
+        "from torch.utils.data import DataLoader\n",
+        "dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)\n",
+        "\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dataloader:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "db76eefc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "## Step 4: Preprocessing {#sec-preprocessing-31}\n",
+        "\n",
+        "Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.\n",
+        "\n",
+        "## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-31}\n",
+        "\n",
+        "`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. \n",
+        "The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).\n",
+        "\n",
+        "* Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:\n"
+      ],
+      "id": "174afca8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.light.regression.netlightregression import NetLightRegression\n",
+        "from spotPython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
+        "add_core_model_to_fun_control(fun_control=fun_control,\n",
+        "                              core_model=NetLightRegression,\n",
+        "                              hyper_dict=LightHyperDict)"
+      ],
+      "id": "6103f919",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-31}\n",
+        "\n",
+        " `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. \n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Small number of epochs for demonstration purposes\n",
+        "\n",
+        "* `epochs` and `patience` are set to small values for demonstration purposes. These values are too small for a real application.\n",
+        "* More resonable values are, e.g.:\n",
+        "  * `set_control_hyperparameter_value(fun_control, \"epochs\", [7, 9])` and\n",
+        "  * `set_control_hyperparameter_value(fun_control, \"patience\", [2, 7])`\n",
+        ":::\n"
+      ],
+      "id": "7c09fe7c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
+        "\n",
+        "set_control_hyperparameter_value(fun_control, \"l1\", [4, 6])\n",
+        "set_control_hyperparameter_value(fun_control, \"epochs\", [9, 10])\n",
+        "set_control_hyperparameter_value(fun_control, \"batch_size\", [4, 5])\n",
+        "set_control_hyperparameter_value(fun_control, \"optimizer\", [\n",
+        "                \"Adadelta\",\n",
+        "                \"Adagrad\",\n",
+        "                \"Adam\",\n",
+        "                \"AdamW\",\n",
+        "                \"Adamax\",\n",
+        "                \"NAdam\",\n",
+        "                \"RAdam\",\n",
+        "                \"RMSprop\",\n",
+        "                \"Rprop\"\n",
+        "            ])\n",
+        "set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n",
+        "set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.5, 5.0])\n",
+        "set_control_hyperparameter_value(fun_control, \"patience\", [5, 7])\n",
+        "set_control_hyperparameter_value(fun_control, \"act_fn\",[\n",
+        "                \"Sigmoid\",\n",
+        "                \"ReLU\",\n",
+        "                \"LeakyReLU\",\n",
+        "                \"Swish\"\n",
+        "            ] )"
+      ],
+      "id": "21db3c01",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:\n"
+      ],
+      "id": "48202aab"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "tbl-design-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: Experimental design for the hyperparameter tuning.\n",
+        "from spotPython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "0863b965",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "This allows to check if all information is available and if the information is correct.\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: Hyperparameters of the Tuned Model and the `fun_control` Dictionary\n",
+        "The updated `fun_control` dictionary can be shown with the command `fun_control[\"core_model_hyper_dict\"]`.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 7: Data Splitting, the Objective (Loss) Function and the Metric\n",
+        "\n",
+        "### Evaluation  {#sec-selection-of-target-function-31}\n",
+        "\n",
+        "The evaluation procedure requires the specification of two elements:\n",
+        "\n",
+        "1. the way how the data is split into a train and a test set\n",
+        "2. the loss function (and a metric).\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Data Splitting in Lightning\n",
+        "\n",
+        "The data splitting is handled by `Lightning`.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "### Loss Function {#sec-loss-function-31}\n",
+        "\n",
+        "The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)\n",
+        "We will use MSE.\n",
+        "\n",
+        "### Metric {#sec-metric-31}\n",
+        "\n",
+        "* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Loss Function and Metric in Lightning\n",
+        "\n",
+        "* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.\n",
+        "* They are handled by `Lightning`.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 8: Calling the SPOT Function\n",
+        "\n",
+        "### Preparing the SPOT Call {#sec-prepare-spot-call-31}\n"
+      ],
+      "id": "edd846f1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
+        "design_control = design_control_init(init_size=INIT_SIZE)\n",
+        "\n",
+        "surrogate_control = surrogate_control_init(noise=True,\n",
+        "                                            n_theta=2)"
+      ],
+      "id": "9756dc06",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Note: Modifying Values in the Control Dictionaries\n",
+        "\n",
+        "* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "set_control_key_value(control_dict=surrogate_control,\n",
+        "                        key=\"noise\",\n",
+        "                        value=True,\n",
+        "                        replace=True)\n",
+        "set_control_key_value(control_dict=surrogate_control,\n",
+        "                        key=\"n_theta\",\n",
+        "                        value=2,\n",
+        "                        replace=True)\n",
+        "\n",
+        "```\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "### The Objective Function `fun` {#sec-the-objective-function-31}\n",
+        "\n",
+        "The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.\n"
+      ],
+      "id": "f5ef5e62"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.fun.hyperlight import HyperLight\n",
+        "fun = HyperLight(log_level=50).fun"
+      ],
+      "id": "170ac534",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-31}\n",
+        "\n",
+        "The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).\n"
+      ],
+      "id": "d49d3929"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.spot import spot\n",
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "                       fun_control=fun_control,\n",
+        "                       design_control=design_control,\n",
+        "                       surrogate_control=surrogate_control)\n",
+        "spot_tuner.run()"
+      ],
+      "id": "1faba9c3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Step 9: Tensorboard {#sec-tensorboard-31}\n",
+        "\n",
+        "The textual output shown in the console (or code cell) can be visualized with Tensorboard.\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"runs/\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.\n",
+        "\n",
+        "## Load the saved experiment and get the hyperparameters (tuned architecture)\n"
+      ],
+      "id": "ce27dfb8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.file import load_experiment\n",
+        "import pprint\n",
+        "PREFIX=\"031\"\n",
+        "experiment_name = \"spot_\" + PREFIX + \"_experiment.pickle\"\n",
+        "spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(experiment_name)\n",
+        "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+        "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+        "pprint.pprint(config)"
+      ],
+      "id": "89c6909c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Step 10: Results {#sec-results-31}\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the results can be analyzed.\n"
+      ],
+      "id": "577365bd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-progress-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.\n",
+        "spot_tuner.plot_progress(log_y=False)"
+      ],
+      "id": "f1fcc2c6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "tbl-results-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: Results of the hyperparameter tuning.\n",
+        "from spotPython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "0088bd72",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-importance-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: 'Variable importance plot, threshold 0.025.'\n",
+        "spot_tuner.plot_importance(threshold=0.025)"
+      ],
+      "id": "36b4218d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Contour Plots of the Hyperparameters\n"
+      ],
+      "id": "4c47d635"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-contour-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: Contour plots.\n",
+        "filename = None\n",
+        "spot_tuner.plot_important_hyperparameter_contour(filename=filename, max_imp=3)"
+      ],
+      "id": "5366d3e1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Parallel Coordinates Plot\n"
+      ],
+      "id": "04d26452"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-parallel-31",
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "#| fig-cap: Parallel coordinates plots\n",
+        "spot_tuner.parallel_plot()"
+      ],
+      "id": "1e3fe81e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Cross Validation With Lightning\n",
+        "\n",
+        "* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.\n",
+        "* These mechanism is used to generate the folds for the final evaluation of the model.\n",
+        "* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.\n",
+        "* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).\n"
+      ],
+      "id": "5dd855f8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.light.cvmodel import cv_model\n",
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"k_folds\",\n",
+        "                        value=2,\n",
+        "                        replace=True)\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"test_size\",\n",
+        "                        value=0.6,\n",
+        "                        replace=True)\n",
+        "cv_model(config, fun_control)"
+      ],
+      "id": "43f93a3f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Test on the full data set\n"
+      ],
+      "id": "93470de8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.light.testmodel import test_model\n",
+        "test_model(config, fun_control)"
+      ],
+      "id": "7dbf6c3e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Load the last model\n"
+      ],
+      "id": "d738f561"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
+        "model_loaded = load_light_from_checkpoint(config, fun_control)"
+      ],
+      "id": "d7f5e323",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Attributions\n"
+      ],
+      "id": "d035b784"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.file import load_experiment\n",
+        "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+        "from spotPython.plot.xai import get_attributions, plot_attributions\n",
+        "\n",
+        "spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(\"spot_031_experiment.pickle\")\n",
+        "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+        "feature_names = fun_control[\"data_set\"].names"
+      ],
+      "id": "be9f2f04",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Integrated Gradients\n"
+      ],
+      "id": "b1b11747"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "df = get_attributions(spot_tuner, fun_control, attr_method=\"IntegratedGradients\")\n",
+        "print(df)\n",
+        "plot_attributions(df)"
+      ],
+      "id": "305997b3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Deep Lift\n"
+      ],
+      "id": "5832e7b3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "df = get_attributions(spot_tuner, fun_control, attr_method=\"DeepLift\")\n",
+        "print(df)\n",
+        "plot_attributions(df,  attr_method=\"DeepLift\")"
+      ],
+      "id": "405f9254",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Feature Ablation\n"
+      ],
+      "id": "bf1ba6c9"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "df = get_attributions(spot_tuner, fun_control, attr_method=\"FeatureAblation\")\n",
+        "print(df)\n",
+        "plot_attributions(df, attr_method=\"FeatureAblation\")"
+      ],
+      "id": "7f5b958e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Visualizing the Activations, Weights, and Gradients\n",
+        "\n",
+        "In neural networks, activations, weights, and gradients are fundamental concepts that play different.\n",
+        "\n",
+        "1. Activations:\n",
+        "\n",
+        "   Activations refer to the outputs of neurons after applying an activation function. In neural networks, the input passes through each neuron of the network layers, where each unit calculates a weighted sum of its inputs and then applies a non-linear activation function (such as ReLU, Sigmoid, or Tanh). These activation functions help introduce non-linearity into the model, enabling the neural network to learn complex relationships between the input data and the predictions. In short, activations are the outputs that are forwarded by the neurons after applying the activation function.\n",
+        "\n",
+        "2. Weights:\n",
+        "\n",
+        "   Weights are parameters within a neural network that control the strength of the connection between two neurons in successive layers. They are adjusted during the training process to enable the neural network to perform the desired task as well as possible. Each input is multiplied by a weight, and the neural network learns by adjusting these weights based on the error between the predictions and the actual values. Adjusting the weights allows the network to recognize patterns and relationships in the input data and use them for predictions or classifications.\n",
+        "\n",
+        "3. Gradients:\n",
+        "\n",
+        "   In the context of machine learning and specifically in neural networks, gradients are a measure of the rate of change or the slope of the loss function (a function that measures how well the network performs in predicting the desired output) with respect to the weights. During the training process, the goal is to minimize the value of the loss function to improve the model’s performance. The gradients indicate the direction and size of the steps that need to be taken to adjust the weights in a way that minimizes the loss (known as gradient descent). By repeatedly adjusting the weights in the opposite direction of the gradient, the network can be effectively trained to improve its prediction accuracy.\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Reference:\n",
+        "\n",
+        "* The following code is based on [[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]](https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html), Author: Phillip Lippe, License: [[CC BY-SA]](https://creativecommons.org/licenses/by-sa/3.0/), Generated: 2023-03-15T09:52:39.179933.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:\n"
+      ],
+      "id": "5b59a1ca"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.plot.xai import (get_activations, get_gradients, get_weights, plot_nn_values_hist, plot_nn_values_scatter, visualize_weights, visualize_gradients, visualize_activations, visualize_activations_distributions, visualize_gradient_distributions, visualize_weights_distributions)\n",
+        "import pprint"
+      ],
+      "id": "48582115",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.utils.file import load_experiment\n",
+        "PREFIX = \"031\"\n",
+        "experiment_name = \"spot_\" + PREFIX + \"_experiment.pickle\"\n",
+        "spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(experiment_name)"
+      ],
+      "id": "a151123c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+        "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+        "pprint.pprint(config)\n",
+        "batch_size = config[\"batch_size\"]\n",
+        "print(batch_size)"
+      ],
+      "id": "54d94bc6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
+        "model_loaded = load_light_from_checkpoint(config, fun_control)\n",
+        "model = model_loaded.to(\"cpu\")"
+      ],
+      "id": "239cae99",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Weights\n"
+      ],
+      "id": "51bf67c7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "weights, index = get_weights(model, return_index=True)\n",
+        "print(index)"
+      ],
+      "id": "24a3ca78",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_weights(model, absolute=True, cmap=\"gray\", figsize=(6, 6))"
+      ],
+      "id": "e947e7ff",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_weights_distributions(model, color=f\"C{0}\")"
+      ],
+      "id": "7cc02e44",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Activations\n"
+      ],
+      "id": "35878330"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "activations = get_activations(model, fun_control=fun_control, batch_size=batch_size, device = \"cpu\")"
+      ],
+      "id": "9d4897fc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = \"cpu\", cmap=\"BlueWhiteRed\", absolute=False)"
+      ],
+      "id": "b18b5b69",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Absolute values of the activations are plotted:\n"
+      ],
+      "id": "d771384f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = \"cpu\", absolute=True)"
+      ],
+      "id": "27543e22",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_activations_distributions(net=model, fun_control=fun_control, batch_size=batch_size, device=\"cpu\", color=\"C0\", columns=2)"
+      ],
+      "id": "2a7ee2a9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Gradients\n"
+      ],
+      "id": "578711e5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "gradients = get_gradients(model, fun_control, batch_size, device=\"cpu\")"
+      ],
+      "id": "58fdc3c8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_gradients(model, fun_control, batch_size, absolute=True, cmap=\"BlueWhiteRed\", figsize=(6, 6))"
+      ],
+      "id": "f7775faf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f\"C{0}\")"
+      ],
+      "id": "e85c12f1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Layer Conductance\n"
+      ],
+      "id": "194949ff"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "vscode": {
+          "languageId": "python"
+        }
+      },
+      "source": [
+        "from spotPython.plot.xai import get_weights_conductance_last_layer, plot_conductance_last_layer\n",
+        "w, c = get_weights_conductance_last_layer(spot_tuner, fun_control)\n",
+        "plot_conductance_last_layer(w,c)"
+      ],
+      "id": "c42751aa",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/homebrew/Caskroom/miniforge/base/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
