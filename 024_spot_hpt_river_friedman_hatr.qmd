@@ -4,9 +4,11 @@ execute:
   eval: true
   echo: true
   warning: false
-title: '`river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data'
 jupyter: python3
 ---
+
+# '`river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data
+
 
 ```{python}
 #| echo: false
@@ -71,108 +73,40 @@ def _global_recurring_abrupt_gen(self, x, index: int):
         )
 ```
 
-Plotting the first 1000 samples of the Friedman Drift dataset, we can not see the concept drifts at $p_1$ and $p_2$.
+A data generator for the Friedman Drift dataset is implemented in the `spotPython` package, see [friedman.py](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/data/friedman/). The `spotPython` version is a simplified version of the `river` implementation. The `spotPyton` version allows the generation of constant input values for the features. This is useful for visualizing the concept drifts. For the productive use the `river version` should be used.
+
+Plotting the first 100 samples of the Friedman Drift dataset, we can not see the concept drifts at $p_1$ and $p_2$.
 Drift can be visualized by plotting the target values over time for constant features, e,g, if $x_0$ is set to $1$ and all other features are set to $0$. This is illustrated in the following plot.
 
 ```{python}
 import matplotlib.pyplot as plt
-import math
-import random
+from spotPython.data.friedman import FriedmanDriftDataset
 
-class FriedmanDriftDataset:
-    def __init__(self, change_point1=50, change_point2=75, seed=None, constant=False):
-        self._change_point1 = change_point1
-        self._change_point2 = change_point2
-        self.seed = seed
-        self.index = 0
-        self.rng = random.Random(self.seed)
-        self.constant = constant
+def plot_friedman_drift_data(n_samples, seed, change_point1, change_point2, constant=True):
+    data_generator = FriedmanDriftDataset(n_samples=n_samples, seed=seed, change_point1=change_point1, change_point2=change_point2, constant=constant)
+    data = [data for data in data_generator]
+    indices = [i for _, _, i in data]
+    values = {f"x{i}": [] for i in range(5)}
+    values["y"] = []
+    for x, y, _ in data:
+        for i in range(5):
+            values[f"x{i}"].append(x[i])
+        values["y"].append(y)
 
-    def __iter__(self):
-        return self
+    plt.figure(figsize=(10, 6))
+    for label, series in values.items():
+        plt.plot(indices, series, label=label)
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    plt.axvline(x=change_point1, color='k', linestyle='--', label='Drift Point 1')
+    plt.axvline(x=change_point2, color='r', linestyle='--', label='Drift Point 2')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-    def __next__(self):
-        if self.index >= 100:  # Specifying end of generation
-            raise StopIteration
-        if self.constant:
-            # x[0] is set to 1, all others to 0
-            x = {0: 1}
-            x.update({i: 0 for i in range(1, 10)})  # All x[i] are 0 for i > 0
-        else:
-            x = {i: self.rng.uniform(a=0, b=1) for i in range(10)}
-        y = self._global_recurring_abrupt_gen(x, self.index) + self.rng.gauss(mu=0, sigma=1)
-        result = (x, y, self.index)
-        self.index += 1
-        return result
-
-    def _global_recurring_abrupt_gen(self, x, index):
-        if index < self._change_point1 or index >= self._change_point2:
-            return (
-                10 * math.sin(math.pi * x[0] * x[1]) +
-                20 * (x[2] - 0.5) ** 2 +
-                10 * x[3] + 5 * x[4]
-            )
-        else:
-            return (
-                10 * math.sin(math.pi * x[3] * x[5]) +
-                20 * (x[1] - 0.5) ** 2 +
-                10 * x[0] + 5 * x[2]
-            )
+plot_friedman_drift_data(n_samples=100, seed=42, change_point1=50, change_point2=75, constant=False)
+plot_friedman_drift_data(n_samples=100, seed=42, change_point1=50, change_point2=75, constant=True)
 ```
-
-```{python}
-data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75)
-data = [data for data in data_generator]  # Now this should work
-
-indices = [i for _, _, i in data]
-values = {f"x{i}": [] for i in range(5)}
-values["y"] = []
-
-for x, y, _ in data:
-    for i in range(5):
-        values[f"x{i}"].append(x[i])
-    values["y"].append(y)
-
-plt.figure(figsize=(10, 6))
-
-for label, series in values.items():
-    plt.plot(indices, series, label=label)
-
-plt.xlabel('Index')
-plt.ylabel('Value')
-plt.title('')
-plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')
-plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')
-plt.legend()
-plt.grid(True)
-plt.show()
-```
-
-```{python}
-
-# Generation of the dataset with constant x-values
-data_generator = FriedmanDriftDataset(seed=42, change_point1=50, change_point2=75, constant=True)
-data = [next(data_generator) for _ in range(100)]
-
-# Extracting y-values and indices for plotting
-y_values = [y for _, y, _ in data]
-indices = range(100)
-
-# Plotting the y-values
-plt.figure(figsize=(10, 6))
-plt.plot(indices, y_values, label="y Value")
-
-plt.xlabel('Index')
-plt.ylabel('y Value')
-plt.title('')
-plt.axvline(x=50, color='k', linestyle='--', label='Drift Point 1')
-plt.axvline(x=75, color='r', linestyle='--', label='Drift Point 2')
-plt.legend()
-plt.grid(True)
-plt.show()
-```
-
-
 
 The following parameters are used to generate and handle the data set:
 
