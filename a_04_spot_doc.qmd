@@ -262,8 +262,31 @@ Central Idea: Evaluation of the surrogate model `S_lm` is much cheaper (or / and
 
 ## Tensorboard Setup
 
+### Tensorboard Configuration
 
 The `TENSORBOARD_CLEAN` argument can be set to `True` in the `fun_control` dictionary to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch. If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN` to `False`. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.
+
+
+### Starting TensorBoard {#sec-tensorboard-start}
+
+`TensorBoard` can be started as a background process with the following command, where `./runs` is the default directory for the TensorBoard log files:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+
+::: {.callout-note}
+#### TENSORBOARD_PATH
+
+The TensorBoard path can be printed with the following command (after a `fun_control` object has been created):
+
+```{python}
+#| label: 024_tensorboard_path
+#| eval: false
+from spotPython.utils.init import get_tensorboard_path
+get_tensorboard_path(fun_control)
+```
+:::
 
 
 ## Demo/Test: Objective Function Fails
@@ -299,6 +322,49 @@ spot_1.run()
 assert spot_1.y.shape[0] == n
 ```
 
+
+## Handling Results: Printing, Saving, and Loading
+
+The results can be printed with the following command:
+```{python}
+#| label: a_04__print_results
+#| eval: false
+spot_tuner.print_results(print_screen=False)
+```
+
+The tuned hyperparameters can be obtained as a dictionary with the following command:
+
+```{python}
+#| label: a_04__get_tuned_hyperparameters
+#| eval: false
+from spotPython.hyperparameters.values import get_tuned_hyperparameters
+get_tuned_hyperparameters(spot_tuner, fun_control)
+```
+
+The results can be saved and reloaded with the following commands:
+
+```{python}
+#| label: a_04__save_and_load
+#| eval: false
+from spotPython.utils.file import save_pickle, load_pickle
+from spotPython.utils.init import get_experiment_name
+experiment_name = get_experiment_name("024")
+SAVE_AND_LOAD = False
+if SAVE_AND_LOAD == True:
+    save_pickle(spot_tuner, experiment_name)
+    spot_tuner = load_pickle(experiment_name)
+```
+
+
+## `spotpython` as a Hyperparameter Tuner
+
+### Modifying Hyperparameter Levels {#sec-modifying-hyperparameter-levels}
+
+```{python}
+# from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+# levels = ["LinearRegression"]
+# modify_hyper_parameter_levels(fun_control, "leaf_model", levels)
+```
 
 
 

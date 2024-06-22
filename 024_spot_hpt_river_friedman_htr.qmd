@@ -7,7 +7,7 @@ execute:
 jupyter: python3
 ---
 
-# '`river` Hyperparameter Tuning: Hoeffding Adaptive Tree Regressor with Friedman Drift Data
+# `river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data
 
 
 ```{python}
@@ -22,7 +22,7 @@ if not os.path.exists('./figures'):
 warnings.filterwarnings("ignore")
 ```
 
-This chapter demonstrates hyperparameter tuning for `river`'s `Hoeffding Adaptive Tree Regressor` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Hoeffding Adaptive Tree Regressor` is a decision tree that uses the Hoeffding bound to limit the number of splits evaluated at each node. The `Hoeffding Adaptive Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample. The `Hoeffding Adaptive Tree Regressor` is a drift aware model, i.e., it can handle concept drifts.
+This chapter demonstrates hyperparameter tuning for `river`'s `Hoeffding Tree Regressor (HTR)` with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Hoeffding Tree Regressor` is a regression tree that uses the Hoeffding bound to limit the number of splits evaluated at each node, i.e., it predicts a real value for each sample.
 
 
 ## The Friedman Drift Data Set {#sec-the-friedman-drift-data-set-24}
@@ -65,7 +65,6 @@ dataset = synth.FriedmanDrift(
 
 train = convert_to_df(dataset, n_total=n_train)
 train.columns = [f"x{i}" for i in range(1, 11)] + [target_column]
-train.describe()
 ```
 
 ```{python}
@@ -77,9 +76,16 @@ dataset = synth.FriedmanDrift(
 )
 test = convert_to_df(dataset, n_total=n_test)
 test.columns = [f"x{i}" for i in range(1, 11)] + [target_column]
-
-test.describe()
 ```
+
+::: {.callout-note}
+### The Data Set
+
+Data sets that are available as `pandas` dataframes can easily be passed to the `spot` hyperparameter tuner.
+`spotpython` requires a `train` and a `test` data set, where the column names must be identical.
+:::
+
+
 
 ## Setup
 
@@ -89,23 +95,25 @@ To keep track of the different experiments, we use a `PREFIX` for the experiment
 
 `spotpython` allows the specification of two different types of stopping criteria: first, the number of function evaluations (`fun_evals`), and second, the maximum run time in seconds (`max_time`). Here, we will set the number of function evaluations to infinity and the maximum run time to one minute.
 
-Furthermore, we set the initial design size (`init_size`) to 10. The initial design is used to train the surrogate model. The surrogate model is used to predict the performance of the hyperparameter configurations. The initial design is also used to train the first model. Since the `init_size` referres to the experimental design, it is set in the `design_control` dictionary.
+Furthermore, we set the initial design size (`init_size`) to 10. The initial design is used to train the surrogate model. The surrogate model is used to predict the performance of the hyperparameter configurations. The initial design is also used to train the first model. Since the `init_size` belongs to the experimental design, it is set in the `design_control` dictionary, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/utils/init/#spotPython.utils.init.design_control_init).
 
 `max_time` is set to one minute for demonstration purposes and `init_size` is set to 10 for demonstration purposes. For real experiments, these values should be increased.
-Note,  the total run time may exceed the specified `max_time`, because the initial design (here: `init_size` = INIT_SIZE as specified above) is always evaluated, even if this takes longer than `max_time`.
+Note,  the total run time may exceed the specified `max_time`, because the initial design is always evaluated, even if this takes longer than `max_time`.
 
 
 ::: {.callout-note}
 ### Summary: General Experiment Setup
 
-The following parameters are used:
+The following parameters are used to specify the general experiment setup:
 
 ```{python}
 #| label: 024_sum_exp
 PREFIX = "024"
 fun_evals = inf
 max_time = 1
+init_size = 10
 ```
+
 :::
 
 
@@ -113,26 +121,27 @@ max_time = 1
 
 We use the `StandardScaler` [[SOURCE]](https://riverml.xyz/dev/api/preprocessing/StandardScaler/) from `river` as the data-preprocessing model. The `StandardScaler` is used to standardize the data set, i.e., it has zero mean and unit variance.
 
-The names of the training and test data sets are `train` and `test`, respectively.
-Both must use the same column names. The column names were set to `x1` to `x10` for the features and `y` for the target column during the data set generation in @sec-the-friedman-drift-data-set-24. Therefore, the `target_column` is set to `y`.
+The names of the training and test data sets are `train` and `test`, respectively. They are available as `pandas` dataframes.
+Both must use the same column names. The column names were set to `x1` to `x10` for the features and `y` for the target column during the data set generation in @sec-the-friedman-drift-data-set-24. Therefore, the `target_column` is set to `y` (as above).
 
 ::: {.callout-note}
 ### Summary: Data Setup
 
-The following parameters are used:
+The following parameters are used to specify the data setup:
 
 ```{python}
 #| label: 024_sum_data
 prep_model_name = "StandardScaler"
 test = test
 train = train
-target_column = target_column
+target_column = "y"
 ```
+
 :::
 
 ### Evaluation Setup
 
-Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the evaluation metric.
+Here we use the `mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the evaluation metric.
 Internally, this metric is passed to the objective (or loss) function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py) and further to the evaluation function `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py).
 
 `spotRiver` also supports additional metrics. For example, the `metric_river` is used for the river based evaluation via `eval_oml_iter_progressive` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_oml.py). The `metric_river` is implemented to simulate the behaviour of the "original" `river` metrics.
@@ -141,12 +150,13 @@ Internally, this metric is passed to the objective (or loss) function `fun_oml_h
 ::: {.callout-note}
 ### Summary: Evaluation Setup
 
-The following parameters are used:
+The following parameter are used to select the evaluation metric:
 
 ```{python}
 #| label: 024_sum_eval
 metric_sklearn_name = "mean_absolute_error"
 ```
+
 :::
 
 
@@ -155,18 +165,17 @@ metric_sklearn_name = "mean_absolute_error"
 In the online-machine-learning (OML) setup, the model is trained on a fixed number of observations and then evaluated on a fixed number of observations. The `horizon` defines the number of observations that are used for the evaluation. Here, a horizon of 7*24 is used, which corresponds to one week of data.
 
 The `oml_grace_period` defines the number of observations that are used for the initial training of the model.
-Tis value is relatively small, since the online-machine-learning is trained on the incoming data and the model is updated continuously.
+This value is relatively small, since the online-machine-learning is trained on the incoming data and the model is updated continuously.
 However, it needs a certain number of observations to start the training process.
-Therefoere, this short training period aka `oml_grace_period` is set to the horizon, i.e., the number of observations that are used for the evaluation.
+Therefore, this short training period aka `oml_grace_period` is set to the horizon, i.e., the number of observations that are used for the evaluation.
 In this case, we use a horizon of 7*24.
-
-The `weight_coeff` defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations.
-Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.
 
 The `weights` provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased. `spotRiver` stores information about the model' s score (metric), memory, and time. The hyperparamter tuner requires a single objective.
 Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the `weights` array.
 The `weights` provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.
 
+The `weight_coeff` defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations.
+Results from the beginning have a lower weight than results from the end if weight_coeff > 1. If weight_coeff == 0, all results have equal weight. Note, that the `weight_coeff` is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.
 
 ::: {.callout-note}
 ### Summary: River-Specific Setup
@@ -177,36 +186,40 @@ The following parameters are used:
 #| label: 024_sum_river-setup
 horizon = 7*24
 oml_grace_period = 7*24
-weight_coeff = 1.0
 weights = np.array([1, 0.01, 0.01])
+weight_coeff = 0.0
 ```
+
 :::
 
 
-### Select Model (`algorithm`)
+### Model Setup
 
-By using `core_model_name = "tree.HoeffdingAdaptiveTreeRegressor"`, the `river` model class `HoeffdingAdaptiveTreeRegressor` [[SOURCE]](https://riverml.xyz/dev/api/tree/HoeffdingAdaptiveTreeRegressor/) from the `tree` module is selected.
-For a given `core_model_name`, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json). The JSON file contains hyperparameter type information, names, and bounds. For `river` models, the hyperparameters are stored in the `RiverHyperDict`, see [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json)
+By using `core_model_name = "tree.HoeffdingTreeRegressor"`, the `river` model class `HoeffdingTreeRegressor` [[SOURCE]](https://riverml.xyz/dev/api/tree/HoeffdingTreeRegressor/) from the `tree` module is selected.
+For a given `core_model_name`, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file. The JSON file contains hyperparameter type information, names, and bounds. For `river` models, the hyperparameters are stored in the `RiverHyperDict`, see [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json)
 
 Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json) is loaded from the `spotRiver` package.
+
+How hyperparameter levels can be modified is described in @sec-modifying-hyperparameter-levels.
 
 ::: {.callout-note}
 ### Summary: Model Setup
 
-The following parameters are used:
+The following parameters are used for the model setup:
 
 ```{python}
 #| label: 024_sum_model-setup
 from spotRiver.fun.hyperriver import HyperRiver
 from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
-core_model_name = "tree.HoeffdingAdaptiveTreeRegressor"
+core_model_name = "tree.HoeffdingTreeRegressor"
 hyperdict = RiverHyperDict
 ```
+
 :::
 
 ### Objective Function Setup
 
-The loss function (metric) values are passed to the objective function `fun_oml_horizon`, which compbines information about the required memory and time as described in @sec-river-specific-setup-24.
+The loss function (metric) values are passed to the objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py), which combines information about the loss, required memory and time as described in @sec-river-specific-setup-24.
 
 
 ::: {.callout-note}
@@ -218,15 +231,30 @@ The following parameters are used:
 #| label: 024_sum_fun-setup
 fun = HyperRiver().fun_oml_horizon
 ```
+
+### Surrogate Model Setup
+
+The default surrogate model is the `Kriging` model, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/build/kriging/). We specify `noise` as `True` to include noise in the model. An `anisotropic` kernel is used, which allows different length scales for each dimension, by setting `n_theta = 2`. Furthermore, the interval for the `Lambda` value is set to `[1e-3, 1e2]`.
+
+These parameters are set in the `surrogate_control` dictionary and therefore passed  to the `surrogate_control_init` function [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/utils/init/#spotPython.utils.init.surrogate_control_init).
+
+```{python}
+noise = True
+n_theta = 2
+min_Lambda = 1e-3
+max_Lambda = 10
+```
+
 :::
 
 
-### Setting up the Dictionaries
+### Summary: Setting up the Experiment
 
+At this stage, all required information is available to set up the dictionaries for the hyperparameter tuning.
 Altogether, the `fun_control`, `design_control`, `surrogate_control`, and `optimize_control` dictionaries are initialized as follows:
 
 ```{python}
-#| label: 024_fun_control
+#| label: 024_summary_control
 from spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init
 
 fun = HyperRiver().fun_oml_horizon
@@ -244,14 +272,11 @@ fun_control = fun_control_init(
     metric_sklearn_name="mean_absolute_error",
     horizon=7*24,
     oml_grace_period=7*24,
-    weight_coeff=1.0,
+    weight_coeff=0.0,
     weights=np.array([1, 0.01, 0.01]),
 
-    core_model_name="tree.HoeffdingAdaptiveTreeRegressor",
+    core_model_name="tree.HoeffdingTreeRegressor",
     hyperdict=RiverHyperDict,
-
-    noise=True,
-    seed=123,
    )
 
 
@@ -267,22 +292,6 @@ surrogate_control = surrogate_control_init(
 )
 
 optimizer_control = optimizer_control_init()
-```
-
-
-```{python}
-# from spotPython.hyperparameters.values import modify_hyper_parameter_levels
-# levels = ["LinearRegression"]
-# modify_hyper_parameter_levels(fun_control, "leaf_model", levels)
-```
-
-The specified experimental design can be checked with the following command:
-
-
-```{python}
-#| label: 024_gen_design_table
-from spotPython.utils.eda import gen_design_table
-print(gen_design_table(fun_control))
 ```
 
 ### Run the `Spot` Optimizer
@@ -310,9 +319,8 @@ design_control = design_control
 surrogate_control = surrogate_control
 optimizer_control = optimizer_control
 ```
+
 :::
-
-
 
 ```{python}
 #| label: 024_spot_run
@@ -329,86 +337,51 @@ res = spot_tuner.run()
 
 ## Results
 
-### TensorBoard {#sec-tensorboard-10}
-
-Now we can start TensorBoard in the background with the following command, where `./runs` is the default directory for the TensorBoard log files:
-
-```{raw}
-tensorboard --logdir="./runs"
-```
-
-:::{.callout-tip}
-#### Tip: TENSORBOARD_PATH
-The TensorBoard path can be printed with the following command:
-
-```{python}
-#| label: 024_tensorboard_path
-from spotPython.utils.init import get_tensorboard_path
-get_tensorboard_path(fun_control)
-```
-
-```{python}
-#| label: 024_print_results
-spot_tuner.print_results(print_screen=False)
-```
-
-The tuned hyperparameters can be obtained as a dictionary with the following command:
-
-```{python}
-from spotPython.hyperparameters.values import get_tuned_hyperparameters
-get_tuned_hyperparameters(spot_tuner, fun_control)
-```
-
-The results can be saved and reloaded with the following commands:
-
-```{python}
-from spotPython.utils.file import save_pickle, load_pickle
-from spotPython.utils.init import get_experiment_name
-experiment_name = get_experiment_name("024")
-SAVE_AND_LOAD = False
-if SAVE_AND_LOAD == True:
-    save_pickle(spot_tuner, experiment_name)
-    spot_tuner = load_pickle(experiment_name)
-```
-
-After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
+After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
 
 ```{python}
 spot_tuner.plot_progress(log_y=True, filename=None)
 ```
 
-Results can also be printed in tabular form.
+Results can be printed in tabular form.
 
 ```{python}
+from spotPython.utils.eda import gen_design_table
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```
 
 A histogram can be used to visualize the most important hyperparameters.
 
 ```{python}
-spot_tuner.plot_importance(threshold=0.1)
+spot_tuner.plot_importance(threshold=10.0)
 ```
 
-## Get Default Hyperparameters
+## Performance of the Model with Default Hyperparameters
+
+### Get Default Hyperparameters and Fit the Model
 
 The default hyperparameters, which will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_core_model_from_X
 from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
-model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
-model_default
 ```
 
-:::{.callout-note}
-#### Note: `spotPython` tunes numpy arrays
-* `spotPython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.
-::::
-
-The model with the default hyperparameters can be trained and evaluated with the following commands:
+`spotPython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.
 
 ```{python}
+from spotPython.hyperparameters.values import get_one_core_model_from_X
+model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
+```
+
+### Evaluate the Model with Default Hyperparameters
+
+The model with the default hyperparameters can be trained and evaluated.
+The evaluation function `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py) is the same function that was used for the hyperparameter tuning.
+During the hyperparameter tuning, the evaluation function was called from the objective (or loss) function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py).
+
+```{python}
+#| label: 024_eval_default
 from spotRiver.evaluation.eval_bml import eval_oml_horizon
 
 df_eval_default, df_true_default = eval_oml_horizon(
@@ -431,7 +404,7 @@ df_labels=["default"]
 plot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control["metric_sklearn"])
 ```
 
-### Show Predictions
+### Show Predictions of the Model with Default Hyperparameters
 
 * Select a subset of the data set for the visualization of the predictions:
     * We use the mean, $m$, of the data set as the center of the visualization.
