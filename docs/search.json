@@ -1,0 +1,728 @@
+[
+  {
+    "objectID": "a_04_spot_doc.html",
+    "href": "a_04_spot_doc.html",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "",
+    "text": "D.1 An Initial Example\nimport numpy as np\nfrom math import inf\nfrom spotPython.fun.objectivefunctions import analytical\nfrom spotPython.spot import spot\nfrom scipy.optimize import shgo\nfrom scipy.optimize import direct\nfrom scipy.optimize import differential_evolution\nimport matplotlib.pyplot as plt\nThe spotPython package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: \\[\nf(x) = x^2.\n\\]\nfun = analytical().fun_sphere\nx = np.linspace(-1,1,100).reshape(-1,1)\ny = fun(x)\nplt.figure()\nplt.plot(x,y, \"k\")\nplt.show()\nfrom spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init\nspot_1 = spot.Spot(fun=fun,\n                   fun_control=fun_control_init(\n                        lower = np.array([-10]),\n                        upper = np.array([100]),\n                        fun_evals = 7,\n                        fun_repeats = 1,\n                        max_time = inf,\n                        noise = False,\n                        tolerance_x = np.sqrt(np.spacing(1)),\n                        var_type=[\"num\"],\n                        infill_criterion = \"y\",\n                        n_points = 1,\n                        seed=123,\n                        log_level = 50),\n                   design_control=design_control_init(\n                        init_size=5,\n                        repeats=1),\n                   surrogate_control=surrogate_control_init(\n                        noise=False,\n                        min_theta=-4,\n                        max_theta=3,\n                        n_theta=1,\n                        model_optimizer=differential_evolution,\n                        model_fun_evals=10000))\nspot_1.run()\n\nspotPython tuning: 2.0106521524877827 [#########-] 85.71% \nspotPython tuning: 0.01033163973935242 [##########] 100.00% Done...\n\n\n\n&lt;spotPython.spot.spot.Spot at 0x38fa4a190&gt;",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#organization",
+    "href": "a_04_spot_doc.html#organization",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.2 Organization",
+    "text": "D.2 Organization\nSpot organizes the surrogate based optimization process in four steps:\n\nSelection of the objective function: fun.\nSelection of the initial design: design.\nSelection of the optimization algorithm: optimizer.\nSelection of the surrogate model: surrogate.\n\nFor each of these steps, the user can specify an object:\n\nfrom spotPython.fun.objectivefunctions import analytical\nfun = analytical().fun_sphere\nfrom spotPython.design.spacefilling import spacefilling\ndesign = spacefilling(2)\nfrom scipy.optimize import differential_evolution\noptimizer = differential_evolution\nfrom spotPython.build.kriging import Kriging\nsurrogate = Kriging()\n\nFor each of these steps, the user can specify a dictionary of control parameters.\n\nfun_control\ndesign_control\noptimizer_control\nsurrogate_control\n\nEach of these dictionaries has an initialzaion method, e.g., fun_control_init(). The initialization methods set the default values for the control parameters.\n\n\n\n\n\n\nImportant:\n\n\n\n\nThe specification of an lower bound in fun_control is mandatory.\n\n\n\n\nfrom spotPython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init\nfun_control=fun_control_init(lower=np.array([-1, -1]),\n                            upper=np.array([1, 1]))\ndesign_control=design_control_init()\noptimizer_control=optimizer_control_init()\nsurrogate_control=surrogate_control_init()",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#the-spot-object",
+    "href": "a_04_spot_doc.html#the-spot-object",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.3 The Spot Object",
+    "text": "D.3 The Spot Object\nBased on the definition of the fun, design, optimizer, and surrogate objects, and their corresponding control parameter dictionaries, fun_control, design_control, optimizer_control, and surrogate_control, the spot object can be build as follows:\n\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(fun=fun,\n                       fun_control=fun_control,\n                       design_control=design_control,\n                       optimizer_control=optimizer_control,\n                       surrogate_control=surrogate_control)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#run",
+    "href": "a_04_spot_doc.html#run",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.4 Run",
+    "text": "D.4 Run\n\nspot_tuner.run()\n\nspotPython tuning: 1.801603872454505e-05 [#######---] 73.33% \nspotPython tuning: 1.801603872454505e-05 [########--] 80.00% \nspotPython tuning: 1.801603872454505e-05 [#########-] 86.67% \nspotPython tuning: 1.801603872454505e-05 [#########-] 93.33% \nspotPython tuning: 1.801603872454505e-05 [##########] 100.00% Done...\n\n\n\n&lt;spotPython.spot.spot.Spot at 0x10394d4d0&gt;",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#print-the-results",
+    "href": "a_04_spot_doc.html#print-the-results",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.5 Print the Results",
+    "text": "D.5 Print the Results\n\nspot_tuner.print_results()\n\nmin y: 1.801603872454505e-05\nx0: 0.0019077911677074135\nx1: 0.003791618596979743\n\n\n[['x0', 0.0019077911677074135], ['x1', 0.003791618596979743]]",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#show-the-progress",
+    "href": "a_04_spot_doc.html#show-the-progress",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.6 Show the Progress",
+    "text": "D.6 Show the Progress\n\nspot_tuner.plot_progress()",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#visualize-the-surrogate",
+    "href": "a_04_spot_doc.html#visualize-the-surrogate",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.7 Visualize the Surrogate",
+    "text": "D.7 Visualize the Surrogate\n\nThe plot method of the kriging surrogate is used.\nNote: the plot uses the interval defined by the ranges of the natural variables.\n\n\nspot_tuner.surrogate.plot()",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#run-with-a-specific-start-design",
+    "href": "a_04_spot_doc.html#run-with-a-specific-start-design",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.8 Run With a Specific Start Design",
+    "text": "D.8 Run With a Specific Start Design\nTo pass a specific start design, use the X_start argument of the run method.\n\nspot_x0 = spot.Spot(fun=fun,\n                    fun_control=fun_control_init(\n                        lower = np.array([-10]),\n                        upper = np.array([100]),\n                        fun_evals = 7,\n                        fun_repeats = 1,\n                        max_time = inf,\n                        noise = False,\n                        tolerance_x = np.sqrt(np.spacing(1)),\n                        var_type=[\"num\"],\n                        infill_criterion = \"y\",\n                        n_points = 1,\n                        seed=123,\n                        log_level = 50),\n                    design_control=design_control_init(\n                        init_size=5,\n                        repeats=1),\n                    surrogate_control=surrogate_control_init(\n                        noise=False,\n                        min_theta=-4,\n                        max_theta=3,\n                        n_theta=1,\n                        model_optimizer=differential_evolution,\n                        model_fun_evals=10000))\nspot_x0.run(X_start=np.array([0.5, -0.5]))\nspot_x0.plot_progress()\n\nspotPython tuning: 2.0106521524877827 [#########-] 85.71% \nspotPython tuning: 0.01033163973935242 [##########] 100.00% Done...",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#init-build-initial-design",
+    "href": "a_04_spot_doc.html#init-build-initial-design",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.9 Init: Build Initial Design",
+    "text": "D.9 Init: Build Initial Design\n\nfrom spotPython.design.spacefilling import spacefilling\nfrom spotPython.build.kriging import Kriging\nfrom spotPython.fun.objectivefunctions import analytical\ngen = spacefilling(2)\nrng = np.random.RandomState(1)\nlower = np.array([-5,-0])\nupper = np.array([10,15])\nfun = analytical().fun_branin\nfun_control = {\"sigma\": 0,\n               \"seed\": 123}\n\nX = gen.scipy_lhd(10, lower=lower, upper = upper)\nprint(X)\ny = fun(X, fun_control=fun_control)\nprint(y)\n\n[[ 8.97647221 13.41926847]\n [ 0.66946019  1.22344228]\n [ 5.23614115 13.78185824]\n [ 5.6149825  11.5851384 ]\n [-1.72963184  1.66516096]\n [-4.26945568  7.1325531 ]\n [ 1.26363761 10.17935555]\n [ 2.88779942  8.05508969]\n [-3.39111089  4.15213772]\n [ 7.30131231  5.22275244]]\n[128.95676449  31.73474356 172.89678121 126.71295908  64.34349975\n  70.16178611  48.71407916  31.77322887  76.91788181  30.69410529]",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#replicability",
+    "href": "a_04_spot_doc.html#replicability",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.10 Replicability",
+    "text": "D.10 Replicability\nSeed\n\ngen = spacefilling(2, seed=123)\nX0 = gen.scipy_lhd(3)\ngen = spacefilling(2, seed=345)\nX1 = gen.scipy_lhd(3)\nX2 = gen.scipy_lhd(3)\ngen = spacefilling(2, seed=123)\nX3 = gen.scipy_lhd(3)\nX0, X1, X2, X3\n\n(array([[0.77254938, 0.31539299],\n        [0.59321338, 0.93854273],\n        [0.27469803, 0.3959685 ]]),\n array([[0.78373509, 0.86811887],\n        [0.06692621, 0.6058029 ],\n        [0.41374778, 0.00525456]]),\n array([[0.121357  , 0.69043832],\n        [0.41906219, 0.32838498],\n        [0.86742658, 0.52910374]]),\n array([[0.77254938, 0.31539299],\n        [0.59321338, 0.93854273],\n        [0.27469803, 0.3959685 ]]))",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#surrogates",
+    "href": "a_04_spot_doc.html#surrogates",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.11 Surrogates",
+    "text": "D.11 Surrogates\n\nD.11.1 A Simple Predictor\nThe code below shows how to use a simple model for prediction. Assume that only two (very costly) measurements are available:\n\nf(0) = 0.5\nf(2) = 2.5\n\nWe are interested in the value at \\(x_0 = 1\\), i.e., \\(f(x_0 = 1)\\), but cannot run an additional, third experiment.\n\nfrom sklearn import linear_model\nX = np.array([[0], [2]])\ny = np.array([0.5, 2.5])\nS_lm = linear_model.LinearRegression()\nS_lm = S_lm.fit(X, y)\nX0 = np.array([[1]])\ny0 = S_lm.predict(X0)\nprint(y0)\n\n[1.5]\n\n\nCentral Idea: Evaluation of the surrogate model S_lm is much cheaper (or / and much faster) than running the real-world experiment \\(f\\).",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#tensorboard-setup",
+    "href": "a_04_spot_doc.html#tensorboard-setup",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.12 Tensorboard Setup",
+    "text": "D.12 Tensorboard Setup\n\nD.12.1 Tensorboard Configuration\nThe TENSORBOARD_CLEAN argument can be set to True in the fun_control dictionary to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch. If you want to continue a hyperparameter tuning process, set TENSORBOARD_CLEAN to False. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.\n\n\nD.12.2 Starting TensorBoard\nTensorBoard can be started as a background process with the following command, where ./runs is the default directory for the TensorBoard log files:\ntensorboard --logdir=\"./runs\"\n\n\n\n\n\n\nTENSORBOARD_PATH\n\n\n\nThe TensorBoard path can be printed with the following command (after a fun_control object has been created):\n\nfrom spotPython.utils.init import get_tensorboard_path\nget_tensorboard_path(fun_control)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#demotest-objective-function-fails",
+    "href": "a_04_spot_doc.html#demotest-objective-function-fails",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.13 Demo/Test: Objective Function Fails",
+    "text": "D.13 Demo/Test: Objective Function Fails\nSPOT expects np.nan values from failed objective function values. These are handled. Note: SPOT’s counter considers only successful executions of the objective function.\n\nimport numpy as np\nfrom spotPython.fun.objectivefunctions import analytical\nfrom spotPython.spot import spot\nimport numpy as np\nfrom math import inf\n# number of initial points:\nni = 20\n# number of points\nn = 30\n\nfun = analytical().fun_random_error\nfun_control=fun_control_init(\n    lower = np.array([-1]),\n    upper= np.array([1]),\n    fun_evals = n,\n    show_progress=False)\ndesign_control=design_control_init(init_size=ni)\n\nspot_1 = spot.Spot(fun=fun,\n                     fun_control=fun_control,\n                     design_control=design_control)\nspot_1.run()\n# To check whether the run was successfully completed,\n# we compare the number of evaluated points to the specified\n# number of points.\nassert spot_1.y.shape[0] == n\n\n[        nan         nan -0.02203599 -0.21843718  0.78240941         nan\n -0.3923345   0.67234256  0.31802454 -0.68898927 -0.75129705  0.97550354\n  0.41757584         nan  0.82585329         nan -0.49274073         nan\n -0.17991251  0.1481835 ]\n[-1.]\n[nan]\n[-0.14624037]\n[0.166475]\n[nan]\n[-0.3352401]\n[-0.47259301]\n[0.95541987]\n[0.17335968]\n[-0.58552368]\n[-0.20126111]\n[-0.60100809]\n[-0.97897336]\n[-0.2748985]\n[0.8359486]\n[0.99035591]\n[0.01641232]\n[0.5629346]",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#handling-results-printing-saving-and-loading",
+    "href": "a_04_spot_doc.html#handling-results-printing-saving-and-loading",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.14 Handling Results: Printing, Saving, and Loading",
+    "text": "D.14 Handling Results: Printing, Saving, and Loading\nThe results can be printed with the following command:\n\nspot_tuner.print_results(print_screen=False)\n\nThe tuned hyperparameters can be obtained as a dictionary with the following command:\n\nfrom spotPython.hyperparameters.values import get_tuned_hyperparameters\nget_tuned_hyperparameters(spot_tuner, fun_control)\n\nThe results can be saved and reloaded with the following commands:\n\nfrom spotPython.utils.file import save_pickle, load_pickle\nfrom spotPython.utils.init import get_experiment_name\nexperiment_name = get_experiment_name(\"024\")\nSAVE_AND_LOAD = False\nif SAVE_AND_LOAD == True:\n    save_pickle(spot_tuner, experiment_name)\n    spot_tuner = load_pickle(experiment_name)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "a_04_spot_doc.html#spotpython-as-a-hyperparameter-tuner",
+    "href": "a_04_spot_doc.html#spotpython-as-a-hyperparameter-tuner",
+    "title": "Appendix D — Documentation of the Sequential Parameter Optimization",
+    "section": "D.15 spotpython as a Hyperparameter Tuner",
+    "text": "D.15 spotpython as a Hyperparameter Tuner\n\nD.15.1 Modifying Hyperparameter Levels\n\n# from spotPython.hyperparameters.values import modify_hyper_parameter_levels\n# levels = [\"LinearRegression\"]\n# modify_hyper_parameter_levels(fun_control, \"leaf_model\", levels)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>D</span>  <span class='chapter-title'>Documentation of the Sequential Parameter Optimization</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html",
+    "href": "024_spot_hpt_river_friedman_htr.html",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "",
+    "text": "22.1 The Friedman Drift Data Set\nWe will use the Friedman synthetic dataset with concept drifts, which is described in detail in Section E.1. The following parameters are used to generate and handle the data set:\nWe will use spotRiver’s convert_to_df function [SOURCE] to convert the river data set to a pandas data frame. Then we add column names x1 until x10 to the first 10 columns of the dataframe and the column name y to the last column of the dataframe.\nThis data generation is independently repeated for the training and test data sets, because the data sets are generated with concept drifts and the usual train-test split would not work.\nfrom river.datasets import synth\nimport pandas as pd\nimport numpy as np\nfrom spotRiver.utils.data_conversion import convert_to_df\n\nn_train = 6_000\nn_test = 4_000\nn_samples = n_train + n_test\ntarget_column = \"y\"\n\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=(n_train/4, n_train/2),\n   seed=123\n)\n\ntrain = convert_to_df(dataset, n_total=n_train)\ntrain.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=(n_test/4, n_test/2),\n   seed=123\n)\ntest = convert_to_df(dataset, n_total=n_test)\ntest.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]\nWe combine the train and test data sets and save them to a csv file.\ndf = pd.concat([train, test])\ndf.to_csv(\"./userData/friedman.csv\", index=False)\nThe Friedman Drift data set described in this section is avaialble as a csv data file and can be downloaded from github: friedman.csv.",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#sec-the-friedman-drift-data-set-24",
+    "href": "024_spot_hpt_river_friedman_htr.html#sec-the-friedman-drift-data-set-24",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "",
+    "text": "position: The positions of the concept drifts.\nn_train: The number of samples used for training.\nn_test: The number of samples used for testing.\nseed: The seed for the random number generator.\ntarget_column: The name of the target column.\ndrift_type: The type of the concept drift.\n\n\n\n\n\n\n\n\n\n\n\nThe Data Set\n\n\n\nData sets that are available as pandas dataframes can easily be passed to the spot hyperparameter tuner. spotpython requires a train and a test data set, where the column names must be identical.",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#setup",
+    "href": "024_spot_hpt_river_friedman_htr.html#setup",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.2 Setup",
+    "text": "22.2 Setup\n\n22.2.1 General Experiment Setup\nTo keep track of the different experiments, we use a PREFIX for the experiment name. The PREFIX is used to create a unique experiment name. The PREFIX is also used to create a unique TensorBoard folder, which is used to store the TensorBoard log files.\nspotpython allows the specification of two different types of stopping criteria: first, the number of function evaluations (fun_evals), and second, the maximum run time in seconds (max_time). Here, we will set the number of function evaluations to infinity and the maximum run time to one minute.\nFurthermore, we set the initial design size (init_size) to 10. The initial design is used to train the surrogate model. The surrogate model is used to predict the performance of the hyperparameter configurations. The initial design is also used to train the first model. Since the init_size belongs to the experimental design, it is set in the design_control dictionary, see [SOURCE].\nmax_time is set to one minute for demonstration purposes and init_size is set to 10 for demonstration purposes. For real experiments, these values should be increased. Note, the total run time may exceed the specified max_time, because the initial design is always evaluated, even if this takes longer than max_time.\n\n\n\n\n\n\nSummary: General Experiment Setup\n\n\n\nThe following parameters are used to specify the general experiment setup:\n\nPREFIX = \"024\"\nfun_evals = inf\nmax_time = 1\ninit_size = 10\n\n\n\n\n\n22.2.2 Data Setup\nWe use the StandardScaler [SOURCE] from river as the data-preprocessing model. The StandardScaler is used to standardize the data set, i.e., it has zero mean and unit variance.\nThe names of the training and test data sets are train and test, respectively. They are available as pandas dataframes. Both must use the same column names. The column names were set to x1 to x10 for the features and y for the target column during the data set generation in Section 22.1. Therefore, the target_column is set to y (as above).\n\n\n\n\n\n\nSummary: Data Setup\n\n\n\nThe following parameters are used to specify the data setup:\n\nprep_model_name = \"StandardScaler\"\ntest = test\ntrain = train\ntarget_column = \"y\"\n\n\n\n\n\n22.2.3 Evaluation Setup\nHere we use the mean_absolute_error [SOURCE] as the evaluation metric. Internally, this metric is passed to the objective (or loss) function fun_oml_horizon [SOURCE] and further to the evaluation function eval_oml_horizon [SOURCE].\nspotRiver also supports additional metrics. For example, the metric_river is used for the river based evaluation via eval_oml_iter_progressive [SOURCE]. The metric_river is implemented to simulate the behaviour of the “original” river metrics.\n\n\n\n\n\n\nSummary: Evaluation Setup\n\n\n\nThe following parameter are used to select the evaluation metric:\n\nmetric_sklearn_name = \"mean_absolute_error\"\n\n\n\n\n\n22.2.4 River-Specific Setup\nIn the online-machine-learning (OML) setup, the model is trained on a fixed number of observations and then evaluated on a fixed number of observations. The horizon defines the number of observations that are used for the evaluation. Here, a horizon of 7*24 is used, which corresponds to one week of data.\nThe oml_grace_period defines the number of observations that are used for the initial training of the model. This value is relatively small, since the online-machine-learning is trained on the incoming data and the model is updated continuously. However, it needs a certain number of observations to start the training process. Therefore, this short training period aka oml_grace_period is set to the horizon, i.e., the number of observations that are used for the evaluation. In this case, we use a horizon of 7*24.\nThe weights provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased. spotRiver stores information about the model’ s score (metric), memory, and time. The hyperparamter tuner requires a single objective. Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the weights array. The weights provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.\nThe weight_coeff defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations. Results from the beginning have a lower weight than results from the end if weight_coeff &gt; 1. If weight_coeff == 0, all results have equal weight. Note, that the weight_coeff is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.\n\n\n\n\n\n\nSummary: River-Specific Setup\n\n\n\nThe following parameters are used:\n\nhorizon = 7*24\noml_grace_period = 7*24\nweights = np.array([1, 0.01, 0.01])\nweight_coeff = 0.0\n\n\n\n\n\n22.2.5 Model Setup\nBy using core_model_name = \"tree.HoeffdingTreeRegressor\", the river model class HoeffdingTreeRegressor [SOURCE] from the tree module is selected. For a given core_model_name, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file. The JSON file contains hyperparameter type information, names, and bounds. For river models, the hyperparameters are stored in the RiverHyperDict, see [SOURCE]\nAlternatively, you can load a local hyper_dict. Simply set river_hyper_dict.json as the filename. If filenameis set to None, which is the default, the hyper_dict [SOURCE] is loaded from the spotRiver package.\nHow hyperparameter levels can be modified is described in Section D.15.1.\n\n\n\n\n\n\nSummary: Model Setup\n\n\n\nThe following parameters are used for the model setup:\n\nfrom spotRiver.fun.hyperriver import HyperRiver\nfrom spotRiver.hyperdict.river_hyper_dict import RiverHyperDict\ncore_model_name = \"tree.HoeffdingTreeRegressor\"\nhyperdict = RiverHyperDict\n\n\n\n\n\n22.2.6 Objective Function Setup\nThe loss function (metric) values are passed to the objective function fun_oml_horizon [SOURCE], which combines information about the loss, required memory and time as described in Section 22.2.4.\n\n\n\n\n\n\nSummary: Objective Function Setup\n\n\n\nThe following parameters are used:\n\nfun = HyperRiver().fun_oml_horizon\n\n\n22.2.7 Surrogate Model Setup\nThe default surrogate model is the Kriging model, see [SOURCE]. We specify noise as True to include noise in the model. An anisotropic kernel is used, which allows different length scales for each dimension, by setting n_theta = 2. Furthermore, the interval for the Lambda value is set to [1e-3, 1e2].\nThese parameters are set in the surrogate_control dictionary and therefore passed to the surrogate_control_init function [SOURCE].\n\nnoise = True\nn_theta = 2\nmin_Lambda = 1e-3\nmax_Lambda = 10\n\n\n\n\n\n\n22.2.8 Summary: Setting up the Experiment\nAt this stage, all required information is available to set up the dictionaries for the hyperparameter tuning. Altogether, the fun_control, design_control, surrogate_control, and optimize_control dictionaries are initialized as follows:\n\nfrom spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init\n\nfun = HyperRiver().fun_oml_horizon\n\nfun_control = fun_control_init(\n    PREFIX=\"024\",\n    fun_evals=inf,\n    max_time=1,\n\n    prep_model_name=\"StandardScaler\",\n    test=test,\n    train=train,\n    target_column=target_column,\n\n    metric_sklearn_name=\"mean_absolute_error\",\n    horizon=7*24,\n    oml_grace_period=7*24,\n    weight_coeff=0.0,\n    weights=np.array([1, 0.01, 0.01]),\n\n    core_model_name=\"tree.HoeffdingTreeRegressor\",\n    hyperdict=RiverHyperDict,\n   )\n\n\ndesign_control = design_control_init(\n    init_size=10,\n)\n\nsurrogate_control = surrogate_control_init(\n    noise=True,\n    n_theta=2,\n    min_Lambda=1e-3,\n    max_Lambda=10,\n)\n\noptimizer_control = optimizer_control_init()\n\nCreated spot_tensorboard_path: runs/spot_logs/024_p040025_2024-06-26_21-45-05 for SummaryWriter()\n\n\n\n\n22.2.9 Run the Spot Optimizer\nThe class Spot [SOURCE] is the hyperparameter tuning workhorse. It is initialized with the following parameters, which were specified above.\n\nfun: the objective function\nfun_control: the dictionary with the control parameters for the objective function\ndesign_control: the dictionary with the control parameters for the experimental design\nsurrogate_control: the dictionary with the control parameters for the surrogate model\noptimizer_control: the dictionary with the control parameters for the optimizer\n\nspotpython allows maximum flexibility in the definition of the hyperparameter tuning setup. Alternative surrogate models, optimizers, and experimental designs can be used. Thus, interfaces for the surrogate model, experimental design, and optimizer are provided. The default surrogate model is the kriging model, the default optimizer is the differential evolution, and default experimental design is the Latin hypercube design.\n\n\n\n\n\n\nSummary: Spot Setup\n\n\n\nThe following parameters are used for the Spot setup. These were specified above:\n\nfun = fun\nfun_control = fun_control\ndesign_control = design_control\nsurrogate_control = surrogate_control\noptimizer_control = optimizer_control\n\n\n\n\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(\n    fun=fun,\n    fun_control=fun_control,\n    design_control=design_control,\n    surrogate_control=surrogate_control,\n    optimizer_control=optimizer_control,\n)\nres = spot_tuner.run()\n\nspotPython tuning: 3.197915756289135 [#---------] 9.39% \nspotPython tuning: 2.2379946935866335 [##--------] 17.08% \nspotPython tuning: 2.2379946935866335 [##--------] 20.62% \nspotPython tuning: 2.2379946935866335 [##--------] 22.27% \nspotPython tuning: 2.2379946935866335 [###-------] 26.93% \nspotPython tuning: 2.2379946935866335 [###-------] 28.67% \nspotPython tuning: 2.2379946935866335 [###-------] 30.40% \nspotPython tuning: 2.153304785622164 [###-------] 33.84% \nspotPython tuning: 2.153304785622164 [####------] 37.73% \nspotPython tuning: 2.153304785622164 [#####-----] 45.65% \nspotPython tuning: 2.153304785622164 [######----] 59.08% \nspotPython tuning: 2.153304785622164 [#########-] 85.32% \nspotPython tuning: 2.153304785622164 [#########-] 93.66% \nspotPython tuning: 2.153304785622164 [##########] 100.00% Done...",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#using-the-spotgui",
+    "href": "024_spot_hpt_river_friedman_htr.html#using-the-spotgui",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.3 Using the spotgui",
+    "text": "22.3 Using the spotgui\nThe spotgui [github] provides a convenient way to interact with the hyperparameter tuning process. To obtain the settings from Section 22.2.8, the spotgui can be started as shown in Figure 22.1.\n\n\n\n\n\n\nFigure 22.1: spotgui",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#results",
+    "href": "024_spot_hpt_river_friedman_htr.html#results",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.4 Results",
+    "text": "22.4 Results\nAfter the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with spotpython’s method plot_progress. The black points represent the performace values (score or metric) of hyperparameter configurations from the initial design, whereas the red points represents the hyperparameter configurations found by the surrogate model based optimization.\n\nspot_tuner.plot_progress(log_y=True, filename=None)\n\n\n\n\n\n\n\n\nResults can be printed in tabular form.\n\nfrom spotPython.utils.eda import gen_design_table\nprint(gen_design_table(fun_control=fun_control, spot=spot_tuner))\n\n| name                   | type   | default          |   lower |   upper | tuned                 | transform              |   importance | stars   |\n|------------------------|--------|------------------|---------|---------|-----------------------|------------------------|--------------|---------|\n| grace_period           | int    | 200              |    10.0 |  1000.0 | 525.0                 | None                   |         0.00 |         |\n| max_depth              | int    | 20               |     2.0 |    20.0 | 9.0                   | transform_power_2_int  |         0.00 |         |\n| delta                  | float  | 1e-07            |   1e-08 |   1e-06 | 5.831301187169607e-07 | None                   |         1.73 | *       |\n| tau                    | float  | 0.05             |    0.01 |     0.1 | 0.040856339593503675  | None                   |         0.02 |         |\n| leaf_prediction        | factor | mean             |     0.0 |     2.0 | model                 | None                   |         0.00 |         |\n| leaf_model             | factor | LinearRegression |     0.0 |     2.0 | LinearRegression      | None                   |         0.00 |         |\n| model_selector_decay   | float  | 0.95             |     0.9 |    0.99 | 0.9873988126620659    | None                   |         0.01 |         |\n| splitter               | factor | EBSTSplitter     |     0.0 |     2.0 | TEBSTSplitter         | None                   |         0.00 |         |\n| min_samples_split      | int    | 5                |     2.0 |    10.0 | 4.0                   | None                   |         0.00 |         |\n| binary_split           | factor | 0                |     0.0 |     1.0 | 0                     | None                   |        22.23 | *       |\n| max_size               | float  | 500.0            |   100.0 |  1000.0 | 421.546097466885      | None                   |         0.00 |         |\n| memory_estimate_period | int    | 6                |     3.0 |     8.0 | 6.0                   | transform_power_10_int |         0.00 |         |\n| stop_mem_management    | factor | 0                |     0.0 |     1.0 | 0                     | None                   |         0.00 |         |\n| remove_poor_attrs      | factor | 0                |     0.0 |     1.0 | 1                     | None                   |         0.00 |         |\n| merit_preprune         | factor | 1                |     0.0 |     1.0 | 1                     | None                   |       100.00 | ***     |\n\n\nA histogram can be used to visualize the most important hyperparameters.\n\nspot_tuner.plot_importance(threshold=10.0)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#performance-of-the-model-with-default-hyperparameters",
+    "href": "024_spot_hpt_river_friedman_htr.html#performance-of-the-model-with-default-hyperparameters",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.5 Performance of the Model with Default Hyperparameters",
+    "text": "22.5 Performance of the Model with Default Hyperparameters\n\n22.5.1 Get Default Hyperparameters and Fit the Model\nThe default hyperparameters, which will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:\n\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\n\nspotPython tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nmodel_default = get_one_core_model_from_X(X_start, fun_control, default=True)\n\n\n\n22.5.2 Evaluate the Model with Default Hyperparameters\nThe model with the default hyperparameters can be trained and evaluated. The evaluation function eval_oml_horizon [SOURCE] is the same function that was used for the hyperparameter tuning. During the hyperparameter tuning, the evaluation function was called from the objective (or loss) function fun_oml_horizon [SOURCE].\n\nfrom spotRiver.evaluation.eval_bml import eval_oml_horizon\n\ndf_eval_default, df_true_default = eval_oml_horizon(\n                    model=model_default,\n                    train=fun_control[\"train\"],\n                    test=fun_control[\"test\"],\n                    target_column=fun_control[\"target_column\"],\n                    horizon=fun_control[\"horizon\"],\n                    oml_grace_period=fun_control[\"oml_grace_period\"],\n                    metric=fun_control[\"metric_sklearn\"],\n                )\n\nThe three performance criteria, i.e., score (metric), runtime, and memory consumption, can be visualized with the following commands:\n\nfrom spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions\ndf_labels=[\"default\"]\nplot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])\n\n\n\n\n\n\n\n\n\n\n22.5.3 Show Predictions of the Model with Default Hyperparameters\n\nSelect a subset of the data set for the visualization of the predictions:\n\nWe use the mean, \\(m\\), of the data set as the center of the visualization.\nWe use 100 data points, i.e., \\(m \\pm 50\\) as the visualization window.\n\n\n\nm = fun_control[\"test\"].shape[0]\na = int(m/2)-50\nb = int(m/2)+50\nplot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#get-spot-results",
+    "href": "024_spot_hpt_river_friedman_htr.html#get-spot-results",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.6 Get SPOT Results",
+    "text": "22.6 Get SPOT Results\nIn a similar way, we can obtain the hyperparameters found by spotPython.\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nX = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\nmodel_spot = get_one_core_model_from_X(X, fun_control)\n\n\ndf_eval_spot, df_true_spot = eval_oml_horizon(\n                    model=model_spot,\n                    train=fun_control[\"train\"],\n                    test=fun_control[\"test\"],\n                    target_column=fun_control[\"target_column\"],\n                    horizon=fun_control[\"horizon\"],\n                    oml_grace_period=fun_control[\"oml_grace_period\"],\n                    metric=fun_control[\"metric_sklearn\"],\n                )\n\n\ndf_labels=[\"default\", \"spot\"]\nplot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])\n\n\n\n\n\n\n\n\n\nplot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels)\n\n\n\n\n\n\n\n\n\nfrom spotPython.plot.validation import plot_actual_vs_predicted\nplot_actual_vs_predicted(y_test=df_true_default[target_column], y_pred=df_true_default[\"Prediction\"], title=\"Default\")\nplot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot[\"Prediction\"], title=\"SPOT\")",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#visualize-regression-trees",
+    "href": "024_spot_hpt_river_friedman_htr.html#visualize-regression-trees",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.7 Visualize Regression Trees",
+    "text": "22.7 Visualize Regression Trees\n\ndataset_f = dataset.take(n_samples)\nprint(f\"n_samples: {n_samples}\")\nfor x, y in dataset_f:\n    model_default.learn_one(x, y)\n\nn_samples: 10000\n\n\n\n\n\n\n\n\nCaution: Large Trees\n\n\n\n\nSince the trees are large, the visualization is suppressed by default.\nTo visualize the trees, uncomment the following line.\n\n\n\n\n# model_default.draw()\n\n\nmodel_default.summary\n\n{'n_nodes': 23,\n 'n_branches': 11,\n 'n_leaves': 12,\n 'n_active_leaves': 12,\n 'n_inactive_leaves': 0,\n 'height': 7,\n 'total_observed_weight': 14168.0}\n\n\n\n22.7.1 Spot Model\n\nprint(f\"n_samples: {n_samples}\")\ndataset_f = dataset.take(n_samples)\nfor x, y in dataset_f:\n    model_spot.learn_one(x, y)\n\nn_samples: 10000\n\n\n\n\n\n\n\n\nCaution: Large Trees\n\n\n\n\nSince the trees are large, the visualization is suppressed by default.\nTo visualize the trees, uncomment the following line.\n\n\n\n\n# model_spot.draw()\n\n\nmodel_spot.summary\n\n{'n_nodes': 11,\n 'n_branches': 5,\n 'n_leaves': 6,\n 'n_active_leaves': 6,\n 'n_inactive_leaves': 0,\n 'height': 4,\n 'total_observed_weight': 14168.0}\n\n\n\nfrom spotPython.utils.eda import compare_two_tree_models\nprint(compare_two_tree_models(model_default, model_spot))\n\n| Parameter             |   Default |   Spot |\n|-----------------------|-----------|--------|\n| n_nodes               |        23 |     11 |\n| n_branches            |        11 |      5 |\n| n_leaves              |        12 |      6 |\n| n_active_leaves       |        12 |      6 |\n| n_inactive_leaves     |         0 |      0 |\n| height                |         7 |      4 |\n| total_observed_weight |     14168 |  14168 |",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#detailed-hyperparameter-plots",
+    "href": "024_spot_hpt_river_friedman_htr.html#detailed-hyperparameter-plots",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.8 Detailed Hyperparameter Plots",
+    "text": "22.8 Detailed Hyperparameter Plots\n\nspot_tuner.plot_important_hyperparameter_contour(max_imp=3)\n\ngrace_period:  0.001\nmax_depth:  0.001\ndelta:  1.734187947335773\ntau:  0.020739297818443123\nleaf_prediction:  0.001\nleaf_model:  0.0018420395916492697\nmodel_selector_decay:  0.009052940185182438\nsplitter:  0.001\nmin_samples_split:  0.001\nbinary_split:  22.232499256603898\nmax_size:  0.001\nmemory_estimate_period:  0.001\nstop_mem_management:  0.001\nremove_poor_attrs:  0.001\nmerit_preprune:  100.0\nimpo: [['grace_period', 0.001], ['max_depth', 0.001], ['delta', 1.734187947335773], ['tau', 0.020739297818443123], ['leaf_prediction', 0.001], ['leaf_model', 0.0018420395916492697], ['model_selector_decay', 0.009052940185182438], ['splitter', 0.001], ['min_samples_split', 0.001], ['binary_split', 22.232499256603898], ['max_size', 0.001], ['memory_estimate_period', 0.001], ['stop_mem_management', 0.001], ['remove_poor_attrs', 0.001], ['merit_preprune', 100.0]]\nindices: [14, 9, 2, 3, 6, 5, 0, 1, 4, 7, 8, 10, 11, 12, 13]\nindices after max_imp selection: [14, 9, 2]",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "024_spot_hpt_river_friedman_htr.html#parallel-coordinates-plots",
+    "href": "024_spot_hpt_river_friedman_htr.html#parallel-coordinates-plots",
+    "title": "22  river Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data",
+    "section": "22.9 Parallel Coordinates Plots",
+    "text": "22.9 Parallel Coordinates Plots\n\nspot_tuner.parallel_plot()",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>22</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html",
+    "href": "017_spot_hpt_sklearn_classification.html",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "",
+    "text": "19.1 Step 1: Setup\nBefore we consider the detailed experimental setup, we select the parameters that affect run time, initial design size and the device that is used.\nMAX_TIME = 1\nINIT_SIZE = 10\nPREFIX = \"10\"",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#sec-setup-17",
+    "href": "017_spot_hpt_sklearn_classification.html#sec-setup-17",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "",
+    "text": "Caution: Run time and initial design size should be increased for real experiments\n\n\n\n\nMAX_TIME is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\nINIT_SIZE is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#step-2-initialization-of-the-empty-fun_control-dictionary",
+    "href": "017_spot_hpt_sklearn_classification.html#step-2-initialization-of-the-empty-fun_control-dictionary",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.2 Step 2: Initialization of the Empty fun_control Dictionary",
+    "text": "19.2 Step 2: Initialization of the Empty fun_control Dictionary\nspotPython supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with spotPython. The fun_control dictionary is the central data structure that is used to control the optimization process. It is initialized as follows:\n\nfrom spotPython.utils.init import fun_control_init\nfrom spotPython.hyperparameters.values import set_control_key_value\nfrom spotPython.utils.eda import gen_design_table\nfun_control = fun_control_init(\n    PREFIX=PREFIX,\n    TENSORBOARD_CLEAN=True,\n    max_time=MAX_TIME,\n    fun_evals=inf,\n    tolerance_x = np.sqrt(np.spacing(1)))\n\nMoving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_06_26_21_10_07\nCreated spot_tensorboard_path: runs/spot_logs/10_bartz10_2024-06-26_21-10-07 for SummaryWriter()\n\n\n\n\n\n\n\n\nTip: TensorBoard\n\n\n\n\nSince the spot_tensorboard_path argument is not None, which is the default, spotPython will log the optimization process in the TensorBoard folder.\nThe TENSORBOARD_CLEAN argument is set to True to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch. If you want to continue a hyperparameter tuning process, set TENSORBOARD_CLEAN to False. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#sec-data-loading-17",
+    "href": "017_spot_hpt_sklearn_classification.html#sec-data-loading-17",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.3 Step 3: SKlearn Load Data (Classification)",
+    "text": "19.3 Step 3: SKlearn Load Data (Classification)\nRandomly generate classification data.\n\nimport pandas as pd\nimport numpy as np\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.datasets import make_moons, make_circles, make_classification\nn_features = 2\nn_samples = 500\ntarget_column = \"y\"\nds =  make_moons(n_samples, noise=0.5, random_state=0)\nX, y = ds\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.3, random_state=42\n)\ntrain = pd.DataFrame(np.hstack((X_train, y_train.reshape(-1, 1))))\ntest = pd.DataFrame(np.hstack((X_test, y_test.reshape(-1, 1))))\ntrain.columns = [f\"x{i}\" for i in range(1, n_features+1)] + [target_column]\ntest.columns = [f\"x{i}\" for i in range(1, n_features+1)] + [target_column]\ntrain.head()\n\n\n\n\n\n\n\n\nx1\nx2\ny\n\n\n\n\n0\n1.960101\n0.383172\n0.0\n\n\n1\n2.354420\n-0.536942\n1.0\n\n\n2\n1.682186\n-0.332108\n0.0\n\n\n3\n1.856507\n0.687220\n1.0\n\n\n4\n1.925524\n0.427413\n1.0\n\n\n\n\n\n\n\n\nimport matplotlib.pyplot as plt\nfrom matplotlib.colors import ListedColormap\n\nx_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5\ny_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5\ncm = plt.cm.RdBu\ncm_bright = ListedColormap([\"#FF0000\", \"#0000FF\"])\nax = plt.subplot(1, 1, 1)\nax.set_title(\"Input data\")\n# Plot the training points\nax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors=\"k\")\n# Plot the testing points\nax.scatter(\n    X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors=\"k\"\n)\nax.set_xlim(x_min, x_max)\nax.set_ylim(y_min, y_max)\nax.set_xticks(())\nax.set_yticks(())\nplt.tight_layout()\nplt.show()\n\n\n\n\n\n\n\n\n\nn_samples = len(train)\n# add the dataset to the fun_control\nfun_control.update({\"data\": None, # dataset,\n               \"train\": train,\n               \"test\": test,\n               \"n_samples\": n_samples,\n               \"target_column\": target_column})",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#sec-specification-of-preprocessing-model-17",
+    "href": "017_spot_hpt_sklearn_classification.html#sec-specification-of-preprocessing-model-17",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.4 Step 4: Specification of the Preprocessing Model",
+    "text": "19.4 Step 4: Specification of the Preprocessing Model\nData preprocesssing can be very simple, e.g., you can ignore it. Then you would choose the prep_model “None”:\n\nprep_model = None\nfun_control.update({\"prep_model\": prep_model})\n\nA default approach for numerical data is the StandardScaler (mean 0, variance 1). This can be selected as follows:\n\nfrom sklearn.preprocessing import StandardScaler\nprep_model = StandardScaler()\nfun_control.update({\"prep_model\": prep_model})\n\nEven more complicated pre-processing steps are possible, e.g., the follwing pipeline:\ncategorical_columns = []\none_hot_encoder = OneHotEncoder(handle_unknown=\"ignore\", sparse_output=False)\nprep_model = ColumnTransformer(\n         transformers=[\n             (\"categorical\", one_hot_encoder, categorical_columns),\n         ],\n         remainder=StandardScaler(),\n     )",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#step-5-select-model-algorithm-and-core_model_hyper_dict",
+    "href": "017_spot_hpt_sklearn_classification.html#step-5-select-model-algorithm-and-core_model_hyper_dict",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.5 Step 5: Select Model (algorithm) and core_model_hyper_dict",
+    "text": "19.5 Step 5: Select Model (algorithm) and core_model_hyper_dict\nThe selection of the algorithm (ML model) that should be tuned is done by specifying the its name from the sklearn implementation. For example, the SVC support vector machine classifier is selected as follows:\n\nfrom spotPython.hyperparameters.values import add_core_model_to_fun_control\nfrom spotPython.hyperdict.sklearn_hyper_dict import SklearnHyperDict\nfrom sklearn.svm import SVC\nadd_core_model_to_fun_control(core_model=SVC,\n                              fun_control=fun_control,\n                              hyper_dict=SklearnHyperDict,\n                              filename=None)\n\nNow fun_control has the information from the JSON file. The corresponding entries for the core_model class are shown below.\n\nfun_control['core_model_hyper_dict']\n\n{'C': {'type': 'float',\n  'default': 1.0,\n  'transform': 'None',\n  'lower': 0.1,\n  'upper': 10.0},\n 'kernel': {'levels': ['linear', 'poly', 'rbf', 'sigmoid'],\n  'type': 'factor',\n  'default': 'rbf',\n  'transform': 'None',\n  'core_model_parameter_type': 'str',\n  'lower': 0,\n  'upper': 3},\n 'degree': {'type': 'int',\n  'default': 3,\n  'transform': 'None',\n  'lower': 3,\n  'upper': 3},\n 'gamma': {'levels': ['scale', 'auto'],\n  'type': 'factor',\n  'default': 'scale',\n  'transform': 'None',\n  'core_model_parameter_type': 'str',\n  'lower': 0,\n  'upper': 1},\n 'coef0': {'type': 'float',\n  'default': 0.0,\n  'transform': 'None',\n  'lower': 0.0,\n  'upper': 0.0},\n 'shrinking': {'levels': [0, 1],\n  'type': 'factor',\n  'default': 0,\n  'transform': 'None',\n  'core_model_parameter_type': 'bool',\n  'lower': 0,\n  'upper': 1},\n 'probability': {'levels': [0, 1],\n  'type': 'factor',\n  'default': 0,\n  'transform': 'None',\n  'core_model_parameter_type': 'bool',\n  'lower': 0,\n  'upper': 1},\n 'tol': {'type': 'float',\n  'default': 0.001,\n  'transform': 'None',\n  'lower': 0.0001,\n  'upper': 0.01},\n 'cache_size': {'type': 'float',\n  'default': 200,\n  'transform': 'None',\n  'lower': 100,\n  'upper': 400},\n 'break_ties': {'levels': [0, 1],\n  'type': 'factor',\n  'default': 0,\n  'transform': 'None',\n  'core_model_parameter_type': 'bool',\n  'lower': 0,\n  'upper': 1}}\n\n\n\n\n\n\n\n\nsklearn Model Selection\n\n\n\nThe following sklearn models are supported by default:\n\nRidgeCV\nRandomForestClassifier\nSVC\nLogisticRegression\nKNeighborsClassifier\nGradientBoostingClassifier\nGradientBoostingRegressor\nElasticNet\n\nThey can be imported as follows:\nfrom sklearn.linear_model import RidgeCV\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.svm import SVC\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.ensemble import GradientBoostingClassifier\nfrom sklearn.ensemble import GradientBoostingRegressor\nfrom sklearn.linear_model import ElasticNet",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#step-6-modify-hyper_dict-hyperparameters-for-the-selected-algorithm-aka-core_model",
+    "href": "017_spot_hpt_sklearn_classification.html#step-6-modify-hyper_dict-hyperparameters-for-the-selected-algorithm-aka-core_model",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.6 Step 6: Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model",
+    "text": "19.6 Step 6: Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model\nspotPython provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in ?sec-modification-of-hyperparameters-28.\n\n19.6.1 Modify hyperparameter of type numeric and integer (boolean)\nNumeric and boolean values can be modified using the modify_hyper_parameter_bounds method.\n\n\n\n\n\n\nsklearn Model Hyperparameters\n\n\n\nThe hyperparameters of the sklearn SVC model are described in the sklearn documentation.\n\n\n\nFor example, to change the tol hyperparameter of the SVC model to the interval [1e-5, 1e-3], the following code can be used:\n\n\nfrom spotPython.hyperparameters.values import modify_hyper_parameter_bounds\nmodify_hyper_parameter_bounds(fun_control, \"tol\", bounds=[1e-5, 1e-3])\nmodify_hyper_parameter_bounds(fun_control, \"probability\", bounds=[0, 0])\nfun_control[\"core_model_hyper_dict\"][\"tol\"]\n\n{'type': 'float',\n 'default': 0.001,\n 'transform': 'None',\n 'lower': 1e-05,\n 'upper': 0.001}\n\n\n\n\n19.6.2 Modify hyperparameter of type factor\nFactors can be modified with the modify_hyper_parameter_levels function. For example, to exclude the sigmoid kernel from the tuning, the kernel hyperparameter of the SVC model can be modified as follows:\n\nfrom spotPython.hyperparameters.values import modify_hyper_parameter_levels\nmodify_hyper_parameter_levels(fun_control, \"kernel\", [\"poly\", \"rbf\"])\nfun_control[\"core_model_hyper_dict\"][\"kernel\"]\n\n{'levels': ['poly', 'rbf'],\n 'type': 'factor',\n 'default': 'rbf',\n 'transform': 'None',\n 'core_model_parameter_type': 'str',\n 'lower': 0,\n 'upper': 1}\n\n\n\n\n19.6.3 Optimizers\nOptimizers are described in ?sec-optimizers-28.",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#step-7-selection-of-the-objective-loss-function",
+    "href": "017_spot_hpt_sklearn_classification.html#step-7-selection-of-the-objective-loss-function",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.7 Step 7: Selection of the Objective (Loss) Function",
+    "text": "19.7 Step 7: Selection of the Objective (Loss) Function\nThere are two metrics:\n\nmetric_river is used for the river based evaluation via eval_oml_iter_progressive.\nmetric_sklearn is used for the sklearn based evaluation.\n\n\nfrom sklearn.metrics import mean_absolute_error, accuracy_score, roc_curve, roc_auc_score, log_loss, mean_squared_error\nfun_control.update({\n               \"metric_sklearn\": log_loss,\n               \"weights\": 1.0,\n               })\n\n\n\n\n\n\n\nmetric_sklearn: Minimization and Maximization\n\n\n\n\nBecause the metric_sklearn is used for the sklearn based evaluation, it is important to know whether the metric should be minimized or maximized.\nThe weights parameter is used to indicate whether the metric should be minimized or maximized.\nIf weights is set to -1.0, the metric is maximized.\nIf weights is set to 1.0, the metric is minimized, e.g., weights = 1.0 for mean_absolute_error, or weights = -1.0 for roc_auc_score.\n\n\n\n\n19.7.1 Predict Classes or Class Probabilities\nIf the key \"predict_proba\" is set to True, the class probabilities are predicted. False is the default, i.e., the classes are predicted.\n\nfun_control.update({\n               \"predict_proba\": False,\n               })",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#step-8-calling-the-spot-function",
+    "href": "017_spot_hpt_sklearn_classification.html#step-8-calling-the-spot-function",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.8 Step 8: Calling the SPOT Function",
+    "text": "19.8 Step 8: Calling the SPOT Function\n\n19.8.1 The Objective Function\nThe objective function is selected next. It implements an interface from sklearn’s training, validation, and testing methods to spotPython.\n\nfrom spotPython.fun.hypersklearn import HyperSklearn\nfun = HyperSklearn().fun_sklearn\n\nThe following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the Spot function.\n\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\n\n\n\n19.8.2 Run the Spot Optimizer\nThe class Spot [SOURCE] is the hyperparameter tuning workhorse. It is initialized with the following parameters:\n\nfun: the objective function\nfun_control: the dictionary with the control parameters for the objective function\ndesign: the experimental design\ndesign_control: the dictionary with the control parameters for the experimental design\nsurrogate: the surrogate model\nsurrogate_control: the dictionary with the control parameters for the surrogate model\noptimizer: the optimizer\noptimizer_control: the dictionary with the control parameters for the optimizer\n\n\n\n\n\n\n\nNote: Total run time\n\n\n\nThe total run time may exceed the specified max_time, because the initial design (here: init_size = INIT_SIZE as specified above) is always evaluated, even if this takes longer than max_time.\n\n\n\nfrom spotPython.utils.init import design_control_init, surrogate_control_init\ndesign_control = design_control_init()\nset_control_key_value(control_dict=design_control,\n                        key=\"init_size\",\n                        value=INIT_SIZE,\n                        replace=True)\n\nsurrogate_control = surrogate_control_init(noise=True,\n                                           n_theta=2)\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(fun=fun,\n                   fun_control=fun_control,\n                   design_control=design_control,\n                   surrogate_control=surrogate_control)\nspot_tuner.run(X_start=X_start)\n\nspotPython tuning: 5.734217584632275 [----------] 1.34% \nspotPython tuning: 5.734217584632275 [----------] 3.18% \nspotPython tuning: 5.734217584632275 [#---------] 5.53% \nspotPython tuning: 5.734217584632275 [#---------] 7.04% \nspotPython tuning: 5.734217584632275 [#---------] 8.95% \nspotPython tuning: 5.734217584632275 [#---------] 10.90% \nspotPython tuning: 5.734217584632275 [#---------] 12.85% \nspotPython tuning: 5.734217584632275 [##--------] 16.88% \nspotPython tuning: 5.734217584632275 [##--------] 21.30% \nspotPython tuning: 5.734217584632275 [###-------] 25.74% \nspotPython tuning: 5.734217584632275 [###-------] 30.37% \nspotPython tuning: 5.734217584632275 [####------] 36.16% \nspotPython tuning: 5.734217584632275 [####------] 40.10% \nspotPython tuning: 5.734217584632275 [####------] 43.33% \nspotPython tuning: 5.734217584632275 [#####-----] 46.74% \nspotPython tuning: 5.734217584632275 [##########] 100.00% Done...\n\n\n\n&lt;spotPython.spot.spot.Spot at 0x386e59550&gt;\n\n\n\n\n19.8.3 TensorBoard\nNow we can start TensorBoard in the background with the following command, where ./runs is the default directory for the TensorBoard log files:\ntensorboard --logdir=\"./runs\"\n\n\n\n\n\n\nTip: TENSORBOARD_PATH\n\n\n\nThe TensorBoard path can be printed with the following command:\n\nfrom spotPython.utils.init import get_tensorboard_path\nget_tensorboard_path(fun_control)\n\n'runs/'\n\n\n\n\nWe can access the TensorBoard web server with the following URL:\nhttp://localhost:6006/\nThe TensorBoard plot illustrates how spotPython can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate \\(\\theta\\) of the Kriging surrogate [SOURCE] is plotted against the number of optimization steps.\n\n\n\nTensorBoard visualization of the spotPython optimization process and the surrogate model.",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#sec-results-tuning-17",
+    "href": "017_spot_hpt_sklearn_classification.html#sec-results-tuning-17",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.9 Step 9: Results",
+    "text": "19.9 Step 9: Results\nAfter the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:\n\nfrom spotPython.utils.file import save_pickle, load_pickle\nfrom spotPython.utils.init import get_experiment_name\nexperiment_name = get_experiment_name(PREFIX)\nSAVE_AND_LOAD = False\nif SAVE_AND_LOAD == True:\n    save_pickle(spot_tuner, experiment_name)\n    spot_tuner = load_pickle(experiment_name)\n\nAfter the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of hyperparameter configurations from the initial design, whereas the red points represents the hyperparameter configurations found by the surrogate model based optimization.\n\nspot_tuner.plot_progress(log_y=True, filename=\"./figures/\" + experiment_name+\"_progress.pdf\")\n\n\n\n\n\n\n\n\nResults can also be printed in tabular form.\n\nprint(gen_design_table(fun_control=fun_control, spot=spot_tuner))\n\n| name        | type   | default   |   lower |   upper | tuned                | transform   |   importance | stars   |\n|-------------|--------|-----------|---------|---------|----------------------|-------------|--------------|---------|\n| C           | float  | 1.0       |     0.1 |    10.0 | 2.394471655384338    | None        |         0.26 | .       |\n| kernel      | factor | rbf       |     0.0 |     1.0 | rbf                  | None        |        14.95 | *       |\n| degree      | int    | 3         |     3.0 |     3.0 | 3.0                  | None        |         0.00 |         |\n| gamma       | factor | scale     |     0.0 |     1.0 | scale                | None        |         0.00 |         |\n| coef0       | float  | 0.0       |     0.0 |     0.0 | 0.0                  | None        |         0.00 |         |\n| shrinking   | factor | 0         |     0.0 |     1.0 | 0                    | None        |         0.28 | .       |\n| probability | factor | 0         |     0.0 |     0.0 | 0                    | None        |         0.00 |         |\n| tol         | float  | 0.001     |   1e-05 |   0.001 | 0.000982585315792582 | None        |       100.00 | ***     |\n| cache_size  | float  | 200.0     |   100.0 |   400.0 | 375.6371648003268    | None        |         0.00 |         |\n| break_ties  | factor | 0         |     0.0 |     1.0 | 0                    | None        |         0.00 |         |\n\n\nA histogram can be used to visualize the most important hyperparameters.\n\nspot_tuner.plot_importance(threshold=0.0025, filename=\"./figures/\" + experiment_name+\"_importance.pdf\")",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#get-default-hyperparameters",
+    "href": "017_spot_hpt_sklearn_classification.html#get-default-hyperparameters",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.10 Get Default Hyperparameters",
+    "text": "19.10 Get Default Hyperparameters\nThe default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\nmodel_default = get_one_core_model_from_X(X_start, fun_control, default=True)\nmodel_default\n\nSVC(break_ties=0, cache_size=200.0, probability=0, shrinking=0)In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.SVCSVC(break_ties=0, cache_size=200.0, probability=0, shrinking=0)",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "017_spot_hpt_sklearn_classification.html#get-spot-results",
+    "href": "017_spot_hpt_sklearn_classification.html#get-spot-results",
+    "title": "19  HPT: sklearn SVC on Moons Data",
+    "section": "19.11 Get SPOT Results",
+    "text": "19.11 Get SPOT Results\nIn a similar way, we can obtain the hyperparameters found by spotPython.\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nX = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\nmodel_spot = get_one_core_model_from_X(X, fun_control)\n\n\n19.11.1 Plot: Compare Predictions\n\nfrom spotPython.plot.validation import plot_roc\nplot_roc(model_list=[model_default, model_spot], fun_control= fun_control, model_names=[\"Default\", \"Spot\"])\n\n\n\n\n\n\n\n\n\nfrom spotPython.plot.validation import plot_confusion_matrix\nplot_confusion_matrix(model=model_default, fun_control=fun_control, title = \"Default\")\n\n\n\n\n\n\n\n\n\nplot_confusion_matrix(model=model_spot, fun_control=fun_control, title=\"SPOT\")\n\n\n\n\n\n\n\n\n\nmin(spot_tuner.y), max(spot_tuner.y)\n\n(5.734217584632275, 7.782152436286657)\n\n\n\n\n19.11.2 Detailed Hyperparameter Plots\n\nspot_tuner.plot_important_hyperparameter_contour(filename=None)\n\nC:  0.2627232458952208\nkernel:  14.948243143274917\ngamma:  0.0029381353898864215\nshrinking:  0.27705723088890055\ntol:  100.0\ncache_size:  0.0029381353898864215\nbreak_ties:  0.0029381353898864215\nimpo: [['C', 0.2627232458952208], ['kernel', 14.948243143274917], ['gamma', 0.0029381353898864215], ['shrinking', 0.27705723088890055], ['tol', 100.0], ['cache_size', 0.0029381353898864215], ['break_ties', 0.0029381353898864215]]\nindices: [4, 1, 3, 0, 2, 5, 6]\nindices after max_imp selection: [4, 1, 3, 0, 2, 5, 6]\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n19.11.3 Parallel Coordinates Plot\n\nspot_tuner.parallel_plot()\n\n                                                \n\n\n\n\n19.11.4 Plot all Combinations of Hyperparameters\n\nWarning: this may take a while.\n\n\nPLOT_ALL = False\nif PLOT_ALL:\n    n = spot_tuner.k\n    for i in range(n-1):\n        for j in range(i+1, n):\n            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)",
+    "crumbs": [
+      "Hyperparameter Tuning with Sklearn",
+      "<span class='chapter-number'>19</span>  <span class='chapter-title'>HPT: sklearn SVC on Moons Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html",
+    "href": "025_spot_hpt_river_friedman_amfr.html",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "",
+    "text": "23.1 The Friedman Drift Data Set\nThe data set was introduced in Section 22.1.\nfrom river.datasets import synth\nimport pandas as pd\nimport numpy as np\nfrom spotRiver.utils.data_conversion import convert_to_df\n\nn_train = 6_000\nn_test = 4_000\nn_samples = n_train + n_test\ntarget_column = \"y\"\n\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=(n_train/4, n_train/2),\n   seed=123\n)\n\ntrain = convert_to_df(dataset, n_total=n_train)\ntrain.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]\n\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=(n_test/4, n_test/2),\n   seed=123\n)\ntest = convert_to_df(dataset, n_total=n_test)\ntest.columns = [f\"x{i}\" for i in range(1, 11)] + [target_column]",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#sec-setup-51",
+    "href": "025_spot_hpt_river_friedman_amfr.html#sec-setup-51",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "",
+    "text": "MAX_TIME: The maximum run time in seconds for the hyperparameter tuning process.\nINIT_SIZE: The initial design size for the hyperparameter tuning process.\nPREFIX: The prefix for the experiment name.\nK: The factor that determines the number of samples in the data set.\n\n\n\n\n\n\n\nCaution: Run time and initial design size should be increased for real experiments\n\n\n\n\nMAX_TIME is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\nINIT_SIZE is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\nK is the multiplier for the number of samples. If it is set to 1, then 100_000samples are taken. It is set to 0.1 for demonstration purposes. For real experiments, this should be increased to at least 1.\n\n\n\n\n\nThis notebook exemplifies hyperparameter tuning with SPOT (spotPython and spotRiver).\nThe hyperparameter software SPOT is available in Python. It was developed in R (statistical programming language), see Open Access book “Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide”, available here: https://link.springer.com/book/10.1007/978-981-19-5170-1.\nThis notebook demonstrates hyperparameter tuning for river. It is based on the notebook “Incremental decision trees in river: the Hoeffding Tree case”, see: https://riverml.xyz/0.15.0/recipes/on-hoeffding-trees/#42-regression-tree-splitters.\nHere we will use the river AMFRegressor functions, see: https://riverml.xyz/0.19.0/api/forest/AMFRegressor/.",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#initialization-of-the-fun_control-dictionary",
+    "href": "025_spot_hpt_river_friedman_amfr.html#initialization-of-the-fun_control-dictionary",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.2 Initialization of the fun_control Dictionary",
+    "text": "23.2 Initialization of the fun_control Dictionary\nspotPython supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with spotPython.\nFirst, we define an “experiment name” to identify the hyperparameter tuning process. The experiment name is also used to create a directory for the TensorBoard files.\n\nfrom spotPython.utils.init import fun_control_init\nfun_control = fun_control_init(\n    PREFIX=PREFIX,\n    TENSORBOARD_CLEAN=True,\n    max_time=MAX_TIME,\n    fun_evals=inf,\n    tolerance_x=np.sqrt(np.spacing(1)))\n\nMoving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_06_26_21_14_40\nCreated spot_tensorboard_path: runs/spot_logs/025RIVER_bartz10_2024-06-26_21-14-40 for SummaryWriter()\n\n\n\n\n\n\n\n\nTip: TensorBoard\n\n\n\n\nSince the spot_tensorboard_path argument is not None, which is the default, spotPython will log the optimization process in the TensorBoard folder.\n?sec-tensorboard-10 describes how to start TensorBoard and access the TensorBoard dashboard.\nThe TENSORBOARD_CLEAN argument is set to True to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch. If you want to continue a hyperparameter tuning process, set TENSORBOARD_CLEAN to False. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#load-data-the-friedman-drift-data",
+    "href": "025_spot_hpt_river_friedman_amfr.html#load-data-the-friedman-drift-data",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.3 Load Data: The Friedman Drift Data",
+    "text": "23.3 Load Data: The Friedman Drift Data\nWe will use the Friedman synthetic dataset with concept drifts [SOURCE]. Each observation is composed of ten features. Each feature value is sampled uniformly in [0, 1]. Only the first five features are relevant. The target is defined by different functions depending on the type of the drift. Global Recurring Abrupt drift will be used, i.e., the concept drift appears over the whole instance space. There are two points of concept drift. At the second point of drift the old concept reoccurs.\nThe following parameters are used to generate and handle the data set:\n\nhorizon: The prediction horizon in hours.\nn_samples: The number of samples in the data set.\np_1: The position of the first concept drift.\np_2: The position of the second concept drift.\nposition: The position of the concept drifts.\nn_train: The number of samples used for training.\n\n\nhorizon = 7*24\nn_samples = int(K*100_000)\np_1 = int(K*25_000)\np_2 = int(K*50_000)\nposition=(p_1, p_2)\nn_train = 1_000\n\n\nfrom river.datasets import synth\nimport pandas as pd\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=position,\n   seed=123\n)\n\n\nWe will use spotRiver’s convert_to_df function [SOURCE] to convert the river data set to a pandas data frame.\n\n\nfrom spotRiver.utils.data_conversion import convert_to_df\ntarget_column = \"y\"\ndf = convert_to_df(dataset, target_column=target_column, n_total=n_samples)\n\n\nAdd column names x1 until x10 to the first 10 columns of the dataframe and the column name y to the last column of the dataframe.\nThen split the data frame into a training and test data set. The train and test data sets are stored in the fun_control dictionary.\n\n\nfrom spotPython.hyperparameters.values import set_control_key_value\ndf.columns = [f\"x{i}\" for i in range(1, 11)] + [\"y\"]\nset_control_key_value(control_dict=fun_control,\n                        key=\"train\",\n                        value=df[:n_train],\n                        replace=True)\nset_control_key_value(fun_control, \"test\", df[n_train:], True)\nset_control_key_value(fun_control, \"n_samples\", n_samples, replace=True)\nset_control_key_value(fun_control, \"target_column\", target_column, replace=True)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#specification-of-the-preprocessing-model",
+    "href": "025_spot_hpt_river_friedman_amfr.html#specification-of-the-preprocessing-model",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.4 Specification of the Preprocessing Model",
+    "text": "23.4 Specification of the Preprocessing Model\n\nWe use the StandardScaler [SOURCE] from river as the preprocessing model. The StandardScaler is used to standardize the data set, i.e., it has zero mean and unit variance.\n\n\nfrom river import preprocessing\nprep_model = preprocessing.StandardScaler()\nset_control_key_value(fun_control, \"prep_model\", prep_model, replace=True)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#selectselect-model-algorithm-and-core_model_hyper_dict",
+    "href": "025_spot_hpt_river_friedman_amfr.html#selectselect-model-algorithm-and-core_model_hyper_dict",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.5 SelectSelect Model (algorithm) and core_model_hyper_dict",
+    "text": "23.5 SelectSelect Model (algorithm) and core_model_hyper_dict\nspotPython hyperparameter tuning approach uses two components:\n\na model (class) and\nan associated hyperparameter dictionary.\n\nThe corresponding hyperparameters are loaded from the associated dictionary, which is stored as a JSON file [SOURCE]. The JSON file contains hyperparameter type information, names, and bounds.\nThe method add_core_model_to_fun_control adds the model and the hyperparameter dictionary to the fun_control dictionary.\nAlternatively, you can load a local hyper_dict. Simply set river_hyper_dict.json as the filename. If filenameis set to None, which is the default, the hyper_dict [SOURCE] is loaded from the spotRiver package.\n\nfrom river.forest import AMFRegressor\nfrom spotRiver.hyperdict.river_hyper_dict import RiverHyperDict\nfrom spotPython.hyperparameters.values import add_core_model_to_fun_control\nadd_core_model_to_fun_control(core_model=AMFRegressor,\n                              fun_control=fun_control,\n                              hyper_dict=RiverHyperDict,\n                              filename=None)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#modify-hyper_dict-hyperparameters-for-the-selected-algorithm-aka-core_model",
+    "href": "025_spot_hpt_river_friedman_amfr.html#modify-hyper_dict-hyperparameters-for-the-selected-algorithm-aka-core_model",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.3 Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model",
+    "text": "23.3 Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model\nAfter the core_model and the core_model_hyper_dict are added to the fun_control dictionary, the hyperparameter tuning can be started. However, in some settings, the user wants to modify the hyperparameters of the core_model_hyper_dict. This can be done with the modify_hyper_parameter_bounds and modify_hyper_parameter_levels functions [SOURCE].\nThe following code shows how hyperparameter of type numeric and integer (boolean) can be modified. The modify_hyper_parameter_bounds function is used to modify the bounds of the hyperparameter delta and merit_preprune. Similar option exists for the modify_hyper_parameter_levels function to modify the levels of categorical hyperparameters.\n\nfrom spotPython.utils.eda import gen_design_table\nprint(gen_design_table(fun_control))\n\n| name            | type   |   default |   lower |   upper | transform             |\n|-----------------|--------|-----------|---------|---------|-----------------------|\n| n_estimators    | int    |         3 |     2   |      10 | transform_power_2_int |\n| step            | float  |         1 |     0.1 |      10 | None                  |\n| use_aggregation | factor |         1 |     0   |       1 | None                  |\n\n\n\nfrom spotPython.hyperparameters.values import set_control_hyperparameter_value\nset_control_hyperparameter_value(fun_control, \"n_estimators\", [2, 5])\nprint(gen_design_table(fun_control))\n\nSetting hyperparameter n_estimators to value [2, 5].\nVariable type is int.\nCore type is None.\nCalling modify_hyper_parameter_bounds().\n| name            | type   |   default |   lower |   upper | transform             |\n|-----------------|--------|-----------|---------|---------|-----------------------|\n| n_estimators    | int    |         3 |     2   |       5 | transform_power_2_int |\n| step            | float  |         1 |     0.1 |      10 | None                  |\n| use_aggregation | factor |         1 |     0   |       1 | None                  |\n\n\n\n\n\n\n\n\nNote: Active and Inactive Hyperparameters\n\n\n\nHyperparameters can be excluded from the tuning procedure by selecting identical values for the lower and upper bounds.\n\n\n\n23.3.1 Run the Spot Optimizer\n\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(\n    fun=fun,\n    fun_control=fun_control,\n    design_control=design_control,\n    surrogate_control=surrogate_control,\n    optimizer_control=optimizer_control,\n)\nres = spot_tuner.run()\n\nspotPython tuning: 2.814968950898956 [#####-----] 47.02% \nspotPython tuning: 2.814968950898956 [#########-] 94.45% \nspotPython tuning: 2.814968950898956 [##########] 100.00% Done...\n\n\n\nWe can start TensorBoard in the background with the following command, where ./runs is the default directory for the TensorBoard log files:\ntensorboard --logdir=\"./runs\"We can access the TensorBoard web server with the following URL:\nhttp://localhost:6006/",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#selection-of-the-objective-loss-function",
+    "href": "025_spot_hpt_river_friedman_amfr.html#selection-of-the-objective-loss-function",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.7 Selection of the Objective (Loss) Function",
+    "text": "23.7 Selection of the Objective (Loss) Function\nThe metric_sklearn is used for the sklearn based evaluation via eval_oml_horizon [SOURCE]. Here we use the mean_absolute_error [SOURCE] as the objective function.\n\n\n\n\n\n\nNote: Additional metrics\n\n\n\nspotRiver also supports additional metrics. For example, the metric_river is used for the river based evaluation via eval_oml_iter_progressive [SOURCE]. The metric_river is implemented to simulate the behaviour of the “original” river metrics.\n\n\nspotRiver provides information about the model’ s score (metric), memory, and time. The hyperparamter tuner requires a single objective. Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the weights array.\n\n\n\n\n\n\nNote: Weights\n\n\n\nThe weights provide a flexible way to define specific requirements, e.g., if the memory is more important than the time, the weight for the memory can be increased.\n\n\nThe oml_grace_period defines the number of observations that are used for the initial training of the model. The step defines the iteration number at which to yield results. This only takes into account the predictions, and not the training steps. The weight_coeff defines a multiplier for the results: results are multiplied by (step/n_steps)**weight_coeff, where n_steps is the total number of iterations. Results from the beginning have a lower weight than results from the end if weight_coeff &gt; 1. If weight_coeff == 0, all results have equal weight. Note, that the weight_coeff is only used internally for the tuner and does not affect the results that are used for the evaluation or comparisons.\n\nimport numpy as np\nfrom sklearn.metrics import mean_absolute_error\n\nweights = np.array([1, 1/1000, 1/1000])*10_000.0\noml_grace_period = 2\nstep = 100\nweight_coeff = 1.0\n\n# fun_control.update({\n#                \"horizon\": horizon,\n#                \"oml_grace_period\": oml_grace_period,\n#                \"weights\": weights,\n#                \"step\": step,\n#                \"weight_coeff\": weight_coeff,\n#                \"metric_sklearn\": mean_absolute_error\n#                })\nset_control_key_value(control_dict=fun_control,\n                        key=\"horizon\",\n                        value=horizon,\n                        replace=True)\nset_control_key_value(fun_control, \"oml_grace_period\", oml_grace_period, True)\nset_control_key_value(fun_control, \"weights\", weights, True)\nset_control_key_value(fun_control, \"step\", step, True)\nset_control_key_value(fun_control, \"weight_coeff\", weight_coeff, True)\nset_control_key_value(fun_control, \"metric_sklearn\", mean_absolute_error, True)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#calling-the-spot-function",
+    "href": "025_spot_hpt_river_friedman_amfr.html#calling-the-spot-function",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.8 Calling the SPOT Function",
+    "text": "23.8 Calling the SPOT Function\n\n23.8.1 The Objective Function\nThe objective function fun_oml_horizon [SOURCE] is selected next.\n\nfrom spotRiver.fun.hyperriver import HyperRiver\nfun = HyperRiver().fun_oml_horizon\n\nThe following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the Spot function.\n\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\n\n\n\n23.8.2 Run the Spot Optimizer\nThe class Spot [SOURCE] is the hyperparameter tuning workhorse. It is initialized with the following parameters:\n\nfun: the objective function\nfun_control: the dictionary with the control parameters for the objective function\ndesign: the experimental design\ndesign_control: the dictionary with the control parameters for the experimental design\nsurrogate: the surrogate model\nsurrogate_control: the dictionary with the control parameters for the surrogate model\noptimizer: the optimizer\noptimizer_control: the dictionary with the control parameters for the optimizer\n\n\n\n\n\n\n\nNote: Total run time\n\n\n\nThe total run time may exceed the specified max_time, because the initial design (here: init_size = INIT_SIZE as specified above) is always evaluated, even if this takes longer than max_time.\n\n\n\nfrom spotPython.utils.init import design_control_init, surrogate_control_init\ndesign_control = design_control_init()\nset_control_key_value(control_dict=design_control,\n                        key=\"init_size\",\n                        value=INIT_SIZE,\n                        replace=True)\n\nsurrogate_control = surrogate_control_init(noise=True,\n                                           n_theta=2)\n\n\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(fun=fun,\n                   fun_control=fun_control,\n                   design_control=design_control,\n                   surrogate_control=surrogate_control)\nspot_tuner.run(X_start=X_start)\n\nspotPython tuning: 26538.10089541591 [##########] 100.00% Done...\n\n\n\n&lt;spotPython.spot.spot.Spot at 0x3913ec850&gt;\n\n\n\n\n23.8.3 TensorBoard\nNow we can start TensorBoard in the background with the following command, where ./runs is the default directory for the TensorBoard log files:\ntensorboard --logdir=\"./runs\"\n\n\n\n\n\n\nTip: TENSORBOARD_PATH\n\n\n\nThe TensorBoard path can be printed with the following command:\n\nfrom spotPython.utils.init import get_tensorboard_path\nget_tensorboard_path(fun_control)\n\n'runs/'\n\n\n\n\nWe can access the TensorBoard web server with the following URL:\nhttp://localhost:6006/\nThe TensorBoard plot illustrates how spotPython can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate \\(\\theta\\) of the Kriging surrogate [SOURCE] is plotted against the number of optimization steps.\n\n\n\nTensorBoard visualization of the spotPython optimization process and the surrogate model.\n\n\n\n\n23.8.4 Results\nAfter the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:\n\nfrom spotPython.utils.file import save_pickle,  load_pickle\nfrom spotPython.utils.init import get_experiment_name\nexperiment_name = get_experiment_name(PREFIX)\nSAVE_AND_LOAD = False\nif SAVE_AND_LOAD == True:\n    save_pickle(spot_tuner, experiment_name)\n    spot_tuner = load_pickle(experiment_name)\n\nAfter the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of hyperparameter configurations from the initial design, whereas the red points represents the hyperparameter configurations found by the surrogate model based optimization.\n\nspot_tuner.plot_progress(log_y=True, filename=\"./figures/\" + experiment_name+\"_progress.pdf\")\n\n\n\n\n\n\n\n\nResults can also be printed in tabular form.\n\nprint(gen_design_table(fun_control=fun_control, spot=spot_tuner))\n\n| name            | type   |   default |   lower |   upper |              tuned | transform   |   importance | stars   |\n|-----------------|--------|-----------|---------|---------|--------------------|-------------|--------------|---------|\n| n_estimators    | int    |      10.0 |     2.0 |     100 |               78.0 | None        |         0.00 |         |\n| step            | float  |       1.0 |     0.1 |      10 | 2.6812157942049635 | None        |         0.00 |         |\n| use_aggregation | factor |       1.0 |     0.0 |       1 |                0.0 | None        |       100.00 | ***     |\n\n\nA histogram can be used to visualize the most important hyperparameters.\n\nspot_tuner.plot_importance(threshold=0.0025, filename=\"./figures/\" + experiment_name+\"_importance.pdf\")",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#the-larger-data-set",
+    "href": "025_spot_hpt_river_friedman_amfr.html#the-larger-data-set",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.9 The Larger Data Set",
+    "text": "23.9 The Larger Data Set\nAfter the hyperparameter were tuned on a small data set, we can now apply the hyperparameter configuration to a larger data set. The following code snippet shows how to generate the larger data set.\n\n\n\n\n\n\nCaution: Increased Friedman-Drift Data Set\n\n\n\n\nThe Friedman-Drift Data Set is increased by a factor of two to show the transferability of the hyperparameter tuning results.\nLarger values of K lead to a longer run time.\n\n\n\n\nK = 0.2\nn_samples = int(K*100_000)\np_1 = int(K*25_000)\np_2 = int(K*50_000)\nposition=(p_1, p_2)\n\n\ndataset = synth.FriedmanDrift(\n   drift_type='gra',\n   position=position,\n   seed=123\n)\n\nThe larger data set is converted to a Pandas data frame and passed to the fun_control dictionary.\n\ndf = convert_to_df(dataset, target_column=target_column, n_total=n_samples)\ndf.columns = [f\"x{i}\" for i in range(1, 11)] + [\"y\"]\n# fun_control.update({\"train\": df[:n_train],\n#                     \"test\": df[n_train:],\n#                     \"n_samples\": n_samples,\n#                     \"target_column\": target_column})\nset_control_key_value(fun_control, \"train\", df[:n_train], True)\nset_control_key_value(fun_control, \"test\", df[n_train:], True)\nset_control_key_value(fun_control, \"n_samples\", n_samples, True)\nset_control_key_value(fun_control, \"target_column\", target_column, True)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#get-default-hyperparameters",
+    "href": "025_spot_hpt_river_friedman_amfr.html#get-default-hyperparameters",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.10 Get Default Hyperparameters",
+    "text": "23.10 Get Default Hyperparameters\nThe default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\nmodel_default = get_one_core_model_from_X(X_start, fun_control, default=True)\n\n\n\n\n\n\n\nNote: spotPython tunes numpy arrays\n\n\n\n\nspotPython tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.\n\n\n\nThe model with the default hyperparameters can be trained and evaluated with the following commands:\n\nfrom spotRiver.evaluation.eval_bml import eval_oml_horizon\n\ndf_eval_default, df_true_default = eval_oml_horizon(\n                    model=model_default,\n                    train=fun_control[\"train\"],\n                    test=fun_control[\"test\"],\n                    target_column=fun_control[\"target_column\"],\n                    horizon=fun_control[\"horizon\"],\n                    oml_grace_period=fun_control[\"oml_grace_period\"],\n                    metric=fun_control[\"metric_sklearn\"],\n                )\n\nThe three performance criteria, i.e., scaoe (metric), runtime, and memory consumption, can be visualized with the following commands:\n\nfrom spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions\ndf_labels=[\"default\"]\nplot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])\n\n\n\n\n\n\n\n\n\n23.10.1 Show Predictions\n\nSelect a subset of the data set for the visualization of the predictions:\n\nWe use the mean, \\(m\\), of the data set as the center of the visualization.\nWe use 100 data points, i.e., \\(m \\pm 50\\) as the visualization window.\n\n\n\nm = fun_control[\"test\"].shape[0]\na = int(m/2)-50\nb = int(m/2)\n\n\nplot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#get-spot-results",
+    "href": "025_spot_hpt_river_friedman_amfr.html#get-spot-results",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.6 Get SPOT Results",
+    "text": "23.6 Get SPOT Results\nIn a similar way, we can obtain the hyperparameters found by spotPython.\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nX = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\nmodel_spot = get_one_core_model_from_X(X, fun_control)\n\n\ndf_eval_spot, df_true_spot = eval_oml_horizon(\n                    model=model_spot,\n                    train=fun_control[\"train\"],\n                    test=fun_control[\"test\"],\n                    target_column=fun_control[\"target_column\"],\n                    horizon=fun_control[\"horizon\"],\n                    oml_grace_period=fun_control[\"oml_grace_period\"],\n                    metric=fun_control[\"metric_sklearn\"],\n                )\n\n\ndf_labels=[\"default\", \"spot\"]\nplot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])\n\n\n\n\n\n\n\n\n\nplot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b], df_true_spot[a:b]], target_column=target_column,  df_labels=df_labels)\n\n\n\n\n\n\n\n\n\nfrom spotPython.plot.validation import plot_actual_vs_predicted\nplot_actual_vs_predicted(y_test=df_true_default[target_column], y_pred=df_true_default[\"Prediction\"], title=\"Default\")\nplot_actual_vs_predicted(y_test=df_true_spot[target_column], y_pred=df_true_spot[\"Prediction\"], title=\"SPOT\")",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#detailed-hyperparameter-plots",
+    "href": "025_spot_hpt_river_friedman_amfr.html#detailed-hyperparameter-plots",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.7 Detailed Hyperparameter Plots",
+    "text": "23.7 Detailed Hyperparameter Plots\n\nspot_tuner.plot_important_hyperparameter_contour(max_imp=3)\n\nn_estimators:  100.0\nstep:  0.005424804035196052\nuse_aggregation:  0.005424804035196052\nimpo: [['n_estimators', 100.0], ['step', 0.005424804035196052], ['use_aggregation', 0.005424804035196052]]\nindices: [0, 1, 2]\nindices after max_imp selection: [0, 1, 2]",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#parallel-coordinates-plots",
+    "href": "025_spot_hpt_river_friedman_amfr.html#parallel-coordinates-plots",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.8 Parallel Coordinates Plots",
+    "text": "23.8 Parallel Coordinates Plots\n\nspot_tuner.parallel_plot()",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#plot-all-combinations-of-hyperparameters",
+    "href": "025_spot_hpt_river_friedman_amfr.html#plot-all-combinations-of-hyperparameters",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.14 Plot all Combinations of Hyperparameters",
+    "text": "23.14 Plot all Combinations of Hyperparameters\n\nWarning: this may take a while.\n\n\nPLOT_ALL = False\nif PLOT_ALL:\n    n = spot_tuner.k\n    for i in range(n-1):\n        for j in range(i+1, n):\n            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html",
+    "href": "036_spot_lightning_transformer_diabetes.html",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "",
+    "text": "30.1 Step 1: Setup\nfrom spotPython.utils.device import getDevice\nfrom math import inf\n\nMAX_TIME = 1\nFUN_EVALS = inf\nINIT_SIZE = 5\nWORKERS = 0\nPREFIX=\"036\"\nDEVICE = getDevice()\nDEVICES = 1\nTEST_SIZE = 0.3\nTORCH_METRIC = \"mean_squared_error\"",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-setup-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-setup-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "",
+    "text": "Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc.\nThe parameter MAX_TIME specifies the maximum run time in seconds.\nThe parameter INIT_SIZE specifies the initial design size.\nThe parameter WORKERS specifies the number of workers.\nThe prefix PREFIX is used for the experiment name and the name of the log file.\nThe parameter DEVICE specifies the device to use for training.\n\n\n\n\n\n\n\n\nCaution: Run time and initial design size should be increased for real experiments\n\n\n\n\nMAX_TIME is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\nINIT_SIZE is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\nWORKERS is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.\n\n\n\n\n\n\n\n\n\nNote: Device selection\n\n\n\n\nAlthough there are no .cuda() or .to(device) calls required, because Lightning does these for you, see LIGHTNINGMODULE, we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device.\nThe method spotPython.utils.device.getDevice() returns the device that is used by Lightning.",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#step-2-initialization-of-the-fun_control-dictionary",
+    "href": "036_spot_lightning_transformer_diabetes.html#step-2-initialization-of-the-fun_control-dictionary",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.2 Step 2: Initialization of the fun_control Dictionary",
+    "text": "30.2 Step 2: Initialization of the fun_control Dictionary\nspotPython uses a Python dictionary for storing the information required for the hyperparameter tuning process.\n\nfrom spotPython.utils.init import fun_control_init\nimport numpy as np\nfun_control = fun_control_init(\n    _L_in=10,\n    _L_out=1,\n    _torchmetric=TORCH_METRIC,\n    PREFIX=PREFIX,\n    TENSORBOARD_CLEAN=True,\n    device=DEVICE,\n    enable_progress_bar=False,\n    fun_evals=FUN_EVALS,\n    log_level=10,\n    max_time=MAX_TIME,\n    num_workers=WORKERS,\n    show_progress=True,\n    test_size=TEST_SIZE,\n    tolerance_x=np.sqrt(np.spacing(1)),\n    )",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#step-3-loading-the-diabetes-data-set",
+    "href": "036_spot_lightning_transformer_diabetes.html#step-3-loading-the-diabetes-data-set",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.3 Step 3: Loading the Diabetes Data Set",
+    "text": "30.3 Step 3: Loading the Diabetes Data Set\n\nfrom spotPython.hyperparameters.values import set_control_key_value\nfrom spotPython.data.diabetes import Diabetes\ndataset = Diabetes()\nset_control_key_value(control_dict=fun_control,\n                        key=\"data_set\",\n                        value=dataset,\n                        replace=True)\nprint(len(dataset))\n\n\n\n\n\n\n\nNote: Data Set and Data Loader\n\n\n\n\nAs shown below, a DataLoader from torch.utils.data can be used to check the data.\n\n\n# Set batch size for DataLoader\nbatch_size = 5\n# Create DataLoader\nfrom torch.utils.data import DataLoader\ndataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)\n\n# Iterate over the data in the DataLoader\nfor batch in dataloader:\n    inputs, targets = batch\n    print(f\"Batch Size: {inputs.size(0)}\")\n    print(f\"Inputs Shape: {inputs.shape}\")\n    print(f\"Targets Shape: {targets.shape}\")\n    print(\"---------------\")\n    print(f\"Inputs: {inputs}\")\n    print(f\"Targets: {targets}\")\n    break",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-preprocessing-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-preprocessing-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.4 Step 4: Preprocessing",
+    "text": "30.4 Step 4: Preprocessing\nPreprocessing is handled by Lightning and PyTorch. It is described in the LIGHTNINGDATAMODULE documentation. Here you can find information about the transforms methods.",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-selection-of-the-algorithm-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-selection-of-the-algorithm-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.5 Step 5: Select the Core Model (algorithm) and core_model_hyper_dict",
+    "text": "30.5 Step 5: Select the Core Model (algorithm) and core_model_hyper_dict\nspotPython includes the NetLightRegression class [SOURCE] for configurable neural networks. The class is imported here. It inherits from the class Lightning.LightningModule, which is the base class for all models in Lightning. Lightning.LightningModule is a subclass of torch.nn.Module and provides additional functionality for the training and testing of neural networks. The class Lightning.LightningModule is described in the Lightning documentation.\n\nHere we simply add the NN Model to the fun_control dictionary by calling the function add_core_model_to_fun_control:\n\n\nfrom spotPython.light.regression.transformerlightregression import TransformerLightRegression\nfrom spotPython.hyperdict.light_hyper_dict import LightHyperDict\nfrom spotPython.hyperparameters.values import add_core_model_to_fun_control\nadd_core_model_to_fun_control(fun_control=fun_control,\n                              core_model=TransformerLightRegression,\n                              hyper_dict=LightHyperDict)\n\nThe hyperparameters of the model are specified in the core_model_hyper_dict dictionary [SOURCE].",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-modification-of-hyperparameters-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-modification-of-hyperparameters-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.6 Step 6: Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model",
+    "text": "30.6 Step 6: Modify hyper_dict Hyperparameters for the Selected Algorithm aka core_model\nspotPython provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code.\n\n\n\n\n\n\nCaution: Small number of epochs for demonstration purposes\n\n\n\n\nepochs and patience are set to small values for demonstration purposes. These values are too small for a real application.\nMore resonable values are, e.g.:\n\nset_control_hyperparameter_value(fun_control, \"epochs\", [7, 9]) and\nset_control_hyperparameter_value(fun_control, \"patience\", [2, 7])\n\n\n\n\n\nfrom spotPython.hyperparameters.values import set_control_hyperparameter_value\n\n# set_control_hyperparameter_value(fun_control, \"l1\", [2, 3])\n# set_control_hyperparameter_value(fun_control, \"epochs\", [5, 7])\n# set_control_hyperparameter_value(fun_control, \"batch_size\", [3, 4])\n# set_control_hyperparameter_value(fun_control, \"optimizer\", [\n#                 \"Adadelta\",\n#                 \"Adagrad\",\n#                 \"Adam\",\n#                 \"Adamax\",                \n#             ])\n# set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n# set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.5, 5.0])\n# set_control_hyperparameter_value(fun_control, \"patience\", [3, 5])\n# set_control_hyperparameter_value(fun_control, \"act_fn\",[\n#                 \"ReLU\",\n#                 \"LeakyReLU\",\n#             ] )\nset_control_hyperparameter_value(fun_control, \"initialization\",[\"Default\"] )\n\nNow, the dictionary fun_control contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method gen_design_table [SOURCE] generates a design table as follows:\n\nfrom spotPython.utils.eda import gen_design_table\nprint(gen_design_table(fun_control))\n\nThis allows to check if all information is available and if the information is correct.\n\n\n\n\n\n\nNote: Hyperparameters of the Tuned Model and the fun_control Dictionary\n\n\n\nThe updated fun_control dictionary can be shown with the command fun_control[\"core_model_hyper_dict\"].",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#step-7-data-splitting-the-objective-loss-function-and-the-metric",
+    "href": "036_spot_lightning_transformer_diabetes.html#step-7-data-splitting-the-objective-loss-function-and-the-metric",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.7 Step 7: Data Splitting, the Objective (Loss) Function and the Metric",
+    "text": "30.7 Step 7: Data Splitting, the Objective (Loss) Function and the Metric\n\n30.7.1 Evaluation\nThe evaluation procedure requires the specification of two elements:\n\nthe way how the data is split into a train and a test set\nthe loss function (and a metric).\n\n\n\n\n\n\n\nCaution: Data Splitting in Lightning\n\n\n\nThe data splitting is handled by Lightning.\n\n\n\n\n30.7.2 Loss Function\nThe loss function is specified in the configurable network class [SOURCE] We will use MSE.\n\n\n30.7.3 Metric\n\nSimilar to the loss function, the metric is specified in the configurable network class [SOURCE].\n\n\n\n\n\n\n\nCaution: Loss Function and Metric in Lightning\n\n\n\n\nThe loss function and the metric are not hyperparameters that can be tuned with spotPython.\nThey are handled by Lightning.",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#step-8-calling-the-spot-function",
+    "href": "036_spot_lightning_transformer_diabetes.html#step-8-calling-the-spot-function",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.8 Step 8: Calling the SPOT Function",
+    "text": "30.8 Step 8: Calling the SPOT Function\n\n30.8.1 Preparing the SPOT Call\n\nfrom spotPython.utils.init import design_control_init, surrogate_control_init\ndesign_control = design_control_init(init_size=INIT_SIZE)\n\nsurrogate_control = surrogate_control_init(noise=True,\n                                            n_theta=2)\n\n\n\n\n\n\n\nNote: Modifying Values in the Control Dictionaries\n\n\n\n\nThe values in the control dictionaries can be modified with the function set_control_key_value [SOURCE], for example:\n\nset_control_key_value(control_dict=surrogate_control,\n                        key=\"noise\",\n                        value=True,\n                        replace=True)                       \nset_control_key_value(control_dict=surrogate_control,\n                        key=\"n_theta\",\n                        value=2,\n                        replace=True)      \n\n\n\n\n\n30.8.2 The Objective Function fun\nThe objective function fun from the class HyperLight [SOURCE] is selected next. It implements an interface from PyTorch’s training, validation, and testing methods to spotPython.\n\nfrom spotPython.fun.hyperlight import HyperLight\nfun = HyperLight(log_level=10).fun\n\n\n\n30.8.3 Showing the fun_control Dictionary\n\nimport pprint\npprint.pprint(fun_control)\n\n\n\n30.8.4 Starting the Hyperparameter Tuning\nThe spotPython hyperparameter tuning is started by calling the Spot function [SOURCE].\n\nfrom spotPython.spot import spot\nspot_tuner = spot.Spot(fun=fun,\n                       fun_control=fun_control,\n                       design_control=design_control,\n                       surrogate_control=surrogate_control)\nspot_tuner.run()",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-tensorboard-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-tensorboard-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.9 Step 9: Tensorboard",
+    "text": "30.9 Step 9: Tensorboard\nThe textual output shown in the console (or code cell) can be visualized with Tensorboard.\ntensorboard --logdir=\"runs/\"\nFurther information can be found in the PyTorch Lightning documentation for Tensorboard.",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "036_spot_lightning_transformer_diabetes.html#sec-results-36",
+    "href": "036_spot_lightning_transformer_diabetes.html#sec-results-36",
+    "title": "30  HPT PyTorch Lightning Transformer: Diabetes",
+    "section": "30.10 Step 10: Results",
+    "text": "30.10 Step 10: Results\nAfter the hyperparameter tuning run is finished, the results can be analyzed.\n\nspot_tuner.plot_progress(log_y=False,\n    filename=\"./figures/\" + PREFIX +\"_progress.png\")\n\n\nfrom spotPython.utils.eda import gen_design_table\nprint(gen_design_table(fun_control=fun_control, spot=spot_tuner))\n\n\nspot_tuner.plot_importance(threshold=50,\n    filename=\"./figures/\" + PREFIX + \"_importance.png\")\n\n\n30.10.1 Get the Tuned Architecture\n\nfrom spotPython.hyperparameters.values import get_tuned_architecture\nconfig = get_tuned_architecture(spot_tuner, fun_control)\nprint(config)\n\n\nTest on the full data set\n\n\nfrom spotPython.light.testmodel import test_model\ntest_model(config, fun_control)\n\n\nfrom spotPython.light.loadmodel import load_light_from_checkpoint\n\nmodel_loaded = load_light_from_checkpoint(config, fun_control)\n\n\n# filename = \"./figures/\" + PREFIX\nfilename = None\nspot_tuner.plot_important_hyperparameter_contour(filename=filename, threshold=50)\n\n\n\n30.10.2 Parallel Coordinates Plot\n\nspot_tuner.parallel_plot()\n\n\n\n30.10.3 Cross Validation With Lightning\n\nThe KFold class from sklearn.model_selection is used to generate the folds for cross-validation.\nThese mechanism is used to generate the folds for the final evaluation of the model.\nThe CrossValidationDataModule class [SOURCE] is used to generate the folds for the hyperparameter tuning process.\nIt is called from the cv_model function [SOURCE].\n\n\nfrom spotPython.light.cvmodel import cv_model\nset_control_key_value(control_dict=fun_control,\n                        key=\"k_folds\",\n                        value=2,\n                        replace=True)\nset_control_key_value(control_dict=fun_control,\n                        key=\"test_size\",\n                        value=0.6,\n                        replace=True)\ncv_model(config, fun_control)\n\n\n\n30.10.4 Plot all Combinations of Hyperparameters\n\nWarning: this may take a while.\n\n\nPLOT_ALL = False\nif PLOT_ALL:\n    n = spot_tuner.k\n    for i in range(n-1):\n        for j in range(i+1, n):\n            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)\n\n\n\n30.10.5 Visualizing the Activation Distribution (Under Development)\n\n\n\n\n\n\nReference:\n\n\n\n\nThe following code is based on [PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS], Author: Phillip Lippe, License: [CC BY-SA], Generated: 2023-03-15T09:52:39.179933.\n\n\n\nAfter we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:\n\nfrom spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish\nact_fn_by_name = {\"sigmoid\": Sigmoid, \"tanh\": Tanh, \"relu\": ReLU, \"leakyrelu\": LeakyReLU, \"elu\": ELU, \"swish\": Swish}\n\n\nfrom spotPython.hyperparameters.values import get_one_config_from_X\nX = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\nconfig = get_one_config_from_X(X, fun_control)\nmodel = fun_control[\"core_model\"](**config, _L_in=64, _L_out=11, _torchmetric=TORCH_METRIC)\nmodel\n\n\n# from spotPython.utils.eda import visualize_activations\n# visualize_activations(model, color=f\"C{0}\")",
+    "crumbs": [
+      "Hyperparameter Tuning with PyTorch Lightning",
+      "<span class='chapter-number'>30</span>  <span class='chapter-title'>HPT PyTorch Lightning Transformer: Diabetes</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#setup",
+    "href": "025_spot_hpt_river_friedman_amfr.html#setup",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.2 Setup",
+    "text": "23.2 Setup\nWe will use a general experiment, data, evaluation, river-specific, objective-function, and surrogate setup similar to the setup from ?sec-setup-24. Only the model setup differs from the setup in ?sec-setup-24. Here we use the Mondrian Tree Regressor from river.\n\nfrom spotRiver.hyperdict.river_hyper_dict import RiverHyperDict\ncore_model_name = \"forest.AMFRegressor\"\nhyperdict = RiverHyperDict\nhyperdict\n\nspotRiver.hyperdict.river_hyper_dict.RiverHyperDict\n\n\n\n23.2.1 Select a User Hyperdictionary\nAlternatively, you can load a local hyper_dict from the “userModel” folder. Here, we have selected a copy of the JSON MondrianHyperDict hyperdictionary from [SOURCE] and the MondrianHyperDict class from [SOURCE]. The hyperparameters of the Mondrian Tree Regressor are defined in the MondrianHyperDict class, i.e., there is an key “AMFRegressor” in the hyperdict “mondrian_hyper_dict.json” file.\n\nimport sys\nsys.path.insert(0, './userModel')\nimport mondrian_hyper_dict\nhyperdict = mondrian_hyper_dict.MondrianHyperDict\nhyperdict\n\nmondrian_hyper_dict.MondrianHyperDict\n\n\n\nfrom spotPython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init\nfrom spotRiver.fun.hyperriver import HyperRiver\n\nfun = HyperRiver().fun_oml_horizon\n\nfun_control = fun_control_init(\n    PREFIX=\"025\",\n    fun_evals=inf,\n    max_time=1,\n\n    prep_model_name=\"StandardScaler\",\n    test=test,\n    train=train,\n    target_column=target_column,\n\n    metric_sklearn_name=\"mean_absolute_error\",\n    horizon=7*24,\n    oml_grace_period=7*24,\n    weight_coeff=0.0,\n    weights=np.array([1, 0.01, 0.01]),\n\n    core_model_name=\"forest.AMFRegressor\",\n    hyperdict=hyperdict,\n   )\n\n\ndesign_control = design_control_init(\n    init_size=5,\n)\n\nsurrogate_control = surrogate_control_init(\n    noise=True,\n    n_theta=2,\n    min_Lambda=1e-3,\n    max_Lambda=10,\n)\n\noptimizer_control = optimizer_control_init()\n\nCreated spot_tensorboard_path: runs/spot_logs/025_p040025_2024-06-26_23-56-46 for SummaryWriter()",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#results",
+    "href": "025_spot_hpt_river_friedman_amfr.html#results",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.4 Results",
+    "text": "23.4 Results\nAfter the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with spotpython’s method plot_progress. The black points represent the performace values (score or metric) of hyperparameter configurations from the initial design, whereas the red points represents the hyperparameter configurations found by the surrogate model based optimization.\n\nspot_tuner.plot_progress()\n\n\n\n\n\n\n\n\nResults can be printed in tabular form.\n\nfrom spotPython.utils.eda import gen_design_table\nprint(gen_design_table(fun_control=fun_control, spot=spot_tuner))\n\n| name            | type   |   default |   lower |   upper |             tuned | transform             |   importance | stars   |\n|-----------------|--------|-----------|---------|---------|-------------------|-----------------------|--------------|---------|\n| n_estimators    | int    |       3.0 |     2.0 |       5 |               4.0 | transform_power_2_int |       100.00 | ***     |\n| step            | float  |       1.0 |     0.1 |      10 | 8.920556338388023 | None                  |         0.01 |         |\n| use_aggregation | factor |       1.0 |     0.0 |       1 |               1.0 | None                  |         0.01 |         |\n\n\nA histogram can be used to visualize the most important hyperparameters.\n\nspot_tuner.plot_importance(threshold=10.0)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  },
+  {
+    "objectID": "025_spot_hpt_river_friedman_amfr.html#performance-of-the-model-with-default-hyperparameters",
+    "href": "025_spot_hpt_river_friedman_amfr.html#performance-of-the-model-with-default-hyperparameters",
+    "title": "23  river Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data",
+    "section": "23.5 Performance of the Model with Default Hyperparameters",
+    "text": "23.5 Performance of the Model with Default Hyperparameters\n\n23.5.1 Get Default Hyperparameters and Fit the Model\nThe default hyperparameters, which will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:\n\nfrom spotPython.hyperparameters.values import get_default_hyperparameters_as_array\nX_start = get_default_hyperparameters_as_array(fun_control)\n\nspotPython tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.\n\nfrom spotPython.hyperparameters.values import get_one_core_model_from_X\nmodel_default = get_one_core_model_from_X(X_start, fun_control, default=True)\n\n\n\n23.5.2 Evaluate the Model with Default Hyperparameters\nThe model with the default hyperparameters can be trained and evaluated. The evaluation function eval_oml_horizon [SOURCE] is the same function that was used for the hyperparameter tuning. During the hyperparameter tuning, the evaluation function was called from the objective (or loss) function fun_oml_horizon [SOURCE].\n\nfrom spotRiver.evaluation.eval_bml import eval_oml_horizon\n\ndf_eval_default, df_true_default = eval_oml_horizon(\n                    model=model_default,\n                    train=fun_control[\"train\"],\n                    test=fun_control[\"test\"],\n                    target_column=fun_control[\"target_column\"],\n                    horizon=fun_control[\"horizon\"],\n                    oml_grace_period=fun_control[\"oml_grace_period\"],\n                    metric=fun_control[\"metric_sklearn\"],\n                )\n\nThe three performance criteria, i.e., score (metric), runtime, and memory consumption, can be visualized with the following commands:\n\nfrom spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics, plot_bml_oml_horizon_predictions\ndf_labels=[\"default\"]\nplot_bml_oml_horizon_metrics(df_eval = [df_eval_default], log_y=False, df_labels=df_labels, metric=fun_control[\"metric_sklearn\"])\n\n\n\n\n\n\n\n\n\n\n23.5.3 Show Predictions of the Model with Default Hyperparameters\n\nSelect a subset of the data set for the visualization of the predictions:\n\nWe use the mean, \\(m\\), of the data set as the center of the visualization.\nWe use 100 data points, i.e., \\(m \\pm 50\\) as the visualization window.\n\n\n\nm = fun_control[\"test\"].shape[0]\na = int(m/2)-50\nb = int(m/2)+50\nplot_bml_oml_horizon_predictions(df_true = [df_true_default[a:b]], target_column=target_column,  df_labels=df_labels)",
+    "crumbs": [
+      "Hyperparameter Tuning with River",
+      "<span class='chapter-number'>23</span>  <span class='chapter-title'>`river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data</span>"
+    ]
+  }
+]
