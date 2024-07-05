@@ -1,714 +1,702 @@
 {
- "cells": [
-  {
-   "cell_type": "markdown",
-   "id": "3cb97df1",
-   "metadata": {},
-   "source": [
-    "# HPT PyTorch Lightning Transformer: Diabetes\n",
-    "\n",
-    "In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning\n",
-    "training workflow for a regression task.\n",
-    "\n",
-    "This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
-    "\n",
-    "\n",
-    "## Step 1: Setup {#sec-setup-36}\n",
-    "\n",
-    "* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. \n",
-    "* The parameter `MAX_TIME` specifies the maximum run time in seconds.\n",
-    "* The parameter `INIT_SIZE` specifies the initial design size.\n",
-    "* The parameter `WORKERS` specifies the number of workers. \n",
-    "* The prefix `PREFIX` is used for the experiment name and the name of the log file.\n",
-    "* The parameter `DEVICE` specifies the device to use for training.\n"
-   ]
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# HPT PyTorch Lightning Transformer: Diabetes\n",
+        "\n",
+        "In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow for a regression task.\n",
+        "\n",
+        "This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
+        "\n",
+        "\n",
+        "## Step 1: Setup {#sec-setup-36}\n",
+        "\n",
+        "* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. \n",
+        "* The parameter `MAX_TIME` specifies the maximum run time in seconds.\n",
+        "* The parameter `INIT_SIZE` specifies the initial design size.\n",
+        "* The parameter `WORKERS` specifies the number of workers. \n",
+        "* The prefix `PREFIX` is used for the experiment name and the name of the log file.\n",
+        "* The parameter `DEVICE` specifies the device to use for training.\n"
+      ],
+      "id": "5b70c672"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.device import getDevice\n",
+        "from math import inf\n",
+        "\n",
+        "MAX_TIME = 1\n",
+        "FUN_EVALS = inf\n",
+        "INIT_SIZE = 5\n",
+        "WORKERS = 0\n",
+        "PREFIX=\"036\"\n",
+        "DEVICE = getDevice()\n",
+        "DEVICES = 1\n",
+        "TEST_SIZE = 0.3\n",
+        "TORCH_METRIC = \"mean_squared_error\""
+      ],
+      "id": "3e82ed6a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-caution}\n",
+        "### Caution: Run time and initial design size should be increased for real experiments\n",
+        "\n",
+        "* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\n",
+        "* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\n",
+        "* `WORKERS` is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: Device selection\n",
+        "\n",
+        "* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see \n",
+        "[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. \n",
+        "* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 2: Initialization of the `fun_control` Dictionary\n",
+        "\n",
+        "`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.\n"
+      ],
+      "id": "7bee93bc"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import fun_control_init\n",
+        "import numpy as np\n",
+        "fun_control = fun_control_init(\n",
+        "    _L_in=10,\n",
+        "    _L_out=1,\n",
+        "    _torchmetric=TORCH_METRIC,\n",
+        "    PREFIX=PREFIX,\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    device=DEVICE,\n",
+        "    enable_progress_bar=False,\n",
+        "    fun_evals=FUN_EVALS,\n",
+        "    log_level=10,\n",
+        "    max_time=MAX_TIME,\n",
+        "    num_workers=WORKERS,\n",
+        "    show_progress=True,\n",
+        "    test_size=TEST_SIZE,\n",
+        "    tolerance_x=np.sqrt(np.spacing(1)),\n",
+        "    )"
+      ],
+      "id": "4fb2aa46",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Step 3: Loading the Diabetes Data Set\n"
+      ],
+      "id": "f1d659f7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_key_value\n",
+        "from spotPython.data.diabetes import Diabetes\n",
+        "dataset = Diabetes()\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"data_set\",\n",
+        "                        value=dataset,\n",
+        "                        replace=True)\n",
+        "print(len(dataset))"
+      ],
+      "id": "e98a207d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Note: Data Set and Data Loader\n",
+        "\n",
+        "* As shown below, a DataLoader from `torch.utils.data` can be used to check the data.\n"
+      ],
+      "id": "b1335491"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Set batch size for DataLoader\n",
+        "batch_size = 5\n",
+        "# Create DataLoader\n",
+        "from torch.utils.data import DataLoader\n",
+        "dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)\n",
+        "\n",
+        "# Iterate over the data in the DataLoader\n",
+        "for batch in dataloader:\n",
+        "    inputs, targets = batch\n",
+        "    print(f\"Batch Size: {inputs.size(0)}\")\n",
+        "    print(f\"Inputs Shape: {inputs.shape}\")\n",
+        "    print(f\"Targets Shape: {targets.shape}\")\n",
+        "    print(\"---------------\")\n",
+        "    print(f\"Inputs: {inputs}\")\n",
+        "    print(f\"Targets: {targets}\")\n",
+        "    break"
+      ],
+      "id": "00668972",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        ":::\n",
+        "## Step 4: Preprocessing {#sec-preprocessing-36}\n",
+        "\n",
+        "Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.\n",
+        "\n",
+        "## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-36}\n",
+        "\n",
+        "`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. \n",
+        "The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).\n",
+        "\n",
+        "* Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:\n"
+      ],
+      "id": "501819d5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.regression.transformerlightregression import TransformerLightRegression\n",
+        "from spotPython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
+        "add_core_model_to_fun_control(fun_control=fun_control,\n",
+        "                              core_model=TransformerLightRegression,\n",
+        "                              hyper_dict=LightHyperDict)"
+      ],
+      "id": "0d043040",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-36}\n",
+        "\n",
+        " `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. \n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Small number of epochs for demonstration purposes\n",
+        "\n",
+        "* `epochs` and `patience` are set to small values for demonstration purposes. These values are too small for a real application.\n",
+        "* More resonable values are, e.g.:\n",
+        "  * `set_control_hyperparameter_value(fun_control, \"epochs\", [7, 9])` and\n",
+        "  * `set_control_hyperparameter_value(fun_control, \"patience\", [2, 7])`\n",
+        ":::\n"
+      ],
+      "id": "8f8003d0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
+        "\n",
+        "# set_control_hyperparameter_value(fun_control, \"l1\", [2, 3])\n",
+        "# set_control_hyperparameter_value(fun_control, \"epochs\", [5, 7])\n",
+        "# set_control_hyperparameter_value(fun_control, \"batch_size\", [3, 4])\n",
+        "# set_control_hyperparameter_value(fun_control, \"optimizer\", [\n",
+        "#                 \"Adadelta\",\n",
+        "#                 \"Adagrad\",\n",
+        "#                 \"Adam\",\n",
+        "#                 \"Adamax\",                \n",
+        "#             ])\n",
+        "# set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n",
+        "# set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.5, 5.0])\n",
+        "# set_control_hyperparameter_value(fun_control, \"patience\", [3, 5])\n",
+        "# set_control_hyperparameter_value(fun_control, \"act_fn\",[\n",
+        "#                 \"ReLU\",\n",
+        "#                 \"LeakyReLU\",\n",
+        "#             ] )\n",
+        "set_control_hyperparameter_value(fun_control, \"initialization\",[\"Default\"] )"
+      ],
+      "id": "d8895d3c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:\n"
+      ],
+      "id": "a3893ae1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "tbl-design-31"
+      },
+      "source": [
+        "#| fig-cap: Experimental design for the hyperparameter tuning.\n",
+        "from spotPython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "1520223f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "This allows to check if all information is available and if the information is correct.\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: Hyperparameters of the Tuned Model and the `fun_control` Dictionary\n",
+        "The updated `fun_control` dictionary can be shown with the command `fun_control[\"core_model_hyper_dict\"]`.\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 7: Data Splitting, the Objective (Loss) Function and the Metric\n",
+        "\n",
+        "### Evaluation  {#sec-selection-of-target-function-36}\n",
+        "\n",
+        "The evaluation procedure requires the specification of two elements:\n",
+        "\n",
+        "1. the way how the data is split into a train and a test set\n",
+        "2. the loss function (and a metric).\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Data Splitting in Lightning\n",
+        "\n",
+        "The data splitting is handled by `Lightning`.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "### Loss Function {#sec-loss-function-36}\n",
+        "\n",
+        "The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)\n",
+        "We will use MSE.\n",
+        "\n",
+        "### Metric {#sec-metric-36}\n",
+        "\n",
+        "* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).\n",
+        "\n",
+        "::: {.callout-caution}\n",
+        "### Caution: Loss Function and Metric in Lightning\n",
+        "\n",
+        "* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.\n",
+        "* They are handled by `Lightning`.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "\n",
+        "## Step 8: Calling the SPOT Function\n",
+        "\n",
+        "### Preparing the SPOT Call {#sec-prepare-spot-call-36}\n"
+      ],
+      "id": "679b5e40"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
+        "design_control = design_control_init(init_size=INIT_SIZE)\n",
+        "\n",
+        "surrogate_control = surrogate_control_init(noise=True,\n",
+        "                                            n_theta=2)"
+      ],
+      "id": "b2c376b3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### Note: Modifying Values in the Control Dictionaries \n",
+        "\n",
+        "* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "set_control_key_value(control_dict=surrogate_control,\n",
+        "                        key=\"noise\",\n",
+        "                        value=True,\n",
+        "                        replace=True)                       \n",
+        "set_control_key_value(control_dict=surrogate_control,\n",
+        "                        key=\"n_theta\",\n",
+        "                        value=2,\n",
+        "                        replace=True)      \n",
+        "\n",
+        "```\n",
+        "\n",
+        "\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "### The Objective Function `fun` {#sec-the-objective-function-36}\n",
+        "\n",
+        "The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.\n"
+      ],
+      "id": "6573b614"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.fun.hyperlight import HyperLight\n",
+        "fun = HyperLight(log_level=10).fun"
+      ],
+      "id": "a4d3b20d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Showing the fun_control Dictionary {#sec-show-fun-control-36}\n"
+      ],
+      "id": "88815043"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pprint\n",
+        "pprint.pprint(fun_control)"
+      ],
+      "id": "a584a9fb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-36}\n",
+        "\n",
+        "The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).\n"
+      ],
+      "id": "51eff348"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.spot import spot\n",
+        "spot_tuner = spot.Spot(fun=fun,\n",
+        "                       fun_control=fun_control,\n",
+        "                       design_control=design_control,\n",
+        "                       surrogate_control=surrogate_control)\n",
+        "spot_tuner.run()"
+      ],
+      "id": "3568a0f5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Step 9: Tensorboard {#sec-tensorboard-36}\n",
+        "\n",
+        "The textual output shown in the console (or code cell) can be visualized with Tensorboard.\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"runs/\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.\n",
+        "\n",
+        "\n",
+        "\n",
+        "## Step 10: Results {#sec-results-36}\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the results can be analyzed.\n"
+      ],
+      "id": "0b332c17"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-progress-31"
+      },
+      "source": [
+        "#| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.\n",
+        "spot_tuner.plot_progress(log_y=False,\n",
+        "    filename=\"./figures/\" + PREFIX +\"_progress.png\")"
+      ],
+      "id": "738c1ad8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "tbl-results-31"
+      },
+      "source": [
+        "#| fig-cap: Results of the hyperparameter tuning.\n",
+        "from spotPython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "c54f9a8f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-importance-31"
+      },
+      "source": [
+        "#| fig-cap: 'Variable importance plot, threshold 0.025.'\n",
+        "spot_tuner.plot_importance(threshold=50,\n",
+        "    filename=\"./figures/\" + PREFIX + \"_importance.png\")"
+      ],
+      "id": "d45bb7c0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Get the Tuned Architecture {#sec-get-spot-results-36}\n"
+      ],
+      "id": "bc590f36"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+        "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+        "print(config)"
+      ],
+      "id": "0c4d3a44",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "* Test on the full data set\n"
+      ],
+      "id": "ff46cca3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.testmodel import test_model\n",
+        "test_model(config, fun_control)"
+      ],
+      "id": "860df1c4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
+        "\n",
+        "model_loaded = load_light_from_checkpoint(config, fun_control)"
+      ],
+      "id": "3d4204a3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-contour-31"
+      },
+      "source": [
+        "#| fig-cap: Contour plots.\n",
+        "# filename = \"./figures/\" + PREFIX\n",
+        "filename = None\n",
+        "spot_tuner.plot_important_hyperparameter_contour(filename=filename, threshold=50)"
+      ],
+      "id": "589a447f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Parallel Coordinates Plot\n"
+      ],
+      "id": "29905eae"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "fig-label": "fig-parallel-31"
+      },
+      "source": [
+        "#| fig-cap: Parallel coordinates plots\n",
+        "spot_tuner.parallel_plot()"
+      ],
+      "id": "9b479c47",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Cross Validation With Lightning\n",
+        "\n",
+        "* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.\n",
+        "* These mechanism is used to generate the folds for the final evaluation of the model.\n",
+        "* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.\n",
+        "* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).\n"
+      ],
+      "id": "c9127e7d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.light.cvmodel import cv_model\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"k_folds\",\n",
+        "                        value=2,\n",
+        "                        replace=True)\n",
+        "set_control_key_value(control_dict=fun_control,\n",
+        "                        key=\"test_size\",\n",
+        "                        value=0.6,\n",
+        "                        replace=True)\n",
+        "cv_model(config, fun_control)"
+      ],
+      "id": "7b482190",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Plot all Combinations of Hyperparameters\n",
+        "\n",
+        "* Warning: this may take a while.\n"
+      ],
+      "id": "2c0d5b4a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "PLOT_ALL = False\n",
+        "if PLOT_ALL:\n",
+        "    n = spot_tuner.k\n",
+        "    for i in range(n-1):\n",
+        "        for j in range(i+1, n):\n",
+        "            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)"
+      ],
+      "id": "e64c3d70",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Visualizing the Activation Distribution (Under Development)\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Reference:\n",
+        "\n",
+        "* The following code is based on [[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]](https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html), Author: Phillip Lippe, License: [[CC BY-SA]](https://creativecommons.org/licenses/by-sa/3.0/), Generated: 2023-03-15T09:52:39.179933.\n",
+        "\n",
+        ":::\n",
+        "\n",
+        "After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:\n"
+      ],
+      "id": "cf424d77"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish\n",
+        "act_fn_by_name = {\"sigmoid\": Sigmoid, \"tanh\": Tanh, \"relu\": ReLU, \"leakyrelu\": LeakyReLU, \"elu\": ELU, \"swish\": Swish}"
+      ],
+      "id": "169d5c88",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotPython.hyperparameters.values import get_one_config_from_X\n",
+        "X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\n",
+        "config = get_one_config_from_X(X, fun_control)\n",
+        "model = fun_control[\"core_model\"](**config, _L_in=64, _L_out=11, _torchmetric=TORCH_METRIC)\n",
+        "model"
+      ],
+      "id": "de200ca4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# from spotPython.utils.eda import visualize_activations\n",
+        "# visualize_activations(model, color=f\"C{0}\")"
+      ],
+      "id": "47566dea",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/bartz/miniforge3/envs/spotCondaEnv/share/jupyter/kernels/python3"
+    }
   },
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "35d7db7a",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.utils.device import getDevice\n",
-    "from math import inf\n",
-    "\n",
-    "MAX_TIME = 1\n",
-    "FUN_EVALS = inf\n",
-    "INIT_SIZE = 5\n",
-    "WORKERS = 0\n",
-    "PREFIX=\"036\"\n",
-    "DEVICE = getDevice()\n",
-    "DEVICES = 1\n",
-    "TEST_SIZE = 0.3\n",
-    "TORCH_METRIC = \"mean_squared_error\""
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "dc14e75e",
-   "metadata": {},
-   "source": [
-    "::: {.callout-caution}\n",
-    "### Caution: Run time and initial design size should be increased for real experiments\n",
-    "\n",
-    "* `MAX_TIME` is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.\n",
-    "* `INIT_SIZE` is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.\n",
-    "* `WORKERS` is set to 0 for demonstration purposes. For real experiments, this should be increased. See the warnings that are printed when the number of workers is set to 0.\n",
-    "\n",
-    ":::\n",
-    "\n",
-    "::: {.callout-note}\n",
-    "### Note: Device selection\n",
-    "\n",
-    "* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see \n",
-    "[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. \n",
-    "* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.\n",
-    ":::\n",
-    "\n",
-    "\n",
-    "## Step 2: Initialization of the `fun_control` Dictionary\n",
-    "\n",
-    "`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "id": "181921b1",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.utils.init import fun_control_init\n",
-    "import numpy as np\n",
-    "fun_control = fun_control_init(\n",
-    "    _L_in=10,\n",
-    "    _L_out=1,\n",
-    "    _torchmetric=TORCH_METRIC,\n",
-    "    PREFIX=PREFIX,\n",
-    "    TENSORBOARD_CLEAN=True,\n",
-    "    device=DEVICE,\n",
-    "    enable_progress_bar=False,\n",
-    "    fun_evals=FUN_EVALS,\n",
-    "    log_level=10,\n",
-    "    max_time=MAX_TIME,\n",
-    "    num_workers=WORKERS,\n",
-    "    show_progress=True,\n",
-    "    test_size=TEST_SIZE,\n",
-    "    tolerance_x=np.sqrt(np.spacing(1)),\n",
-    "    )"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "ba226e4a",
-   "metadata": {},
-   "source": [
-    "## Step 3: Loading the Diabetes Data Set\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "05a51fed",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.hyperparameters.values import set_control_key_value\n",
-    "from spotPython.data.diabetes import Diabetes\n",
-    "dataset = Diabetes()\n",
-    "set_control_key_value(control_dict=fun_control,\n",
-    "                        key=\"data_set\",\n",
-    "                        value=dataset,\n",
-    "                        replace=True)\n",
-    "print(len(dataset))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "ac1adb78",
-   "metadata": {},
-   "source": [
-    "::: {.callout-note}\n",
-    "### Note: Data Set and Data Loader\n",
-    "\n",
-    "* As shown below, a DataLoader from `torch.utils.data` can be used to check the data.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "7f0c2f49",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# Set batch size for DataLoader\n",
-    "batch_size = 5\n",
-    "# Create DataLoader\n",
-    "from torch.utils.data import DataLoader\n",
-    "dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)\n",
-    "\n",
-    "# Iterate over the data in the DataLoader\n",
-    "for batch in dataloader:\n",
-    "    inputs, targets = batch\n",
-    "    print(f\"Batch Size: {inputs.size(0)}\")\n",
-    "    print(f\"Inputs Shape: {inputs.shape}\")\n",
-    "    print(f\"Targets Shape: {targets.shape}\")\n",
-    "    print(\"---------------\")\n",
-    "    print(f\"Inputs: {inputs}\")\n",
-    "    print(f\"Targets: {targets}\")\n",
-    "    break"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "8cb87877",
-   "metadata": {},
-   "source": [
-    ":::\n",
-    "## Step 4: Preprocessing {#sec-preprocessing-36}\n",
-    "\n",
-    "Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.\n",
-    "\n",
-    "## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-36}\n",
-    "\n",
-    "`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. \n",
-    "The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).\n",
-    "\n",
-    "* Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "075d9bd0",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.light.regression.transformerlightregression import TransformerLightRegression\n",
-    "from spotPython.hyperdict.light_hyper_dict import LightHyperDict\n",
-    "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
-    "add_core_model_to_fun_control(fun_control=fun_control,\n",
-    "                              core_model=TransformerLightRegression,\n",
-    "                              hyper_dict=LightHyperDict)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "85269816",
-   "metadata": {},
-   "source": [
-    "The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).\n",
-    "\n",
-    "\n",
-    "\n",
-    "## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-36}\n",
-    "\n",
-    " `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. \n",
-    "\n",
-    "::: {.callout-caution}\n",
-    "### Caution: Small number of epochs for demonstration purposes\n",
-    "\n",
-    "* `epochs` and `patience` are set to small values for demonstration purposes. These values are too small for a real application.\n",
-    "* More resonable values are, e.g.:\n",
-    "  * `set_control_hyperparameter_value(fun_control, \"epochs\", [7, 9])` and\n",
-    "  * `set_control_hyperparameter_value(fun_control, \"patience\", [2, 7])`\n",
-    ":::\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "e1108aec",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
-    "\n",
-    "# set_control_hyperparameter_value(fun_control, \"l1\", [2, 3])\n",
-    "# set_control_hyperparameter_value(fun_control, \"epochs\", [5, 7])\n",
-    "# set_control_hyperparameter_value(fun_control, \"batch_size\", [3, 4])\n",
-    "# set_control_hyperparameter_value(fun_control, \"optimizer\", [\n",
-    "#                 \"Adadelta\",\n",
-    "#                 \"Adagrad\",\n",
-    "#                 \"Adam\",\n",
-    "#                 \"Adamax\",                \n",
-    "#             ])\n",
-    "# set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n",
-    "# set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.5, 5.0])\n",
-    "# set_control_hyperparameter_value(fun_control, \"patience\", [3, 5])\n",
-    "# set_control_hyperparameter_value(fun_control, \"act_fn\",[\n",
-    "#                 \"ReLU\",\n",
-    "#                 \"LeakyReLU\",\n",
-    "#             ] )\n",
-    "set_control_hyperparameter_value(fun_control, \"initialization\",[\"Default\"] )"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "e483c8f4",
-   "metadata": {},
-   "source": [
-    "Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "555b2abf",
-   "metadata": {
-    "fig-label": "tbl-design-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: Experimental design for the hyperparameter tuning.\n",
-    "from spotPython.utils.eda import gen_design_table\n",
-    "print(gen_design_table(fun_control))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "c7b32600",
-   "metadata": {},
-   "source": [
-    "This allows to check if all information is available and if the information is correct.\n",
-    "\n",
-    "::: {.callout-note}\n",
-    "### Note: Hyperparameters of the Tuned Model and the `fun_control` Dictionary\n",
-    "The updated `fun_control` dictionary can be shown with the command `fun_control[\"core_model_hyper_dict\"]`.\n",
-    ":::\n",
-    "\n",
-    "\n",
-    "## Step 7: Data Splitting, the Objective (Loss) Function and the Metric\n",
-    "\n",
-    "### Evaluation  {#sec-selection-of-target-function-36}\n",
-    "\n",
-    "The evaluation procedure requires the specification of two elements:\n",
-    "\n",
-    "1. the way how the data is split into a train and a test set\n",
-    "2. the loss function (and a metric).\n",
-    "\n",
-    "::: {.callout-caution}\n",
-    "### Caution: Data Splitting in Lightning\n",
-    "\n",
-    "The data splitting is handled by `Lightning`.\n",
-    "\n",
-    ":::\n",
-    "\n",
-    "### Loss Function {#sec-loss-function-36}\n",
-    "\n",
-    "The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)\n",
-    "We will use MSE.\n",
-    "\n",
-    "### Metric {#sec-metric-36}\n",
-    "\n",
-    "* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).\n",
-    "\n",
-    "::: {.callout-caution}\n",
-    "### Caution: Loss Function and Metric in Lightning\n",
-    "\n",
-    "* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.\n",
-    "* They are handled by `Lightning`.\n",
-    "\n",
-    ":::\n",
-    "\n",
-    "\n",
-    "## Step 8: Calling the SPOT Function\n",
-    "\n",
-    "### Preparing the SPOT Call {#sec-prepare-spot-call-36}\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 8,
-   "id": "d16f4b6a",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
-    "design_control = design_control_init(init_size=INIT_SIZE)\n",
-    "\n",
-    "surrogate_control = surrogate_control_init(noise=True,\n",
-    "                                            n_theta=2)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "13641364",
-   "metadata": {},
-   "source": [
-    "::: {.callout-note}\n",
-    "### Note: Modifying Values in the Control Dictionaries \n",
-    "\n",
-    "* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:\n",
-    "\n",
-    "\n",
-    "\n",
-    "\n",
-    "```{raw}\n",
-    "set_control_key_value(control_dict=surrogate_control,\n",
-    "                        key=\"noise\",\n",
-    "                        value=True,\n",
-    "                        replace=True)                       \n",
-    "set_control_key_value(control_dict=surrogate_control,\n",
-    "                        key=\"n_theta\",\n",
-    "                        value=2,\n",
-    "                        replace=True)      \n",
-    "\n",
-    "```\n",
-    "\n",
-    "\n",
-    "\n",
-    ":::\n",
-    "\n",
-    "### The Objective Function `fun` {#sec-the-objective-function-36}\n",
-    "\n",
-    "The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 9,
-   "id": "e1c2f4c3",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.fun.hyperlight import HyperLight\n",
-    "fun = HyperLight(log_level=10).fun"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "3377f575",
-   "metadata": {},
-   "source": [
-    "### Showing the fun_control Dictionary {#sec-show-fun-control-36}\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 10,
-   "id": "638b4338",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import pprint\n",
-    "pprint.pprint(fun_control)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "325ff6a1",
-   "metadata": {},
-   "source": [
-    "### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-36}\n",
-    "\n",
-    "The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 11,
-   "id": "6b245ae0",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.spot import spot\n",
-    "spot_tuner = spot.Spot(fun=fun,\n",
-    "                       fun_control=fun_control,\n",
-    "                       design_control=design_control,\n",
-    "                       surrogate_control=surrogate_control)\n",
-    "spot_tuner.run()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "1f736e49",
-   "metadata": {},
-   "source": [
-    "## Step 9: Tensorboard {#sec-tensorboard-36}\n",
-    "\n",
-    "The textual output shown in the console (or code cell) can be visualized with Tensorboard.\n",
-    "\n",
-    "\n",
-    "\n",
-    "\n",
-    "```{raw}\n",
-    "tensorboard --logdir=\"runs/\"\n",
-    "```\n",
-    "\n",
-    "\n",
-    "\n",
-    "\n",
-    "Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.\n",
-    "\n",
-    "\n",
-    "\n",
-    "## Step 10: Results {#sec-results-36}\n",
-    "\n",
-    "After the hyperparameter tuning run is finished, the results can be analyzed.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 12,
-   "id": "7ae93fc5",
-   "metadata": {
-    "fig-label": "fig-progress-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization.\n",
-    "spot_tuner.plot_progress(log_y=False,\n",
-    "    filename=\"./figures/\" + PREFIX +\"_progress.png\")"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 13,
-   "id": "e81cafba",
-   "metadata": {
-    "fig-label": "tbl-results-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: Results of the hyperparameter tuning.\n",
-    "from spotPython.utils.eda import gen_design_table\n",
-    "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 14,
-   "id": "892c7080",
-   "metadata": {
-    "fig-label": "fig-importance-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: 'Variable importance plot, threshold 0.025.'\n",
-    "spot_tuner.plot_importance(threshold=50,\n",
-    "    filename=\"./figures/\" + PREFIX + \"_importance.png\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "42463824",
-   "metadata": {},
-   "source": [
-    "### Get the Tuned Architecture {#sec-get-spot-results-36}\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 15,
-   "id": "b2bd320e",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.hyperparameters.values import get_tuned_architecture\n",
-    "config = get_tuned_architecture(spot_tuner, fun_control)\n",
-    "print(config)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "b0fb2d48",
-   "metadata": {},
-   "source": [
-    "* Test on the full data set\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 16,
-   "id": "3f17baed",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.light.testmodel import test_model\n",
-    "test_model(config, fun_control)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 17,
-   "id": "53207ffb",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
-    "\n",
-    "model_loaded = load_light_from_checkpoint(config, fun_control)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 18,
-   "id": "22b18a08",
-   "metadata": {
-    "fig-label": "fig-contour-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: Contour plots.\n",
-    "# filename = \"./figures/\" + PREFIX\n",
-    "filename = None\n",
-    "spot_tuner.plot_important_hyperparameter_contour(filename=filename, threshold=50)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "a56faa82",
-   "metadata": {},
-   "source": [
-    "### Parallel Coordinates Plot\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 19,
-   "id": "80d103b7",
-   "metadata": {
-    "fig-label": "fig-parallel-31"
-   },
-   "outputs": [],
-   "source": [
-    "#| fig-cap: Parallel coordinates plots\n",
-    "spot_tuner.parallel_plot()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "042ea8a8",
-   "metadata": {},
-   "source": [
-    "### Cross Validation With Lightning\n",
-    "\n",
-    "* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.\n",
-    "* These mechanism is used to generate the folds for the final evaluation of the model.\n",
-    "* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.\n",
-    "* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 20,
-   "id": "85f229d0",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.light.cvmodel import cv_model\n",
-    "set_control_key_value(control_dict=fun_control,\n",
-    "                        key=\"k_folds\",\n",
-    "                        value=2,\n",
-    "                        replace=True)\n",
-    "set_control_key_value(control_dict=fun_control,\n",
-    "                        key=\"test_size\",\n",
-    "                        value=0.6,\n",
-    "                        replace=True)\n",
-    "cv_model(config, fun_control)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "47ea1c8d",
-   "metadata": {},
-   "source": [
-    "### Plot all Combinations of Hyperparameters\n",
-    "\n",
-    "* Warning: this may take a while.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 21,
-   "id": "5f4cd81c",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "PLOT_ALL = False\n",
-    "if PLOT_ALL:\n",
-    "    n = spot_tuner.k\n",
-    "    for i in range(n-1):\n",
-    "        for j in range(i+1, n):\n",
-    "            spot_tuner.plot_contour(i=i, j=j, min_z=min_z, max_z = max_z)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "34a9276e",
-   "metadata": {},
-   "source": [
-    "### Visualizing the Activation Distribution (Under Development)\n",
-    "\n",
-    "::: {.callout-note}\n",
-    "### Reference:\n",
-    "\n",
-    "* The following code is based on [[PyTorch Lightning TUTORIAL 2: ACTIVATION FUNCTIONS]](https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/02-activation-functions.html), Author: Phillip Lippe, License: [[CC BY-SA]](https://creativecommons.org/licenses/by-sa/3.0/), Generated: 2023-03-15T09:52:39.179933.\n",
-    "\n",
-    ":::\n",
-    "\n",
-    "After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 22,
-   "id": "fd3b4fa3",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish\n",
-    "act_fn_by_name = {\"sigmoid\": Sigmoid, \"tanh\": Tanh, \"relu\": ReLU, \"leakyrelu\": LeakyReLU, \"elu\": ELU, \"swish\": Swish}"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 23,
-   "id": "cfaadfb9",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from spotPython.hyperparameters.values import get_one_config_from_X\n",
-    "X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))\n",
-    "config = get_one_config_from_X(X, fun_control)\n",
-    "model = fun_control[\"core_model\"](**config, _L_in=64, _L_out=11, _torchmetric=TORCH_METRIC)\n",
-    "model"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 24,
-   "id": "bc1cf059",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# from spotPython.utils.eda import visualize_activations\n",
-    "# visualize_activations(model, color=f\"C{0}\")"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3",
-   "path": "/Users/bartz/miniforge3/envs/spotCondaEnv/share/jupyter/kernels/python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.7"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+  "nbformat": 4,
+  "nbformat_minor": 5
 }

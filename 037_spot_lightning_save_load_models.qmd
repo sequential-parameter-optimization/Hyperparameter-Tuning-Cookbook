@@ -7,7 +7,8 @@ execute:
 jupyter: python3
 ---
 
-# Saving and Loading
+
+# Saving and Loading {#sec-spotpython-saving-and-loading}
 
 This tutorial shows how to save and load objects in `spotPython`.
 It is split into the following parts:
@@ -24,7 +25,6 @@ Here, `spotPython` can be used as an optimizer.
 ### spotPython as an Optimizer
 
 If `spotPython` is used as an optimizer, no dictionary of hyperparameters has be specified. The `fun_control` dictionary is sufficient. 
-
 
 
 ```{python}
@@ -96,18 +96,18 @@ print(f"filename: {filename}")
 ```
 
 The progress of the original experiment is shown in @fig-plot-progress-37a and the reloaded experiment in @fig-plot-progress-37b.
+
 ```{python}
 #| label: fig-plot-progress-37a
-#| fig-cap: "Progress of the original experiment"
+#| fig-cap: Progress of the original experiment
 spot_tuner.plot_progress(log_y=True)
 ```
 
 ```{python}
 #| label: fig-plot-progress-37b
-#| fig-cap: "Progress of the reloaded experiment"
+#| fig-cap: Progress of the reloaded experiment
 spot_tuner_1.plot_progress(log_y=True)
 ```
-
 
 The results from the original experiment are shown in @tbl-results-37a and the reloaded experiment in @tbl-results-37b.
 
@@ -121,8 +121,6 @@ spot_tuner.print_results()
 spot_tuner_1.print_results()
 ```
 
-
-
 #### Getting the Tuned Hyperparameters
 
 The tuned hyperparameters can be obtained as a dictionary with the following code.
@@ -132,7 +130,6 @@ The tuned hyperparameters can be obtained as a dictionary with the following cod
 from spotPython.hyperparameters.values import get_tuned_hyperparameters
 get_tuned_hyperparameters(spot_tuner=spot_tuner)
 ```
-
 
 ::: {.callout-note}
 ### Summary: Saving and Loading Optimization Experiments
@@ -166,9 +163,6 @@ The `Diabetes` data set is described in @tbl-diabetes-31.
 | Targets | integer 25 - 346 |
 : The Diabetes data set {#tbl-diabetes-31}
 
-
-
-
 ```{python}
 #| label: code-hyperparameter-tuning-37
 from spotPython.utils.device import getDevice
@@ -178,7 +172,7 @@ import numpy as np
 from spotPython.hyperparameters.values import set_control_key_value
 from spotPython.data.diabetes import Diabetes
 
-MAX_TIME = 1
+MAX_TIME = inf
 FUN_EVALS = 8
 INIT_SIZE = 5
 WORKERS = 0
@@ -199,7 +193,7 @@ fun_control = fun_control_init(
     device=DEVICE,
     enable_progress_bar=False,
     fun_evals=FUN_EVALS,
-    log_level=50,
+    log_level=10,
     max_time=MAX_TIME,
     num_workers=WORKERS,
     show_progress=True,
@@ -207,7 +201,6 @@ fun_control = fun_control_init(
     tolerance_x=np.sqrt(np.spacing(1)),
     )
 ```
-
 
 ### Adding a `core_model` to the `fun_control` Dictionary {#sec-adding-a-core-model-37}
 
@@ -243,14 +236,21 @@ set_control_hyperparameter_value(fun_control, "act_fn",[
                 "LeakyReLU"
             ] )
 ```
-    
+
+```{python}
+import pprint as pp
+from spotPython.hyperparameters.values import set_factor_hyperparameter_values
+set_factor_hyperparameter_values(fun_control, "initialization", ["Default"])
+pp.pprint(fun_control)
+```
+
 ### `design_control`,  `surrogate_control` Dictionaries and the Objective Function {#sec-specifying-design-surrogate-control-dictionaries-37}
 
 After specifying the `design_control` and `surrogate_control` dictionaries, the objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
 
 Then, the hyperparameter tuning can be started.
 
-```{python} 
+```{python}
 #| label: code-start-hyperparameter-tuning-37
 from spotPython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init(init_size=INIT_SIZE)
@@ -258,7 +258,7 @@ design_control = design_control_init(init_size=INIT_SIZE)
 surrogate_control = surrogate_control_init(noise=True,
                                             n_theta=2)
 from spotPython.fun.hyperlight import HyperLight
-fun = HyperLight(log_level=50).fun
+fun = HyperLight(log_level=10).fun
 from spotPython.spot import spot
 spot_tuner = spot.Spot(fun=fun,
                        fun_control=fun_control,
@@ -277,11 +277,11 @@ get_tuned_hyperparameters(spot_tuner)
 
 Here , the numerical levels of the hyperparameters are used as keys in the dictionary.
 If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. 
+
 ```{python}
 #| label: code-get-tuned-hyperparameters-fun-ctrl37
 get_tuned_hyperparameters(spot_tuner, fun_control)
 ```
-
 
 ```{python}
 #| label: code-save-experiment-37
@@ -294,7 +294,6 @@ print(f"filename: {filename}")
 The results from the experiment are stored in the pickle file `{python} filename`.
 The experiment can be reloaded with the following code.
 
-
 ```{python}
 #| label: code-reload-hyper-experiment-37
 (spot_tuner_1, fun_control_1, design_control_1,
@@ -302,6 +301,7 @@ The experiment can be reloaded with the following code.
 ```
 
 Plot the progress of the original experiment are identical to the reloaded experiment.
+
 ```{python}
 spot_tuner.plot_progress(log_y=True)
 spot_tuner_1.plot_progress(log_y=True)
@@ -312,7 +312,6 @@ Finally, the tuned hyperparameters can be obtained as a dictionary from the relo
 ```{python}
 get_tuned_hyperparameters(spot_tuner_1, fun_control_1)
 ```
-
 
 ::: {.callout-note}
 ### Summary: Saving and Loading Hyperparameter-Tuning Experiments
@@ -337,7 +336,6 @@ config = get_tuned_architecture(spot_tuner, fun_control)
 pprint.pprint(config)
 ```
 
-
 After getting the tuned architecture, the model can be created and tested with the following code.
 
 ```{python}
@@ -359,7 +357,6 @@ vars(model_loaded)
 ```{python}
 import torch
 torch.save(model_loaded, "model.pt")
-
 ```
 
 ```{python}
@@ -370,7 +367,6 @@ mymodel = torch.load("model.pt")
 # show all attributes of the model
 vars(mymodel)
 ```
-
 
 ## Converting a Lightning Model to a Plain Torch Model {#sec-converting-a-lightning-model-to-a-plain-torch-model-37}
 
@@ -389,16 +385,17 @@ from spotPython.utils.classes import get_removed_attributes_and_base_net
 from spotPython.hyperparameters.optimizer import optimizer_handler
 removed_attributes, torch_net = get_removed_attributes_and_base_net(net=mymodel)
 ```
-    
+
 ```{python}
 print(removed_attributes)
 ```
 
-```{python} 
+```{python}
 print(torch_net)
 ```
 
 ###  An Example how to use the Plain Torch Net
+
 ```{python}
 import torch
 import torch.nn as nn
