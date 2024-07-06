@@ -4,14 +4,8 @@ execute:
   eval: true
   echo: true
   warning: false
+jupyter: python3
 ---
-
-
-# Documentation of the Sequential Parameter Optimization
-
-This document describes the `Spot` features. The official `spotPython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotPython/](https://sequential-parameter-optimization.github.io/spotPython/).
-
-## An Initial Example
 
 ```{python}
 import numpy as np
@@ -23,7 +17,6 @@ from scipy.optimize import direct
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 ```
-
 
 The `spotPython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
 $$
@@ -93,7 +86,6 @@ from spotPython.build.kriging import Kriging
 surrogate = Kriging()
 ```
 
-
 For each of these steps, the user can specify a dictionary of control parameters.
 
 1. `fun_control`
@@ -109,7 +101,6 @@ Each of these dictionaries has an initialzaion method, e.g., `fun_control_init()
 * The specification of an lower bound in `fun_control` is mandatory.
 
 ::: 
-
 
 ```{python}
 from spotPython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init
@@ -135,13 +126,11 @@ spot_tuner = spot.Spot(fun=fun,
                        surrogate_control=surrogate_control)
 ```
 
-
 ## Run
 
 ```{python}
 spot_tuner.run()
 ```
-
 
 ## Print the Results
 
@@ -163,7 +152,6 @@ spot_tuner.plot_progress()
 ```{python}
 spot_tuner.surrogate.plot()
 ```
-
 
 ## Run With a Specific Start Design
 
@@ -198,21 +186,20 @@ spot_x0.run(X_start=np.array([0.5, -0.5]))
 spot_x0.plot_progress()
 ```
 
-
-
 ## Init: Build Initial Design
 
 ```{python}
 from spotPython.design.spacefilling import spacefilling
 from spotPython.build.kriging import Kriging
 from spotPython.fun.objectivefunctions import analytical
+from spotPython.utils.init import fun_control_init
 gen = spacefilling(2)
 rng = np.random.RandomState(1)
 lower = np.array([-5,-0])
 upper = np.array([10,15])
 fun = analytical().fun_branin
-fun_control = {"sigma": 0,
-               "seed": 123}
+
+fun_control = fun_control_init(sigma=0)
 
 X = gen.scipy_lhd(10, lower=lower, upper = upper)
 print(X)
@@ -286,6 +273,7 @@ The TensorBoard path can be printed with the following command (after a `fun_con
 from spotPython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
+
 :::
 
 
@@ -315,17 +303,18 @@ design_control=design_control_init(init_size=ni)
 spot_1 = spot.Spot(fun=fun,
                      fun_control=fun_control,
                      design_control=design_control)
-spot_1.run()
-# To check whether the run was successfully completed,
-# we compare the number of evaluated points to the specified
-# number of points.
-assert spot_1.y.shape[0] == n
-```
 
+# assert value error from the run method
+try:
+    spot_1.run()
+except ValueError as e:
+    print(e)
+```
 
 ## Handling Results: Printing, Saving, and Loading
 
 The results can be printed with the following command:
+
 ```{python}
 #| label: a_04__print_results
 #| eval: false
@@ -355,7 +344,6 @@ if SAVE_AND_LOAD == True:
     spot_tuner = load_pickle(experiment_name)
 ```
 
-
 ## `spotpython` as a Hyperparameter Tuner
 
 ### Modifying Hyperparameter Levels {#sec-modifying-hyperparameter-levels}
@@ -365,6 +353,4 @@ if SAVE_AND_LOAD == True:
 # levels = ["LinearRegression"]
 # modify_hyper_parameter_levels(fun_control, "leaf_model", levels)
 ```
-
-
 
