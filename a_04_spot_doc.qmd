@@ -7,6 +7,9 @@ execute:
 jupyter: python3
 ---
 
+# Documentation of the Sequential Parameter Optimization
+
+
 ```{python}
 import numpy as np
 from math import inf
@@ -17,6 +20,10 @@ from scipy.optimize import direct
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 ```
+
+This document describes the `Spot` features. The official `spotPython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotPython/](https://sequential-parameter-optimization.github.io/spotPython/).
+
+## An Initial Example
 
 The `spotPython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
 $$
@@ -348,9 +355,92 @@ if SAVE_AND_LOAD == True:
 
 ### Modifying Hyperparameter Levels {#sec-modifying-hyperparameter-levels}
 
+
+`spotPython` distinguishes between different types of hyperparameters. The following types are supported:
+
+* `int` (integer)
+* `float` (floating point number)
+* `boolean` (boolean)
+* `factor` (categorical)
+
+#### Integer Hyperparameters
+
+Integer hyperparameters can be modified with the `set_int_hyperparameter_values()` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/hyperparameters/values/#spotPython.hyperparameters.values.set_int_hyperparameter_values) function. The following code snippet shows how to modify the `n_estimators` hyperparameter of a random forest model:
+
 ```{python}
-# from spotPython.hyperparameters.values import modify_hyper_parameter_levels
-# levels = ["LinearRegression"]
-# modify_hyper_parameter_levels(fun_control, "leaf_model", levels)
+from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
+from spotPython.utils.init import fun_control_init
+from spotPython.hyperparameters.values import set_int_hyperparameter_values
+from spotPython.utils.eda import gen_design_table
+fun_control = fun_control_init(
+    core_model_name="forest.AMFRegressor",
+    hyperdict=RiverHyperDict,
+)
+print("Before modification:")
+print(gen_design_table(fun_control))
+set_int_hyperparameter_values(fun_control, "n_estimators", 2, 5)
+print("After modification:")
+print(gen_design_table(fun_control))
 ```
 
+#### Float Hyperparameters
+
+Float hyperparameters can be modified with the `set_float_hyperparameter_values()` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/hyperparameters/values/#spotPython.hyperparameters.values.set_float_hyperparameter_values) function. The following code snippet shows how to modify the `step` hyperparameter of a hyperparameter of a Mondrian Regression Tree model:
+
+
+```{python}
+from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
+from spotPython.utils.init import fun_control_init
+from spotPython.hyperparameters.values import set_float_hyperparameter_values
+from spotPython.utils.eda import gen_design_table
+fun_control = fun_control_init(
+    core_model_name="forest.AMFRegressor",
+    hyperdict=RiverHyperDict,
+)
+print("Before modification:")
+print(gen_design_table(fun_control))
+set_float_hyperparameter_values(fun_control, "step", 0.2, 5)
+print("After modification:")
+print(gen_design_table(fun_control))
+```
+
+
+#### Boolean Hyperparameters
+
+Boolean hyperparameters can be modified with the `set_boolean_hyperparameter_values()` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/hyperparameters/values/#spotPython.hyperparameters.values.set_boolean_hyperparameter_values) function. The following code snippet shows how to modify the `use_aggregation` hyperparameter of a Mondrian Regression Tree model:
+
+```{python}
+from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
+from spotPython.utils.init import fun_control_init
+from spotPython.hyperparameters.values import set_boolean_hyperparameter_values
+from spotPython.utils.eda import gen_design_table
+fun_control = fun_control_init(
+    core_model_name="forest.AMFRegressor",
+    hyperdict=RiverHyperDict,
+)
+print("Before modification:")
+print(gen_design_table(fun_control))
+set_boolean_hyperparameter_values(fun_control, "use_aggregation", 0, 0)
+print("After modification:")
+print(gen_design_table(fun_control))
+```
+
+#### Factor Hyperparameters
+
+Factor hyperparameters can be modified with the `set_factor_hyperparameter_values()` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotPython/hyperparameters/values/#spotPython.hyperparameters.values.set_factor_hyperparameter_values) function. The following code snippet shows how to modify the `leaf_model` hyperparameter of a Hoeffding Tree Regressor  model:
+
+```{python}
+from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
+from spotPython.utils.init import fun_control_init
+from spotPython.hyperparameters.values import set_factor_hyperparameter_values
+from spotPython.utils.eda import gen_design_table
+fun_control = fun_control_init(
+    core_model_name="tree.HoeffdingTreeRegressor",
+    hyperdict=RiverHyperDict,
+)
+print("Before modification:")
+print(gen_design_table(fun_control))
+set_factor_hyperparameter_values(fun_control, "leaf_model", ['LinearRegression',
+                                                    'Perceptron'])
+print("After modification:")
+```

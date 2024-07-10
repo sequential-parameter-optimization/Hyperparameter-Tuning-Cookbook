@@ -7,8 +7,6 @@ execute:
 jupyter: python3
 ---
 
-# `river` Hyperparameter Tuning: Mondrian Tree Regressor with Friedman Drift Data
-
 ```{python}
 #| echo: false
 import os
@@ -20,13 +18,11 @@ if not os.path.exists('./figures'):
 warnings.filterwarnings("ignore")
 ```
 
-
 This chapter demonstrates hyperparameter tuning for `river`'s `Mondrian Tree Regressor` [[SOURCE]](https://riverml.xyz/latest/api/forest/AMFRegressor/) with the Friedman drift data set [[SOURCE]](https://riverml.xyz/0.18.0/api/datasets/synth/FriedmanDrift/). The `Mondrian Tree Regressor` is a regression tree, i.e., it predicts a real value for each sample.
 
 ## The Friedman Drift Data Set {#sec-the-friedman-drift-data-set-25}
 
 The data set was introduced in @sec-the-friedman-drift-data-set-24.
-
 
 ```{python}
 #| label: 025_data_set
@@ -130,10 +126,10 @@ optimizer_control = optimizer_control_init()
 
 ## Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model`
 
-After the `core_model` and the `core_model_hyper_dict` are added to the `fun_control` dictionary, the hyperparameter tuning can be started.
-However, in some settings, the user wants to modify the hyperparameters of the `core_model_hyper_dict`. This can be done with the `modify_hyper_parameter_bounds` and `modify_hyper_parameter_levels` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py).
+After the `core_model` and the ``hyperdict`` are added to the `fun_control` dictionary, the hyperparameter tuning can be started.
+However, in some settings, the user wants to modify the hyperparameters. This can be done with the `set_int_hyperparameter_values`, `set_float_hyperparameter_values`, `set_boolean_hyperparameter_values`, and  `set_factor_hyperparameter_values`  functions, which can be imported from `from spotPython.hyperparameters.values` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py).
 
-The following code shows how hyperparameter of type numeric and integer (boolean) can be modified. The `modify_hyper_parameter_bounds` function is used to modify the bounds of the hyperparameter `delta` and `merit_preprune`. Similar option exists for the `modify_hyper_parameter_levels` function to modify the levels of categorical hyperparameters.
+The following code shows how hyperparameter of type float and integer can be modified. Additional examples can be found in @sec-modifying-hyperparameter-levels.
 
 ```{python}
 from spotPython.utils.eda import gen_design_table
@@ -141,8 +137,9 @@ print(gen_design_table(fun_control))
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import set_control_hyperparameter_value
-set_control_hyperparameter_value(fun_control, "n_estimators", [2, 5])
+from spotPython.hyperparameters.values import set_int_hyperparameter_values, set_float_hyperparameter_values, set_factor_hyperparameter_values
+set_int_hyperparameter_values(fun_control, "n_estimators", 2, 7)
+set_float_hyperparameter_values(fun_control, "step", 0.1, 15)
 print(gen_design_table(fun_control))
 ```
 
@@ -313,5 +310,4 @@ spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 #| label: 025_parallel_plot
 spot_tuner.parallel_plot()
 ```
-
 
