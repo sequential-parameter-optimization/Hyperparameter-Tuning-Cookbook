@@ -1,0 +1,2540 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "a2128ed9",
+   "metadata": {},
+   "source": [
+    "---\n",
+    "execute:\n",
+    "  cache: false\n",
+    "  eval: true\n",
+    "  echo: true\n",
+    "  warning: false\n",
+    "jupyter: python3\n",
+    "---\n",
+    "\n",
+    "\n",
+    "\n",
+    "# Saving and Loading {#sec-spotpython-saving-and-loading}\n",
+    "\n",
+    "This tutorial shows how to save and load objects in `spotPython`.\n",
+    "It is split into the following parts:\n",
+    "- @sec-spotpython-saving-and-loading shows how to save and load objects in `spotPython`, if `spotPython` is used as an optimizer.\n",
+    "- @sec-spotpython-as-a-hyperparameter-tuner-37 shows how to save and load hyperparameter tuning experiments.\n",
+    "- @sec-saving-and-loading-pytorch-lightning-models-37 shows how to save and load `PyTorch Lightning` models.\n",
+    "- @sec-converting-a-lightning-model-to-a-plain-torch-model-37 shows how to convert a `PyTorch Lightning` model to a plain `PyTorch` model.\n",
+    "\n",
+    "## spotPython: Saving and Loading Optimization Experiments {#sec-spotpython-saving-and-loading}\n",
+    "\n",
+    "In this section, we will show how results from `spotPython` can be saved and reloaded.\n",
+    "Here, `spotPython` can be used as an optimizer. \n",
+    "\n",
+    "### spotPython as an Optimizer\n",
+    "\n",
+    "If `spotPython` is used as an optimizer, no dictionary of hyperparameters has be specified. The `fun_control` dictionary is sufficient. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "code-optimization-experiment-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Seed set to 123\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Seed set to 123\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "spotPython tuning: 4.7932399644479124 [########--] 75.00% \r\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "spotPython tuning: 2.0379795645847087 [#########-] 87.50% \r\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "spotPython tuning: 1.986328241945829 [##########] 100.00% Done...\r\n",
+      "\r\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "filename: spot_branin_experiment.pickle\n"
+     ]
+    }
+   ],
+   "source": [
+    "#| label: code-optimization-experiment-37\n",
+    "import os\n",
+    "import pprint\n",
+    "from spotPython.utils.file import load_experiment\n",
+    "from spotPython.utils.file import get_experiment_filename\n",
+    "import numpy as np\n",
+    "from math import inf\n",
+    "from spotPython.spot import spot\n",
+    "from spotPython.utils.init import (\n",
+    "    fun_control_init,\n",
+    "    design_control_init,\n",
+    "    surrogate_control_init,\n",
+    "    optimizer_control_init)\n",
+    "from spotPython.fun.objectivefunctions import analytical\n",
+    "fun = analytical().fun_branin\n",
+    "fun_control = fun_control_init(\n",
+    "            PREFIX=\"branin\",\n",
+    "            SUMMARY_WRITER=False,\n",
+    "            lower = np.array([0, 0]),\n",
+    "            upper = np.array([10, 10]),\n",
+    "            fun_evals=8,\n",
+    "            fun_repeats=1,\n",
+    "            max_time=inf,\n",
+    "            noise=False,\n",
+    "            tolerance_x=0,\n",
+    "            ocba_delta=0,\n",
+    "            var_type=[\"num\", \"num\"],\n",
+    "            infill_criterion=\"ei\",\n",
+    "            n_points=1,\n",
+    "            seed=123,\n",
+    "            log_level=20,\n",
+    "            show_models=False,\n",
+    "            show_progress=True)\n",
+    "design_control = design_control_init(\n",
+    "            init_size=5,\n",
+    "            repeats=1)\n",
+    "surrogate_control = surrogate_control_init(\n",
+    "            model_fun_evals=10000,\n",
+    "            min_theta=-3,\n",
+    "            max_theta=3,\n",
+    "            n_theta=2,\n",
+    "            theta_init_zero=True,\n",
+    "            n_p=1,\n",
+    "            optim_p=False,\n",
+    "            var_type=[\"num\", \"num\"],\n",
+    "            seed=124)\n",
+    "optimizer_control = optimizer_control_init(\n",
+    "            max_iter=1000,\n",
+    "            seed=125)\n",
+    "spot_tuner = spot.Spot(fun=fun,\n",
+    "            fun_control=fun_control,\n",
+    "            design_control=design_control,\n",
+    "            surrogate_control=surrogate_control,\n",
+    "            optimizer_control=optimizer_control)\n",
+    "spot_tuner.run()\n",
+    "PREFIX = fun_control[\"PREFIX\"]\n",
+    "filename = get_experiment_filename(PREFIX)\n",
+    "spot_tuner.save_experiment(filename=filename)\n",
+    "print(f\"filename: {filename}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "code-reload-optimization-experiment-37",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: code-reload-optimization-experiment-37\n",
+    "(spot_tuner_1, fun_control_1, design_control_1,\n",
+    "    surrogate_control_1, optimizer_control_1) = load_experiment(filename)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b707a9f5",
+   "metadata": {},
+   "source": [
+    "The progress of the original experiment is shown in @fig-plot-progress-37a and the reloaded experiment in @fig-plot-progress-37b.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "fig-plot-progress-37a",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/pdf": "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aHJlZSAvZm91ciAvZml2ZSAvc2l4IC9zZXZlbiAvZWlnaHQgNzMgL0kgOTcgL2EgMTAxCi9lIDEwNSAvaSAxMTAgL24gL28gMTE0IC9yIDExNiAvdCBdCj4+Ci9XaWR0aHMgMTUgMCBSID4+CmVuZG9iagoxNiAwIG9iago8PCAvVHlwZSAvRm9udERlc2NyaXB0b3IgL0ZvbnROYW1lIC9CTVFRRFYrRGVqYVZ1U2FucyAvRmxhZ3MgMzIKL0ZvbnRCQm94IFsgLTEwMjEgLTQ2MyAxNzk0IDEyMzMgXSAvQXNjZW50IDkyOSAvRGVzY2VudCAtMjM2IC9DYXBIZWlnaHQgMAovWEhlaWdodCAwIC9JdGFsaWNBbmdsZSAwIC9TdGVtViAwIC9NYXhXaWR0aCAxMzQyID4+CmVuZG9iagoxNSAwIG9iagpbIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwCjYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgMzE4IDQwMSA0NjAgODM4IDYzNgo5NTAgNzgwIDI3NSAzOTAgMzkwIDUwMCA4MzggMzE4IDM2MSAzMTggMzM3IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYKNjM2IDYzNiAzMzcgMzM3IDgzOCA4MzggODM4IDUzMSAxMDAwIDY4NCA2ODYgNjk4IDc3MCA2MzIgNTc1IDc3NSA3NTIgMjk1CjI5NSA2NTYgNTU3IDg2MyA3NDggNzg3IDYwMyA3ODcgNjk1IDYzNSA2MTEgNzMyIDY4NCA5ODkgNjg1IDYxMSA2ODUgMzkwIDMzNwozOTAgODM4IDUwMCA1MDAgNjEzIDYzNSA1NTAgNjM1IDYxNSAzNTIgNjM1IDYzNCAyNzggMjc4IDU3OSAyNzggOTc0IDYzNCA2MTIKNjM1IDYzNSA0MTEgNTIxIDM5MiA2MzQgNTkyIDgxOCA1OTIgNTkyIDUyNSA2MzYgMzM3IDYzNiA4MzggNjAwIDYzNiA2MDAgMzE4CjM1MiA1MTggMTAwMCA1MDAgNTAwIDUwMCAxMzQyIDYzNSA0MDAgMTA3MCA2MDAgNjg1IDYwMCA2MDAgMzE4IDMxOCA1MTggNTE4CjU5MCA1MDAgMTAwMCA1MDAgMTAwMCA1MjEgNDAwIDEwMjMgNjAwIDUyNSA2MTEgMzE4IDQwMSA2MzYgNjM2IDYzNiA2MzYgMzM3CjUwMCA1MDAgMTAwMCA0NzEgNjEyIDgzOCAzNjEgMTAwMCA1MDAgNTAwIDgzOCA0MDEgNDAxIDUwMCA2MzYgNjM2IDMxOCA1MDAKNDAxIDQ3MSA2MTIgOTY5IDk2OSA5NjkgNTMxIDY4NCA2ODQgNjg0IDY4NCA2ODQgNjg0IDk3NCA2OTggNjMyIDYzMiA2MzIgNjMyCjI5NSAyOTUgMjk1IDI5NSA3NzUgNzQ4IDc4NyA3ODcgNzg3IDc4NyA3ODcgODM4IDc4NyA3MzIgNzMyIDczMiA3MzIgNjExIDYwNQo2MzAgNjEzIDYxMyA2MTMgNjEzIDYxMyA2MTMgOTgyIDU1MCA2MTUgNjE1IDYxNSA2MTUgMjc4IDI3OCAyNzggMjc4IDYxMiA2MzQKNjEyIDYxMiA2MTIgNjEyIDYxMiA4MzggNjEyIDYzNCA2MzQgNjM0IDYzNCA1OTIgNjM1IDU5MiBdCmVuZG9iagoxOCAwIG9iago8PCAvSSAxOSAwIFIgL2EgMjAgMCBSIC9lIDIxIDAgUiAvZWlnaHQgMjIgMCBSIC9maXZlIDIzIDAgUiAvZm91ciAyNCAwIFIKL2kgMjUgMCBSIC9uIDI2IDAgUiAvbyAyNyAwIFIgL29uZSAyOCAwIFIgL3IgMjkgMCBSIC9zZXZlbiAzMCAwIFIKL3NpeCAzMSAwIFIgL3QgMzIgMCBSIC90aHJlZSAzMyAwIFIgL3R3byAzNCAwIFIgL3plcm8gMzUgMCBSID4+CmVuZG9iagozIDAgb2JqCjw8IC9GMSAxNyAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0ExIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDAgL2NhIDEgPj4KL0EyIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDEgL2NhIDEgPj4gPj4KZW5kb2JqCjUgMCBvYmoKPDwgPj4KZW5kb2JqCjYgMCBvYmoKPDwgPj4KZW5kb2JqCjcgMCBvYmoKPDwgL00wIDEzIDAgUiAvTTEgMTQgMCBSID4+CmVuZG9iagoxMyAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8IC9UeXBlIC9YT2JqZWN0IC9TdWJ0eXBlIC9Gb3JtIC9CQm94IFsgLTggLTggOCA4IF0gL0xlbmd0aCAxMzEKL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicbZBBDoQgDEX3PUUv8ElLRWXr0mu4mUzi/bcDcUBM3TTQvjx+Uf6S8E6lwPgkCUtOs+R605DSukyMGObVsijHoFEt1s51OKjP0HBjdIuxFKbU1uh4o5vpNt6TP/qwWSFGPxwOr4R7FkMmXCkxBoffCy/bw/8Rnl7UwB+ijX5jWkP9CmVuZHN0cmVhbQplbmRvYmoKMiAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAxMSAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKMzYgMCBvYmoKPDwgL0NyZWF0b3IgKE1hdHBsb3RsaWIgdjMuOC4yLCBodHRwczovL21hdHBsb3RsaWIub3JnKQovUHJvZHVjZXIgKE1hdHBsb3RsaWIgcGRmIGJhY2tlbmQgdjMuOC4yKQovQ3JlYXRpb25EYXRlIChEOjIwMjQwNzE2MTQyNjU1KzAyJzAwJykgPj4KZW5kb2JqCnhyZWYKMCAzNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwODYxOSAwMDAwMCBuIAowMDAwMDA3ODk1IDAwMDAwIG4gCjAwMDAwMDc5MjcgMDAwMDAgbiAKMDAwMDAwODAyNiAwMDAwMCBuIAowMDAwMDA4MDQ3IDAwMDAwIG4gCjAwMDAwMDgwNjggMDAwMDAgbiAKMDAwMDAwMDA2NSAwMDAwMCBuIAowMDAwMDAwMzQzIDAwMDAwIG4gCjAwMDAwMDEzNzYgMDAwMDAgbiAKMDAwMDAwMDIwOCAwMDAwMCBuIAowMDAwMDAxMzU2IDAwMDAwIG4gCjAwMDAwMDgxMTEgMDAwMDAgbiAKMDAwMDAwODM2NSAwMDAwMCBuIAowMDAwMDA2NjIzIDAwMDAwIG4gCjAwMDAwMDY0MTYgMDAwMDAgbiAKMDAwMDAwNjAwMiAwMDAwMCBuIAowMDAwMDA3Njc2IDAwMDAwIG4gCjAwMDAwMDEzOTYgMDAwMDAgbiAKMDAwMDAwMTUxOSAwMDAwMCBuIAowMDAwMDAxODk5IDAwMDAwIG4gCjAwMDAwMDIyMjEgMDAwMDAgbiAKMDAwMDAwMjY4OSAwMDAwMCBuIAowMDAwMDAzMDExIDAwMDAwIG4gCjAwMDAwMDMxNzcgMDAwMDAgbiAKMDAwMDAwMzMyMSAwMDAwMCBuIAowMDAwMDAzNTU3IDAwMDAwIG4gCjAwMDAwMDM4NDggMDAwMDAgbiAKMDAwMDAwNDAwMyAwMDAwMCBuIAowMDAwMDA0MjM2IDAwMDAwIG4gCjAwMDAwMDQzNzggMDAwMDAgbiAKMDAwMDAwNDc3MSAwMDAwMCBuIAowMDAwMDA0OTc3IDAwMDAwIG4gCjAwMDAwMDUzOTAgMDAwMDAgbiAKMDAwMDAwNTcxNCAwMDAwMCBuIAowMDAwMDA4Njc5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMzcgL1Jvb3QgMSAwIFIgL0luZm8gMzYgMCBSID4+CnN0YXJ0eHJlZgo4ODM2CiUlRU9GCg==",
+      "text/plain": [
+       "<Figure size 2700x1800 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#| label: fig-plot-progress-37a\n",
+    "#| fig-cap: Progress of the original experiment\n",
+    "spot_tuner.plot_progress(log_y=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "fig-plot-progress-37b",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/pdf": "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aHJlZSAvZm91ciAvZml2ZSAvc2l4IC9zZXZlbiAvZWlnaHQgNzMgL0kgOTcgL2EgMTAxCi9lIDEwNSAvaSAxMTAgL24gL28gMTE0IC9yIDExNiAvdCBdCj4+Ci9XaWR0aHMgMTUgMCBSID4+CmVuZG9iagoxNiAwIG9iago8PCAvVHlwZSAvRm9udERlc2NyaXB0b3IgL0ZvbnROYW1lIC9CTVFRRFYrRGVqYVZ1U2FucyAvRmxhZ3MgMzIKL0ZvbnRCQm94IFsgLTEwMjEgLTQ2MyAxNzk0IDEyMzMgXSAvQXNjZW50IDkyOSAvRGVzY2VudCAtMjM2IC9DYXBIZWlnaHQgMAovWEhlaWdodCAwIC9JdGFsaWNBbmdsZSAwIC9TdGVtViAwIC9NYXhXaWR0aCAxMzQyID4+CmVuZG9iagoxNSAwIG9iagpbIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwCjYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgMzE4IDQwMSA0NjAgODM4IDYzNgo5NTAgNzgwIDI3NSAzOTAgMzkwIDUwMCA4MzggMzE4IDM2MSAzMTggMzM3IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYKNjM2IDYzNiAzMzcgMzM3IDgzOCA4MzggODM4IDUzMSAxMDAwIDY4NCA2ODYgNjk4IDc3MCA2MzIgNTc1IDc3NSA3NTIgMjk1CjI5NSA2NTYgNTU3IDg2MyA3NDggNzg3IDYwMyA3ODcgNjk1IDYzNSA2MTEgNzMyIDY4NCA5ODkgNjg1IDYxMSA2ODUgMzkwIDMzNwozOTAgODM4IDUwMCA1MDAgNjEzIDYzNSA1NTAgNjM1IDYxNSAzNTIgNjM1IDYzNCAyNzggMjc4IDU3OSAyNzggOTc0IDYzNCA2MTIKNjM1IDYzNSA0MTEgNTIxIDM5MiA2MzQgNTkyIDgxOCA1OTIgNTkyIDUyNSA2MzYgMzM3IDYzNiA4MzggNjAwIDYzNiA2MDAgMzE4CjM1MiA1MTggMTAwMCA1MDAgNTAwIDUwMCAxMzQyIDYzNSA0MDAgMTA3MCA2MDAgNjg1IDYwMCA2MDAgMzE4IDMxOCA1MTggNTE4CjU5MCA1MDAgMTAwMCA1MDAgMTAwMCA1MjEgNDAwIDEwMjMgNjAwIDUyNSA2MTEgMzE4IDQwMSA2MzYgNjM2IDYzNiA2MzYgMzM3CjUwMCA1MDAgMTAwMCA0NzEgNjEyIDgzOCAzNjEgMTAwMCA1MDAgNTAwIDgzOCA0MDEgNDAxIDUwMCA2MzYgNjM2IDMxOCA1MDAKNDAxIDQ3MSA2MTIgOTY5IDk2OSA5NjkgNTMxIDY4NCA2ODQgNjg0IDY4NCA2ODQgNjg0IDk3NCA2OTggNjMyIDYzMiA2MzIgNjMyCjI5NSAyOTUgMjk1IDI5NSA3NzUgNzQ4IDc4NyA3ODcgNzg3IDc4NyA3ODcgODM4IDc4NyA3MzIgNzMyIDczMiA3MzIgNjExIDYwNQo2MzAgNjEzIDYxMyA2MTMgNjEzIDYxMyA2MTMgOTgyIDU1MCA2MTUgNjE1IDYxNSA2MTUgMjc4IDI3OCAyNzggMjc4IDYxMiA2MzQKNjEyIDYxMiA2MTIgNjEyIDYxMiA4MzggNjEyIDYzNCA2MzQgNjM0IDYzNCA1OTIgNjM1IDU5MiBdCmVuZG9iagoxOCAwIG9iago8PCAvSSAxOSAwIFIgL2EgMjAgMCBSIC9lIDIxIDAgUiAvZWlnaHQgMjIgMCBSIC9maXZlIDIzIDAgUiAvZm91ciAyNCAwIFIKL2kgMjUgMCBSIC9uIDI2IDAgUiAvbyAyNyAwIFIgL29uZSAyOCAwIFIgL3IgMjkgMCBSIC9zZXZlbiAzMCAwIFIKL3NpeCAzMSAwIFIgL3QgMzIgMCBSIC90aHJlZSAzMyAwIFIgL3R3byAzNCAwIFIgL3plcm8gMzUgMCBSID4+CmVuZG9iagozIDAgb2JqCjw8IC9GMSAxNyAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0ExIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDAgL2NhIDEgPj4KL0EyIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDEgL2NhIDEgPj4gPj4KZW5kb2JqCjUgMCBvYmoKPDwgPj4KZW5kb2JqCjYgMCBvYmoKPDwgPj4KZW5kb2JqCjcgMCBvYmoKPDwgL00wIDEzIDAgUiAvTTEgMTQgMCBSID4+CmVuZG9iagoxMyAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8IC9UeXBlIC9YT2JqZWN0IC9TdWJ0eXBlIC9Gb3JtIC9CQm94IFsgLTggLTggOCA4IF0gL0xlbmd0aCAxMzEKL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicbZBBDoQgDEX3PUUv8ElLRWXr0mu4mUzi/bcDcUBM3TTQvjx+Uf6S8E6lwPgkCUtOs+R605DSukyMGObVsijHoFEt1s51OKjP0HBjdIuxFKbU1uh4o5vpNt6TP/qwWSFGPxwOr4R7FkMmXCkxBoffCy/bw/8Rnl7UwB+ijX5jWkP9CmVuZHN0cmVhbQplbmRvYmoKMiAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAxMSAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKMzYgMCBvYmoKPDwgL0NyZWF0b3IgKE1hdHBsb3RsaWIgdjMuOC4yLCBodHRwczovL21hdHBsb3RsaWIub3JnKQovUHJvZHVjZXIgKE1hdHBsb3RsaWIgcGRmIGJhY2tlbmQgdjMuOC4yKQovQ3JlYXRpb25EYXRlIChEOjIwMjQwNzE2MTQyNjU1KzAyJzAwJykgPj4KZW5kb2JqCnhyZWYKMCAzNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwODYxOSAwMDAwMCBuIAowMDAwMDA3ODk1IDAwMDAwIG4gCjAwMDAwMDc5MjcgMDAwMDAgbiAKMDAwMDAwODAyNiAwMDAwMCBuIAowMDAwMDA4MDQ3IDAwMDAwIG4gCjAwMDAwMDgwNjggMDAwMDAgbiAKMDAwMDAwMDA2NSAwMDAwMCBuIAowMDAwMDAwMzQzIDAwMDAwIG4gCjAwMDAwMDEzNzYgMDAwMDAgbiAKMDAwMDAwMDIwOCAwMDAwMCBuIAowMDAwMDAxMzU2IDAwMDAwIG4gCjAwMDAwMDgxMTEgMDAwMDAgbiAKMDAwMDAwODM2NSAwMDAwMCBuIAowMDAwMDA2NjIzIDAwMDAwIG4gCjAwMDAwMDY0MTYgMDAwMDAgbiAKMDAwMDAwNjAwMiAwMDAwMCBuIAowMDAwMDA3Njc2IDAwMDAwIG4gCjAwMDAwMDEzOTYgMDAwMDAgbiAKMDAwMDAwMTUxOSAwMDAwMCBuIAowMDAwMDAxODk5IDAwMDAwIG4gCjAwMDAwMDIyMjEgMDAwMDAgbiAKMDAwMDAwMjY4OSAwMDAwMCBuIAowMDAwMDAzMDExIDAwMDAwIG4gCjAwMDAwMDMxNzcgMDAwMDAgbiAKMDAwMDAwMzMyMSAwMDAwMCBuIAowMDAwMDAzNTU3IDAwMDAwIG4gCjAwMDAwMDM4NDggMDAwMDAgbiAKMDAwMDAwNDAwMyAwMDAwMCBuIAowMDAwMDA0MjM2IDAwMDAwIG4gCjAwMDAwMDQzNzggMDAwMDAgbiAKMDAwMDAwNDc3MSAwMDAwMCBuIAowMDAwMDA0OTc3IDAwMDAwIG4gCjAwMDAwMDUzOTAgMDAwMDAgbiAKMDAwMDAwNTcxNCAwMDAwMCBuIAowMDAwMDA4Njc5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMzcgL1Jvb3QgMSAwIFIgL0luZm8gMzYgMCBSID4+CnN0YXJ0eHJlZgo4ODM2CiUlRU9GCg==",
+      "text/plain": [
+       "<Figure size 2700x1800 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#| label: fig-plot-progress-37b\n",
+    "#| fig-cap: Progress of the reloaded experiment\n",
+    "spot_tuner_1.plot_progress(log_y=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "91497fb5",
+   "metadata": {},
+   "source": [
+    "The results from the original experiment are shown in @tbl-results-37a and the reloaded experiment in @tbl-results-37b.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "tbl-results-37a",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "min y: 1.986328241945829\n",
+      "x0: 10.0\n",
+      "x1: 3.2107728198306598\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "[['x0', 10.0], ['x1', 3.2107728198306598]]"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: tbl-results-37a\n",
+    "spot_tuner.print_results()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "tbl-results-37b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "min y: 1.986328241945829\n",
+      "x0: 10.0\n",
+      "x1: 3.2107728198306598\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "[['x0', 10.0], ['x1', 3.2107728198306598]]"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: tbl-results-37b\n",
+    "spot_tuner_1.print_results()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d3aa3628",
+   "metadata": {},
+   "source": [
+    "#### Getting the Tuned Hyperparameters\n",
+    "\n",
+    "The tuned hyperparameters can be obtained as a dictionary with the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "code-get-tuned-optimization-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'x0': 10.0, 'x1': 3.2107728198306598}"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: code-get-tuned-optimization-37\n",
+    "from spotPython.hyperparameters.values import get_tuned_hyperparameters\n",
+    "get_tuned_hyperparameters(spot_tuner=spot_tuner)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e8fb70e2",
+   "metadata": {},
+   "source": [
+    "::: {.callout-note}\n",
+    "### Summary: Saving and Loading Optimization Experiments\n",
+    "* If `spotPython` is used as an optimizer (without an hyperparameter dictionary), experiments can be saved and reloaded with the `save_experiment` and `load_experiment` functions.\n",
+    "* The tuned hyperparameters can be obtained with the `get_tuned_hyperparameters` function.\n",
+    ":::\n",
+    "\n",
+    "\n",
+    "\n",
+    "## spotPython as a Hyperparameter Tuner {#sec-spotpython-as-a-hyperparameter-tuner-37}\n",
+    "\n",
+    "If `spotPython` is used as a hyperparameter tuner, in addition to the `fun_control` dictionary a `core_model` dictionary have to be specified.\n",
+    "This will be explained in @sec-adding-a-core-model-37.\n",
+    "\n",
+    "Furthermore, a data set has to be selected and added to the `fun_control` dictionary.\n",
+    "Here, we will use the `Diabetes` data set.\n",
+    "\n",
+    "\n",
+    "### The Diabetes Data Set\n",
+    "\n",
+    "The hyperparameter tuning of a `PyTorch Lightning` network on the `Diabetes` data set is used as an example. The `Diabetes` data set is a PyTorch Dataset for regression, which originates from the `scikit-learn` package, see [https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes).\n",
+    "\n",
+    " Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.\n",
+    "The `Diabetes` data set is described in @tbl-diabetes-31.\n",
+    "\n",
+    "| Description | Value |\n",
+    "| --- | --- |\n",
+    "| Samples total | 442 |\n",
+    "| Dimensionality | 10 |\n",
+    "| Features | real, -.2 < x < .2 |\n",
+    "| Targets | integer 25 - 346 |\n",
+    ": The Diabetes data set {#tbl-diabetes-31}\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "code-hyperparameter-tuning-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Seed set to 123\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_07_16_14_26_55\n",
+      "Created spot_tensorboard_path: runs/spot_logs/037_p040025_2024-07-16_14-26-55 for SummaryWriter()\n"
+     ]
+    }
+   ],
+   "source": [
+    "#| label: code-hyperparameter-tuning-37\n",
+    "from spotPython.utils.device import getDevice\n",
+    "from math import inf\n",
+    "from spotPython.utils.init import fun_control_init\n",
+    "import numpy as np\n",
+    "from spotPython.hyperparameters.values import set_control_key_value\n",
+    "from spotPython.data.diabetes import Diabetes\n",
+    "\n",
+    "MAX_TIME = inf\n",
+    "FUN_EVALS = 8\n",
+    "INIT_SIZE = 5\n",
+    "WORKERS = 0\n",
+    "PREFIX=\"037\"\n",
+    "DEVICE = getDevice()\n",
+    "DEVICES = 1\n",
+    "TEST_SIZE = 0.4\n",
+    "TORCH_METRIC = \"mean_squared_error\"\n",
+    "dataset = Diabetes()\n",
+    "\n",
+    "fun_control = fun_control_init(\n",
+    "    _L_in=10,\n",
+    "    _L_out=1,\n",
+    "    _torchmetric=TORCH_METRIC,\n",
+    "    PREFIX=PREFIX,\n",
+    "    TENSORBOARD_CLEAN=True,\n",
+    "    data_set=dataset,\n",
+    "    device=DEVICE,\n",
+    "    enable_progress_bar=False,\n",
+    "    fun_evals=FUN_EVALS,\n",
+    "    log_level=10,\n",
+    "    max_time=MAX_TIME,\n",
+    "    num_workers=WORKERS,\n",
+    "    show_progress=True,\n",
+    "    test_size=TEST_SIZE,\n",
+    "    tolerance_x=np.sqrt(np.spacing(1)),\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b2d0c684",
+   "metadata": {},
+   "source": [
+    "### Adding a `core_model` to the `fun_control` Dictionary {#sec-adding-a-core-model-37}\n",
+    "\n",
+    "`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/NetLightRegression.py) for configurable neural networks. \n",
+    "The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).\n",
+    "\n",
+    "\n",
+    "The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).\n",
+    "\n",
+    "The `core_model` dictionary contains the hyperparameters of the model to be tuned. These hyperparameters can be specified and modified with as shown in the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "code-add-core-model-to-fun-control-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Setting hyperparameter epochs to value [4, 5].\n",
+      "Variable type is int.\n",
+      "Core type is None.\n",
+      "Calling modify_hyper_parameter_bounds().\n",
+      "Setting hyperparameter batch_size to value [4, 5].\n",
+      "Variable type is int.\n",
+      "Core type is None.\n",
+      "Calling modify_hyper_parameter_bounds().\n",
+      "Setting hyperparameter optimizer to value ['Adam', 'RAdam'].\n",
+      "Variable type is factor.\n",
+      "Core type is str.\n",
+      "Calling modify_hyper_parameter_levels().\n",
+      "Setting hyperparameter dropout_prob to value [0.01, 0.1].\n",
+      "Variable type is float.\n",
+      "Core type is None.\n",
+      "Calling modify_hyper_parameter_bounds().\n",
+      "Setting hyperparameter lr_mult to value [0.05, 1.0].\n",
+      "Variable type is float.\n",
+      "Core type is None.\n",
+      "Calling modify_hyper_parameter_bounds().\n",
+      "Setting hyperparameter patience to value [2, 3].\n",
+      "Variable type is int.\n",
+      "Core type is None.\n",
+      "Calling modify_hyper_parameter_bounds().\n",
+      "Setting hyperparameter act_fn to value ['ReLU', 'LeakyReLU'].\n",
+      "Variable type is factor.\n",
+      "Core type is instance().\n",
+      "Calling modify_hyper_parameter_levels().\n"
+     ]
+    }
+   ],
+   "source": [
+    "#| label: code-add-core-model-to-fun-control-37\n",
+    "from spotPython.light.regression.netlightregression import NetLightRegression\n",
+    "from spotPython.hyperdict.light_hyper_dict import LightHyperDict\n",
+    "from spotPython.hyperparameters.values import add_core_model_to_fun_control\n",
+    "add_core_model_to_fun_control(fun_control=fun_control,\n",
+    "                              core_model=NetLightRegression,\n",
+    "                              hyper_dict=LightHyperDict)\n",
+    "from spotPython.hyperparameters.values import set_control_hyperparameter_value\n",
+    "\n",
+    "set_control_hyperparameter_value(fun_control, \"epochs\", [4, 5])\n",
+    "set_control_hyperparameter_value(fun_control, \"batch_size\", [4, 5])\n",
+    "set_control_hyperparameter_value(fun_control, \"optimizer\", [\n",
+    "                \"Adam\",\n",
+    "                \"RAdam\",\n",
+    "            ])\n",
+    "set_control_hyperparameter_value(fun_control, \"dropout_prob\", [0.01, 0.1])\n",
+    "set_control_hyperparameter_value(fun_control, \"lr_mult\", [0.05, 1.0])\n",
+    "set_control_hyperparameter_value(fun_control, \"patience\", [2, 3])\n",
+    "set_control_hyperparameter_value(fun_control, \"act_fn\",[\n",
+    "                \"ReLU\",\n",
+    "                \"LeakyReLU\"\n",
+    "            ] )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "4449d6b5",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{'CHECKPOINT_PATH': 'runs/saved_models/',\n",
+      " 'DATASET_PATH': 'data/',\n",
+      " 'PREFIX': '037',\n",
+      " 'RESULTS_PATH': 'results/',\n",
+      " 'TENSORBOARD_PATH': 'runs/',\n",
+      " '_L_in': 10,\n",
+      " '_L_out': 1,\n",
+      " '_torchmetric': 'mean_squared_error',\n",
+      " 'accelerator': 'auto',\n",
+      " 'converters': None,\n",
+      " 'core_model': <class 'spotPython.light.regression.netlightregression.NetLightRegression'>,\n",
+      " 'core_model_hyper_dict': {'act_fn': {'class_name': 'spotPython.torch.activation',\n",
+      "                                      'core_model_parameter_type': 'instance()',\n",
+      "                                      'default': 'ReLU',\n",
+      "                                      'levels': ['ReLU', 'LeakyReLU'],\n",
+      "                                      'lower': 0,\n",
+      "                                      'transform': 'None',\n",
+      "                                      'type': 'factor',\n",
+      "                                      'upper': 1},\n",
+      "                           'batch_size': {'default': 4,\n",
+      "                                          'lower': 4,\n",
+      "                                          'transform': 'transform_power_2_int',\n",
+      "                                          'type': 'int',\n",
+      "                                          'upper': 5},\n",
+      "                           'dropout_prob': {'default': 0.01,\n",
+      "                                            'lower': 0.01,\n",
+      "                                            'transform': 'None',\n",
+      "                                            'type': 'float',\n",
+      "                                            'upper': 0.1},\n",
+      "                           'epochs': {'default': 4,\n",
+      "                                      'lower': 4,\n",
+      "                                      'transform': 'transform_power_2_int',\n",
+      "                                      'type': 'int',\n",
+      "                                      'upper': 5},\n",
+      "                           'initialization': {'core_model_parameter_type': 'str',\n",
+      "                                              'default': 'Default',\n",
+      "                                              'levels': ['Default'],\n",
+      "                                              'lower': 0,\n",
+      "                                              'transform': 'None',\n",
+      "                                              'type': 'factor',\n",
+      "                                              'upper': 0},\n",
+      "                           'l1': {'default': 3,\n",
+      "                                  'lower': 3,\n",
+      "                                  'transform': 'transform_power_2_int',\n",
+      "                                  'type': 'int',\n",
+      "                                  'upper': 8},\n",
+      "                           'lr_mult': {'default': 1.0,\n",
+      "                                       'lower': 0.05,\n",
+      "                                       'transform': 'None',\n",
+      "                                       'type': 'float',\n",
+      "                                       'upper': 1.0},\n",
+      "                           'optimizer': {'class_name': 'torch.optim',\n",
+      "                                         'core_model_parameter_type': 'str',\n",
+      "                                         'default': 'SGD',\n",
+      "                                         'levels': ['Adam', 'RAdam'],\n",
+      "                                         'lower': 0,\n",
+      "                                         'transform': 'None',\n",
+      "                                         'type': 'factor',\n",
+      "                                         'upper': 1},\n",
+      "                           'patience': {'default': 2,\n",
+      "                                        'lower': 2,\n",
+      "                                        'transform': 'transform_power_2_int',\n",
+      "                                        'type': 'int',\n",
+      "                                        'upper': 3}},\n",
+      " 'core_model_hyper_dict_default': {'act_fn': {'class_name': 'spotPython.torch.activation',\n",
+      "                                              'core_model_parameter_type': 'instance()',\n",
+      "                                              'default': 'ReLU',\n",
+      "                                              'levels': ['Sigmoid',\n",
+      "                                                         'Tanh',\n",
+      "                                                         'ReLU',\n",
+      "                                                         'LeakyReLU',\n",
+      "                                                         'ELU',\n",
+      "                                                         'Swish'],\n",
+      "                                              'lower': 0,\n",
+      "                                              'transform': 'None',\n",
+      "                                              'type': 'factor',\n",
+      "                                              'upper': 5},\n",
+      "                                   'batch_size': {'default': 4,\n",
+      "                                                  'lower': 1,\n",
+      "                                                  'transform': 'transform_power_2_int',\n",
+      "                                                  'type': 'int',\n",
+      "                                                  'upper': 4},\n",
+      "                                   'dropout_prob': {'default': 0.01,\n",
+      "                                                    'lower': 0.0,\n",
+      "                                                    'transform': 'None',\n",
+      "                                                    'type': 'float',\n",
+      "                                                    'upper': 0.25},\n",
+      "                                   'epochs': {'default': 4,\n",
+      "                                              'lower': 4,\n",
+      "                                              'transform': 'transform_power_2_int',\n",
+      "                                              'type': 'int',\n",
+      "                                              'upper': 9},\n",
+      "                                   'initialization': {'core_model_parameter_type': 'str',\n",
+      "                                                      'default': 'Default',\n",
+      "                                                      'levels': ['Default',\n",
+      "                                                                 'Kaiming',\n",
+      "                                                                 'Xavier'],\n",
+      "                                                      'lower': 0,\n",
+      "                                                      'transform': 'None',\n",
+      "                                                      'type': 'factor',\n",
+      "                                                      'upper': 2},\n",
+      "                                   'l1': {'default': 3,\n",
+      "                                          'lower': 3,\n",
+      "                                          'transform': 'transform_power_2_int',\n",
+      "                                          'type': 'int',\n",
+      "                                          'upper': 8},\n",
+      "                                   'lr_mult': {'default': 1.0,\n",
+      "                                               'lower': 0.1,\n",
+      "                                               'transform': 'None',\n",
+      "                                               'type': 'float',\n",
+      "                                               'upper': 10.0},\n",
+      "                                   'optimizer': {'class_name': 'torch.optim',\n",
+      "                                                 'core_model_parameter_type': 'str',\n",
+      "                                                 'default': 'SGD',\n",
+      "                                                 'levels': ['Adadelta',\n",
+      "                                                            'Adagrad',\n",
+      "                                                            'Adam',\n",
+      "                                                            'AdamW',\n",
+      "                                                            'SparseAdam',\n",
+      "                                                            'Adamax',\n",
+      "                                                            'ASGD',\n",
+      "                                                            'NAdam',\n",
+      "                                                            'RAdam',\n",
+      "                                                            'RMSprop',\n",
+      "                                                            'Rprop',\n",
+      "                                                            'SGD'],\n",
+      "                                                 'lower': 0,\n",
+      "                                                 'transform': 'None',\n",
+      "                                                 'type': 'factor',\n",
+      "                                                 'upper': 11},\n",
+      "                                   'patience': {'default': 2,\n",
+      "                                                'lower': 2,\n",
+      "                                                'transform': 'transform_power_2_int',\n",
+      "                                                'type': 'int',\n",
+      "                                                'upper': 6}},\n",
+      " 'core_model_name': None,\n",
+      " 'counter': 0,\n",
+      " 'data': None,\n",
+      " 'data_dir': './data',\n",
+      " 'data_module': None,\n",
+      " 'data_set': <spotPython.data.diabetes.Diabetes object at 0x3690e6890>,\n",
+      " 'data_set_name': None,\n",
+      " 'db_dict_name': None,\n",
+      " 'design': None,\n",
+      " 'device': 'mps',\n",
+      " 'devices': 1,\n",
+      " 'enable_progress_bar': False,\n",
+      " 'eval': None,\n",
+      " 'fun_evals': 8,\n",
+      " 'fun_repeats': 1,\n",
+      " 'horizon': None,\n",
+      " 'hyperdict': None,\n",
+      " 'infill_criterion': 'y',\n",
+      " 'k_folds': 3,\n",
+      " 'log_graph': False,\n",
+      " 'log_level': 10,\n",
+      " 'loss_function': None,\n",
+      " 'lower': array([3. , 4. , 1. , 0. , 0. , 0. , 0.1, 2. , 0. ]),\n",
+      " 'max_surrogate_points': 30,\n",
+      " 'max_time': inf,\n",
+      " 'metric_params': {},\n",
+      " 'metric_river': None,\n",
+      " 'metric_sklearn': None,\n",
+      " 'metric_sklearn_name': None,\n",
+      " 'metric_torch': None,\n",
+      " 'model_dict': {},\n",
+      " 'n_points': 1,\n",
+      " 'n_samples': None,\n",
+      " 'n_total': None,\n",
+      " 'noise': False,\n",
+      " 'num_workers': 0,\n",
+      " 'ocba_delta': 0,\n",
+      " 'oml_grace_period': None,\n",
+      " 'optimizer': None,\n",
+      " 'path': None,\n",
+      " 'prep_model': None,\n",
+      " 'prep_model_name': None,\n",
+      " 'progress_file': None,\n",
+      " 'save_model': False,\n",
+      " 'scaler': None,\n",
+      " 'scenario': None,\n",
+      " 'seed': 123,\n",
+      " 'show_batch_interval': 1000000,\n",
+      " 'show_models': False,\n",
+      " 'show_progress': True,\n",
+      " 'shuffle': None,\n",
+      " 'sigma': 0.0,\n",
+      " 'spot_tensorboard_path': 'runs/spot_logs/037_p040025_2024-07-16_14-26-55',\n",
+      " 'spot_writer': <torch.utils.tensorboard.writer.SummaryWriter object at 0x372c7a750>,\n",
+      " 'target_column': None,\n",
+      " 'target_type': None,\n",
+      " 'task': None,\n",
+      " 'test': None,\n",
+      " 'test_seed': 1234,\n",
+      " 'test_size': 0.4,\n",
+      " 'tolerance_x': 1.4901161193847656e-08,\n",
+      " 'train': None,\n",
+      " 'upper': array([ 8.  ,  9.  ,  4.  ,  5.  , 11.  ,  0.25, 10.  ,  6.  ,  2.  ]),\n",
+      " 'var_name': ['l1',\n",
+      "              'epochs',\n",
+      "              'batch_size',\n",
+      "              'act_fn',\n",
+      "              'optimizer',\n",
+      "              'dropout_prob',\n",
+      "              'lr_mult',\n",
+      "              'patience',\n",
+      "              'initialization'],\n",
+      " 'var_type': ['int',\n",
+      "              'int',\n",
+      "              'int',\n",
+      "              'factor',\n",
+      "              'factor',\n",
+      "              'float',\n",
+      "              'float',\n",
+      "              'int',\n",
+      "              'factor'],\n",
+      " 'verbosity': 0,\n",
+      " 'weight_coeff': 0.0,\n",
+      " 'weights': 1.0,\n",
+      " 'weights_entry': None}\n"
+     ]
+    }
+   ],
+   "source": [
+    "import pprint as pp\n",
+    "from spotPython.hyperparameters.values import set_factor_hyperparameter_values\n",
+    "set_factor_hyperparameter_values(fun_control, \"initialization\", [\"Default\"])\n",
+    "pp.pprint(fun_control)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9f3400b9",
+   "metadata": {},
+   "source": [
+    "### `design_control`,  `surrogate_control` Dictionaries and the Objective Function {#sec-specifying-design-surrogate-control-dictionaries-37}\n",
+    "\n",
+    "After specifying the `design_control` and `surrogate_control` dictionaries, the objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.\n",
+    "\n",
+    "Then, the hyperparameter tuning can be started.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "code-start-hyperparameter-tuning-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/utilities/parsing.py:198: Attribute 'act_fn' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['act_fn'])`.\n",
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 4.4 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "4.4 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "4.4 K     Total params\n",
+      "0.018     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (10) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       4179.7265625        </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       4179.7265625        </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      4179.7265625       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      4179.7265625       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 1.3 K  | [32, 10] | [32, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "1.3 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "1.3 K     Total params\n",
+      "0.005     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (5) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 4179.7265625, 'hp_metric': 4179.7265625}\n",
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=16` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      23407.560546875      </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      23407.560546875      </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     23407.560546875     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     23407.560546875     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 15.9 K | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "15.9 K    Trainable params\n",
+      "0         Non-trainable params\n",
+      "15.9 K    Total params\n",
+      "0.064     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 23407.560546875, 'hp_metric': 23407.560546875}\n",
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">     4221.50439453125      </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">     4221.50439453125      </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m    4221.50439453125     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m    4221.50439453125     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 425    | [32, 10] | [32, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "425       Trainable params\n",
+      "0         Non-trainable params\n",
+      "425       Total params\n",
+      "0.002     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 4221.50439453125, 'hp_metric': 4221.50439453125}\n",
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=16` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">        24088.78125        </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">        24088.78125        </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m       24088.78125       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m       24088.78125       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 1.3 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "1.3 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "1.3 K     Total params\n",
+      "0.005     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 24088.78125, 'hp_metric': 24088.78125}\n",
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=16` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       23975.578125        </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       23975.578125        </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      23975.578125       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      23975.578125       \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 23975.578125, 'hp_metric': 23975.578125}\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/utilities/parsing.py:198: Attribute 'act_fn' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['act_fn'])`.\n",
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 4.4 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "4.4 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "4.4 K     Total params\n",
+      "0.018     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (10) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      4102.8310546875      </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      4102.8310546875      </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     4102.8310546875     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     4102.8310546875     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 4102.8310546875, 'hp_metric': 4102.8310546875}\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "spotPython tuning: 4102.8310546875 [########--] 75.00% \r\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/utilities/parsing.py:198: Attribute 'act_fn' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['act_fn'])`.\n",
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 4.4 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "4.4 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "4.4 K     Total params\n",
+      "0.018     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (10) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       23990.4765625       </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">       23990.4765625       </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      23990.4765625      \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m      23990.4765625      \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 23990.4765625, 'hp_metric': 23990.4765625}\n",
+      "spotPython tuning: 4102.8310546875 [#########-] 87.50% \r\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/utilities/parsing.py:198: Attribute 'act_fn' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['act_fn'])`.\n",
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 4.4 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "4.4 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "4.4 K     Total params\n",
+      "0.018     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (10) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.VALIDATING\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">      Validate metric      </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">     4313.48095703125      </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">     4313.48095703125      </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m     Validate metric     \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m    4313.48095703125     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m    4313.48095703125     \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "train_model result: {'val_loss': 4313.48095703125, 'hp_metric': 4313.48095703125}\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "spotPython tuning: 4102.8310546875 [##########] 100.00% Done...\r\n",
+      "\r\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<spotPython.spot.spot.Spot at 0x372b19190>"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: code-start-hyperparameter-tuning-37\n",
+    "from spotPython.utils.init import design_control_init, surrogate_control_init\n",
+    "design_control = design_control_init(init_size=INIT_SIZE)\n",
+    "\n",
+    "surrogate_control = surrogate_control_init(noise=True,\n",
+    "                                            n_theta=2)\n",
+    "from spotPython.fun.hyperlight import HyperLight\n",
+    "fun = HyperLight(log_level=10).fun\n",
+    "from spotPython.spot import spot\n",
+    "spot_tuner = spot.Spot(fun=fun,\n",
+    "                       fun_control=fun_control,\n",
+    "                       design_control=design_control,\n",
+    "                       surrogate_control=surrogate_control)\n",
+    "spot_tuner.run()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2c24f9aa",
+   "metadata": {},
+   "source": [
+    "The tuned hyperparameters can be obtained as a dictionary with the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "code-get-tuned-hyperparameters-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'l1': 6.0,\n",
+       " 'epochs': 5.0,\n",
+       " 'batch_size': 4.0,\n",
+       " 'act_fn': 1.0,\n",
+       " 'optimizer': 0.0,\n",
+       " 'dropout_prob': 0.02091150165834337,\n",
+       " 'lr_mult': 0.3710386309754268,\n",
+       " 'patience': 3.0,\n",
+       " 'initialization': 0.0}"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: code-get-tuned-hyperparameters-37\n",
+    "from spotPython.hyperparameters.values import get_tuned_hyperparameters\n",
+    "get_tuned_hyperparameters(spot_tuner)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "35d71146",
+   "metadata": {},
+   "source": [
+    "Here , the numerical levels of the hyperparameters are used as keys in the dictionary.\n",
+    "If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "code-get-tuned-hyperparameters-fun-ctrl37",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'l1': 6.0,\n",
+       " 'epochs': 5.0,\n",
+       " 'batch_size': 4.0,\n",
+       " 'act_fn': 'LeakyReLU',\n",
+       " 'optimizer': 'Adam',\n",
+       " 'dropout_prob': 0.02091150165834337,\n",
+       " 'lr_mult': 0.3710386309754268,\n",
+       " 'patience': 3.0,\n",
+       " 'initialization': 'Default'}"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#| label: code-get-tuned-hyperparameters-fun-ctrl37\n",
+    "get_tuned_hyperparameters(spot_tuner, fun_control)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "code-save-experiment-37",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "filename: spot_037_experiment.pickle\n"
+     ]
+    }
+   ],
+   "source": [
+    "#| label: code-save-experiment-37\n",
+    "PREFIX = fun_control[\"PREFIX\"]\n",
+    "filename = get_experiment_filename(PREFIX)\n",
+    "spot_tuner.save_experiment(filename=filename)\n",
+    "print(f\"filename: {filename}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0ef8befb",
+   "metadata": {
+    "user_expressions": [
+     {
+      "expression": "filename",
+      "result": {
+       "data": {
+        "text/plain": "'spot_037_experiment.pickle'"
+       },
+       "metadata": {},
+       "status": "ok"
+      }
+     }
+    ]
+   },
+   "source": [
+    "The results from the experiment are stored in the pickle file `{python} filename`.\n",
+    "The experiment can be reloaded with the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "code-reload-hyper-experiment-37",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: code-reload-hyper-experiment-37\n",
+    "(spot_tuner_1, fun_control_1, design_control_1,\n",
+    "    surrogate_control_1, optimizer_control_1) = load_experiment(filename)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a88b7720",
+   "metadata": {},
+   "source": [
+    "Plot the progress of the original experiment are identical to the reloaded experiment.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "b78c8bd9",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/pdf": "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MC4wMDEgMCAwIF0KL0NoYXJQcm9jcyAxOCAwIFIKL0VuY29kaW5nIDw8IC9UeXBlIC9FbmNvZGluZwovRGlmZmVyZW5jZXMgWyA0OCAvemVybyAvb25lIC90d28gL3RocmVlIC9mb3VyIC9maXZlIC9zaXggL3NldmVuIC9laWdodCA3MyAvSSA5NyAvYSAxMDEKL2UgMTA1IC9pIDExMCAvbiAvbyAxMTQgL3IgMTE2IC90IDIxNSAvbXVsdGlwbHkgXQo+PgovV2lkdGhzIDE1IDAgUiA+PgplbmRvYmoKMTYgMCBvYmoKPDwgL1R5cGUgL0ZvbnREZXNjcmlwdG9yIC9Gb250TmFtZSAvQk1RUURWK0RlamFWdVNhbnMgL0ZsYWdzIDMyCi9Gb250QkJveCBbIC0xMDIxIC00NjMgMTc5NCAxMjMzIF0gL0FzY2VudCA5MjkgL0Rlc2NlbnQgLTIzNiAvQ2FwSGVpZ2h0IDAKL1hIZWlnaHQgMCAvSXRhbGljQW5nbGUgMCAvU3RlbVYgMCAvTWF4V2lkdGggMTM0MiA+PgplbmRvYmoKMTUgMCBvYmoKWyA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMAo2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDMxOCA0MDEgNDYwIDgzOCA2MzYKOTUwIDc4MCAyNzUgMzkwIDM5MCA1MDAgODM4IDMxOCAzNjEgMzE4IDMzNyA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2CjYzNiA2MzYgMzM3IDMzNyA4MzggODM4IDgzOCA1MzEgMTAwMCA2ODQgNjg2IDY5OCA3NzAgNjMyIDU3NSA3NzUgNzUyIDI5NQoyOTUgNjU2IDU1NyA4NjMgNzQ4IDc4NyA2MDMgNzg3IDY5NSA2MzUgNjExIDczMiA2ODQgOTg5IDY4NSA2MTEgNjg1IDM5MCAzMzcKMzkwIDgzOCA1MDAgNTAwIDYxMyA2MzUgNTUwIDYzNSA2MTUgMzUyIDYzNSA2MzQgMjc4IDI3OCA1NzkgMjc4IDk3NCA2MzQgNjEyCjYzNSA2MzUgNDExIDUyMSAzOTIgNjM0IDU5MiA4MTggNTkyIDU5MiA1MjUgNjM2IDMzNyA2MzYgODM4IDYwMCA2MzYgNjAwIDMxOAozNTIgNTE4IDEwMDAgNTAwIDUwMCA1MDAgMTM0MiA2MzUgNDAwIDEwNzAgNjAwIDY4NSA2MDAgNjAwIDMxOCAzMTggNTE4IDUxOAo1OTAgNTAwIDEwMDAgNTAwIDEwMDAgNTIxIDQwMCAxMDIzIDYwMCA1MjUgNjExIDMxOCA0MDEgNjM2IDYzNiA2MzYgNjM2IDMzNwo1MDAgNTAwIDEwMDAgNDcxIDYxMiA4MzggMzYxIDEwMDAgNTAwIDUwMCA4MzggNDAxIDQwMSA1MDAgNjM2IDYzNiAzMTggNTAwCjQwMSA0NzEgNjEyIDk2OSA5NjkgOTY5IDUzMSA2ODQgNjg0IDY4NCA2ODQgNjg0IDY4NCA5NzQgNjk4IDYzMiA2MzIgNjMyIDYzMgoyOTUgMjk1IDI5NSAyOTUgNzc1IDc0OCA3ODcgNzg3IDc4NyA3ODcgNzg3IDgzOCA3ODcgNzMyIDczMiA3MzIgNzMyIDYxMSA2MDUKNjMwIDYxMyA2MTMgNjEzIDYxMyA2MTMgNjEzIDk4MiA1NTAgNjE1IDYxNSA2MTUgNjE1IDI3OCAyNzggMjc4IDI3OCA2MTIgNjM0CjYxMiA2MTIgNjEyIDYxMiA2MTIgODM4IDYxMiA2MzQgNjM0IDYzNCA2MzQgNTkyIDYzNSA1OTIgXQplbmRvYmoKMTggMCBvYmoKPDwgL0kgMTkgMCBSIC9hIDIwIDAgUiAvZSAyMSAwIFIgL2VpZ2h0IDIyIDAgUiAvZml2ZSAyMyAwIFIgL2ZvdXIgMjQgMCBSCi9pIDI1IDAgUiAvbXVsdGlwbHkgMjYgMCBSIC9uIDI3IDAgUiAvbyAyOCAwIFIgL29uZSAyOSAwIFIgL3IgMzAgMCBSCi9zZXZlbiAzMSAwIFIgL3NpeCAzMiAwIFIgL3QgMzMgMCBSIC90aHJlZSAzNCAwIFIgL3R3byAzNSAwIFIgL3plcm8gMzYgMCBSCj4+CmVuZG9iagozIDAgb2JqCjw8IC9GMSAxNyAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0ExIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDAgL2NhIDEgPj4KL0EyIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDEgL2NhIDEgPj4gPj4KZW5kb2JqCjUgMCBvYmoKPDwgPj4KZW5kb2JqCjYgMCBvYmoKPDwgPj4KZW5kb2JqCjcgMCBvYmoKPDwgL00wIDEzIDAgUiAvTTEgMTQgMCBSID4+CmVuZG9iagoxMyAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8IC9UeXBlIC9YT2JqZWN0IC9TdWJ0eXBlIC9Gb3JtIC9CQm94IFsgLTggLTggOCA4IF0gL0xlbmd0aCAxMzEKL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicbZBBDoQgDEX3PUUv8ElLRWXr0mu4mUzi/bcDcUBM3TTQvjx+Uf6S8E6lwPgkCUtOs+R605DSukyMGObVsijHoFEt1s51OKjP0HBjdIuxFKbU1uh4o5vpNt6TP/qwWSFGPxwOr4R7FkMmXCkxBoffCy/bw/8Rnl7UwB+ijX5jWkP9CmVuZHN0cmVhbQplbmRvYmoKMiAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAxMSAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKMzcgMCBvYmoKPDwgL0NyZWF0b3IgKE1hdHBsb3RsaWIgdjMuOC4yLCBodHRwczovL21hdHBsb3RsaWIub3JnKQovUHJvZHVjZXIgKE1hdHBsb3RsaWIgcGRmIGJhY2tlbmQgdjMuOC4yKQovQ3JlYXRpb25EYXRlIChEOjIwMjQwNzE2MTQyNzExKzAyJzAwJykgPj4KZW5kb2JqCnhyZWYKMCAzOAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwODc0NSAwMDAwMCBuIAowMDAwMDA4MDIxIDAwMDAwIG4gCjAwMDAwMDgwNTMgMDAwMDAgbiAKMDAwMDAwODE1MiAwMDAwMCBuIAowMDAwMDA4MTczIDAwMDAwIG4gCjAwMDAwMDgxOTQgMDAwMDAgbiAKMDAwMDAwMDA2NSAwMDAwMCBuIAowMDAwMDAwMzM2IDAwMDAwIG4gCjAwMDAwMDEzMDYgMDAwMDAgbiAKMDAwMDAwMDIwOCAwMDAwMCBuIAowMDAwMDAxMjg2IDAwMDAwIG4gCjAwMDAwMDgyMzcgMDAwMDAgbiAKMDAwMDAwODQ5MSAwMDAwMCBuIAowMDAwMDA2NzMyIDAwMDAwIG4gCjAwMDAwMDY1MjUgMDAwMDAgbiAKMDAwMDAwNjA5NyAwMDAwMCBuIAowMDAwMDA3Nzg1IDAwMDAwIG4gCjAwMDAwMDEzMjYgMDAwMDAgbiAKMDAwMDAwMTQ0OSAwMDAwMCBuIAowMDAwMDAxODI5IDAwMDAwIG4gCjAwMDAwMDIxNTEgMDAwMDAgbiAKMDAwMDAwMjYxOSAwMDAwMCBuIAowMDAwMDAyOTQxIDAwMDAwIG4gCjAwMDAwMDMxMDcgMDAwMDAgbiAKMDAwMDAwMzI1MSAwMDAwMCBuIAowMDAwMDAzNDE2IDAwMDAwIG4gCjAwMDAwMDM2NTIgMDAwMDAgbiAKMDAwMDAwMzk0MyAwMDAwMCBuIAowMDAwMDA0MDk4IDAwMDAwIG4gCjAwMDAwMDQzMzEgMDAwMDAgbiAKMDAwMDAwNDQ3MyAwMDAwMCBuIAowMDAwMDA0ODY2IDAwMDAwIG4gCjAwMDAwMDUwNzIgMDAwMDAgbiAKMDAwMDAwNTQ4NSAwMDAwMCBuIAowMDAwMDA1ODA5IDAwMDAwIG4gCjAwMDAwMDg4MDUgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAzOCAvUm9vdCAxIDAgUiAvSW5mbyAzNyAwIFIgPj4Kc3RhcnR4cmVmCjg5NjIKJSVFT0YK",
+      "text/plain": [
+       "<Figure size 2700x1800 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "application/pdf": "JVBERi0xLjQKJazcIKu6CjEgMCBvYmoKPDwgL1R5cGUgL0NhdGFsb2cgL1BhZ2VzIDIgMCBSID4+CmVuZG9iago4IDAgb2JqCjw8IC9Gb250IDMgMCBSIC9YT2JqZWN0IDcgMCBSIC9FeHRHU3RhdGUgNCAwIFIgL1BhdHRlcm4gNSAwIFIKL1NoYWRpbmcgNiAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0gPj4KZW5kb2JqCjExIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL1Jlc291cmNlcyA4IDAgUgovTWVkaWFCb3ggWyAwIDAgNTU5IDE5NS45NDM3NSBdIC9Db250ZW50cyA5IDAgUiAvQW5ub3RzIDEwIDAgUiA+PgplbmRvYmoKOSAwIG9iago8PCAvTGVuZ3RoIDEyIDAgUiAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJzNV01vHDcMvetX6JgcoiVFUqSOdZIaDdCDkwVyCHooXMeJYSeIE8Q/tX+nHO3sjsb7MQ1yaA/rXb2h+PiooUivXlx9/3h59fr8LD5/E1bT6vJrwHjjn+sI8cY/DxHjuX+uA/jqLohU/75t31glVSYVX8Ns9SGE92H1i2/76tbngWsqkTRJez54wWQTcDsCaJZ0RNqWHhh95o3Pa4/J4/NNDwPDgATNibNmpZ6qAznB6CucucSH8MX/QnzmscdSU2YVkzyY5pyqxMu7cLYOq18xIsT1+5aB9V/hXXyCT+Mfcf0qvFyHi9CCCOichQ0k9+w9eooe/SkXo8LMhov8eZ8/Q05WzAh7/h49yV893VaRqbj1Ij8d4C+WwGqZ00/gKfZcOFWoNWdz40V23mcnokQIVHv2DjzFTgQJCRQyIvAiuxxgr5aEEMucvkNP8nvhkKCfOxHmRf6yz8+FkgpWtp6/R0/xc4EkmnMBr8K6yK/7/JItVR2qbFbkHXqKX7IkreTnpIPtEr/1/P1LpDV5DrNEL2VtP447+e3b1f2f3z5+/nQgme3iQUpSq/EmkQl75OArzMMu8L1kFbQK6kjvpAkKQ/GAnHyKZrhF1jehJCqZwKvf89PiewLjAxYD2EihZLn9GF1o88DNcAy+bINnv/JYSPMQu86AQ6FraleWS2Niq5W7wKsW2Q98Q2tDcUkf998NR0iU1d/nduKbJz8vlQ5KlZpUSQpvpU5Ak9qMlFIl1Gxbowk4lg9vB6x+jGCotpiP8r/Jh3kPBr9GZSt1AqZ81OIFgkVoazQBk5FLSYwGtktth3RmRb2/FsxlZzYhx7KLfjNxEe/udZ7ew3WS/4P0dpX1Jc7HF/Ge6hp8Ysnx/iq+jZ9GfU3eOG5sRg6WZGKMtQCg64yr3yG++LyzLpJyBlXvfODjj/crNa7AJmKL5s8Ge/DIFVwk/Qv3vmTwniwquuze81rEF4WFO+uLcBGXUxJzfBUxiY9n8/GyG8jG7OT5nLRDb/vppUd3Q0UHTr2+B6cO3KHhzY8q2CTo9fkjKb17H9+wsOq8707wbd8Oe9ijgYGoUdwPY+3DbtG9VzuuIRt58tD8tcPB40cJP2SxOeBBPexG7Lnwx+P83qzuoh6N+HcHRny3WvzHYGsz7Tvi6SL8AzV9l3UKZW5kc3RyZWFtCmVuZG9iagoxMiAwIG9iago4NzUKZW5kb2JqCjEwIDAgb2JqClsgXQplbmRvYmoKMTkgMCBvYmoKPDwgL0xlbmd0aCA1MSAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJwzsjRVMFCwtAAShpbmCuZGlgophlxAPoiVywUTywGzDIA0WGkOTEUOVwZXGgC/jA1WCmVuZHN0cmVhbQplbmRvYmoKMjAgMCBvYmoKPDwgL0xlbmd0aCAzMDcgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicPZJLbgMxDEP3PoUuEMD62Z7zpCi6mN5/2ycl6Yoc2RZFapa6TFlTHpA0k4R/6fBwsZ3yO2zPZmbgWqKXieWU59AVYu6ifNnMRl1ZJ8XqhGY6t+hRORcHNk2qn6sspd0ueA7XJp5b9hE/vNCgHtQ1Lgk3dFejZSk0Y6r7f9J7/Iwy4GpMXWxSq3sfPF5EVejoB0eJImOXF+fjQQnpSsJoWoiVd0UDQe7ytMp7Ce7b3mrIsgepmM47KWaw63RSLm4XhyEeyPKo8OWj2GtCz/iwKyX0SNiGM3In7mjG5tTI4pD+3o0ES4+uaCHz4K9u1i5gvFM6RWJkTnKsaYtVTvdQFNO5w70MEPVsRUMpc5HV6l/DzgtrlmwWeEr6BR6j3SZLDlbZ26hO76082dD3H1rXdB8KZW5kc3RyZWFtCmVuZG9iagoyMSAwIG9iago8PCAvTGVuZ3RoIDI0OSAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJw9UDuORCEM6zmFL/Ak8iNwHkarLWbv364DmilQTH62MyTQEYFHDDGUr+MlraCugb+LQvFu4uuDwiCrQ1IgznoPiHTspjaREzodnDM/YTdjjsBFMQac6XSmPQcmOfvCCoRzG2XsVkgniaoijuozjimeKnufeBYs7cg2WyeSPeQg4VJSicmln5TKP23KlAo6ZtEELBK54GQTTTjLu0lSjBmUMuoepnYifaw8yKM66GRNzqwjmdnTT9uZ+Bxwt1/aZE6Vx3QezPictM6DORW69+OJNgdNjdro7PcTaSovUrsdWp1+dRKV3RjnGBKXZ38Z32T/+Qf+h1oiCmVuZHN0cmVhbQplbmRvYmoKMjIgMCBvYmoKPDwgL0xlbmd0aCAzOTUgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicPVJLbsVACNvnFFyg0vCbz3lSVd28+29rQ1KpKryJMcYwfcqQueVLXRJxhcm3Xq5bPKZ8LltamXmIu4uNJT623JfuIbZddC6xOB1H8gsynSpEqM2q0aH4QpaFB5BO8KELwn05/uMvgMHXsA244T0yQbAk5ilCxm5RGZoSQRFh55EVqKRQn1nC31Hu6/cyBWpvjKULYxz0CbQFQm1IxALqQABE7JRUrZCOZyQTvxXdZ2IcYOfRsgGuGVRElnvsx4ipzqiMvETEPk9N+iiWTC1Wxm5TGV/8lIzUfHQFKqk08pTy0FWz0AtYiXkS9jn8SPjn1mwhhjpu1vKJ5R8zxTISzmBLOWChl+NH4NtZdRGuHbm4znSBH5XWcEy0637I9U/+dNtazXW8cgiiQOVNQfC7Dq5GscTEMj6djSl6oiywGpq8RjPBYRAR1vfDyAMa/XK8EDSnayK0WCKbtWJEjYpscz29BNZM78U51sMTwmzvndahsjMzKiGC2rqGautAdrO+83C2nz8z6KJtCmVuZHN0cmVhbQplbmRvYmoKMjMgMCBvYmoKPDwgL0xlbmd0aCAyNDkgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicTVFJigMwDLvnFfpAIV6TvKdDmUPn/9fKDoU5BAmvkpOWmFgLDzGEHyw9+JEhczf9G36i2btZepLJ2f+Y5yJTUfhSqC5iQl2IG8+hEfA9oWsSWbG98Tkso5lzvgcfhbgEM6EBY31JMrmo5pUhE04MdRwOWqTCuGtiw+Ja0TyN3G77RmZlJoQNj2RC3BiAiCDrArIYLJQ2NhMyWc4D7Q3JDVpg16kbUYuCK5TWCXSiVsSqzOCz5tZ2N0Mt8uCoffH6aFaXYIXRS/VYeF+FPpipmXbukkJ64U07IsweCqQyOy0rtXvE6m6B+j/LUvD9yff4Ha8PzfxcnAplbmRzdHJlYW0KZW5kb2JqCjI0IDAgb2JqCjw8IC9MZW5ndGggOTQgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicRY3BEcAgCAT/VEEJCgraTyaTh/b/jRAyfGDnDu6EBQu2eUYfBZUmXhVYB0pj3FCPQL3hci3J3AUPcCd/2tBUnJbTd2mRSVUp3KQSef8OZyaQqHnRY533C2P7IzwKZW5kc3RyZWFtCmVuZG9iagoyNSAwIG9iago8PCAvTGVuZ3RoIDcyIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDMyt1AwULA0ARKGFiYK5mYGCimGXEC+qYm5Qi4XSAzEygGzDIC0JZyCiGeAmCBtEMUgFkSxmYkZRB2cAZHL4EoDACXbFskKZW5kc3RyZWFtCmVuZG9iagoyNiAwIG9iago8PCAvTGVuZ3RoIDkzIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDWNuw3AMAhEe6ZgBDDGmH2iKIWzfxswTnd695sykZDFUBiNGNUHXgxbBn2h2wxPcG3mFGJ0yfiCzo5NNRS7FsqpHZJBp5cotyqVB9UUa2es2P+54IH7A8L5HZgKZW5kc3RyZWFtCmVuZG9iagoyNyAwIG9iago8PCAvTGVuZ3RoIDE2MyAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxFkDsSAyEMQ3tOoSP4IwM+z2YyKTb3b2PYbFLA01ggg7sTgtTagonogoe2Jd0F760EZ2P86TZuNRLkBHWAVqTjaJRSfbnFaZV08Wg2cysLrRMdZg56lKMZoBA6Fd7touRypu7O+UNw9V/1v2LdOZuJgcnKHQjN6lPc+TY7orq6yf6kx9ys134r7FVhaVlLywm3nbtmQAncUznaqz0/Hwo69gplbmRzdHJlYW0KZW5kb2JqCjI4IDAgb2JqCjw8IC9MZW5ndGggMjE4IC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nD1QuY0EMQzLXYUaWMB67alnFotLpv/0SPn2ItEWRVIqNZmSKS91lCVZU946fJbEDnmG5W5kNiUqRS+TsCX30ArxfYnmFPfd1ZazQzSXaDl+CzMqqhsd00s2mnAqE7qg3MMz+g1tdANWhx6xWyDQpGDXtiByxw8YDMGZE4siDEpNBv+uco+fXosbPsPxQxSRkg7mNf9Y/fJzDa9TjyeRbm++4l6cqQ4DERySmrwjXVixLhIRaTVBTc/AWi2Au7de/hu0I7oMQPaJxHGaUo6hv2twpc8v5SdT2AplbmRzdHJlYW0KZW5kb2JqCjI5IDAgb2JqCjw8IC9MZW5ndGggODMgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicRYy7DcAwCER7pmAEfib2PlGUwt6/DRAlbrgn3T1cHQmZKW4zw0MGngwshl1xgfSWMAtcR1COneyjYdW+6gSN9aZS8+8PlJ7srOKG6wECQhpmCmVuZHN0cmVhbQplbmRvYmoKMzAgMCBvYmoKPDwgL0xlbmd0aCAxNjAgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicRZA5EgMxCARzvYInSFyC96zLtcH6/6kH1kei6QI0HLoWTcp6FGg+6bFGobrQa+gsSpJEwRaSHVCnY4g7KEhMSGOSSLYegyOaWLNdmJlUKrNS4bRpxcK/2VrVyESNcI38iekGVPxP6lyU8E2Dr5Ix+hhUvDuDjEn4XkXcWjHt/kQwsRn2CW9FJgWEibGp2b7PYIbM9wrXOMfzDUyCN+sKZW5kc3RyZWFtCmVuZG9iagozMSAwIG9iago8PCAvTGVuZ3RoIDcwIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDMzNlMwULAwAhKmpoYK5kaWCimGXEA+iJXLBRPLAbPMLMyBLCMLkJYcLkMLYzBtYmykYGZiBmRZIDEgujK40gCYmhMDCmVuZHN0cmVhbQplbmRvYmoKMzIgMCBvYmoKPDwgL0xlbmd0aCAzMjAgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicNVJLbgUxCNvPKbhApfBPzvOqqou++29rE70VTDBg4ykvWdJLvtQl26XD5Fsf9yWxQt6P7ZrMUsX3FrMUzy2vR88Rty0KBFETPViZLxUi1M/06DqocEqfgVcItxQbvINJAINq+AcepTMgUOdAxrtiMlIDgiTYc2lxCIlyJol/pLye3yetpKH0PVmZy9+TS6XQHU1O6AHFysVJoF1J+aCZmEpEkpfrfbFC9IbAkjw+RzHJgOw2iW2iBSbnHqUlzMQUOrDHArxmmtVV6GDCHocpjFcLs6gebPJbE5WkHa3jGdkw3sswU2Kh4bAF1OZiZYLu5eM1r8KI7VGTXcNw7pbNdwjRaP4bFsrgYxWSgEensRINaTjAiMCeXjjFXvMTOQ7AiGOdmiwMY2gmp3qOicDQnrOlYcbHHlr18w9U6XyHCmVuZHN0cmVhbQplbmRvYmoKMzMgMCBvYmoKPDwgL0xlbmd0aCAxMzMgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicRY9LDgQhCET3nKKOwMcf53Ey6YVz/+2AnW4TYz2FVIG5gqE9LmsDnRUfIRm28beplo5FWT5UelJWD8ngh6zGyyHcoCzwgkkqhiFQi5gakS1lbreA2zYNsrKVU6WOsIujMI/2tGwVHl+iWyJ1kj+DxCov3OO6Hcil1rveoou+f6QBMQkKZW5kc3RyZWFtCmVuZG9iagozNCAwIG9iago8PCAvTGVuZ3RoIDM0MCAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJw1UjluBDEM6/0KfSCAbtvv2SBIkfy/DanZFANxdFKUO1pUdsuHhVS17HT5tJXaEjfkd2WFxAnJqxLtUoZIqLxWIdXvmTKvtzVnBMhSpcLkpORxyYI/w6WnC8f5trGv5cgdjx5YFSOhRMAyxcToGpbO7rBmW36WacCPeIScK9Ytx1gFUhvdOO2K96F5LbIGiL2ZlooKHVaJFn5B8aBHjX32GFRYINHtHElwjIlQkYB2gdpIDDl7LHZRH/QzKDET6NobRdxBgSWSmDnFunT03/jQsaD+2Iw3vzoq6VtaWWPSPhvtlMYsMul6WPR089bHgws076L859UMEjRljZLGB63aOYaimVFWeLdDkw3NMcch8w6ewxkJSvo8FL+PJRMdlMjfDg2hf18eo4ycNt4C5qI/bRUHDuKzw165gRVKF2uS9wGpTOiB6f+v8bW+19cfHe2AxgplbmRzdHJlYW0KZW5kb2JqCjM1IDAgb2JqCjw8IC9MZW5ndGggMjUxIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nC1RSXIDQQi7zyv0hGan32OXK4fk/9cIygcGDYtAdFrioIyfICxXvOWRq2jD3zMxgt8Fh34r121Y5EBUIEljUDWhdvF69B7YcZgJzJPWsAxmrA/8jCnc6MXhMRlnt9dl1BDsXa89mUHJrFzEJRMXTNVhI2cOP5kyLrRzPTcg50ZYl2GQblYaMxKONIVIIYWqm6TOBEESjK5GjTZyFPulL490hlWNqDHscy1tX89NOGvQ7Fis8uSUHl1xLicXL6wc9PU2AxdRaazyQEjA/W4P9XOyk994S+fOFtPje83J8sJUYMWb125ANtXi37yI4/uMr+fn+fwDX2BbiAplbmRzdHJlYW0KZW5kb2JqCjM2IDAgb2JqCjw8IC9MZW5ndGggMjE1IC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDVROQ4DIQzs9xX+QCSML3hPoijN/r/NjNFWHsFchrSUIZnyUpOoIeVTPnqZLpy63NfMajTnlrQtc4C4trwvrZLAiWaIg8FpmLgBmjwBQ9fRqFFDFx7Q1KVTKLDcBD6Kt24P3WO1gZe2IeeJIGIoGSxBzalFExZtzyekNb9eixvel+3dyFOlxpYYgQYBVjgc1+jX8JU9TybRdBUy1Ks1yxgJE0UiPPmOptUT61o00jIS1MYRrGoDvDv9ME4AABNxywJkn0qUs+TEb7H0swZX+v4Bn0dUlgplbmRzdHJlYW0KZW5kb2JqCjE3IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9CYXNlRm9udCAvQk1RUURWK0RlamFWdVNhbnMgL0ZpcnN0Q2hhciAwIC9MYXN0Q2hhciAyNTUKL0ZvbnREZXNjcmlwdG9yIDE2IDAgUiAvU3VidHlwZSAvVHlwZTMgL05hbWUgL0JNUVFEVitEZWphVnVTYW5zCi9Gb250QkJveCBbIC0xMDIxIC00NjMgMTc5NCAxMjMzIF0gL0ZvbnRNYXRyaXggWyAwLjAwMSAwIDAgMC4wMDEgMCAwIF0KL0NoYXJQcm9jcyAxOCAwIFIKL0VuY29kaW5nIDw8IC9UeXBlIC9FbmNvZGluZwovRGlmZmVyZW5jZXMgWyA0OCAvemVybyAvb25lIC90d28gL3RocmVlIC9mb3VyIC9maXZlIC9zaXggL3NldmVuIC9laWdodCA3MyAvSSA5NyAvYSAxMDEKL2UgMTA1IC9pIDExMCAvbiAvbyAxMTQgL3IgMTE2IC90IDIxNSAvbXVsdGlwbHkgXQo+PgovV2lkdGhzIDE1IDAgUiA+PgplbmRvYmoKMTYgMCBvYmoKPDwgL1R5cGUgL0ZvbnREZXNjcmlwdG9yIC9Gb250TmFtZSAvQk1RUURWK0RlamFWdVNhbnMgL0ZsYWdzIDMyCi9Gb250QkJveCBbIC0xMDIxIC00NjMgMTc5NCAxMjMzIF0gL0FzY2VudCA5MjkgL0Rlc2NlbnQgLTIzNiAvQ2FwSGVpZ2h0IDAKL1hIZWlnaHQgMCAvSXRhbGljQW5nbGUgMCAvU3RlbVYgMCAvTWF4V2lkdGggMTM0MiA+PgplbmRvYmoKMTUgMCBvYmoKWyA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMAo2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDMxOCA0MDEgNDYwIDgzOCA2MzYKOTUwIDc4MCAyNzUgMzkwIDM5MCA1MDAgODM4IDMxOCAzNjEgMzE4IDMzNyA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2CjYzNiA2MzYgMzM3IDMzNyA4MzggODM4IDgzOCA1MzEgMTAwMCA2ODQgNjg2IDY5OCA3NzAgNjMyIDU3NSA3NzUgNzUyIDI5NQoyOTUgNjU2IDU1NyA4NjMgNzQ4IDc4NyA2MDMgNzg3IDY5NSA2MzUgNjExIDczMiA2ODQgOTg5IDY4NSA2MTEgNjg1IDM5MCAzMzcKMzkwIDgzOCA1MDAgNTAwIDYxMyA2MzUgNTUwIDYzNSA2MTUgMzUyIDYzNSA2MzQgMjc4IDI3OCA1NzkgMjc4IDk3NCA2MzQgNjEyCjYzNSA2MzUgNDExIDUyMSAzOTIgNjM0IDU5MiA4MTggNTkyIDU5MiA1MjUgNjM2IDMzNyA2MzYgODM4IDYwMCA2MzYgNjAwIDMxOAozNTIgNTE4IDEwMDAgNTAwIDUwMCA1MDAgMTM0MiA2MzUgNDAwIDEwNzAgNjAwIDY4NSA2MDAgNjAwIDMxOCAzMTggNTE4IDUxOAo1OTAgNTAwIDEwMDAgNTAwIDEwMDAgNTIxIDQwMCAxMDIzIDYwMCA1MjUgNjExIDMxOCA0MDEgNjM2IDYzNiA2MzYgNjM2IDMzNwo1MDAgNTAwIDEwMDAgNDcxIDYxMiA4MzggMzYxIDEwMDAgNTAwIDUwMCA4MzggNDAxIDQwMSA1MDAgNjM2IDYzNiAzMTggNTAwCjQwMSA0NzEgNjEyIDk2OSA5NjkgOTY5IDUzMSA2ODQgNjg0IDY4NCA2ODQgNjg0IDY4NCA5NzQgNjk4IDYzMiA2MzIgNjMyIDYzMgoyOTUgMjk1IDI5NSAyOTUgNzc1IDc0OCA3ODcgNzg3IDc4NyA3ODcgNzg3IDgzOCA3ODcgNzMyIDczMiA3MzIgNzMyIDYxMSA2MDUKNjMwIDYxMyA2MTMgNjEzIDYxMyA2MTMgNjEzIDk4MiA1NTAgNjE1IDYxNSA2MTUgNjE1IDI3OCAyNzggMjc4IDI3OCA2MTIgNjM0CjYxMiA2MTIgNjEyIDYxMiA2MTIgODM4IDYxMiA2MzQgNjM0IDYzNCA2MzQgNTkyIDYzNSA1OTIgXQplbmRvYmoKMTggMCBvYmoKPDwgL0kgMTkgMCBSIC9hIDIwIDAgUiAvZSAyMSAwIFIgL2VpZ2h0IDIyIDAgUiAvZml2ZSAyMyAwIFIgL2ZvdXIgMjQgMCBSCi9pIDI1IDAgUiAvbXVsdGlwbHkgMjYgMCBSIC9uIDI3IDAgUiAvbyAyOCAwIFIgL29uZSAyOSAwIFIgL3IgMzAgMCBSCi9zZXZlbiAzMSAwIFIgL3NpeCAzMiAwIFIgL3QgMzMgMCBSIC90aHJlZSAzNCAwIFIgL3R3byAzNSAwIFIgL3plcm8gMzYgMCBSCj4+CmVuZG9iagozIDAgb2JqCjw8IC9GMSAxNyAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0ExIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDAgL2NhIDEgPj4KL0EyIDw8IC9UeXBlIC9FeHRHU3RhdGUgL0NBIDEgL2NhIDEgPj4gPj4KZW5kb2JqCjUgMCBvYmoKPDwgPj4KZW5kb2JqCjYgMCBvYmoKPDwgPj4KZW5kb2JqCjcgMCBvYmoKPDwgL00wIDEzIDAgUiAvTTEgMTQgMCBSID4+CmVuZG9iagoxMyAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8IC9UeXBlIC9YT2JqZWN0IC9TdWJ0eXBlIC9Gb3JtIC9CQm94IFsgLTggLTggOCA4IF0gL0xlbmd0aCAxMzEKL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicbZBBDoQgDEX3PUUv8ElLRWXr0mu4mUzi/bcDcUBM3TTQvjx+Uf6S8E6lwPgkCUtOs+R605DSukyMGObVsijHoFEt1s51OKjP0HBjdIuxFKbU1uh4o5vpNt6TP/qwWSFGPxwOr4R7FkMmXCkxBoffCy/bw/8Rnl7UwB+ijX5jWkP9CmVuZHN0cmVhbQplbmRvYmoKMiAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAxMSAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKMzcgMCBvYmoKPDwgL0NyZWF0b3IgKE1hdHBsb3RsaWIgdjMuOC4yLCBodHRwczovL21hdHBsb3RsaWIub3JnKQovUHJvZHVjZXIgKE1hdHBsb3RsaWIgcGRmIGJhY2tlbmQgdjMuOC4yKQovQ3JlYXRpb25EYXRlIChEOjIwMjQwNzE2MTQyNzExKzAyJzAwJykgPj4KZW5kb2JqCnhyZWYKMCAzOAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAwODc0NSAwMDAwMCBuIAowMDAwMDA4MDIxIDAwMDAwIG4gCjAwMDAwMDgwNTMgMDAwMDAgbiAKMDAwMDAwODE1MiAwMDAwMCBuIAowMDAwMDA4MTczIDAwMDAwIG4gCjAwMDAwMDgxOTQgMDAwMDAgbiAKMDAwMDAwMDA2NSAwMDAwMCBuIAowMDAwMDAwMzM2IDAwMDAwIG4gCjAwMDAwMDEzMDYgMDAwMDAgbiAKMDAwMDAwMDIwOCAwMDAwMCBuIAowMDAwMDAxMjg2IDAwMDAwIG4gCjAwMDAwMDgyMzcgMDAwMDAgbiAKMDAwMDAwODQ5MSAwMDAwMCBuIAowMDAwMDA2NzMyIDAwMDAwIG4gCjAwMDAwMDY1MjUgMDAwMDAgbiAKMDAwMDAwNjA5NyAwMDAwMCBuIAowMDAwMDA3Nzg1IDAwMDAwIG4gCjAwMDAwMDEzMjYgMDAwMDAgbiAKMDAwMDAwMTQ0OSAwMDAwMCBuIAowMDAwMDAxODI5IDAwMDAwIG4gCjAwMDAwMDIxNTEgMDAwMDAgbiAKMDAwMDAwMjYxOSAwMDAwMCBuIAowMDAwMDAyOTQxIDAwMDAwIG4gCjAwMDAwMDMxMDcgMDAwMDAgbiAKMDAwMDAwMzI1MSAwMDAwMCBuIAowMDAwMDAzNDE2IDAwMDAwIG4gCjAwMDAwMDM2NTIgMDAwMDAgbiAKMDAwMDAwMzk0MyAwMDAwMCBuIAowMDAwMDA0MDk4IDAwMDAwIG4gCjAwMDAwMDQzMzEgMDAwMDAgbiAKMDAwMDAwNDQ3MyAwMDAwMCBuIAowMDAwMDA0ODY2IDAwMDAwIG4gCjAwMDAwMDUwNzIgMDAwMDAgbiAKMDAwMDAwNTQ4NSAwMDAwMCBuIAowMDAwMDA1ODA5IDAwMDAwIG4gCjAwMDAwMDg4MDUgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAzOCAvUm9vdCAxIDAgUiAvSW5mbyAzNyAwIFIgPj4Kc3RhcnR4cmVmCjg5NjIKJSVFT0YK",
+      "text/plain": [
+       "<Figure size 2700x1800 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "spot_tuner.plot_progress(log_y=True)\n",
+    "spot_tuner_1.plot_progress(log_y=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3a046f24",
+   "metadata": {},
+   "source": [
+    "Finally, the tuned hyperparameters can be obtained as a dictionary from the reloaded experiment with the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "ae734742",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'l1': 6.0,\n",
+       " 'epochs': 5.0,\n",
+       " 'batch_size': 4.0,\n",
+       " 'act_fn': 'LeakyReLU',\n",
+       " 'optimizer': 'Adam',\n",
+       " 'dropout_prob': 0.02091150165834337,\n",
+       " 'lr_mult': 0.3710386309754268,\n",
+       " 'patience': 3.0,\n",
+       " 'initialization': 'Default'}"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "get_tuned_hyperparameters(spot_tuner_1, fun_control_1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "866bff1e",
+   "metadata": {},
+   "source": [
+    "::: {.callout-note}\n",
+    "### Summary: Saving and Loading Hyperparameter-Tuning Experiments\n",
+    "* If `spotPython` is used as an hyperparameter tuner (with an hyperparameter dictionary), experiments can be saved and reloaded with the `save_experiment` and `load_experiment` functions.\n",
+    "* The tuned hyperparameters can be obtained with the `get_tuned_hyperparameters` function.\n",
+    ":::\n",
+    "\n",
+    "\n",
+    "## Saving and Loading PyTorch Lightning Models {#sec-saving-and-loading-pytorch-lightning-models-37}\n",
+    "\n",
+    "@sec-spotpython-saving-and-loading  and @sec-spotpython-as-a-hyperparameter-tuner-37 explained how to save and load optimization and hyperparameter tuning experiments and how to get the tuned hyperparameters as a dictionary.\n",
+    "This section shows how to save and load `PyTorch Lightning` models.\n",
+    "\n",
+    "\n",
+    "### Get the Tuned Architecture {#sec-get-spot-results-31}\n",
+    "\n",
+    "In contrast to the function `get_tuned_hyperparameters`, the function `get_tuned_architecture` returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model. The `config` dictionary can be passed to the model without any modifications.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "7f4c18b4",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{'act_fn': LeakyReLU(),\n",
+      " 'batch_size': 16,\n",
+      " 'dropout_prob': 0.02091150165834337,\n",
+      " 'epochs': 32,\n",
+      " 'initialization': 'Default',\n",
+      " 'l1': 64,\n",
+      " 'lr_mult': 0.3710386309754268,\n",
+      " 'optimizer': 'Adam',\n",
+      " 'patience': 8}\n"
+     ]
+    }
+   ],
+   "source": [
+    "from spotPython.hyperparameters.values import get_tuned_architecture\n",
+    "config = get_tuned_architecture(spot_tuner, fun_control)\n",
+    "pprint.pprint(config)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d86e2d40",
+   "metadata": {},
+   "source": [
+    "After getting the tuned architecture, the model can be created and tested with the following code.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "9d1e4120",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/utilities/parsing.py:198: Attribute 'act_fn' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['act_fn'])`.\n",
+      "GPU available: True (mps), used: True\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "TPU available: False, using: 0 TPU cores\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "IPU available: False, using: 0 IPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "HPU available: False, using: 0 HPUs\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "  | Name   | Type       | Params | In sizes | Out sizes\n",
+      "-------------------------------------------------------------\n",
+      "0 | layers | Sequential | 4.4 K  | [16, 10] | [16, 1]  \n",
+      "-------------------------------------------------------------\n",
+      "4.4 K     Trainable params\n",
+      "0         Non-trainable params\n",
+      "4.4 K     Total params\n",
+      "0.018     Total estimated model params size (MB)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.FITTING\n",
+      "train_size: 0.36, val_size: 0.24 used for train & val data.\n",
+      "LightDataModule.val_dataloader(). Val. set size: 106\n",
+      "LightDataModule.train_dataloader(). data_train size: 160\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n",
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/loops/fit_loop.py:293: The number of training batches (10) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Restoring states from the checkpoint path at /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/runs/saved_models/64_32_16_LeakyReLU_Adam_0.0209_0.371_8_Default_TEST/last.ckpt\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Loaded model weights from the checkpoint at /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/runs/saved_models/64_32_16_LeakyReLU_Adam_0.0209_0.371_8_Default_TEST/last.ckpt\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "LightDataModule.setup(): stage: TrainerFn.TESTING\n",
+      "test_size: 0.4 used for test dataset.\n",
+      "LightDataModule.test_dataloader(). Test set size: 177\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/bartz/miniforge3/envs/spotCondaEnv/lib/python3.11/site-packages/lightning/pytorch/trainer/connectors/data_connector.py:441: The 'test_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=15` in the `DataLoader` to improve performance.\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃<span style=\"font-weight: bold\">        Test metric        </span>┃<span style=\"font-weight: bold\">       DataLoader 0        </span>┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         hp_metric         </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      5133.494140625       </span>│\n",
+       "│<span style=\"color: #008080; text-decoration-color: #008080\">         val_loss          </span>│<span style=\"color: #800080; text-decoration-color: #800080\">      5133.494140625       </span>│\n",
+       "└───────────────────────────┴───────────────────────────┘\n",
+       "</pre>\n"
+      ],
+      "text/plain": [
+       "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n",
+       "┃\u001b[1m \u001b[0m\u001b[1m       Test metric       \u001b[0m\u001b[1m \u001b[0m┃\u001b[1m \u001b[0m\u001b[1m      DataLoader 0       \u001b[0m\u001b[1m \u001b[0m┃\n",
+       "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        hp_metric        \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     5133.494140625      \u001b[0m\u001b[35m \u001b[0m│\n",
+       "│\u001b[36m \u001b[0m\u001b[36m        val_loss         \u001b[0m\u001b[36m \u001b[0m│\u001b[35m \u001b[0m\u001b[35m     5133.494140625      \u001b[0m\u001b[35m \u001b[0m│\n",
+       "└───────────────────────────┴───────────────────────────┘\n"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "test_model result: {'val_loss': 5133.494140625, 'hp_metric': 5133.494140625}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(5133.494140625, 5133.494140625)"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "from spotPython.light.testmodel import test_model\n",
+    "test_model(config, fun_control)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5c949970",
+   "metadata": {},
+   "source": [
+    "### Load a Model from Checkpoint\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "6703559c",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "config: {'l1': 64, 'epochs': 32, 'batch_size': 16, 'act_fn': LeakyReLU(), 'optimizer': 'Adam', 'dropout_prob': 0.02091150165834337, 'lr_mult': 0.3710386309754268, 'patience': 8, 'initialization': 'Default'}\n",
+      "Loading model with 64_32_16_LeakyReLU_Adam_0.0209_0.371_8_Default_TEST from runs/saved_models/64_32_16_LeakyReLU_Adam_0.0209_0.371_8_Default_TEST/last.ckpt\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Model: NetLightRegression(\n",
+      "  (layers): Sequential(\n",
+      "    (0): Linear(in_features=10, out_features=64, bias=True)\n",
+      "    (1): LeakyReLU()\n",
+      "    (2): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (3): Linear(in_features=64, out_features=32, bias=True)\n",
+      "    (4): LeakyReLU()\n",
+      "    (5): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (6): Linear(in_features=32, out_features=32, bias=True)\n",
+      "    (7): LeakyReLU()\n",
+      "    (8): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (9): Linear(in_features=32, out_features=16, bias=True)\n",
+      "    (10): LeakyReLU()\n",
+      "    (11): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (12): Linear(in_features=16, out_features=1, bias=True)\n",
+      "  )\n",
+      ")\n"
+     ]
+    }
+   ],
+   "source": [
+    "from spotPython.light.loadmodel import load_light_from_checkpoint\n",
+    "model_loaded = load_light_from_checkpoint(config, fun_control)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "2ccc150e",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'training': False,\n",
+       " '_parameters': OrderedDict(),\n",
+       " '_buffers': OrderedDict(),\n",
+       " '_non_persistent_buffers_set': set(),\n",
+       " '_backward_pre_hooks': OrderedDict(),\n",
+       " '_backward_hooks': OrderedDict(),\n",
+       " '_is_full_backward_hook': None,\n",
+       " '_forward_hooks': OrderedDict(),\n",
+       " '_forward_hooks_with_kwargs': OrderedDict(),\n",
+       " '_forward_hooks_always_called': OrderedDict(),\n",
+       " '_forward_pre_hooks': OrderedDict(),\n",
+       " '_forward_pre_hooks_with_kwargs': OrderedDict(),\n",
+       " '_state_dict_hooks': OrderedDict(),\n",
+       " '_state_dict_pre_hooks': OrderedDict(),\n",
+       " '_load_state_dict_pre_hooks': OrderedDict(),\n",
+       " '_load_state_dict_post_hooks': OrderedDict(),\n",
+       " '_modules': OrderedDict([('layers',\n",
+       "               Sequential(\n",
+       "                 (0): Linear(in_features=10, out_features=64, bias=True)\n",
+       "                 (1): LeakyReLU()\n",
+       "                 (2): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (3): Linear(in_features=64, out_features=32, bias=True)\n",
+       "                 (4): LeakyReLU()\n",
+       "                 (5): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (6): Linear(in_features=32, out_features=32, bias=True)\n",
+       "                 (7): LeakyReLU()\n",
+       "                 (8): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (9): Linear(in_features=32, out_features=16, bias=True)\n",
+       "                 (10): LeakyReLU()\n",
+       "                 (11): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (12): Linear(in_features=16, out_features=1, bias=True)\n",
+       "               ))]),\n",
+       " 'prepare_data_per_node': True,\n",
+       " 'allow_zero_length_dataloader_with_multiple_devices': False,\n",
+       " '_log_hyperparams': True,\n",
+       " '_dtype': torch.float32,\n",
+       " '_device': device(type='mps', index=0),\n",
+       " '_trainer': None,\n",
+       " '_example_input_array': tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]),\n",
+       " '_current_fx_name': None,\n",
+       " '_automatic_optimization': True,\n",
+       " '_param_requires_grad_state': {},\n",
+       " '_metric_attributes': None,\n",
+       " '_compiler_ctx': None,\n",
+       " '_fabric': None,\n",
+       " '_fabric_optimizers': [],\n",
+       " '_L_in': 10,\n",
+       " '_L_out': 1,\n",
+       " '_torchmetric': 'mean_squared_error',\n",
+       " 'metric': <function torchmetrics.functional.regression.mse.mean_squared_error(preds: torch.Tensor, target: torch.Tensor, squared: bool = True, num_outputs: int = 1) -> torch.Tensor>,\n",
+       " '_hparams_name': 'kwargs',\n",
+       " '_hparams': \"act_fn\":         LeakyReLU()\n",
+       " \"batch_size\":     16\n",
+       " \"dropout_prob\":   0.02091150165834337\n",
+       " \"epochs\":         32\n",
+       " \"initialization\": Default\n",
+       " \"l1\":             64\n",
+       " \"lr_mult\":        0.3710386309754268\n",
+       " \"optimizer\":      Adam\n",
+       " \"patience\":       8,\n",
+       " '_hparams_initial': \"act_fn\":         LeakyReLU()\n",
+       " \"batch_size\":     16\n",
+       " \"dropout_prob\":   0.02091150165834337\n",
+       " \"epochs\":         32\n",
+       " \"initialization\": Default\n",
+       " \"l1\":             64\n",
+       " \"lr_mult\":        0.3710386309754268\n",
+       " \"optimizer\":      Adam\n",
+       " \"patience\":       8}"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "vars(model_loaded)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "95ed9b0a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import torch\n",
+    "torch.save(model_loaded, \"model.pt\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "d653fe87",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mymodel = torch.load(\"model.pt\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "c7548028",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'training': False,\n",
+       " '_parameters': OrderedDict(),\n",
+       " '_buffers': OrderedDict(),\n",
+       " '_non_persistent_buffers_set': set(),\n",
+       " '_backward_pre_hooks': OrderedDict(),\n",
+       " '_backward_hooks': OrderedDict(),\n",
+       " '_is_full_backward_hook': None,\n",
+       " '_forward_hooks': OrderedDict(),\n",
+       " '_forward_hooks_with_kwargs': OrderedDict(),\n",
+       " '_forward_hooks_always_called': OrderedDict(),\n",
+       " '_forward_pre_hooks': OrderedDict(),\n",
+       " '_forward_pre_hooks_with_kwargs': OrderedDict(),\n",
+       " '_state_dict_hooks': OrderedDict(),\n",
+       " '_state_dict_pre_hooks': OrderedDict(),\n",
+       " '_load_state_dict_pre_hooks': OrderedDict(),\n",
+       " '_load_state_dict_post_hooks': OrderedDict(),\n",
+       " '_modules': OrderedDict([('layers',\n",
+       "               Sequential(\n",
+       "                 (0): Linear(in_features=10, out_features=64, bias=True)\n",
+       "                 (1): LeakyReLU()\n",
+       "                 (2): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (3): Linear(in_features=64, out_features=32, bias=True)\n",
+       "                 (4): LeakyReLU()\n",
+       "                 (5): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (6): Linear(in_features=32, out_features=32, bias=True)\n",
+       "                 (7): LeakyReLU()\n",
+       "                 (8): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (9): Linear(in_features=32, out_features=16, bias=True)\n",
+       "                 (10): LeakyReLU()\n",
+       "                 (11): Dropout(p=0.02091150165834337, inplace=False)\n",
+       "                 (12): Linear(in_features=16, out_features=1, bias=True)\n",
+       "               ))]),\n",
+       " 'prepare_data_per_node': True,\n",
+       " 'allow_zero_length_dataloader_with_multiple_devices': False,\n",
+       " '_log_hyperparams': True,\n",
+       " '_dtype': torch.float32,\n",
+       " '_device': device(type='mps', index=0),\n",
+       " '_trainer': None,\n",
+       " '_example_input_array': tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+       "         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]),\n",
+       " '_current_fx_name': None,\n",
+       " '_automatic_optimization': True,\n",
+       " '_param_requires_grad_state': {},\n",
+       " '_metric_attributes': None,\n",
+       " '_compiler_ctx': None,\n",
+       " '_fabric': None,\n",
+       " '_fabric_optimizers': [],\n",
+       " '_L_in': 10,\n",
+       " '_L_out': 1,\n",
+       " '_torchmetric': 'mean_squared_error',\n",
+       " 'metric': <function torchmetrics.functional.regression.mse.mean_squared_error(preds: torch.Tensor, target: torch.Tensor, squared: bool = True, num_outputs: int = 1) -> torch.Tensor>,\n",
+       " '_hparams_name': 'kwargs',\n",
+       " '_hparams': \"act_fn\":         LeakyReLU()\n",
+       " \"batch_size\":     16\n",
+       " \"dropout_prob\":   0.02091150165834337\n",
+       " \"epochs\":         32\n",
+       " \"initialization\": Default\n",
+       " \"l1\":             64\n",
+       " \"lr_mult\":        0.3710386309754268\n",
+       " \"optimizer\":      Adam\n",
+       " \"patience\":       8,\n",
+       " '_hparams_initial': \"act_fn\":         LeakyReLU()\n",
+       " \"batch_size\":     16\n",
+       " \"dropout_prob\":   0.02091150165834337\n",
+       " \"epochs\":         32\n",
+       " \"initialization\": Default\n",
+       " \"l1\":             64\n",
+       " \"lr_mult\":        0.3710386309754268\n",
+       " \"optimizer\":      Adam\n",
+       " \"patience\":       8}"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# show all attributes of the model\n",
+    "vars(mymodel)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "038f33b6",
+   "metadata": {},
+   "source": [
+    "## Converting a Lightning Model to a Plain Torch Model {#sec-converting-a-lightning-model-to-a-plain-torch-model-37}\n",
+    "\n",
+    "### The Function `get_removed_attributes_and_base_net`\n",
+    "\n",
+    "`spotPython` provides a function to covert a `PyTorch Lightning` model to a plain `PyTorch` model. The function `get_removed_attributes_and_base_net` returns a tuple with the removed attributes and the base net. The base net is a plain `PyTorch` model. The removed attributes are the attributes of the `PyTorch Lightning` model that are not part of the base net.\n",
+    "\n",
+    "This conversion can be reverted.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "d5ae3971",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import torch\n",
+    "from spotPython.utils.device import getDevice\n",
+    "from torch.utils.data import random_split\n",
+    "from spotPython.utils.classes import get_removed_attributes_and_base_net\n",
+    "from spotPython.hyperparameters.optimizer import optimizer_handler\n",
+    "removed_attributes, torch_net = get_removed_attributes_and_base_net(net=mymodel)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "12b158a2",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{'_torchmetric': 'mean_squared_error', '_trainer': None, '_current_fx_name': None, '_L_out': 1, '_fabric': None, '_example_input_array': tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],\n",
+      "        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]), 'prepare_data_per_node': True, '_param_requires_grad_state': {}, '_hparams_name': 'kwargs', '_hparams': \"act_fn\":         LeakyReLU()\n",
+      "\"batch_size\":     16\n",
+      "\"dropout_prob\":   0.02091150165834337\n",
+      "\"epochs\":         32\n",
+      "\"initialization\": Default\n",
+      "\"l1\":             64\n",
+      "\"lr_mult\":        0.3710386309754268\n",
+      "\"optimizer\":      Adam\n",
+      "\"patience\":       8, 'allow_zero_length_dataloader_with_multiple_devices': False, '_L_in': 10, '_metric_attributes': None, 'metric': <function mean_squared_error at 0x34e55fce0>, '_log_hyperparams': True, '_automatic_optimization': True, '_device': device(type='mps', index=0), '_fabric_optimizers': [], '_dtype': torch.float32, '_compiler_ctx': None, '_hparams_initial': \"act_fn\":         LeakyReLU()\n",
+      "\"batch_size\":     16\n",
+      "\"dropout_prob\":   0.02091150165834337\n",
+      "\"epochs\":         32\n",
+      "\"initialization\": Default\n",
+      "\"l1\":             64\n",
+      "\"lr_mult\":        0.3710386309754268\n",
+      "\"optimizer\":      Adam\n",
+      "\"patience\":       8}\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(removed_attributes)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "id": "16e48b4c",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "NetLightRegression(\n",
+      "  (layers): Sequential(\n",
+      "    (0): Linear(in_features=10, out_features=64, bias=True)\n",
+      "    (1): LeakyReLU()\n",
+      "    (2): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (3): Linear(in_features=64, out_features=32, bias=True)\n",
+      "    (4): LeakyReLU()\n",
+      "    (5): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (6): Linear(in_features=32, out_features=32, bias=True)\n",
+      "    (7): LeakyReLU()\n",
+      "    (8): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (9): Linear(in_features=32, out_features=16, bias=True)\n",
+      "    (10): LeakyReLU()\n",
+      "    (11): Dropout(p=0.02091150165834337, inplace=False)\n",
+      "    (12): Linear(in_features=16, out_features=1, bias=True)\n",
+      "  )\n",
+      ")\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(torch_net)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dc749b1e",
+   "metadata": {},
+   "source": [
+    "###  An Example how to use the Plain Torch Net\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "id": "8e87adf2",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/pdf": "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NjAwIDYwMCA2MDAgNjAwIDMxOCA0MDEgNDYwIDgzOCA2MzYKOTUwIDc4MCAyNzUgMzkwIDM5MCA1MDAgODM4IDMxOCAzNjEgMzE4IDMzNyA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2CjYzNiA2MzYgMzM3IDMzNyA4MzggODM4IDgzOCA1MzEgMTAwMCA2ODQgNjg2IDY5OCA3NzAgNjMyIDU3NSA3NzUgNzUyIDI5NQoyOTUgNjU2IDU1NyA4NjMgNzQ4IDc4NyA2MDMgNzg3IDY5NSA2MzUgNjExIDczMiA2ODQgOTg5IDY4NSA2MTEgNjg1IDM5MCAzMzcKMzkwIDgzOCA1MDAgNTAwIDYxMyA2MzUgNTUwIDYzNSA2MTUgMzUyIDYzNSA2MzQgMjc4IDI3OCA1NzkgMjc4IDk3NCA2MzQgNjEyCjYzNSA2MzUgNDExIDUyMSAzOTIgNjM0IDU5MiA4MTggNTkyIDU5MiA1MjUgNjM2IDMzNyA2MzYgODM4IDYwMCA2MzYgNjAwIDMxOAozNTIgNTE4IDEwMDAgNTAwIDUwMCA1MDAgMTM0MiA2MzUgNDAwIDEwNzAgNjAwIDY4NSA2MDAgNjAwIDMxOCAzMTggNTE4IDUxOAo1OTAgNTAwIDEwMDAgNTAwIDEwMDAgNTIxIDQwMCAxMDIzIDYwMCA1MjUgNjExIDMxOCA0MDEgNjM2IDYzNiA2MzYgNjM2IDMzNwo1MDAgNTAwIDEwMDAgNDcxIDYxMiA4MzggMzYxIDEwMDAgNTAwIDUwMCA4MzggNDAxIDQwMSA1MDAgNjM2IDYzNiAzMTggNTAwCjQwMSA0NzEgNjEyIDk2OSA5NjkgOTY5IDUzMSA2ODQgNjg0IDY4NCA2ODQgNjg0IDY4NCA5NzQgNjk4IDYzMiA2MzIgNjMyIDYzMgoyOTUgMjk1IDI5NSAyOTUgNzc1IDc0OCA3ODcgNzg3IDc4NyA3ODcgNzg3IDgzOCA3ODcgNzMyIDczMiA3MzIgNzMyIDYxMSA2MDUKNjMwIDYxMyA2MTMgNjEzIDYxMyA2MTMgNjEzIDk4MiA1NTAgNjE1IDYxNSA2MTUgNjE1IDI3OCAyNzggMjc4IDI3OCA2MTIgNjM0CjYxMiA2MTIgNjEyIDYxMiA2MTIgODM4IDYxMiA2MzQgNjM0IDYzNCA2MzQgNTkyIDYzNSA1OTIgXQplbmRvYmoKMTYgMCBvYmoKPDwgL0UgMTcgMCBSIC9MIDE4IDAgUiAvYyAxOSAwIFIgL2VpZ2h0IDIwIDAgUiAvZm91ciAyMSAwIFIgL2ggMjIgMCBSCi9vIDIzIDAgUiAvb25lIDI0IDAgUiAvcCAyNSAwIFIgL3MgMjYgMCBSIC9zaXggMjcgMCBSIC90d28gMjggMCBSCi96ZXJvIDI5IDAgUiA+PgplbmRvYmoKMyAwIG9iago8PCAvRjEgMTUgMCBSID4+CmVuZG9iago0IDAgb2JqCjw8IC9BMSA8PCAvVHlwZSAvRXh0R1N0YXRlIC9DQSAwIC9jYSAxID4+Ci9BMiA8PCAvVHlwZSAvRXh0R1N0YXRlIC9DQSAxIC9jYSAxID4+ID4+CmVuZG9iago1IDAgb2JqCjw8ID4+CmVuZG9iago2IDAgb2JqCjw8ID4+CmVuZG9iago3IDAgb2JqCjw8ID4+CmVuZG9iagoyIDAgb2JqCjw8IC9UeXBlIC9QYWdlcyAvS2lkcyBbIDExIDAgUiBdIC9Db3VudCAxID4+CmVuZG9iagozMCAwIG9iago8PCAvQ3JlYXRvciAoTWF0cGxvdGxpYiB2My44LjIsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcpCi9Qcm9kdWNlciAoTWF0cGxvdGxpYiBwZGYgYmFja2VuZCB2My44LjIpCi9DcmVhdGlvbkRhdGUgKEQ6MjAyNDA3MTYxNDI3MTQrMDInMDAnKSA+PgplbmRvYmoKeHJlZgowIDMxCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNiAwMDAwMCBuIAowMDAwMDE3NDkyIDAwMDAwIG4gCjAwMDAwMTcyOTggMDAwMDAgbiAKMDAwMDAxNzMzMCAwMDAwMCBuIAowMDAwMDE3NDI5IDAwMDAwIG4gCjAwMDAwMTc0NTAgMDAwMDAgbiAKMDAwMDAxNzQ3MSAwMDAwMCBuIAowMDAwMDAwMDY1IDAwMDAwIG4gCjAwMDAwMDAzNDIgMDAwMDAgbiAKMDAwMDAxMTgyMyAwMDAwMCBuIAowMDAwMDAwMjA4IDAwMDAwIG4gCjAwMDAwMTE4MDEgMDAwMDAgbiAKMDAwMDAxNjA3NyAwMDAwMCBuIAowMDAwMDE1ODcwIDAwMDAwIG4gCjAwMDAwMTU0NzUgMDAwMDAgbiAKMDAwMDAxNzEzMCAwMDAwMCBuIAowMDAwMDExODQzIDAwMDAwIG4gCjAwMDAwMTE5OTYgMDAwMDAgbiAKMDAwMDAxMjEyOSAwMDAwMCBuIAowMDAwMDEyNDM0IDAwMDAwIG4gCjAwMDAwMTI5MDIgMDAwMDAgbiAKMDAwMDAxMzA2OCAwMDAwMCBuIAowMDAwMDEzMzA1IDAwMDAwIG4gCjAwMDAwMTM1OTYgMDAwMDAgbiAKMDAwMDAxMzc1MSAwMDAwMCBuIAowMDAwMDE0MDYzIDAwMDAwIG4gCjAwMDAwMTQ0NzAgMDAwMDAgbiAKMDAwMDAxNDg2MyAwMDAwMCBuIAowMDAwMDE1MTg3IDAwMDAwIG4gCjAwMDAwMTc1NTIgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAzMSAvUm9vdCAxIDAgUiAvSW5mbyAzMCAwIFIgPj4Kc3RhcnR4cmVmCjE3NzA5CiUlRU9GCg==",
+      "text/plain": [
+       "<Figure size 1650x1050 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "import torch\n",
+    "import torch.nn as nn\n",
+    "import torch.optim as optim\n",
+    "from torch.utils.data import DataLoader, TensorDataset\n",
+    "from sklearn.datasets import load_diabetes\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "# Load the Diabetes dataset from sklearn\n",
+    "diabetes = load_diabetes()\n",
+    "X = diabetes.data\n",
+    "y = diabetes.target\n",
+    "\n",
+    "# Split the dataset into training and testing sets\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n",
+    "\n",
+    "# Scale the features\n",
+    "scaler = StandardScaler()\n",
+    "X_train = scaler.fit_transform(X_train)\n",
+    "X_test = scaler.transform(X_test)\n",
+    "\n",
+    "# Convert the data to PyTorch tensors\n",
+    "X_train_tensor = torch.tensor(X_train, dtype=torch.float32)\n",
+    "y_train_tensor = torch.tensor(y_train, dtype=torch.float32)\n",
+    "X_test_tensor = torch.tensor(X_test, dtype=torch.float32)\n",
+    "y_test_tensor = torch.tensor(y_test, dtype=torch.float32)\n",
+    "\n",
+    "# Create a PyTorch dataset\n",
+    "train_dataset = TensorDataset(X_train_tensor, y_train_tensor)\n",
+    "test_dataset = TensorDataset(X_test_tensor, y_test_tensor)\n",
+    "\n",
+    "# Create a PyTorch dataloader\n",
+    "batch_size = 32\n",
+    "train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)\n",
+    "test_dataloader = DataLoader(test_dataset, batch_size=batch_size)\n",
+    "\n",
+    "torch_net.to(getDevice(\"cpu\"))\n",
+    "\n",
+    "# train the net\n",
+    "criterion = nn.MSELoss()\n",
+    "optimizer = optim.Adam(torch_net.parameters(), lr=0.01)\n",
+    "n_epochs = 100\n",
+    "losses = []\n",
+    "for epoch in range(n_epochs):\n",
+    "    for inputs, targets in train_dataloader:\n",
+    "        targets = targets.view(-1, 1)\n",
+    "        optimizer.zero_grad()\n",
+    "        outputs = torch_net(inputs)\n",
+    "        loss = criterion(outputs, targets)\n",
+    "        losses.append(loss.item())\n",
+    "        loss.backward()\n",
+    "        optimizer.step()\n",
+    "# visualize the network training\n",
+    "plt.plot(losses)\n",
+    "plt.xlabel(\"Epoch\")\n",
+    "plt.ylabel(\"Loss\")\n",
+    "plt.show()"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3",
+   "path": "/Users/bartz/Library/Jupyter/kernels/python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.7"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
