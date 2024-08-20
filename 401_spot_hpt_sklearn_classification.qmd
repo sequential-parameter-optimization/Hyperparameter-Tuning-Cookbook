@@ -45,13 +45,13 @@ warnings.filterwarnings("ignore")
 
 ## Step 2: Initialization of the Empty `fun_control` Dictionary
 
-`spotPython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotPython`.
+`spotpython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotpython`.
 The `fun_control` dictionary is the central data structure that is used to control the optimization process. It is initialized as follows:
 
 ```{python}
-from spotPython.utils.init import fun_control_init
-from spotPython.hyperparameters.values import set_control_key_value
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.init import fun_control_init
+from spotpython.hyperparameters.values import set_control_key_value
+from spotpython.utils.eda import gen_design_table
 fun_control = fun_control_init(
     PREFIX=PREFIX,
     TENSORBOARD_CLEAN=True,
@@ -62,7 +62,7 @@ fun_control = fun_control_init(
 
 ::: {.callout-tip}
 #### Tip: TensorBoard
-* Since the `spot_tensorboard_path` argument is not `None`, which is the default, `spotPython` will log the optimization process in the TensorBoard folder.
+* Since the `spot_tensorboard_path` argument is not `None`, which is the default, `spotpython` will log the optimization process in the TensorBoard folder.
 * The `TENSORBOARD_CLEAN` argument is set to `True` to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch.
 If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN` to `False`. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.
 :::
@@ -161,8 +161,8 @@ prep_model = ColumnTransformer(
 The selection of the algorithm (ML model) that should be tuned is done by specifying the its name from the `sklearn` implementation.  For example, the `SVC` support vector machine classifier is selected as follows:
 
 ```{python}
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
-from spotPython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
+from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
 from sklearn.svm import SVC
 add_core_model_to_fun_control(core_model=SVC,
                               fun_control=fun_control,
@@ -211,7 +211,7 @@ from sklearn.linear_model import ElasticNet
 
 ## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model`
 
- `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modifying-hyperparameter-levels.
+ `spotpython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modifying-hyperparameter-levels.
 
 ### Modify hyperparameter of type numeric and integer (boolean)
 
@@ -228,7 +228,7 @@ The hyperparameters of the `sklearn`  `SVC` model are described in the [sklearn 
 * For example, to change the `tol` hyperparameter of the `SVC` model to the interval [1e-5, 1e-3], the following code can be used:
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
 modify_hyper_parameter_bounds(fun_control, "tol", bounds=[1e-5, 1e-3])
 modify_hyper_parameter_bounds(fun_control, "probability", bounds=[0, 0])
 fun_control["core_model_hyper_dict"]["tol"]
@@ -240,7 +240,7 @@ fun_control["core_model_hyper_dict"]["tol"]
 Factors can be modified with the `modify_hyper_parameter_levels` function.  For example, to exclude the `sigmoid` kernel from the tuning, the `kernel` hyperparameter of the `SVC` model can be modified as follows:
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+from spotpython.hyperparameters.values import modify_hyper_parameter_levels
 modify_hyper_parameter_levels(fun_control, "kernel", ["poly", "rbf"])
 fun_control["core_model_hyper_dict"]["kernel"]
 ```
@@ -289,24 +289,24 @@ fun_control.update({
 
 ### The Objective Function {#sec-the-objective-function-17}
 
-The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotPython`.
+The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotpython`.
 
 ```{python}
-from spotPython.fun.hypersklearn import HyperSklearn
+from spotpython.fun.hypersklearn import HyperSklearn
 fun = HyperSklearn().fun_sklearn
 ```
 
 The following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the `Spot` function.
 
 ```{python}
-from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 ```
 
 
 ### Run the `Spot` Optimizer
 
-The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:
+The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:
 
 * `fun`: the objective function
 * `fun_control`: the dictionary with the control parameters for the objective function
@@ -323,7 +323,7 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
-from spotPython.utils.init import design_control_init, surrogate_control_init
+from spotpython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init()
 set_control_key_value(control_dict=design_control,
                         key="init_size",
@@ -332,7 +332,7 @@ set_control_key_value(control_dict=design_control,
 
 surrogate_control = surrogate_control_init(noise=True,
                                            n_theta=2)
-from spotPython.spot import spot
+from spotpython.spot import spot
 spot_tuner = spot.Spot(fun=fun,
                    fun_control=fun_control,
                    design_control=design_control,
@@ -353,7 +353,7 @@ tensorboard --logdir="./runs"
 The TensorBoard path can be printed with the following command:
 
 ```{python}
-from spotPython.utils.init import get_tensorboard_path
+from spotpython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
 :::
@@ -364,9 +364,9 @@ We can access the TensorBoard web server with the following URL:
 http://localhost:6006/
 ```
 
-The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/build/kriging.py) is plotted against the number of optimization steps.
+The TensorBoard plot illustrates how `spotpython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/build/kriging.py) is plotted against the number of optimization steps.
 
-![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/13_tensorboard_01.png){width="100%"}
+![TensorBoard visualization of the spotpython optimization process and the surrogate model.](figures_static/13_tensorboard_01.png){width="100%"}
 
 ## Step 9: Results {#sec-results-tuning-17}
 
@@ -374,8 +374,8 @@ The TensorBoard plot illustrates how `spotPython` can be used as a microscope fo
 After the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:
 
 ```{python}
-from spotPython.utils.file import save_pickle, load_pickle
-from spotPython.utils.init import get_experiment_name
+from spotpython.utils.file import save_pickle, load_pickle
+from spotpython.utils.init import get_experiment_name
 experiment_name = get_experiment_name(PREFIX)
 SAVE_AND_LOAD = False
 if SAVE_AND_LOAD == True:
@@ -405,8 +405,8 @@ spot_tuner.plot_importance(threshold=0.0025, filename="./figures/" + experiment_
 
 The default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:
 ```{python}
-from spotPython.hyperparameters.values import get_one_core_model_from_X
-from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+from spotpython.hyperparameters.values import get_one_core_model_from_X
+from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
 model_default
@@ -414,10 +414,10 @@ model_default
 
 ## Get SPOT Results
 
-In a similar way, we can obtain the hyperparameters found by `spotPython`.
+In a similar way, we can obtain the hyperparameters found by `spotpython`.
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_core_model_from_X
+from spotpython.hyperparameters.values import get_one_core_model_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 model_spot = get_one_core_model_from_X(X, fun_control)
 ```
@@ -426,12 +426,12 @@ model_spot = get_one_core_model_from_X(X, fun_control)
 ### Plot: Compare Predictions
 
 ```{python}
-from spotPython.plot.validation import plot_roc
+from spotpython.plot.validation import plot_roc
 plot_roc(model_list=[model_default, model_spot], fun_control= fun_control, model_names=["Default", "Spot"])
 ```
 
 ```{python}
-from spotPython.plot.validation import plot_confusion_matrix
+from spotpython.plot.validation import plot_confusion_matrix
 plot_confusion_matrix(model=model_default, fun_control=fun_control, title = "Default")
 ```
 

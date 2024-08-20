@@ -46,12 +46,12 @@ warnings.filterwarnings("ignore")
 
 ## Initialization of the `fun_control` Dictionary
 
-`spotPython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotPython`.
+`spotpython` supports the visualization of the hyperparameter tuning process with TensorBoard. The following example shows how to use TensorBoard with `spotpython`.
 
 First, we define an "experiment name" to identify the hyperparameter tuning process. The experiment name is also used to create a directory for the TensorBoard files.
 
 ```{python}
-from spotPython.utils.init import fun_control_init, get_spot_tensorboard_path, get_experiment_name
+from spotpython.utils.init import fun_control_init, get_spot_tensorboard_path, get_experiment_name
 import os
 experiment_name = get_experiment_name(prefix=PREFIX)
 fun_control = fun_control_init(
@@ -62,7 +62,7 @@ print(experiment_name)
 
 ::: {.callout-tip}
 #### Tip: TensorBoard
-* Since the `spot_tensorboard_path` argument is not `None`, which is the default, `spotPython` will log the optimization process in the TensorBoard folder.
+* Since the `spot_tensorboard_path` argument is not `None`, which is the default, `spotpython` will log the optimization process in the TensorBoard folder.
 * @sec-tensorboard-10 describes how to start TensorBoard and access the TensorBoard dashboard.
 * The `TENSORBOARD_CLEAN` argument is set to `True` to archive the TensorBoard folder if it already exists. This is useful if you want to start a hyperparameter tuning process from scratch.
 If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN` to `False`. Then the TensorBoard folder will not be archived and the old and new TensorBoard files will shown in the TensorBoard dashboard.
@@ -93,10 +93,10 @@ dataset = Bananas(
 )
 ```
 
-* We will use `spotRiver`'s `convert_to_df` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/utils/data_conversion.py) to convert the `river` data set to a `pandas` data frame.
+* We will use `spotriver`'s `convert_to_df` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/utils/data_conversion.py) to convert the `river` data set to a `pandas` data frame.
 
 ```{python}
-from spotRiver.utils.data_conversion import convert_to_df
+from spotriver.utils.data_conversion import convert_to_df
 target_column = "y"
 df = convert_to_df(dataset, target_column=target_column, n_total=n_samples)
 df.describe(include="all")
@@ -129,22 +129,22 @@ fun_control.update({"prep_model": prep_model})
 
 ## SelectSelect Model (`algorithm`) and `core_model_hyper_dict`
 
-`spotPython` hyperparameter tuning approach uses two components:
+`spotpython` hyperparameter tuning approach uses two components:
 
 1. a model (class) and 
 2. an associated hyperparameter dictionary. 
 
 
-The corresponding hyperparameters are loaded from the associated dictionary, which is stored as a JSON file [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json). The JSON file contains hyperparameter type information, names, and bounds. 
+The corresponding hyperparameters are loaded from the associated dictionary, which is stored as a JSON file [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/data/river_hyper_dict.json). The JSON file contains hyperparameter type information, names, and bounds. 
 
 The method `add_core_model_to_fun_control` adds the model and the hyperparameter dictionary to the `fun_control` dictionary.
 
-Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/data/river_hyper_dict.json) is loaded from the `spotRiver` package.
+Alternatively, you can load a local hyper_dict. Simply set `river_hyper_dict.json` as the filename. If `filename`is set to `None`, which is the default, the hyper_dict [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/data/river_hyper_dict.json) is loaded from the `spotriver` package.
 
 ```{python}
 from river.forest import AMFClassifier
-from spotRiver.hyperdict.river_hyper_dict import RiverHyperDict
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotriver.hyperdict.river_hyper_dict import RiverHyperDict
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
 add_core_model_to_fun_control(core_model=AMFClassifier,
                               fun_control=fun_control,
                               hyper_dict=RiverHyperDict,
@@ -154,12 +154,12 @@ add_core_model_to_fun_control(core_model=AMFClassifier,
 ## Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model`
 
 After the `core_model` and the `core_model_hyper_dict` are added to the `fun_control` dictionary, the hyperparameter tuning can be started.
-However, in some settings, the user wants to modify the hyperparameters of the `core_model_hyper_dict`. This can be done with the `modify_hyper_parameter_bounds` and `modify_hyper_parameter_levels` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py).
+However, in some settings, the user wants to modify the hyperparameters of the `core_model_hyper_dict`. This can be done with the `modify_hyper_parameter_bounds` and `modify_hyper_parameter_levels` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperparameters/values.py).
 
 The following code shows how hyperparameter of type numeric and integer (boolean) can be modified. The `modify_hyper_parameter_bounds` function is used to modify the bounds of the hyperparameter `delta` and `merit_preprune`. Similar option exists for the `modify_hyper_parameter_levels` function to modify the levels of categorical hyperparameters.
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
 modify_hyper_parameter_bounds(fun_control, "n_estimators", bounds=[2,20])
 modify_hyper_parameter_bounds(fun_control, "step", bounds=[0.5,2])
 ```
@@ -169,20 +169,20 @@ modify_hyper_parameter_bounds(fun_control, "step", bounds=[0.5,2])
 Hyperparameters can be excluded from the tuning procedure by selecting identical values for the lower and upper bounds.
 
 ```{python}
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
 
 ## Selection of the Objective (Loss) Function
 
-The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.
+The `metric_sklearn` is used for the sklearn based evaluation via `eval_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/evaluation/eval_bml.py). Here we use the ` mean_absolute_error` [[SOURCE]](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html) as the objective function.
 
 :::{.callout-note}
 #### Note: Additional metrics
-`spotRiver` also supports additional metrics. For example, the `metric_river` is used for the river based evaluation via `eval_oml_iter_progressive` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/evaluation/eval_oml.py). The `metric_river` is implemented to simulate the behaviour of the "original" `river` metrics.
+`spotriver` also supports additional metrics. For example, the `metric_river` is used for the river based evaluation via `eval_oml_iter_progressive` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/evaluation/eval_oml.py). The `metric_river` is implemented to simulate the behaviour of the "original" `river` metrics.
 :::
 
-`spotRiver` provides information about the model's score (metric), memory, and time.
+`spotriver` provides information about the model's score (metric), memory, and time.
 The hyperparamter tuner requires a single objective.
 Therefore, a weighted sum of the metric, memory, and time is computed. The weights are defined in the `weights` array.
 
@@ -214,12 +214,12 @@ fun_control.update({
 
 ### Prepare the SPOT Parameters
 
-The hyperparameter tuning configuration is stored in the `fun_control` dictionary. Since `Spot` can be used as an optimization algorithm with a similar interface as optimization algorithms from `scipy.optimize` [[LINK]](https://docs.scipy.org/doc/scipy/reference/optimize.html#module-scipy.optimize), the bounds and variable types have to be specified explicitely. The `get_var_type`, `get_var_name`, and `get_bound_values` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py) implement the required functionality.
+The hyperparameter tuning configuration is stored in the `fun_control` dictionary. Since `Spot` can be used as an optimization algorithm with a similar interface as optimization algorithms from `scipy.optimize` [[LINK]](https://docs.scipy.org/doc/scipy/reference/optimize.html#module-scipy.optimize), the bounds and variable types have to be specified explicitely. The `get_var_type`, `get_var_name`, and `get_bound_values` functions [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperparameters/values.py) implement the required functionality.
 
 * Get types and variable names as well as lower and upper bounds for the hyperparameters, so that they can be passed to the `Spot` function.
 
 ```{python}
-from spotPython.hyperparameters.values import (
+from spotpython.hyperparameters.values import (
     get_var_type,
     get_var_name,
     get_bound_values
@@ -232,23 +232,23 @@ upper = get_bound_values(fun_control, "upper")
 
 ### The Objective Function {#sec-the-objective-function-13}
 
-The objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotRiver/blob/main/src/spotRiver/fun/hyperriver.py) is selected next.
+The objective function `fun_oml_horizon` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotriver/blob/main/src/spotriver/fun/hyperriver.py) is selected next.
 
 ```{python}
-from spotRiver.fun.hyperriver import HyperRiver
+from spotriver.fun.hyperriver import HyperRiver
 fun = HyperRiver(log_level=50).fun_oml_horizon
 ```
 
 The following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the `Spot` function.
 
 ```{python}
-from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 ```
 
 ### Run the `Spot` Optimizer
 
-The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:
+The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters:
 
 * `fun`: the objective function
 * `lower`: lower bounds of the hyperparameters
@@ -269,7 +269,7 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
-from spotPython.spot import spot
+from spotpython.spot import spot
 from math import inf
 spot_tuner = spot.Spot(fun=fun,
                    lower = lower,
@@ -307,7 +307,7 @@ tensorboard --logdir="./runs"
 The TensorBoard path can be printed with the following command:
 
 ```{python}
-from spotPython.utils.init import get_tensorboard_path
+from spotpython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
 
@@ -321,9 +321,9 @@ http://localhost:6006/
 ```
 
 
-The TensorBoard plot illustrates how `spotPython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/build/kriging.py) is plotted against the number of optimization steps.
+The TensorBoard plot illustrates how `spotpython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/build/kriging.py) is plotted against the number of optimization steps.
 
-![TensorBoard visualization of the spotPython optimization process and the surrogate model.](figures_static/13_tensorboard_01.png){width="100%"}
+![TensorBoard visualization of the spotpython optimization process and the surrogate model.](figures_static/13_tensorboard_01.png){width="100%"}
 
 
 ### Results
@@ -331,12 +331,12 @@ The TensorBoard plot illustrates how `spotPython` can be used as a microscope fo
 After the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:
 
 ```{python}
-from spotPython.utils.file import save_pickle
+from spotpython.utils.file import save_pickle
 save_pickle(spot_tuner, experiment_name)
 ```
 
 ```{python}
-from spotPython.utils.file import load_pickle
+from spotpython.utils.file import load_pickle
 spot_tuner = load_pickle(experiment_name)
 ```
 
@@ -363,21 +363,21 @@ spot_tuner.plot_importance(threshold=0.0025, filename="./figures/" + experiment_
 The default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_core_model_from_X
-from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+from spotpython.hyperparameters.values import get_one_core_model_from_X
+from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
 ```
 
 :::{.callout-note}
-#### Note: `spotPython` tunes numpy arrays
-* `spotPython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.
+#### Note: `spotpython` tunes numpy arrays
+* `spotpython` tunes numpy arrays, i.e., the hyperparameters are stored in a numpy array.
 ::::
 
 The model with the default hyperparameters can be trained and evaluated with the following commands:
 
 ```{python}
-from spotRiver.evaluation.eval_bml import eval_oml_horizon
+from spotriver.evaluation.eval_bml import eval_oml_horizon
 
 df_eval_default, df_true_default = eval_oml_horizon(
                     model=model_default,
@@ -392,10 +392,10 @@ df_eval_default, df_true_default = eval_oml_horizon(
 
 ## Get SPOT Results
 
-In a similar way, we can obtain the hyperparameters found by `spotPython`.
+In a similar way, we can obtain the hyperparameters found by `spotpython`.
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_core_model_from_X
+from spotpython.hyperparameters.values import get_one_core_model_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 model_spot = get_one_core_model_from_X(X, fun_control)
 ```
@@ -413,7 +413,7 @@ df_eval_spot, df_true_spot = eval_oml_horizon(
 ```
 
 ```{python}
-from spotRiver.evaluation.eval_bml import plot_bml_oml_horizon_metrics
+from spotriver.evaluation.eval_bml import plot_bml_oml_horizon_metrics
 df_labels=["default", "spot"]
 plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=False, df_labels=df_labels, metric=fun_control["metric_sklearn"], filename="./figures/" + experiment_name+"_metrics.pdf")
 ```
@@ -422,12 +422,12 @@ plot_bml_oml_horizon_metrics(df_eval = [df_eval_default, df_eval_spot], log_y=Fa
 
 
 ```{python}
-from spotPython.plot.validation import plot_roc_from_dataframes
+from spotpython.plot.validation import plot_roc_from_dataframes
 plot_roc_from_dataframes([df_true_default, df_true_spot], model_names=["default", "spot"], target_column=fun_control["target_column"])  
 ```
 
 ```{python}
-from spotPython.plot.validation import plot_confusion_matrix
+from spotpython.plot.validation import plot_confusion_matrix
 plot_confusion_matrix(df=df_true_default, title="Default", y_true_name=fun_control["target_column"], y_pred_name="Prediction")
 ```
 

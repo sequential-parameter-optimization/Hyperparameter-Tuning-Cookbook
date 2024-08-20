@@ -8,7 +8,7 @@ title: 'HPT PyTorch Lightning: User Specified Data Set and Regression Model'
 jupyter: python3
 ---
 
-In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
+In this tutorial, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
 training workflow for a regression task with a user specified data set and a user specified regression model.
 
 This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on a user data set, which can be found in the subfolder of this notebook, `userData`.
@@ -25,7 +25,7 @@ The network can be found in the subfolder `userModel`.
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.utils.device import getDevice
+from spotpython.utils.device import getDevice
 from math import inf
 
 MAX_TIME = 1
@@ -56,17 +56,17 @@ TORCH_METRIC = "mean_squared_error"
 
 * Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see 
 [LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. 
-* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.
+* The method `spotpython.utils.device.getDevice()` returns the device that is used by Lightning.
 :::
 
 
 ## Step 2: Initialization of the `fun_control` Dictionary
 
-`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
+`spotpython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.utils.init import fun_control_init
+from spotpython.utils.init import fun_control_init
 import numpy as np
 fun_control = fun_control_init(
     _L_in=6,
@@ -93,8 +93,8 @@ fun_control = fun_control_init(
 
 ```{python}
 #| vscode: {languageId: python}
-# from spotPython.hyperparameters.values import set_control_key_value
-# from spotPython.data.pkldataset import PKLDataset
+# from spotpython.hyperparameters.values import set_control_key_value
+# from spotpython.data.pkldataset import PKLDataset
 # import torch
 # dataset = PKLDataset(directory="./userData/",
 #                      filename="data_sensitive.pkl",
@@ -126,7 +126,7 @@ try:
                         target='N', rmNA=True, rmMF=True, scale_data=True, return_X_y=False)
 except ImportError:
     print("pyhcf is not installed")
-    from spotPython.data.pkldataset import PKLDataset
+    from spotpython.data.pkldataset import PKLDataset
     import torch
     dataset = PKLDataset(directory="./userData/",
                         filename="data_sensitive.pkl",
@@ -138,7 +138,7 @@ except ImportError:
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.hyperparameters.values import set_control_key_value
+from spotpython.hyperparameters.values import set_control_key_value
 set_control_key_value(control_dict=fun_control,
                         key="data_set",
                         value=dataset,
@@ -173,19 +173,19 @@ Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [L
 
 ## Step 5: Select the Core Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-33}
 
-`spotPython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlightregression.py) for configurable neural networks. 
+`spotpython` includes the `NetLightRegression` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/netlightregression.py) for configurable neural networks. 
 The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
 
 * Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:
 
-We can use aconfiguration from the `spotPython` package:
+We can use aconfiguration from the `spotpython` package:
 
 ```{python}
 #| eval: false
 #| vscode: {languageId: python}
-from spotPython.light.regression.netlightregression import NetLightRegression
-from spotPython.hyperdict.light_hyper_dict import LightHyperDict
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotpython.light.regression.netlightregression import NetLightRegression
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
 add_core_model_to_fun_control(fun_control=fun_control,
                               core_model=NetLightRegression,
                               hyper_dict=LightHyperDict)
@@ -196,7 +196,7 @@ add_core_model_to_fun_control(fun_control=fun_control,
 ```{python}
 #| eval: true
 #| vscode: {languageId: python}
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
 import sys
 sys.path.insert(0, './userModel')
 import netlightregression
@@ -206,13 +206,13 @@ add_core_model_to_fun_control(fun_control=fun_control,
                               hyper_dict=light_hyper_dict.LightHyperDict)
 ```
 
-The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperdict/light_hyper_dict.json).
+The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperdict/light_hyper_dict.json).
 
 
 
 ## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-33}
 
- `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. 
+ `spotpython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. 
 
 ::: {.callout-caution}
 ### Caution: Small number of epochs for demonstration purposes
@@ -249,7 +249,7 @@ Therefore, we will use these values as the starting poing for the hyperparameter
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.hyperparameters.values import set_control_hyperparameter_value
+from spotpython.hyperparameters.values import set_control_hyperparameter_value
 
 set_control_hyperparameter_value(fun_control, "l1", [3, 4])
 set_control_hyperparameter_value(fun_control, "epochs", [2, 4])
@@ -269,13 +269,13 @@ set_control_hyperparameter_value(fun_control, "act_fn",[
 set_control_hyperparameter_value(fun_control, "initialization",["Default"] )
 ```
 
-Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:
+Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/utils/eda.py) generates a design table as follows:
 
 ```{python}
 #| fig-cap: Experimental design for the hyperparameter tuning.
 #| fig-label: tbl-design-33
 #| vscode: {languageId: python}
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
 
@@ -305,17 +305,17 @@ The data splitting is handled by `Lightning`.
 
 ### Loss Function {#sec-loss-function-33}
 
-The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py)
+The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/regression/netlightregression.py)
 We will use MSE.
 
 ### Metric {#sec-metric-33}
 
-* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/regression/netlightregression.py).
+* Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/regression/netlightregression.py).
 
 ::: {.callout-caution}
 ### Caution: Loss Function and Metric in Lightning
 
-* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.
+* The loss function and the metric are not hyperparameters that can be tuned with `spotpython`.
 * They are handled by `Lightning`.
 
 :::
@@ -327,7 +327,7 @@ We will use MSE.
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.utils.init import design_control_init, surrogate_control_init
+from spotpython.utils.init import design_control_init, surrogate_control_init
 design_control = design_control_init(init_size=INIT_SIZE,
                                      repeats=REPEATS,)
 
@@ -341,7 +341,7 @@ surrogate_control = surrogate_control_init(noise=True,
 ::: {.callout-note}
 ### Note: Modifying Values in the Control Dictionaries 
 
-* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/hyperparameters/values.py), for example:
+* The values in the control dictionaries can be modified with the function `set_control_key_value` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperparameters/values.py), for example:
 
 
 
@@ -362,11 +362,11 @@ set_control_key_value(control_dict=surrogate_control,
 
 ### The Objective Function `fun` {#sec-the-objective-function-33}
 
-The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
+The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotpython`.
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.fun.hyperlight import HyperLight
+from spotpython.fun.hyperlight import HyperLight
 fun = HyperLight(log_level=50).fun
 ```
 
@@ -380,11 +380,11 @@ pprint.pprint(fun_control)
 
 ### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-33}
 
-The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py).
+The `spotpython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/spot/spot.py).
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.spot import spot
+from spotpython.spot import spot
 spot_tuner = spot.Spot(fun=fun,
                        fun_control=fun_control,
                        design_control=design_control,
@@ -434,7 +434,7 @@ spot_tuner.plot_progress(log_y=False,
 #| fig-cap: Results of the hyperparameter tuning.
 #| fig-label: tbl-results-33
 #| vscode: {languageId: python}
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```
 
@@ -450,7 +450,7 @@ spot_tuner.plot_importance(threshold=0.025,
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.hyperparameters.values import get_tuned_architecture
+from spotpython.hyperparameters.values import get_tuned_architecture
 config = get_tuned_architecture(spot_tuner, fun_control)
 print(config)
 ```
@@ -459,13 +459,13 @@ print(config)
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.light.testmodel import test_model
+from spotpython.light.testmodel import test_model
 test_model(config, fun_control)
 ```
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.light.loadmodel import load_light_from_checkpoint
+from spotpython.light.loadmodel import load_light_from_checkpoint
 
 model_loaded = load_light_from_checkpoint(config, fun_control)
 ```
@@ -491,12 +491,12 @@ spot_tuner.parallel_plot()
 
 * The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
 * These mechanism is used to generate the folds for the final evaluation of the model.
-* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
-* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cvmodel.py).
+* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
+* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/cvmodel.py).
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.light.cvmodel import cv_model
+from spotpython.light.cvmodel import cv_model
 set_control_key_value(control_dict=fun_control,
                         key="k_folds",
                         value=2,
@@ -535,13 +535,13 @@ After we have trained the models, we can look at the actual activation values th
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
+from spotpython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
 act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
 ```
 
 ```{python}
 #| vscode: {languageId: python}
-from spotPython.hyperparameters.values import get_one_config_from_X
+from spotpython.hyperparameters.values import get_one_config_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 config = get_one_config_from_X(X, fun_control)
 model = fun_control["core_model"](**config, _L_in=64, _L_out=11, _torchmetric=TORCH_METRIC)
@@ -550,7 +550,7 @@ model
 
 ```{python}
 #| vscode: {languageId: python}
-# from spotPython.utils.eda import visualize_activations
+# from spotpython.utils.eda import visualize_activations
 # visualize_activations(model, color=f"C{0}")
 ```
 

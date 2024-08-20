@@ -19,7 +19,7 @@ This chapter uses the Vector Borne Disease Prediction data set from Kaggle. It i
 The data set is available at:
 [https://www.kaggle.com/datasets/richardbernat/vector-borne-disease-prediction](https://www.kaggle.com/datasets/richardbernat/vector-borne-disease-prediction),
 
-The data should be downloaded and stored in the `data/VBDP` subfolder. The data set is not available as a part of the `spotPython` package.
+The data should be downloaded and stored in the `data/VBDP` subfolder. The data set is not available as a part of the `spotpython` package.
 :::
 
 
@@ -43,8 +43,8 @@ warnings.filterwarnings("ignore")
 ## Step 2: Initialization of the Empty `fun_control` Dictionary
 
 ```{python}
-from spotPython.utils.init import fun_control_init, get_experiment_name, get_spot_tensorboard_path
-from spotPython.utils.device import getDevice
+from spotpython.utils.init import fun_control_init, get_experiment_name, get_spot_tensorboard_path
+from spotpython.utils.device import getDevice
 
 experiment_name = get_experiment_name(prefix=PREFIX)
 
@@ -170,9 +170,9 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import ElasticNet
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
-from spotPython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
-from spotPython.fun.hypersklearn import HyperSklearn
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
+from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
+from spotpython.fun.hypersklearn import HyperSklearn
 ```
 
 ```{python}
@@ -206,13 +206,13 @@ Numeric and boolean values can be modified using the `modify_hyper_parameter_bou
 `modify_hyper_parameter_bounds(fun_control, "tol", bounds=[1e-3, 1e-2])`
 
 ```{python}
-# from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+# from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
 # modify_hyper_parameter_bounds(fun_control, "probability", bounds=[1, 1])
 ```
 
 ### Modify hyperparameter of type factor
 
- `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-28.
+ `spotpython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-28.
 
 Factors can be modified with the `modify_hyper_parameter_levels` function.  For example, to exclude the `sigmoid` kernel from the tuning, the `kernel` hyperparameter of the `SVC` model can be modified as follows:
 
@@ -223,7 +223,7 @@ The new setting can be controlled via:
 `fun_control["core_model_hyper_dict"]["kernel"]`
 
 ```{python}
-# from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+# from spotpython.hyperparameters.values import modify_hyper_parameter_levels
 # modify_hyper_parameter_levels(fun_control, "kernel", ["rbf"])
 ```
 
@@ -242,7 +242,7 @@ The loss function, that is usually used in deep learning for optimizing the weig
 
 ### Metric Function
 
-There are two different types of metrics in `spotPython`:
+There are two different types of metrics in `spotpython`:
 
 1. `"metric_river"` is used for the river based evaluation via `eval_oml_iter_progressive`.
 2. `"metric_sklearn"` is used for the sklearn based evaluation.
@@ -279,14 +279,14 @@ This is set in the `fun_control` dictionary.
 ::: {.callout-note}
 #### Weights
 
-`spotPython` performs a minimization, therefore, metrics that should be maximized have to be multiplied by -1.  This is done by setting `"weights"` to `-1`.
+`spotpython` performs a minimization, therefore, metrics that should be maximized have to be multiplied by -1.  This is done by setting `"weights"` to `-1`.
 
 :::
 
 * The complete setup for the metric in our example is:
 
 ```{python}
-from spotPython.utils.metrics import mapk_score
+from spotpython.utils.metrics import mapk_score
 fun_control.update({
                "weights": -1,
                "metric_sklearn": mapk_score,
@@ -329,7 +329,7 @@ Uncomment the following line to use cross validation:
 
 ```{python}
 # extract the variable types, names, and bounds
-from spotPython.hyperparameters.values import (get_bound_values,
+from spotpython.hyperparameters.values import (get_bound_values,
     get_var_name,
     get_var_type,)
 var_type = get_var_type(fun_control)
@@ -341,16 +341,16 @@ upper = get_bound_values(fun_control, "upper")
 ```{python}
 #| fig-label: tbl-design
 #| fig-cap: "Experimental design for the hyperparameter tuning."
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
 
 ### The Objective Function {#sec-the-objective-function-19}
 
-The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotPython`.
+The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotpython`.
 
 ```{python}
-from spotPython.fun.hypersklearn import HyperSklearn
+from spotpython.fun.hypersklearn import HyperSklearn
 fun = HyperSklearn().fun_sklearn
 ```
 
@@ -360,14 +360,14 @@ fun = HyperSklearn().fun_sklearn
 * Note: the run takes longer, because the evaluation time of initial design (here: `initi_size`, 20 points) is not considered.
 
 ```{python}
-from spotPython.hyperparameters.values import get_default_hyperparameters_as_array
+from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 X_start
 ```
 
 ```{python}
 import numpy as np
-from spotPython.spot import spot
+from spotpython.spot import spot
 from math import inf
 spot_tuner = spot.Spot(fun=fun,
                    lower = lower,
@@ -401,7 +401,7 @@ spot_tuner.run(X_start=X_start)
 
 ## Step 9: Tensorboard {#sec-tensorboard-19}
 
-The textual output shown in the console (or code cell) can be visualized with Tensorboard as described in @sec-tensorboard-14, see also the description in the documentation: [Tensorboard.](https://sequential-parameter-optimization.github.io/spotPython/14_spot_ray_hpt_torch_cifar10.html#sec-tensorboard-14)
+The textual output shown in the console (or code cell) can be visualized with Tensorboard as described in @sec-tensorboard-14, see also the description in the documentation: [Tensorboard.](https://sequential-parameter-optimization.github.io/spotpython/14_spot_ray_hpt_torch_cifar10.html#sec-tensorboard-14)
 
 ## Step 10: Results {#sec-results-tuning-19}
 
@@ -433,7 +433,7 @@ spot_tuner.plot_importance(threshold=0.025, filename="./figures/" + experiment_n
 ### Get Default Hyperparameters
 
 ```{python}
-from spotPython.hyperparameters.values import get_default_values, transform_hyper_parameter_values
+from spotpython.hyperparameters.values import get_default_values, transform_hyper_parameter_values
 values_default = get_default_values(fun_control)
 values_default = transform_hyper_parameter_values(fun_control=fun_control, hyper_parameter_values=values_default)
 values_default
@@ -454,13 +454,13 @@ print(X)
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import assign_values, return_conf_list_from_var_dict
+from spotpython.hyperparameters.values import assign_values, return_conf_list_from_var_dict
 v_dict = assign_values(X, fun_control["var_name"])
 return_conf_list_from_var_dict(var_dict=v_dict, fun_control=fun_control)
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_sklearn_model_from_X
+from spotpython.hyperparameters.values import get_one_sklearn_model_from_X
 model_spot = get_one_sklearn_model_from_X(X, fun_control)
 model_spot
 ```
@@ -471,7 +471,7 @@ model_spot
 * Fetch the data.
 
 ```{python}
-from spotPython.utils.convert import get_Xy_from_df
+from spotpython.utils.convert import get_Xy_from_df
 X_train, y_train = get_Xy_from_df(fun_control["train"], fun_control["target_column"])
 X_test, y_test = get_Xy_from_df(fun_control["test"], fun_control["target_column"])
 X_test.shape, y_test.shape
@@ -537,7 +537,7 @@ _ = repeated_eval(30, model_default)
 ### Plot: Compare Predictions
 
 ```{python}
-from spotPython.plot.validation import plot_confusion_matrix
+from spotpython.plot.validation import plot_confusion_matrix
 plot_confusion_matrix(model=model_default, fun_control=fun_control, title = "Default")
 ```
 
@@ -552,7 +552,7 @@ min(spot_tuner.y), max(spot_tuner.y)
 ### Cross-validated Evaluations
 
 ```{python}
-from spotPython.sklearn.traintest import evaluate_cv
+from spotpython.sklearn.traintest import evaluate_cv
 fun_control.update({
      "eval": "train_cv",
      "k_folds": 10,

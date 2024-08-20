@@ -7,9 +7,9 @@ execute:
 jupyter: python3
 ---
 
-# HPT PyTorch Lightning With `spotPython` and Ray Tune on CIFAR10 {#sec-hyperparameter-tuning-for-pytorch-32}
+# HPT PyTorch Lightning With `spotpython` and Ray Tune on CIFAR10 {#sec-hyperparameter-tuning-for-pytorch-32}
 
-In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
+In this tutorial, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
 training workflow for a classification task.
 
 This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the CIFAR10 data set.
@@ -49,18 +49,18 @@ PREFIX="32"
 
 * Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see
 [LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device.
-* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.
+* The method `spotpython.utils.device.getDevice()` returns the device that is used by Lightning.
 :::
 
 
 ## Step 2: Initialization of the `fun_control` Dictionary
 
-`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
+`spotpython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
 ```{python}
-from spotPython.utils.init import fun_control_init
-from spotPython.utils.file import get_experiment_name, get_spot_tensorboard_path
-from spotPython.utils.device import getDevice
+from spotpython.utils.init import fun_control_init
+from spotpython.utils.file import get_experiment_name, get_spot_tensorboard_path
+from spotpython.utils.device import getDevice
 
 experiment_name = get_experiment_name(prefix=PREFIX)
 fun_control = fun_control_init(
@@ -83,39 +83,39 @@ fun_control["device"]
 The data loading and preprocessing is handled by `Lightning` and `PyTorch`.
 It comprehends the following classes:
 
-*   `CSVDataset`: A class that loads the data from a CSV file. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/csvdataset.py)
-*   `CIFAR10DataModule`: A class that prepares the data for training and testing. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/cifar10datamodule.py)
+*   `CSVDataset`: A class that loads the data from a CSV file. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/csvdataset.py)
+*   `CIFAR10DataModule`: A class that prepares the data for training and testing. [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/cifar10datamodule.py)
 
 
 Section @sec-taking-a-look-at-the-data-31 illustrates how to access the data.
 
 ## Step 4: Preprocessing {#sec-preprocessing-32}
 
-Preprocessing is handled by `Lightning` and `PyTorch`. It can be implemented in the `CIFAR10DataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/ccifar10datamodule.py).
+Preprocessing is handled by `Lightning` and `PyTorch`. It can be implemented in the `CIFAR10DataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/ccifar10datamodule.py).
 
 
 
 ## Step 5: Select the NN Model (`algorithm`) and `core_model_hyper_dict` {#sec-selection-of-the-algorithm-32}
 
-`spotPython` includes the `NetLinearBase` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlinearbase.py) for configurable neural networks.
+`spotpython` includes the `NetLinearBase` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/netlinearbase.py) for configurable neural networks.
 The class is imported here. It inherits from the class `Lightning.LightningModule`, which is the base class for all models in `Lightning`. `Lightning.LightningModule` is a subclass of `torch.nn.Module` and provides additional functionality for the training and testing of neural networks. The class `Lightning.LightningModule` is described in the [Lightning documentation](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
 
 * Here we simply add the NN Model to the fun_control dictionary by calling the function `add_core_model_to_fun_control`:
 
 ```{python}
-from spotPython.light.netlightbase import NetLinearBase
-from spotPython.data.light_hyper_dict import LightHyperDict
-from spotPython.hyperparameters.values import add_core_model_to_fun_control
+from spotpython.light.netlightbase import NetLinearBase
+from spotpython.data.light_hyper_dict import LightHyperDict
+from spotpython.hyperparameters.values import add_core_model_to_fun_control
 add_core_model_to_fun_control(core_model=NetLinearBase,
                               fun_control=fun_control,
                               hyper_dict= LightHyperDict)
 ```
 
-The `NetLinearBase` is a configurable neural network. The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/data/light_hyper_dict.json).
+The `NetLinearBase` is a configurable neural network. The hyperparameters of the model are specified in the `core_model_hyper_dict` dictionary [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/data/light_hyper_dict.json).
 
 ## Step 6: Modify `hyper_dict` Hyperparameters for the Selected Algorithm aka `core_model` {#sec-modification-of-hyperparameters-32}
 
- `spotPython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-28.
+ `spotpython` provides functions for modifying the hyperparameters, their bounds and factors as well as for activating and de-activating hyperparameters without re-compilation of the Python source code. These functions were described in @sec-modification-of-hyperparameters-28.
 
 ::: {.callout-caution}
 ### Caution: Small number of epochs for demonstration purposes
@@ -127,7 +127,7 @@ The `NetLinearBase` is a configurable neural network. The hyperparameters of the
 :::
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_bounds
+from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
 
 modify_hyper_parameter_bounds(fun_control, "l1", bounds=[5,8])
 modify_hyper_parameter_bounds(fun_control, "epochs", bounds=[6,13])
@@ -135,18 +135,18 @@ modify_hyper_parameter_bounds(fun_control, "batch_size", bounds=[2, 8])
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import modify_hyper_parameter_levels
+from spotpython.hyperparameters.values import modify_hyper_parameter_levels
 modify_hyper_parameter_levels(fun_control, "optimizer",["Adam", "AdamW", "Adamax", "NAdam"])
 # modify_hyper_parameter_levels(fun_control, "optimizer", ["Adam"])
 ```
 
 
-Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/utils/eda.py) generates a design table as follows:
+Now, the dictionary `fun_control` contains all information needed for the hyperparameter tuning. Before the hyperparameter tuning is started, it is recommended to take a look at the experimental design. The method `gen_design_table` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/utils/eda.py) generates a design table as follows:
 
 ```{python}
 #| fig-cap: Experimental design for the hyperparameter tuning.
 #| fig-label: tbl-design-31
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control))
 ```
 
@@ -176,19 +176,19 @@ The evaluation procedure requires the specification of two elements:
 
 ### Loss Functions and Metrics {#sec-loss-functions-and-metrics-32}
 
-The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlinearbase.py)
+The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/netlinearbase.py)
 We will use CrossEntropy loss for the multiclass-classification task.
 
 ### Metric {#sec-metric-32}
 
 * We will use the default accuracy metric for the evaluation of the model.
 
-Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/netlinearbase.py).
+Similar to the loss function, the metric is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/netlinearbase.py).
 
 ::: {.callout-caution}
 ### Caution: Loss Function and Metric in Lightning
 
-* The loss function and the metric are not hyperparameters that can be tuned with `spotPython`.
+* The loss function and the metric are not hyperparameters that can be tuned with `spotpython`.
 * They are handled by `Lightning`.
 
 :::
@@ -201,7 +201,7 @@ The following code passes the information about the parameter ranges and bounds 
 It extracts the variable types, names, and bounds
 
 ```{python}
-from spotPython.hyperparameters.values import (get_bound_values,
+from spotpython.hyperparameters.values import (get_bound_values,
     get_var_name,
     get_var_type,)
 var_type = get_var_type(fun_control)
@@ -214,20 +214,20 @@ upper = get_bound_values(fun_control, "upper")
 
 ### The Objective Function `fun` {#sec-the-objective-function-32}
 
-The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotPython`.
+The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotpython`.
 
 ```{python}
-from spotPython.fun.hyperlight import HyperLight
+from spotpython.fun.hyperlight import HyperLight
 fun = HyperLight().fun
 ```
 
 ### Starting the Hyperparameter Tuning {#sec-call-the-hyperparameter-tuner-32}
 
-The `spotPython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/spot/spot.py) as described in @sec-call-the-hyperparameter-tuner-14.
+The `spotpython` hyperparameter tuning is started by calling the `Spot` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/spot/spot.py) as described in @sec-call-the-hyperparameter-tuner-14.
 
 ```{python}
 import numpy as np
-from spotPython.spot import spot
+from spotpython.spot import spot
 from math import inf
 spot_tuner = spot.Spot(fun=fun,
                    lower = lower,
@@ -273,7 +273,7 @@ spot_tuner.plot_progress(log_y=False,
 ```{python}
 #| fig-cap: Results of the hyperparameter tuning.
 #| fig-label: tbl-results-31
-from spotPython.utils.eda import gen_design_table
+from spotpython.utils.eda import gen_design_table
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 ```
 
@@ -287,19 +287,19 @@ spot_tuner.plot_importance(threshold=0.025,
 ### Get the Tuned Architecture {#sec-get-spot-results-32}
 
 ```{python}
-from spotPython.light.utils import get_tuned_architecture
+from spotpython.light.utils import get_tuned_architecture
 config = get_tuned_architecture(spot_tuner, fun_control)
 ```
 
 * Test on the full data set
 
 ```{python}
-from spotPython.light.traintest import test_model
+from spotpython.light.traintest import test_model
 test_model(config, fun_control)
 ```
 
 ```{python}
-from spotPython.light.traintest import load_light_from_checkpoint
+from spotpython.light.traintest import load_light_from_checkpoint
 
 model_loaded = load_light_from_checkpoint(config, fun_control)
 ```
@@ -308,11 +308,11 @@ model_loaded = load_light_from_checkpoint(config, fun_control)
 
 * The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
 * These mechanism is used to generate the folds for the final evaluation of the model.
-* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/crossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
-* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotPython/light/traintest.py).
+* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/crossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
+* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/traintest.py).
 
 ```{python}
-from spotPython.light.traintest import cv_model
+from spotpython.light.traintest import cv_model
 # set the number of folds to 10
 fun_control["k_folds"] = 10
 cv_model(config, fun_control)
@@ -368,12 +368,12 @@ if PLOT_ALL:
 After we have trained the models, we can look at the actual activation values that find inside the model. For instance, how many neurons are set to zero in ReLU? Where do we find most values in Tanh? To answer these questions, we can write a simple function which takes a trained model, applies it to a batch of images, and plots the histogram of the activations inside the network:
 
 ```{python}
-from spotPython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
+from spotpython.torch.activation import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Swish
 act_fn_by_name = {"sigmoid": Sigmoid, "tanh": Tanh, "relu": ReLU, "leakyrelu": LeakyReLU, "elu": ELU, "swish": Swish}
 ```
 
 ```{python}
-from spotPython.hyperparameters.values import get_one_config_from_X
+from spotpython.hyperparameters.values import get_one_config_from_X
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 config = get_one_config_from_X(X, fun_control)
 model = fun_control["core_model"](**config, _L_in=64, _L_out=11)
@@ -381,25 +381,25 @@ model
 ```
 
 ```{python}
-from spotPython.utils.eda import visualize_activations
+from spotpython.utils.eda import visualize_activations
 visualize_activations(model, color=f"C{0}")
 ```
 
 
 ## Appendix
 
-### Differences to the spotPython Approaches for `torch`, `sklearn` and `river`
+### Differences to the spotpython Approaches for `torch`, `sklearn` and `river`
 
 ::: {.callout-caution}
 #### Caution: Data Loading in Lightning
 
 * Data loading is handled independently from the `fun_control` dictionary by `Lightning` and `PyTorch`.
-* In contrast to `spotPython` with `torch`, `river` and `sklearn`, the data sets are not added to the `fun_control` dictionary.
+* In contrast to `spotpython` with `torch`, `river` and `sklearn`, the data sets are not added to the `fun_control` dictionary.
 :::
 
 #### Specification of the Preprocessing Model {#sec-specification-of-preprocessing-model-32}
 
-The `fun_control` dictionary, the `torch`, `sklearn`and `river` versions of `spotPython` allow the specification of a data preprocessing pipeline, e.g., for the scaling of the data or for the one-hot encoding of categorical variables, see @sec-specification-of-preprocessing-model-14. This feature is not used in the `Lightning` version.
+The `fun_control` dictionary, the `torch`, `sklearn`and `river` versions of `spotpython` allow the specification of a data preprocessing pipeline, e.g., for the scaling of the data or for the one-hot encoding of categorical variables, see @sec-specification-of-preprocessing-model-14. This feature is not used in the `Lightning` version.
 
 :::{.callout-caution}
 #### Caution: Data preprocessing in Lightning
@@ -411,7 +411,7 @@ Lightning allows the data preprocessing to be specified in the `LightningDataMod
 
 ```{python}
 import torch
-# from spotPython.light.csvdataset import CSVDataset
+# from spotpython.light.csvdataset import CSVDataset
 from torchvision.datasets import CIFAR10
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor

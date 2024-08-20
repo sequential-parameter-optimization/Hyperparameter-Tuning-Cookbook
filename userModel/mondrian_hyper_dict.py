@@ -1,5 +1,5 @@
 import json
-from spotRiver.data import base
+from spotriver.data import base
 import pathlib
 
 

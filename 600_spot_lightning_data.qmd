@@ -8,10 +8,10 @@ execute:
 
 # HPT PyTorch Lightning: Data {#sec-hpt-pytorch-lightning-data-30}
 
-In this tutorial, we will show how `spotPython` can be integrated into the `PyTorch` Lightning
+In this tutorial, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
 training workflow. 
 
-This chapter describes the data preparation and processing in `spotPython`. The Diabetes data set is used as an example. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+This chapter describes the data preparation and processing in `spotpython`. The Diabetes data set is used as an example. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
 
 
 ## Setup {#sec-setup-30}
@@ -23,7 +23,7 @@ This chapter describes the data preparation and processing in `spotPython`. The 
 
 ```{python}
 import torch
-from spotPython.utils.device import getDevice
+from spotpython.utils.device import getDevice
 from math import inf
 WORKERS = 0
 PREFIX="030"
@@ -39,16 +39,16 @@ TEST_SIZE = 0.4
 
 * Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see 
 [LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. 
-* The method `spotPython.utils.device.getDevice()` returns the device that is used by Lightning.
+* The method `spotpython.utils.device.getDevice()` returns the device that is used by Lightning.
 :::
 
 
 ## Initialization of the `fun_control` Dictionary
 
-`spotPython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
+`spotpython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
 
 ```{python}
-from spotPython.utils.init import fun_control_init
+from spotpython.utils.init import fun_control_init
 import numpy as np
 fun_control = fun_control_init(
     _L_in=10,
@@ -65,10 +65,10 @@ fun_control = fun_control_init(
 
 ## Loading the Diabetes Data Set
 
-Here, we load the Diabetes data set from `spotPython`'s `data` module.
+Here, we load the Diabetes data set from `spotpython`'s `data` module.
 
 ```{python}
-from spotPython.data.diabetes import Diabetes
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 print(len(dataset))
 ```
@@ -103,8 +103,8 @@ Then a Lightning Trainer is used to train (`fit`) the model, validate it, and te
 
 ```{python}
 from torch.utils.data import DataLoader
-from spotPython.data.diabetes import Diabetes
-from spotPython.light.regression.netlightregression import NetLightRegression
+from spotpython.data.diabetes import Diabetes
+from spotpython.light.regression.netlightregression import NetLightRegression
 from torch import nn
 import lightning as L
 import torch
@@ -136,13 +136,13 @@ trainer.validate(net_light_base, val_loader)
 trainer.test(net_light_base, test_loader)
 ```
 
-### Dataset for spotPython
+### Dataset for spotpython
 
-`spotPython` handles the data set, which is added to the `fun_control` dictionary with the key `data_set` as follows: 
+`spotpython` handles the data set, which is added to the `fun_control` dictionary with the key `data_set` as follows: 
 
 ```{python}
-from spotPython.hyperparameters.values import set_control_key_value
-from spotPython.data.diabetes import Diabetes
+from spotpython.hyperparameters.values import set_control_key_value
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 set_control_key_value(control_dict=fun_control,
                         key="data_set",
@@ -161,7 +161,7 @@ Therefore, the following information must be provided in the `fun_control` dicti
 * `test_seed`: the seed for the test set
 
 ```{python}
-from spotPython.utils.init import fun_control_init
+from spotpython.utils.init import fun_control_init
 import numpy as np
 fun_control = fun_control_init(
     data_set=dataset,
@@ -176,7 +176,7 @@ fun_control = fun_control_init(
 
 
 ```{python}
-from spotPython.data.lightdatamodule import LightDataModule
+from spotpython.data.lightdatamodule import LightDataModule
 dm = LightDataModule(
     dataset=fun_control["data_set"],
     batch_size=8,
@@ -191,7 +191,7 @@ print(f"train_model(): Train set size: {len(dm.data_train)}")
 
 ## The LightDataModule
 
-The steps described above are handled by the `LightDataModule` class. This class is used to create the data loaders for the training, validation, and test sets. The `LightDataModule` class is part of the `spotPython` package.
+The steps described above are handled by the `LightDataModule` class. This class is used to create the data loaders for the training, validation, and test sets. The `LightDataModule` class is part of the `spotpython` package.
 The `LightDataModule` class provides the following methods:
 
 * `prepare_data()`: This method is used to prepare the data set.
@@ -319,8 +319,8 @@ def train_dataloader(self) -> DataLoader:
 The `train_dataloader()` method can be used as follows:
 
 ```{python}
-from spotPython.data.lightdatamodule import LightDataModule
-from spotPython.data.diabetes import Diabetes
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
@@ -354,8 +354,8 @@ def val_dataloader(self) -> DataLoader:
 The `val_dataloader()` method can be used as follows:
 
 ```{python}
-from spotPython.data.lightdatamodule import LightDataModule
-from spotPython.data.diabetes import Diabetes
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
@@ -390,8 +390,8 @@ def test_dataloader(self) -> DataLoader:
 The `test_dataloader()` method can be used as follows:
 
 ```{python}
-from spotPython.data.lightdatamodule import LightDataModule
-from spotPython.data.diabetes import Diabetes
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
@@ -428,8 +428,8 @@ def predict_dataloader(self) -> DataLoader:
 The `predict_dataloader()` method can be used as follows:
 
 ```{python}
-from spotPython.data.lightdatamodule import LightDataModule
-from spotPython.data.diabetes import Diabetes
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
 dataset = Diabetes(target_type=torch.float)
 data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
 data_module.setup()
