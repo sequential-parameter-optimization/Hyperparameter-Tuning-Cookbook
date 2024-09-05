@@ -11,7 +11,7 @@ jupyter: python3
 
 ```{python}
 #| echo: false
-#| label: 100_imports
+#| label: 601_imports
 import numpy as np
 import os
 from math import inf
@@ -24,14 +24,55 @@ warnings.filterwarnings("ignore")
 
 In this tutorial, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
 training workflow for a regression task.
+It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.
 
-## The Diabetes Data Set {#sec-the-diabetes-data-set-100}
+```{python}
+#| label: 601_full_run
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init)
+from spotpython.hyperparameters.values import set_hyperparameter
+from spotpython.spot import spot
+
+fun = HyperLight().fun
+
+fun_control = fun_control_init(
+    PREFIX="601",
+    fun_evals=inf,
+    max_time=1,
+    data_set = Diabetes(),
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=10,
+    _L_out=1,
+    _torchmetric="mean_squared_error",
+    TENSORBOARD_CLEAN=True,
+   )
+
+set_hyperparameter(fun_control, "initialization", ["Default"])
+
+surrogate_control = surrogate_control_init(n_theta=2, noise=True, min_Lambda=1e-3, max_Lambda=10)
+
+spot_tuner = spot.Spot(
+    fun=fun,
+    fun_control=fun_control,
+    surrogate_control=surrogate_control,
+)
+res = spot_tuner.run()
+```
+
+
+
+
+##  A Closer Look at the Diabetes Data Set {#sec-the-diabetes-data-set-601}
 
 This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
 
 ### Data Exploration of the sklearn Diabetes Data Set
 
 ```{python}
+#| label: load_diabetes_sklearn
 from sklearn.datasets import load_diabetes
 from spotpython.plot.xy import plot_y_vs_X
 data = load_diabetes()
@@ -42,11 +83,12 @@ plot_y_vs_X(X, y, nrows=5, ncols=2, figsize=(20, 15))
 
 * Each of these 10 feature variables have been mean centered and scaled by the standard deviation times the square root of n_samples (i.e. the sum of squares of each column totals 1).
 
-* HDL (high-density lipoprotein) cholesterol, sometimes called “good” cholesterol, absorbs cholesterol in the blood and carries it back to the liver.
-* The liver then flushes it from the body.
-* High levels of HDL cholesterol can lower your risk for heart disease and stroke.
+* `s3_hdl` shows a different behavior than the other features. It has a negative slope. HDL (high-density lipoprotein) cholesterol, sometimes called “good” cholesterol, absorbs cholesterol in the blood and carries it back to the liver. The liver then flushes it from the body. High levels of HDL cholesterol can lower your risk for heart disease and stroke.
 
-### Generating the PyTorch data set
+### Generating the PyTorch Data Set
+
+`spotpython` provides a `Diabetes` class to load the diabetes data set. The `Diabetes` class is a subclass of `torch.utils.data.Dataset`. It loads the diabetes data set from `sklearn` and returns the data set as a `torch.utils.data.Dataset` object, so that features and targets can be accessed as `torch.tensor`s. [[CODE REFERENCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/data/diabetes/).
+
 
 ```{python}
 from spotpython.data.diabetes import Diabetes
@@ -55,9 +97,7 @@ print(len(data_set))
 print(data_set.names)
 ```
 
-## Setup{#sec-setup-24}
-
-### General Experiment Setup{#sec-general-experiment-setup-24}
+## General Experiment Setup{#sec-general-experiment-setup-601}
 
 To keep track of the different experiments, we use a `PREFIX` for the experiment name. The `PREFIX` is used to create a unique experiment name. The `PREFIX` is also used to create a unique TensorBoard folder, which is used to store the TensorBoard log files.
 
@@ -71,14 +111,15 @@ Note,  the total run time may exceed the specified `max_time`, because the initi
 The following parameters are used to specify the general experiment setup:
 
 ```{python}
-#| label: 024_sum_exp
-PREFIX = "100"
+#| label: 601_sum_exp
+#| eval: false
+PREFIX = "601"
 fun_evals = inf
 max_time = 1
 init_size = 10
 ```
 
-### Data Preprocessing {#sec-preprocessing-100}
+### Data Preprocessing {#sec-preprocessing-601}
 
 Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.
 
@@ -86,13 +127,13 @@ Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [L
 
 The data splitting is handled by `Lightning`.
 
-### Loss Function {#sec-loss-function-100}
+### Loss Function {#sec-loss-function-601-a}
 
 The loss function is specified in the configurable network class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/regression/nn_linear_regressor.py).
 We will use the mean squared error (MSE) as the loss function. i.e., from `torchmetrics` the function ` mean_squared_error`, see [[SOURCE]](https://github.com/Lightning-AI/torchmetrics/blob/master/src/torchmetrics/functional/regression/mse.py).
 The user can specify any of the loss functions from `torchmetrics` via the argument `_torchmetric` in the `fun_control` dictionary, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/utils/init/#spotpython.utils.init.fun_control_init).
 
-A detailed description of the loss functions (torchmetrics) is presented in @sec-torchmetrics-100.
+A detailed description of the loss functions (torchmetrics) is presented in @sec-torchmetrics-601.
 
 
 ### The Objective Function `fun` {#sec-the-objective-function-31}
@@ -100,6 +141,7 @@ A detailed description of the loss functions (torchmetrics) is presented in @sec
 The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotpython`.
 
 ```{python}
+#| eval: false
 from spotpython.fun.hyperlight import HyperLight
 fun = HyperLight().fun
 ```
@@ -114,7 +156,8 @@ The `hyperdict`  uses the default hyperparameter settings. These can be modified
 The following parameters are used for the model setup:
 
 ```{python}
-#| label: 100_sum_model-setup
+#| eval: false
+#| label: 601_sum_model-setup
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 core_model_name = "light.regression.NNLinearRegressor"
 hyperdict = LightHyperDict
@@ -129,14 +172,15 @@ The default surrogate model is the `Kriging` model, see [[SOURCE]](https://seque
 These parameters are set in the `surrogate_control` dictionary and therefore passed  to the `surrogate_control_init` function [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/utils/init/#spotpython.utils.init.surrogate_control_init).
 
 ```{python}
-#| label: 100_surrogate_control_setup
+#| eval: false
+#| label: 601_surrogate_control_setup
 noise = True
 n_theta = 2
 min_Lambda = 1e-3
 max_Lambda = 10
 ```
 
-### Summary: Setting up the Experiment {#sec-summary-setting-up-the-experiment-24}
+### Summary: Setting up the Experiment {#sec-summary-setting-up-the-experiment-601}
 
 At this stage, all required information is available to set up the dictionaries for the hyperparameter tuning.
 The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/spot/spot.py) is the hyperparameter tuning workhorse. It is initialized with the following parameters, which were specified above.
@@ -149,32 +193,6 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 
 `spotpython` allows maximum flexibility in the definition of the hyperparameter tuning setup. Alternative surrogate models, optimizers, and experimental designs can be used. Thus, interfaces for the `surrogate` model, experimental `design`, and `optimizer` are provided. The default surrogate model is the kriging model, the default optimizer is the differential evolution, and default experimental design is the Latin hypercube design.
 
-The information discussed so far can be summarized as follows:
-
-```{python}
-#| label: 100_summary_control
-from spotpython.data.diabetes import Diabetes
-from spotpython.hyperdict.light_hyper_dict import LightHyperDict
-from spotpython.fun.hyperlight import HyperLight
-from spotpython.utils.init import (fun_control_init, surrogate_control_init)
-
-
-fun = HyperLight().fun
-
-fun_control = fun_control_init(
-    PREFIX="100",
-    fun_evals=inf,
-    max_time=1,
-    data_set = Diabetes(),
-    core_model_name="light.regression.NNLinearRegressor",
-    hyperdict=LightHyperDict,
-    _L_in=10,
-    _L_out=1,
-    _torchmetric="mean_squared_error",
-    TENSORBOARD_CLEAN=True,
-   )
-surrogate_control = surrogate_control_init(n_theta=2, noise=True, min_Lambda=1e-3, max_Lambda=10)
-```
 
 ### Checking the Experimental Design
 
@@ -184,14 +202,15 @@ print(gen_design_table(fun_control))
 ```
 
 ```{python}
+#| eval: false
 from spotpython.hyperparameters.values import set_hyperparameter
 set_hyperparameter(fun_control, "initialization", ["Default"])
 print(gen_design_table(fun_control))
 ```
 
-:::
 
-## Tensorboard {#sec-tensorboard-100}
+
+## Tensorboard {#sec-tensorboard-601}
 
 The textual output shown in the console (or code cell) can be visualized with Tensorboard.
 
@@ -205,7 +224,8 @@ Further information can be found in the [PyTorch Lightning documentation](https:
 ## Running the Hyperparameter Tuning Experiment
 
 ```{python}
-#| label: 100_spot_run
+#| label: 601_spot_run
+#| eval: false
 from spotpython.spot import spot
 spot_tuner = spot.Spot(
     fun=fun,
@@ -218,7 +238,7 @@ res = spot_tuner.run()
 ## Using the `spotgui`
 
 The `spotgui` [[github]](https://github.com/sequential-parameter-optimization/spotGUI) provides a convenient way to interact with the hyperparameter tuning process.
-To obtain the settings from @sec-summary-setting-up-the-experiment-24, the `spotgui` can be started as shown in @fig-spotgui.
+To obtain the settings from @sec-summary-setting-up-the-experiment-601, the `spotgui` can be started as shown in @fig-spotgui.
 
 ![spotgui](./figures_static/024_gui.png){width=100% #fig-spotgui}
 
@@ -252,14 +272,14 @@ spot_tuner.plot_importance(threshold=10.0)
 ### Detailed Hyperparameter Plots
 
 ```{python}
-#| label: 024_plot_important_hyperparameter_contour
+#| label: 601_plot_important_hyperparameter_contour
 spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
 ### Parallel Coordinates Plots
 
 ```{python}
-#| label: 024_parallel_plot
+#| label: 601_parallel_plot
 spot_tuner.parallel_plot()
 ```
 
@@ -267,7 +287,7 @@ spot_tuner.parallel_plot()
 
 ```{python}
 from spotpython.utils.file import get_experiment_from_PREFIX
-config = get_experiment_from_PREFIX("100")["config"]
+config = get_experiment_from_PREFIX("601")["config"]
 config
 ```
 
@@ -368,7 +388,7 @@ import pprint
 
 ```{python}
 from spotpython.utils.file import get_experiment_from_PREFIX
-get_experiment_from_PREFIX("100", return_dict=False)
+get_experiment_from_PREFIX("601", return_dict=False)
 pprint.pprint(config)
 batch_size = config["batch_size"]
 print(batch_size)
@@ -439,7 +459,7 @@ plot_conductance_last_layer(w,c)
 
 ## Details of the Implementation
 
-### Loss Function {#sec-loss-function-100}
+### Loss Function {#sec-torchmetrics-601}
 
 
 The parameter `_torchmetric` is used to specify the metric. Any metric from the `torchmetrics` library can be used.
@@ -495,7 +515,7 @@ Currently, the following metrics are provided, see [[LINK]](https://lightning.ai
 
 The loss function is used in the training, validation, and testing steps of the model.
 
-### Data Handling {#sec-data-handling-100}
+### Data Handling {#sec-data-handling-601}
 
 As shown below, a DataLoader from `torch.utils.data` can be used to check the data. `spotpython` implements a `DataModule` class, which is used to load the data. The `DataModule` class is called from the `fun` function. The `DataModule` class is used to load the data and to split the data into training, validation, and test sets.
 
@@ -618,7 +638,7 @@ def train_model(config: dict, fun_control: dict, timestamp: bool = True) -> floa
 
 The following code exemplifies the workflow and shows how to combine the elements discussed so far:
 
-* First, results from the tuning experiment ("100") are loaded.
+* First, results from the tuning experiment ("601") are loaded.
 * A `LightDataModule` object is created and the `setup()` method is called.
 * Then, the `Trainer` is initialized.
 * Load the NN model from the last checkpoint.
@@ -626,9 +646,9 @@ The following code exemplifies the workflow and shows how to combine the element
 * Finally, the `validate()` method is called to validate the model. The `validate()` method returns the validation loss.
 
 ```{python}
-# Load results from the experiment 100
+# Load results from the experiment 601
 from spotpython.utils.file import get_experiment_from_PREFIX
-config, fun_control, design_control, surrogate_control, optimizer_control = get_experiment_from_PREFIX("100",return_dict=False)
+config, fun_control, design_control, surrogate_control, optimizer_control = get_experiment_from_PREFIX("601",return_dict=False)
 ```
 
 ```{python}
