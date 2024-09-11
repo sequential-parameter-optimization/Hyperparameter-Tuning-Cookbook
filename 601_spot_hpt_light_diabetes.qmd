@@ -7,7 +7,13 @@ execute:
 jupyter: python3
 ---
 
-# Pytorch Lightning: Hyperparameter Tuning with Diabetes Data
+# Hyperparameter Tuning with PyTorch Lightning
+
+## Introduction
+
+This scection provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. 
+@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.
+@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.
 
 ```{python}
 #| echo: false
@@ -27,15 +33,15 @@ training workflow for a regression task.
 It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.
 
 ```{python}
-#| label: 601_full_run
+#| label: 601_setup
 from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
 from spotpython.utils.init import (fun_control_init, surrogate_control_init)
+from spotpython.utils.eda import gen_design_table
 from spotpython.hyperparameters.values import set_hyperparameter
 from spotpython.spot import spot
 
-fun = HyperLight().fun
 
 fun_control = fun_control_init(
     PREFIX="601",
@@ -47,55 +53,44 @@ fun_control = fun_control_init(
     _L_in=10,
     _L_out=1,
     _torchmetric="mean_squared_error",
-    TENSORBOARD_CLEAN=True,
-   )
-
-set_hyperparameter(fun_control, "initialization", ["Default"])
+    TENSORBOARD_CLEAN=True,)
 
 surrogate_control = surrogate_control_init(n_theta=2, noise=True, min_Lambda=1e-3, max_Lambda=10)
 
-spot_tuner = spot.Spot(
-    fun=fun,
-    fun_control=fun_control,
-    surrogate_control=surrogate_control,
-)
+set_hyperparameter(fun_control, "initialization", ["Default"])
+
+fun = HyperLight().fun
+
+spot_tuner = spot.Spot(fun=fun,fun_control=fun_control,surrogate_control=surrogate_control)
+```
+After importing the necessary libraries, the `fun_control` dictionary is set up.
+The `fun_control` dictionary contains
+
+* `PREFIX`: a unique identifier for the experiment
+* `fun_evals`: the number of function evaluations
+* `max_time`: the maximum run time in minutes
+* `data_set`: the data set
+* `core_model_name`: the class name of the neural network model
+* `hyperdict`: the hyperparameter dictionary
+* `_L_in`: the number of input features
+* `_L_out`: the number of output features
+
+The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `["Default"]`.
+The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods.
+Finally, a `Spot` object is created, which is used to run the hyperparameter tuning experiment as follows:
+After the hyperparameter tuning run is finished, results results can be printed in tabular form.
+
+```{python}
+#| label: 601_run_print_plot_results
 res = spot_tuner.run()
+print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
+This basic setup can be adapted to user-specific needs in many ways. For example, the user can specify a custom data set, a custom model, or a custom loss function.
+The user can also modify the hyperparameter settings. The following sections provide more details on how to customize the hyperparameter tuning process.
 
-
-
-##  A Closer Look at the Diabetes Data Set {#sec-the-diabetes-data-set-601}
-
-This chapter describes the hyperparameter tuning of a `PyTorch Lightning` network on the Diabetes data set. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
-
-### Data Exploration of the sklearn Diabetes Data Set
-
-```{python}
-#| label: load_diabetes_sklearn
-from sklearn.datasets import load_diabetes
-from spotpython.plot.xy import plot_y_vs_X
-data = load_diabetes()
-X, y = data.data, data.target
-plot_y_vs_X(X, y, nrows=5, ncols=2, figsize=(20, 15))
-```
-
-
-* Each of these 10 feature variables have been mean centered and scaled by the standard deviation times the square root of n_samples (i.e. the sum of squares of each column totals 1).
-
-* `s3_hdl` shows a different behavior than the other features. It has a negative slope. HDL (high-density lipoprotein) cholesterol, sometimes called “good” cholesterol, absorbs cholesterol in the blood and carries it back to the liver. The liver then flushes it from the body. High levels of HDL cholesterol can lower your risk for heart disease and stroke.
-
-### Generating the PyTorch Data Set
-
-`spotpython` provides a `Diabetes` class to load the diabetes data set. The `Diabetes` class is a subclass of `torch.utils.data.Dataset`. It loads the diabetes data set from `sklearn` and returns the data set as a `torch.utils.data.Dataset` object, so that features and targets can be accessed as `torch.tensor`s. [[CODE REFERENCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/data/diabetes/).
-
-
-```{python}
-from spotpython.data.diabetes import Diabetes
-data_set = Diabetes()
-print(len(data_set))
-print(data_set.names)
-```
+This section provides an overview of the various configurations.
 
 ## General Experiment Setup{#sec-general-experiment-setup-601}
 
