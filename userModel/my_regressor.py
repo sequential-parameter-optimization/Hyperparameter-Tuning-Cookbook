@@ -4,7 +4,6 @@ from torch import nn
 from spotpython.hyperparameters.optimizer import optimizer_handler
 import torchmetrics.functional.regression
 
-
 class MyRegressor(L.LightningModule):
     """
     A LightningModule class for a regression neural network model.
@@ -59,17 +58,28 @@ class MyRegressor(L.LightningModule):
         Initializes the MyRegressor object.
 
         Args:
-            l1 (int): The number of neurons in the first hidden layer.
-            epochs (int): The number of epochs to train the model for.
-            batch_size (int): The batch size to use during training.
-            initialization (str): The initialization method to use for the weights.
-            act_fn (nn.Module): The activation function to use in the hidden layers.
-            optimizer (str): The optimizer to use during training.
-            dropout_prob (float): The probability of dropping out a neuron during training.
-            lr_mult (float): The learning rate multiplier for the optimizer.
-            patience (int): The number of epochs to wait before early stopping.
-            _L_in (int): The number of input features. Not a hyperparameter, but needed to create the network.
-            _L_out (int): The number of output classes. Not a hyperparameter, but needed to create the network.
+            l1 (int):
+                The number of neurons in the first hidden layer.
+            epochs (int):
+                The number of epochs to train the model for.
+            batch_size (int):
+                The batch size to use during training.
+            initialization (str):
+                The initialization method to use for the weights.
+            act_fn (nn.Module):
+                The activation function to use in the hidden layers.
+            optimizer (str):
+                The optimizer to use during training.
+            dropout_prob (float):
+                The probability of dropping out a neuron during training.
+            lr_mult (float):
+                The learning rate multiplier for the optimizer.
+            patience (int):
+                The number of epochs to wait before early stopping.
+            _L_in (int):
+                The number of input features. Not a hyperparameter, but needed to create the network.
+            _L_out (int):
+                The number of output classes. Not a hyperparameter, but needed to create the network.
             _torchmetric (str):
                 The metric to use for the loss function. If `None`,
                 then "mean_squared_error" is used.
@@ -101,14 +111,7 @@ class MyRegressor(L.LightningModule):
         self.example_input_array = torch.zeros((batch_size, self._L_in))
         if self.hparams.l1 < 4:
             raise ValueError("l1 must be at least 4")
-
-        # TODO: Implement a hidden_sizes generator function
-        hidden_sizes = [self.hparams.l1, self.hparams.l1 // 2, self.hparams.l1 // 2, self.hparams.l1 // 4]
-        # n_low = _L_in // 4
-        # # ensure that n_high is larger than n_low
-        # n_high = max(self.hparams.l1, 2 * n_low)
-        # hidden_sizes = generate_div2_list(n_high, n_low)
-
+        hidden_sizes = self._get_hidden_sizes()
         # Create the network based on the specified hidden sizes
         layers = []
         layer_sizes = [self._L_in] + hidden_sizes
@@ -123,6 +126,50 @@ class MyRegressor(L.LightningModule):
         layers += [nn.Linear(layer_sizes[-1], self._L_out)]
         # nn.Sequential summarizes a list of modules into a single module, applying them in sequence
         self.layers = nn.Sequential(*layers)
+
+    def _generate_div2_list(self, n, n_min) -> list:
+        """
+        Generate a list of numbers from n to n_min (inclusive) by dividing n by 2
+        until the result is less than n_min.
+        This function starts with n and keeps dividing it by 2 until n_min is reached.
+        The number of times each value is added to the list is determined by n // current.
+        No more than 4 repeats of the same value (`max_repeats` below) are added to the list.
+
+        Args:
+            n (int): The number to start with.
+            n_min (int): The minimum number to stop at.
+
+        Returns:
+            list: A list of numbers from n to n_min (inclusive).
+
+        Examples:
+            _generate_div2_list(10, 1)
+            [10, 5, 5, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            _ generate_div2_list(10, 2)
+            [10, 5, 5, 2, 2, 2, 2, 2]
+        """
+        result = []
+        current = n
+        repeats = 1
+        max_repeats = 4
+        while current >= n_min:
+            result.extend([current] * min(repeats, max_repeats))
+            current = current // 2
+            repeats = repeats + 1
+        return result
+
+    def _get_hidden_sizes(self):
+        """
+        Generate the hidden layer sizes for the network.
+
+        Returns:
+            list: A list of hidden layer sizes.
+
+        """
+        n_low = self._L_in // 4
+        n_high = max(self.hparams.l1, 2 * n_low)
+        hidden_sizes = self._generate_div2_list(n_high, n_low)
+        return hidden_sizes
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -144,7 +191,6 @@ class MyRegressor(L.LightningModule):
 
         Args:
             batch (tuple): A tuple containing a batch of input data and labels.
-            mode (str, optional): The mode of the model. Defaults to "train".
 
         Returns:
             torch.Tensor: A tensor containing the loss for this batch.
@@ -218,7 +264,7 @@ class MyRegressor(L.LightningModule):
             prog_bar (bool, optional): Whether to display the progress bar. Defaults to False.
 
         Returns:
-            torch.Tensor: A tensor containing the prediction for this batch.
+            A tuple containing the input data, the true labels, and the predicted values.
         """
         x, y = batch
         yhat = self(x)

@@ -27,11 +27,13 @@ In this section, we will show how a user defined model can be used for the `PyTo
 ## Using a User Specified Model
 
 As templates, we provide the following three files that allow the user to specify a model in the `/userModel` directory:
-    * `my_regressor.py`
-    * `my_hyperdict.json`
-    * `my_hyperdict.py`
 
-The `my_regressor.py` file contains the model class, which is a subclass of `nn.Module`. The `my_hyperdict.json` file contains the hyperparameter settings as a dictionary, which are loaded via the `my_hyperdict.py` file.
+* `my_regressor.py`, see @sec-my-regressor
+* `my_hyperdict.json`, see @sec-my-hyper-dict
+* `my_hyperdict.py`, see @sec-my-hyper-dict.
+
+The `my_regressor.py` file contains the model class, which is a subclass of `nn.Module`.
+The `my_hyperdict.json` file contains the hyperparameter settings as a dictionary, which are loaded via the `my_hyperdict.py` file.
 
 Note, that we have to add the path to the `userModel` directory to the `sys.path` list as shown below.
 
@@ -52,7 +54,7 @@ from spotpython.hyperparameters.values import set_hyperparameter
 from spotpython.spot import spot
 
 fun_control = fun_control_init(
-    PREFIX="601",
+    PREFIX="601-user-model",
     fun_evals=inf,
     max_time=1,
     data_set = Diabetes(),
@@ -72,7 +74,7 @@ spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_co
 
 
 ```{python}
-#| label: 601_user_data_run
+#| label: 601_user_model_run
 res = spot_tuner.run()
 print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
@@ -82,17 +84,16 @@ spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 
 ### Model Setup
 
-By using `core_model_name = "light.regression.NNLinearRegressor"`, the `spotpython` model class `NetLightRegression` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/light/regression/netlightregression/) from the `light.regression` module is selected.
-For a given `core_model_name`, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file. The JSON file contains hyperparameter type information, names, and bounds. For `spotpython` models, the hyperparameters are stored in the `LightHyperDict`, see [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperdict/light_hyper_dict.json)
-Alternatively, you can load a local hyper_dict.
+By using `core_model_name = "my_regressor.MyRegressor"`, the user specified model class `MyRegressor` [[SOURCE]](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/userModel/my_regressor.py) is selected.
+For this given `core_model_name`, the local hyper_dict is loaded using the `my_hyper_dict.py` file as shown below.
 
-### The `my_hyper_dict.py` File
+### The `my_hyper_dict.py` File {#sec-my-hyper-dict}
 
-The `my_hyper_dict.py` file  must be placed in the `/userModel` directory.  Itprovides a convenience function to load the hyperparameters from the `my_hyper_dict.json` file.
-The user do not need to modify this file, if the JSON file is stored as `my_hyper_dict.json`. 
+The `my_hyper_dict.py` file  must be placed in the `/userModel` directory.  It provides a convenience function to load the hyperparameters from user specified the `my_hyper_dict.json` file, see @sec-my-hyper-dict.
+The user does not need to modify this file, if the JSON file is stored as `my_hyper_dict.json`. 
 Alternative filenames can be specified via the `filename` argument (which is default set to `"my_hyper_dict.json"`).
 
-### The `my_hyper_dict.json` File
+### The `my_hyper_dict.json` File {#sec-my-hyper-dict}
 
 The `my_hyper_dict.json` file contains the hyperparameter settings as a dictionary, which are loaded via the `my_hyper_dict.py` file.
 The example below shows the content of the `my_hyper_dict.json` file.
@@ -198,7 +199,7 @@ The example below shows the content of the `my_hyper_dict.json` file.
 }
 ```
 
-### The `my_regressor.py` File
+### The `my_regressor.py` File {#sec-my-regressor}
 
 The `my_regressor.py` file contains [[SOURCE]](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/userModel/my_regressor.py) the model class, which is a subclass of `nn.Module`. It must implement the following methods:
 
@@ -211,3 +212,198 @@ The `my_regressor.py` file contains [[SOURCE]](https://github.com/sequential-par
 * `configure_optimizers(self) -> torch.optim.Optimizer`: The method to configure the optimizer of the model. It returns the optimizer.
 
 The file `my_regressor.py` must be placed in the `/userModel` directory. The user can modify the model class to implement a custom model architecture.
+
+We will take a closer look at the `my_regressor.py` file in the next section.
+
+#### The `__init__` Method
+
+`__init__()` initializes the `MyRegressor` object. It takes the following arguments:
+
+* `l1` (int): The number of neurons in the first hidden layer.
+* `epochs` (int): The number of epochs to train the model for.
+* `batch_size` (int): The batch size to use during training.
+* `initialization` (str): The initialization method to use for the weights.
+* `act_fn` (nn.Module): The activation function to use in the hidden layers.
+* `optimizer` (str): The optimizer to use during training.
+* `dropout_prob` (float): The probability of dropping out a neuron during training.
+* `lr_mult` (float): The learning rate multiplier for the optimizer.
+* `patience` (int): The number of epochs to wait before early stopping.
+* `_L_in` (int): The number of input features. Not a hyperparameter, but needed to create the network.
+* `_L_out` (int): The number of output classes. Not a hyperparameter, but needed to create the network.
+* `_torchmetric` (str): The metric to use for the loss function. If `None`, then "mean_squared_error" is used.
+
+It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_init
+#| eval: false
+class MyRegressor(L.LightningModule):
+        def __init__(
+        self,
+        l1: int,
+        epochs: int,
+        batch_size: int,
+        initialization: str,
+        act_fn: nn.Module,
+        optimizer: str,
+        dropout_prob: float,
+        lr_mult: float,
+        patience: int,
+        _L_in: int,
+        _L_out: int,
+        _torchmetric: str,
+    ):
+        super().__init__()
+        self._L_in = _L_in
+        self._L_out = _L_out
+        if _torchmetric is None:
+            _torchmetric = "mean_squared_error"
+        self._torchmetric = _torchmetric
+        self.metric = getattr(torchmetrics.functional.regression, _torchmetric)
+        # _L_in and _L_out are not hyperparameters, but are needed to create the network
+        # _torchmetric is not a hyperparameter, but is needed to calculate the loss
+        self.save_hyperparameters(ignore=["_L_in", "_L_out", "_torchmetric"])
+        # set dummy input array for Tensorboard Graphs
+        # set log_graph=True in Trainer to see the graph (in traintest.py)
+        self.example_input_array = torch.zeros((batch_size, self._L_in))
+        if self.hparams.l1 < 4:
+            raise ValueError("l1 must be at least 4")
+        hidden_sizes = self._get_hidden_sizes()
+        # Create the network based on the specified hidden sizes
+        layers = []
+        layer_sizes = [self._L_in] + hidden_sizes
+        layer_size_last = layer_sizes[0]
+        for layer_size in layer_sizes[1:]:
+            layers += [
+                nn.Linear(layer_size_last, layer_size),
+                self.hparams.act_fn,
+                nn.Dropout(self.hparams.dropout_prob),
+            ]
+            layer_size_last = layer_size
+        layers += [nn.Linear(layer_sizes[-1], self._L_out)]
+        # nn.Sequential summarizes a list of modules into a single module,
+        # applying them in sequence
+        self.layers = nn.Sequential(*layers)
+```
+
+#### The `_get_hidden_sizes` Method
+
+`__init__()` uses the helper method `_get_hidden_sizes()` to calculate the hidden layer sizes based on the number of neurons in the first hidden layer `l1`. The hidden layer sizes are calculated as follows:
+
+```{python}
+#| label: 601_user_model_get_hidden_sizes
+#| eval: false
+def _get_hidden_sizes(self):
+    # Calculate the hidden layer sizes based on the number of neurons in the first hidden layer
+    hidden_sizes = [self.hparams.l1]
+    while hidden_sizes[-1] > 2:
+        hidden_sizes.append(hidden_sizes[-1] // 2)
+    return hidden_sizes
+```
+
+
+#### The `forward` Method
+
+The `forward()` method defines the forward pass of the model. It takes an input tensor `x` and passes it through the network layers to produce an output tensor. It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_forward
+#| eval: false
+def forward(self, x: torch.Tensor) -> torch.Tensor:
+    return self.layers(x)
+```
+
+#### The `_calculate_loss` Method
+
+The `_calculate_loss()` method calculates the loss based on the predicted output and the target values. It uses the specified metric to calculate the loss. 
+It takes the following arguments:
+
+* `batch (tuple)`: A tuple containing a batch of input data and labels.
+
+It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_calculate_loss
+#| eval: false
+def _calculate_loss(self, batch):
+    x, y = batch
+    y = y.view(len(y), 1)
+    y_hat = self(x)
+    loss = self.metric(y_hat, y)
+    return loss
+``` 
+
+#### The `training_step` Method
+
+The `training_step()` method defines the training step of the model. It takes a batch of data and returns the loss. It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_training_step
+#| eval: false
+def training_step(self, batch: tuple) -> torch.Tensor:
+    val_loss = self._calculate_loss(batch)
+    return val_loss
+```
+
+#### The `validation_step` Method
+
+The `validation_step()` method defines the validation step of the model. It takes a batch of data and returns the loss. It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_validation_step
+#| eval: false
+def validation_step(self, batch: tuple) -> torch.Tensor:
+    val_loss = self._calculate_loss(batch)
+    return val_loss
+```
+
+#### The `test_step` Method
+
+The `test_step()` method defines the test step of the model. It takes a batch of data and returns the loss. It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_test_step
+#| eval: false
+def test_step(self, batch: tuple) -> torch.Tensor:
+    val_loss = self._calculate_loss(batch)
+    return val_loss
+```
+
+#### The `predict` Method
+
+The `predict()` method defines the prediction method of the model. It takes an input tensor `x` and returns 
+a tuple with the input tensor `x`, the target tensor `y`, and the predicted tensor `y_hat`.
+
+ It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_predict
+#| eval: false
+def predict(self, x: torch.Tensor) -> torch.Tensor:
+    x, y = batch
+    yhat = self(x)
+    y = y.view(len(y), 1)
+    yhat = yhat.view(len(yhat), 1)
+    return (x, y, yhat)
+```
+
+#### The `configure_optimizers` Method
+
+The `configure_optimizers()` method defines the optimizer to use during training.
+It uses the `optimizer_handler` from `spotpython.hyperparameter.optimizer` to create the optimizer based on the specified optimizer name, parameters, and learning rate multiplier.
+It is implemented as follows:
+
+```{python}
+#| label: 601_user_model_configure_optimizers
+#| eval: false
+def configure_optimizers(self) -> torch.optim.Optimizer:
+    optimizer = optimizer_handler(
+        optimizer_name=self.hparams.optimizer, params=self.parameters(), lr_mult=self.hparams.lr_mult
+    )
+    return optimizer
+```
+
+Note, the default Lightning way is to define an optimizer as
+`optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)`.
+`spotpython` uses an optimizer handler to create the optimizer, which adapts the learning rate according to the `lr_mult` hyperparameter as
+well as other hyperparameters. See `spotpython.hyperparameters.optimizer.py` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotpython/hyperparameters/optimizer.py) for details.
