@@ -29,7 +29,7 @@ In this section, we will show how a user defined model can be used for the `PyTo
 As templates, we provide the following three files that allow the user to specify a model in the `/userModel` directory:
 
 * `my_regressor.py`, see @sec-my-regressor
-* `my_hyperdict.json`, see @sec-my-hyper-dict
+* `my_hyperdict.json`, see @sec-my-hyper-dict-json
 * `my_hyperdict.py`, see @sec-my-hyper-dict.
 
 The `my_regressor.py` file contains the model class, which is a subclass of `nn.Module`.
@@ -93,7 +93,7 @@ The `my_hyper_dict.py` file  must be placed in the `/userModel` directory.  It p
 The user does not need to modify this file, if the JSON file is stored as `my_hyper_dict.json`. 
 Alternative filenames can be specified via the `filename` argument (which is default set to `"my_hyper_dict.json"`).
 
-### The `my_hyper_dict.json` File {#sec-my-hyper-dict}
+### The `my_hyper_dict.json` File {#sec-my-hyper-dict-json}
 
 The `my_hyper_dict.json` file contains the hyperparameter settings as a dictionary, which are loaded via the `my_hyper_dict.py` file.
 The example below shows the content of the `my_hyper_dict.json` file.
@@ -429,11 +429,27 @@ It can be used to download the data set. In our case, the data set is already av
 
 ### The `setup()` Method
 
-Splits the data for use in training, validation, and testing. It uses `torch.utils.data.random_split()` to split the data.
+The `stage` is used to define the data set to be returned. It 
+can be `None`, `fit`, `test`, or `predict`.
+If `stage` is `None`, the method returns the training (`fit`),
+testing (`test`), and prediction (`predict`) data sets.
+
+The `setup` methods splits the data based on the `stage` setting for use in training, validation, and testing.
+It uses `torch.utils.data.random_split()` to split the data.
+
 Splitting is based on the `test_size` and `test_seed`. 
 The `test_size` can be a float or an int.
 
-#### Determine the Sizes of the Data Sets
+First, the data set sizes are determined as described in @sec-determine-sizes-601.
+Then, the data sets are split based on the `stage` setting.
+`spotpython`'s `LightDataModule` class uses the following sizes:
+
+* `full_train_size`: The size of the full training data set. This data set is splitted into the final training data set and a validation data set.
+* `val_size`: The size of the validation data set. The validation data set is used to validate the model during training.
+* `train_size`: The size of the training data set. The training data set is used to train the model.
+* `test_size`: The size of the test data set. The test data set is used to evaluate the model after training. It is not used during training ("hyperparameter tuning"). Only after everything is finished, the model is evaluated on the test data set.
+
+#### Determine the Sizes of the Data Sets {#sec-determine-sizes-601}
 
 ```{python}
 #| label: 601_user_data_module_setup
@@ -460,11 +476,9 @@ print(f"LightDataModule setup(): test_size: {test_size}")
 ```
 
 
-`stage` is used to define the data set to be returned.
-The `stage` can be `None`, `fit`, `test`, or `predict`.
-If `stage` is `None`, the method returns the training (`fit`), testing (`test`) and prediction (`predict`) data sets.
-
 #### The "setup" Method: Stage "fit" {#sec-stage-fit-601}
+
+Here, `train_size` and `val_size` are used to split the data into training and validation sets.
 
 ```{python}
 #| label: 601_user_data_module_setup_fit
@@ -496,7 +510,12 @@ if stage == "fit" or stage is None:
         data_val = TensorDataset(torch.stack(data_tensors_val).squeeze(1), torch.stack(target_tensors_val))
 ```
 
+The `data_train` and `data_val` data sets are further used to create the training and validation data loaders as 
+described in @sec-train-dataloader-601 and @sec-val-dataloader-601, respectively.
+
 #### The "setup" Method: Stage "test" {#sec-stage-test-601}
+
+Here, the test data set, which is based on the `test_size`, is created.
 
 ```{python}
 #| label: 601_user_data_module_setup_test
@@ -535,6 +554,7 @@ for batch in dataloader:
 #### The "setup" Method: Stage "predict" {#sec-stage-predict-601}
 
 Prediction and testing use the same data set.
+The prediction data set is created based on the `test_size`.
 
 ```{python}
 #| label: 601_user_data_module_setup_predict
@@ -571,9 +591,9 @@ for batch in dataloader:
     break
 ```
 
-### The `train_dataloader()` Method
+### The `train_dataloader()` Method {#sec-train-dataloader-601}
 
-Returns the training dataloader, i.e., a Pytorch DataLoader instance using the training dataset.
+The method ``train_dataloader` returns the training dataloader, i.e., a Pytorch DataLoader instance using the training dataset.
 It simply returns a DataLoader with the `data_train` set that was created in the `setup()` method as described in @sec-stage-fit-601.
 
 ```{python}
@@ -581,6 +601,9 @@ It simply returns a DataLoader with the `data_train` set that was created in the
 def train_dataloader(self) -> DataLoader:
     return DataLoader(data_train, batch_size=batch_size, num_workers=num_workers)
 ```
+
+::: {.callout-note}
+#### Using the `train_dataloader()` Method
 
 The `train_dataloader()` method can be used as follows:
 
@@ -603,9 +626,9 @@ for batch in dl:
     print(f"Targets: {targets}")
     break
 ```
+:::
 
-
-### The `val_dataloader()` Method
+### The `val_dataloader()` Method {#sec-val-dataloader-601}
 
 Returns the validation dataloader, i.e., a Pytorch DataLoader instance using the validation dataset.
 It simply returns a DataLoader with the `data_val` set that was created in the `setup()` method as desccribed in @sec-stage-fit-601.
@@ -616,6 +639,8 @@ def val_dataloader(self) -> DataLoader:
     return DataLoader(data_val, batch_size=batch_size, num_workers=num_workers)
 ```
 
+::: {.callout-note}
+#### Using the `val_dataloader()` Method
 
 The `val_dataloader()` method can be used as follows:
 
@@ -639,6 +664,7 @@ for batch in dl:
     break
 ```
 
+::: 
 
 
 ### The `test_dataloader()` Method
@@ -652,6 +678,8 @@ def test_dataloader(self) -> DataLoader:
     return DataLoader(data_test, batch_size=batch_size, num_workers=num_workers)
 ```
 
+::: {.callout-note}
+#### Using the `test_dataloader()` Method
 
 The `test_dataloader()` method can be used as follows:
 
@@ -675,7 +703,7 @@ for batch in dl:
     break
 ```
 
-
+::: 
 
 ### The `predict_dataloader()` Method
 
@@ -690,6 +718,10 @@ The `batch_size` is set to the length of the `data_predict` set.
 def predict_dataloader(self) -> DataLoader:
     return DataLoader(data_predict, batch_size=len(data_predict), num_workers=num_workers)
 ``` 
+
+
+::: {.callout-note}
+#### Using the `predict_dataloader()` Method
 
 The `predict_dataloader()` method can be used as follows:
 
@@ -712,9 +744,12 @@ for batch in dl:
     print(f"Targets: {targets}")
     break
 ```
-
+:::
 
 ## Using the `LightDataModule` in the `train_model()` Method
+
+The methods discussed so far are used in `spotpython`'s  `train_model()` method [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/trainmodel/) to train the model.
+It is implemented as follows [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotpython/light/trainmodel.py).
 
 First, a `LightDataModule` object is created and the `setup()` method is called.
 ```{python}
@@ -765,12 +800,36 @@ The `validate()` method returns the validation loss.
 ```{python}
 #| eval: false
 # Test best model on validation and test set
-# result = trainer.validate(model=model, datamodule=dm, ckpt_path="last")
 result = trainer.validate(model=model, datamodule=dm)
 # unlist the result (from a list of one dict)
 result = result[0]
 return result["val_loss"]
 ```
+
+
+## The Last Connection: The `HyperLight` Class
+
+The method `train_model()` is part of the `HyperLight` class [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/trainmodel/). It is called from `spotpython` as an objective function to train the model and return the validation loss.
+
+The `HyperLight` class is implemented as follows [[SOURCE]](https://github.com/sequential-parameter-optimization/spotPython/blob/main/src/spotpython/fun/hyperlight.py).
+
+```{python}
+#| eval: false
+#| label: 601_user_hyperlight
+
+class HyperLight:
+    def fun(self, X: np.ndarray, fun_control: dict = None) -> np.ndarray:
+        z_res = np.array([], dtype=float)
+        self.check_X_shape(X=X, fun_control=fun_control)
+        var_dict = assign_values(X, get_var_name(fun_control))
+        for config in generate_one_config_from_var_dict(var_dict, fun_control):
+            df_eval = train_model(config, fun_control)
+            z_val = fun_control["weights"] * df_eval
+            z_res = np.append(z_res, z_val)
+        return z_res
+```
+
+
 
 
 ## Further Information 
