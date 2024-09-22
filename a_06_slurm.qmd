@@ -1,7 +1,7 @@
 ---
 execute:
   cache: false
-  eval: false
+  eval: true
   echo: true
   warning: false
 jupyter: python3
@@ -54,7 +54,12 @@ conda activate spot312
 srun python startPython.py "$SPOT_PKL"
 ```
 
-Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., `scp startSlurm.sh user@144.33.22.1:`.
+Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., 
+```{python}
+#| label: copy-startSlurm-to-remote
+#| eval: false
+scp startSlurm.sh user@144.33.22.1:
+```
 
 
 The `startPython.py` script is a Python script that contains the following code:
@@ -76,10 +81,14 @@ if __name__ == "__main__":
     main(args.pickle_file)
 ```
 
-Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., `scp startPython.py user@144.33.22.1:`.
+Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., 
+```{python}
+#| label: copy-startPython-to-remote
+#| eval: false
+scp startPython.py user@144.33.22.1:
+```
 
-
-## Generate a `spotpython` configuration
+## Generate a `spotpython` Configuration
 
 The configuration can be generated on a local machine using the following command:
 
@@ -105,7 +114,7 @@ df = load_hcf_df(A=True, H=True, param_list=load_all_features_N_regression_list(
 data_set = hcf_df2tensor(df, target='N', return_X_y=False)
 
 fun_control = fun_control_init(
-    PREFIX="light-user-model",
+    PREFIX="01",
     TENSORBOARD_CLEAN=False,
     tensorboard_log=False,
     fun_evals=inf,
@@ -158,7 +167,7 @@ if hasattr(spot_tuner, "spot_writer"):
 spot_tuner.save_experiment(filename=filename)
 ```
 
-The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_light-user-model_experiment.pickle`.
+The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_01_experiment.pickle`.
 
 ::: {.callout-note}
 ### Data 
@@ -181,7 +190,7 @@ You can copy the configuration to the remote machine using the `scp` command. Th
 ```{python}
 #| label: copy-config-to-remote
 #| eval: false
-scp spot_light-user-model_experiment.pickle user@144.33.22.1:
+scp spot_01_experiment.pickle user@144.33.22.1:
 ```
 
 ## Run the `spotpython` Code on the Remote Machine
@@ -193,5 +202,57 @@ Login on the remote machine and run the following command to start the `spotpyth
 #| eval: false
 ssh user@144.33.22.1
 cd /path/to/remote/directory
-sh -x ./startSlurm.sh spot_light-user-model_experiment.pickle
+sh -x ./startSlurm.sh spot_01_experiment.pickle
 ```
+
+## Copy the Results to the Local Machine
+
+After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command. The following command copies the results to the local machine:
+```{python}
+#| label: copy-results-to-local
+#| eval: false
+scp user@144.33.22.1:spot_01_experiment.pickle .
+```
+
+## Analyze the Results on the Local Machine
+
+The file `spot_01_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.
+
+
+```{python}
+#| label: spotgui
+#| eval: false
+from spotpython.utils.file import load_experiment
+spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment("spot_01_experiment.pickle")
+```
+
+### Visualizing the Tuning Progress
+
+Now the `spot_tuner` object is loaded and you can analyze the results interactively.
+```{python}
+#| label: analyze-results-progress-plot
+#| eval: false
+spot_tuner.plot_progress(log_y=True, filename=None)
+```
+
+### Design Table with Default and Tuned Hyperparameters
+
+```{python}
+#| label: analyze-results-design-table
+#| eval: false
+from spotpython.utils.eda import gen_design_table
+print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
+```
+
+### Plotting Important Hyperparameters
+
+```{python}
+#| label: analyze-results-plot-imp-hyperparam
+#| eval: false
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+```
+
+::: {.callout-note}
+### spotgui
+The `spotgui` can be used to analyze the results interactively.
+:::
