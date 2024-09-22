@@ -1,923 +1,293 @@
 {
- "cells": [
-  {
-   "cell_type": "markdown",
-   "id": "a8443490",
-   "metadata": {},
-   "source": [
-    "---\n",
-    "execute:\n",
-    "  cache: false\n",
-    "  eval: true\n",
-    "  echo: true\n",
-    "  warning: false\n",
-    "jupyter: python3\n",
-    "---\n",
-    "\n",
-    "\n",
-    "# Hyperparameter Tuning with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-601}\n",
-    "\n",
-    "## Basic Setup {#sec-basic-setup-601}\n",
-    "\n",
-    "This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. \n",
-    "@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.\n",
-    "@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "imports",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| echo: false\n",
-    "#| label: 601_imports\n",
-    "import numpy as np\n",
-    "import os\n",
-    "from math import inf\n",
-    "import numpy as np\n",
-    "import warnings\n",
-    "if not os.path.exists('./figures'):\n",
-    "    os.makedirs('./figures')\n",
-    "warnings.filterwarnings(\"ignore\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "b934a89d",
-   "metadata": {},
-   "source": [
-    "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
-    "training workflow for a regression task.\n",
-    "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
-    "\n",
-    "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
-    "The `fun_control` dictionary contains\n",
-    "\n",
-    "* `PREFIX`: a unique identifier for the experiment\n",
-    "* `fun_evals`: the number of function evaluations\n",
-    "* `max_time`: the maximum run time in minutes\n",
-    "* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.\n",
-    "* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.\n",
-    "* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.\n",
-    "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
-    "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
-    "\n",
-    "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
-    "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
-    "Finally, a `Spot` object is created.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "id": "setup",
-   "metadata": {},
-   "outputs": [
+  "cells": [
     {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "Seed set to 123\n"
-     ]
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Hyperparameter Tuning with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-601}\n",
+        "\n",
+        "## Basic Setup {#sec-basic-setup-601}\n",
+        "\n",
+        "This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. \n",
+        "@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.\n",
+        "@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.\n"
+      ],
+      "id": "303c14f3"
     },
     {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "Seed set to 123\n"
-     ]
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "#| label: 601_imports\n",
+        "import numpy as np\n",
+        "import os\n",
+        "from math import inf\n",
+        "import numpy as np\n",
+        "import warnings\n",
+        "if not os.path.exists('./figures'):\n",
+        "    os.makedirs('./figures')\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "id": "imports",
+      "execution_count": null,
+      "outputs": []
     },
     {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "module_name: light\n",
-      "submodule_name: regression\n",
-      "model_name: NNLinearRegressor\n"
-     ]
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow for a regression task.\n",
+        "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
+        "\n",
+        "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
+        "The `fun_control` dictionary contains\n",
+        "\n",
+        "* `PREFIX`: a unique identifier for the experiment\n",
+        "* `fun_evals`: the number of function evaluations\n",
+        "* `max_time`: the maximum run time in minutes\n",
+        "* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.\n",
+        "* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.\n",
+        "* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.\n",
+        "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
+        "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
+        "\n",
+        "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
+        "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
+        "Finally, a `Spot` object is created.\n"
+      ],
+      "id": "51e4028f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 601_setup\n",
+        "from spotpython.data.diabetes import Diabetes\n",
+        "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotpython.fun.hyperlight import HyperLight\n",
+        "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "from spotpython.hyperparameters.values import set_hyperparameter\n",
+        "from spotpython.spot import spot\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"601\",\n",
+        "    fun_evals=inf,\n",
+        "    max_time=1,\n",
+        "    data_set = Diabetes(),\n",
+        "    core_model_name=\"light.regression.NNLinearRegressor\",\n",
+        "    hyperdict=LightHyperDict,\n",
+        "    _L_in=10,\n",
+        "    _L_out=1)\n",
+        "\n",
+        "design_control = design_control_init(init_size=10)\n",
+        "\n",
+        "set_hyperparameter(fun_control, \"initialization\", [\"Default\"])\n",
+        "\n",
+        "fun = HyperLight().fun\n",
+        "\n",
+        "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)"
+      ],
+      "id": "setup",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Calling the method `run()` starts the hyperparameter tuning process.\n"
+      ],
+      "id": "090a114e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 601_run\n",
+        "res = spot_tuner.run()"
+      ],
+      "id": "run",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Looking at the Results\n",
+        "\n",
+        "### Tuning Progress\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
+      ],
+      "id": "438645c5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_progress(log_y=True, filename=None)"
+      ],
+      "id": "321c70e6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Tuned Hyperparameters and Their Importance\n",
+        "\n",
+        "Results can be printed in tabular form.\n"
+      ],
+      "id": "5b67e984"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotpython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "f94e525c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A histogram can be used to visualize the most important hyperparameters.\n"
+      ],
+      "id": "534330bb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_importance(threshold=1.0)"
+      ],
+      "id": "39752c5a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Extending the Basic Setup\n",
+        "\n",
+        "This basic setup can be adapted to user-specific needs in many ways. For example, the user can specify a custom data set, a custom model, or a custom loss function.\n",
+        "The following sections provide more details on how to customize the hyperparameter tuning process.\n",
+        "Before we proceed, we will provide an overview of the basic settings of the hyperparameter tuning process and explain the parameters used so far.\n",
+        "\n",
+        "### General Experiment Setup {#sec-general-experiment-setup-601}\n",
+        "\n",
+        "To keep track of the different experiments, we use a `PREFIX` for the experiment name. The `PREFIX` is used to create a unique experiment name. The `PREFIX` is also used to create a unique TensorBoard folder, which is used to store the TensorBoard log files.\n",
+        "\n",
+        "`spotpython` allows the specification of two different types of stopping criteria: first, the number of function evaluations (`fun_evals`), and second, the maximum run time in seconds (`max_time`). Here, we will set the number of function evaluations to infinity and the maximum run time to one minute.\n",
+        "\n",
+        "`max_time` is set to one minute for demonstration purposes. For real experiments, this value should be increased.\n",
+        "Note,  the total run time may exceed the specified `max_time`, because the initial design is always evaluated, even if this takes longer than `max_time`.\n",
+        "\n",
+        "\n",
+        "### Data Setup {#sec-data-601}\n",
+        "\n",
+        "Here, we have provided the `Diabetes` data set class, which is a subclass of `torch.utils.data.Dataset`. \n",
+        "Data preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. \n",
+        "\n",
+        "The data splitting, i.e., the generation of training, validation, and testing data, is handled by `Lightning`.\n",
+        "\n",
+        "\n",
+        "### Objective Function `fun` {#sec-the-objective-function-31}\n",
+        "\n",
+        "The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotpython`.\n",
+        "\n",
+        "### Core-Model Setup\n",
+        "\n",
+        "By using `core_model_name = \"light.regression.NNLinearRegressor\"`, the `spotpython` model class `NetLightRegression` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/light/regression/netlightregression/) from the `light.regression` module is selected.\n",
+        "\n",
+        "### Hyperdict Setup\n",
+        "\n",
+        "For a given `core_model_name`, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file. The JSON file contains hyperparameter type information, names, and bounds. For `spotpython` models, the hyperparameters are stored in the `LightHyperDict`, see [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperdict/light_hyper_dict.json)\n",
+        "Alternatively, you can load a local hyper_dict.\n",
+        "The `hyperdict`  uses the default hyperparameter settings. These can be modified as described in @sec-modifying-hyperparameter-levels.\n",
+        "\n",
+        "### Other Settings {#sec-other-settings-601}\n",
+        "\n",
+        "There are several additional parameters that can be specified, e.g., since we did not specify a loss function, `mean_squared_error` is used, which is the default loss function. These will be explained in more detail in the following sections.\n",
+        "\n",
+        "\n",
+        "## Tensorboard {#sec-tensorboard-601}\n",
+        "\n",
+        "The textual output shown in the console (or code cell) can be visualized with Tensorboard, if the argument `tensorboard_log` to `fun_control_init()` is set to `True`. The Tensorboard log files are stored in the `runs` folder. To start Tensorboard, run the following command in the terminal:\n",
+        "\n",
+        "\n",
+        "\n",
+        "```{raw}\n",
+        "tensorboard --logdir=\"runs/\"\n",
+        "```\n",
+        "\n",
+        "\n",
+        "Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.\n",
+        "\n",
+        "## Loading the Saved Experiment and Getting the Hyperparameters of the Tuned Model\n",
+        "\n",
+        "To get the tuned hyperparameters as a dictionary, the `get_experiment_from_PREFIX` function can be used.\n"
+      ],
+      "id": "c4845455"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotpython.utils.file import get_experiment_from_PREFIX\n",
+        "config = get_experiment_from_PREFIX(\"601\")[\"config\"]\n",
+        "config"
+      ],
+      "id": "94c90198",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Using the `spotgui`\n",
+        "\n",
+        "The `spotgui` [[github]](https://github.com/sequential-parameter-optimization/spotGUI) provides a convenient way to interact with the hyperparameter tuning process.\n",
+        "To obtain the settings from @sec-summary-setting-up-the-experiment-601, the `spotgui` can be started as shown in @fig-spotgui.\n",
+        "\n",
+        "![spotgui](./figures_static/024_gui.png){width=100% #fig-spotgui}\n",
+        "\n",
+        "## Summary\n",
+        "\n",
+        "This section presented an introduction to the basic setup of hyperparameter tuning with `spotpython` and `PyTorch` Lightning."
+      ],
+      "id": "ae570429"
     }
-   ],
-   "source": [
-    "#| label: 601_setup\n",
-    "from spotpython.data.diabetes import Diabetes\n",
-    "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
-    "from spotpython.fun.hyperlight import HyperLight\n",
-    "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
-    "from spotpython.utils.eda import gen_design_table\n",
-    "from spotpython.hyperparameters.values import set_hyperparameter\n",
-    "from spotpython.spot import spot\n",
-    "\n",
-    "fun_control = fun_control_init(\n",
-    "    PREFIX=\"601\",\n",
-    "    fun_evals=inf,\n",
-    "    max_time=1,\n",
-    "    data_set = Diabetes(),\n",
-    "    core_model_name=\"light.regression.NNLinearRegressor\",\n",
-    "    hyperdict=LightHyperDict,\n",
-    "    _L_in=10,\n",
-    "    _L_out=1)\n",
-    "\n",
-    "design_control = design_control_init(init_size=10)\n",
-    "\n",
-    "set_hyperparameter(fun_control, \"initialization\", [\"Default\"])\n",
-    "\n",
-    "fun = HyperLight().fun\n",
-    "\n",
-    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "c8d9630a",
-   "metadata": {},
-   "source": [
-    "Calling the method `run()` starts the hyperparameter tuning process.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "run",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 595    | train | [16, 10] | [16, 1]  \n",
-      "---------------------------------------------------------------------\n",
-      "595       Trainable params\n",
-      "0         Non-trainable params\n",
-      "595       Total params\n",
-      "0.002     Total estimated model params size (MB)\n",
-      "33        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Milestones: [16, 32, 48]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 20.8 K | train | [16, 10] | [16, 1]  \n",
-      "---------------------------------------------------------------------\n",
-      "20.8 K    Trainable params\n",
-      "0         Non-trainable params\n",
-      "20.8 K    Total params\n",
-      "0.083     Total estimated model params size (MB)\n",
-      "69        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 21096.27734375, 'hp_metric': 21096.27734375}\n",
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 213    | train | [2, 10]  | [2, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "213       Trainable params\n",
-      "0         Non-trainable params\n",
-      "213       Total params\n",
-      "0.001     Total estimated model params size (MB)\n",
-      "21        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 3695.23779296875, 'hp_metric': 3695.23779296875}\n",
-      "Milestones: [64, 128, 192]\n",
-      "Milestones: [8, 16, 24]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 595    | train | [8, 10]  | [8, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "595       Trainable params\n",
-      "0         Non-trainable params\n",
-      "595       Total params\n",
-      "0.002     Total estimated model params size (MB)\n",
-      "33        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 5.9 K  | train | [8, 10]  | [8, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "5.9 K     Trainable params\n",
-      "0         Non-trainable params\n",
-      "5.9 K     Total params\n",
-      "0.023     Total estimated model params size (MB)\n",
-      "57        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 10036.568359375, 'hp_metric': 10036.568359375}\n",
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 1.8 K  | train | [8, 10]  | [8, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "1.8 K     Trainable params\n",
-      "0         Non-trainable params\n",
-      "1.8 K     Total params\n",
-      "0.007     Total estimated model params size (MB)\n",
-      "45        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 23029.5703125, 'hp_metric': 23029.5703125}\n",
-      "Milestones: [128, 256, 384]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 20.8 K | train | [4, 10]  | [4, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "20.8 K    Trainable params\n",
-      "0         Non-trainable params\n",
-      "20.8 K    Total params\n",
-      "0.083     Total estimated model params size (MB)\n",
-      "69        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 22410.41796875, 'hp_metric': 22410.41796875}\n",
-      "Milestones: [8, 16, 24]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 1.8 K  | train | [4, 10]  | [4, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "1.8 K     Trainable params\n",
-      "0         Non-trainable params\n",
-      "1.8 K     Total params\n",
-      "0.007     Total estimated model params size (MB)\n",
-      "45        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 19888.76953125, 'hp_metric': 19888.76953125}\n",
-      "Milestones: [4, 8, 12]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=16` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 5.9 K  | train | [4, 10]  | [4, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "5.9 K     Trainable params\n",
-      "0         Non-trainable params\n",
-      "5.9 K     Total params\n",
-      "0.023     Total estimated model params size (MB)\n",
-      "57        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 23108.541015625, 'hp_metric': 23108.541015625}\n",
-      "Milestones: [16, 32, 48]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 77.8 K | train | [4, 10]  | [4, 1]   \n",
-      "---------------------------------------------------------------------\n",
-      "77.8 K    Trainable params\n",
-      "0         Non-trainable params\n",
-      "77.8 K    Total params\n",
-      "0.311     Total estimated model params size (MB)\n",
-      "81        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 5415.47509765625, 'hp_metric': 5415.47509765625}\n",
-      "Milestones: [64, 128, 192]\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 4936.14306640625, 'hp_metric': 4936.14306640625}\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name   | Type       | Params | Mode  | In sizes | Out sizes\n",
-      "---------------------------------------------------------------------\n",
-      "0 | layers | Sequential | 20.8 K | train | [16, 10] | [16, 1]  \n",
-      "---------------------------------------------------------------------\n",
-      "20.8 K    Trainable params\n",
-      "0         Non-trainable params\n",
-      "20.8 K    Total params\n",
-      "0.083     Total estimated model params size (MB)\n",
-      "69        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 3535.367431640625, 'hp_metric': 3535.367431640625}\n",
-      "spotpython tuning: 3535.367431640625 [##########] 100.00% Done...\r\n",
-      "\r\n"
-     ]
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
     }
-   ],
-   "source": [
-    "#| label: 601_run\n",
-    "res = spot_tuner.run()"
-   ]
   },
-  {
-   "cell_type": "markdown",
-   "id": "834e5293",
-   "metadata": {},
-   "source": [
-    "## Looking at the Results\n",
-    "\n",
-    "### Tuning Progress\n",
-    "\n",
-    "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "83bcba9c",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "application/pdf": "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MCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgMzE4IDQwMSA0NjAgODM4IDYzNgo5NTAgNzgwIDI3NSAzOTAgMzkwIDUwMCA4MzggMzE4IDM2MSAzMTggMzM3IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYKNjM2IDYzNiAzMzcgMzM3IDgzOCA4MzggODM4IDUzMSAxMDAwIDY4NCA2ODYgNjk4IDc3MCA2MzIgNTc1IDc3NSA3NTIgMjk1CjI5NSA2NTYgNTU3IDg2MyA3NDggNzg3IDYwMyA3ODcgNjk1IDYzNSA2MTEgNzMyIDY4NCA5ODkgNjg1IDYxMSA2ODUgMzkwIDMzNwozOTAgODM4IDUwMCA1MDAgNjEzIDYzNSA1NTAgNjM1IDYxNSAzNTIgNjM1IDYzNCAyNzggMjc4IDU3OSAyNzggOTc0IDYzNCA2MTIKNjM1IDYzNSA0MTEgNTIxIDM5MiA2MzQgNTkyIDgxOCA1OTIgNTkyIDUyNSA2MzYgMzM3IDYzNiA4MzggNjAwIDYzNiA2MDAgMzE4CjM1MiA1MTggMTAwMCA1MDAgNTAwIDUwMCAxMzQyIDYzNSA0MDAgMTA3MCA2MDAgNjg1IDYwMCA2MDAgMzE4IDMxOCA1MTggNTE4CjU5MCA1MDAgMTAwMCA1MDAgMTAwMCA1MjEgNDAwIDEwMjMgNjAwIDUyNSA2MTEgMzE4IDQwMSA2MzYgNjM2IDYzNiA2MzYgMzM3CjUwMCA1MDAgMTAwMCA0NzEgNjEyIDgzOCAzNjEgMTAwMCA1MDAgNTAwIDgzOCA0MDEgNDAxIDUwMCA2MzYgNjM2IDMxOCA1MDAKNDAxIDQ3MSA2MTIgOTY5IDk2OSA5NjkgNTMxIDY4NCA2ODQgNjg0IDY4NCA2ODQgNjg0IDk3NCA2OTggNjMyIDYzMiA2MzIgNjMyCjI5NSAyOTUgMjk1IDI5NSA3NzUgNzQ4IDc4NyA3ODcgNzg3IDc4NyA3ODcgODM4IDc4NyA3MzIgNzMyIDczMiA3MzIgNjExIDYwNQo2MzAgNjEzIDYxMyA2MTMgNjEzIDYxMyA2MTMgOTgyIDU1MCA2MTUgNjE1IDYxNSA2MTUgMjc4IDI3OCAyNzggMjc4IDYxMiA2MzQKNjEyIDYxMiA2MTIgNjEyIDYxMiA4MzggNjEyIDYzNCA2MzQgNjM0IDYzNCA1OTIgNjM1IDU5MiBdCmVuZG9iagoxNyAwIG9iago8PCAvSSAxOCAwIFIgL2EgMTkgMCBSIC9lIDIwIDAgUiAvZWlnaHQgMjEgMCBSIC9mb3VyIDIyIDAgUiAvaSAyMyAwIFIKL211bHRpcGx5IDI0IDAgUiAvbiAyNSAwIFIgL28gMjYgMCBSIC9vbmUgMjcgMCBSIC9yIDI4IDAgUiAvc2l4IDI5IDAgUgovdCAzMCAwIFIgL3RocmVlIDMxIDAgUiAvdHdvIDMyIDAgUiAvemVybyAzMyAwIFIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL0YxIDE2IDAgUiA+PgplbmRvYmoKNCAwIG9iago8PCAvQTEgPDwgL1R5cGUgL0V4dEdTdGF0ZSAvQ0EgMCAvY2EgMSA+PgovQTIgPDwgL1R5cGUgL0V4dEdTdGF0ZSAvQ0EgMSAvY2EgMSA+PiA+PgplbmRvYmoKNSAwIG9iago8PCA+PgplbmRvYmoKNiAwIG9iago8PCA+PgplbmRvYmoKNyAwIG9iago8PCAvTTAgMTMgMCBSID4+CmVuZG9iagoxMyAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFsgMTEgMCBSIF0gL0NvdW50IDEgPj4KZW5kb2JqCjM0IDAgb2JqCjw8IC9DcmVhdG9yIChNYXRwbG90bGliIHYzLjkuMiwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZykKL1Byb2R1Y2VyIChNYXRwbG90bGliIHBkZiBiYWNrZW5kIHYzLjkuMikKL0NyZWF0aW9uRGF0ZSAoRDoyMDI0MDkyMjEyNDQxOCswMicwMCcpID4+CmVuZG9iagp4cmVmCjAgMzUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE2IDAwMDAwIG4gCjAwMDAwMDc5MzYgMDAwMDAgbiAKMDAwMDAwNzQ3NyAwMDAwMCBuIAowMDAwMDA3NTA5IDAwMDAwIG4gCjAwMDAwMDc2MDggMDAwMDAgbiAKMDAwMDAwNzYyOSAwMDAwMCBuIAowMDAwMDA3NjUwIDAwMDAwIG4gCjAwMDAwMDAwNjUgMDAwMDAgbiAKMDAwMDAwMDMzNiAwMDAwMCBuIAowMDAwMDAxMjYwIDAwMDAwIG4gCjAwMDAwMDAyMDggMDAwMDAgbiAKMDAwMDAwMTI0MCAwMDAwMCBuIAowMDAwMDA3NjgyIDAwMDAwIG4gCjAwMDAwMDYyMTUgMDAwMDAgbiAKMDAwMDAwNjAwOCAwMDAwMCBuIAowMDAwMDA1NTg3IDAwMDAwIG4gCjAwMDAwMDcyNjggMDAwMDAgbiAKMDAwMDAwMTI4MCAwMDAwMCBuIAowMDAwMDAxNDAzIDAwMDAwIG4gCjAwMDAwMDE3ODMgMDAwMDAgbiAKMDAwMDAwMjEwNSAwMDAwMCBuIAowMDAwMDAyNTczIDAwMDAwIG4gCjAwMDAwMDI3MzkgMDAwMDAgbiAKMDAwMDAwMjg4MyAwMDAwMCBuIAowMDAwMDAzMDQ4IDAwMDAwIG4gCjAwMDAwMDMyODQgMDAwMDAgbiAKMDAwMDAwMzU3NSAwMDAwMCBuIAowMDAwMDAzNzMwIDAwMDAwIG4gCjAwMDAwMDM5NjMgMDAwMDAgbiAKMDAwMDAwNDM1NiAwMDAwMCBuIAowMDAwMDA0NTYyIDAwMDAwIG4gCjAwMDAwMDQ5NzUgMDAwMDAgbiAKMDAwMDAwNTI5OSAwMDAwMCBuIAowMDAwMDA3OTk2IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMzUgL1Jvb3QgMSAwIFIgL0luZm8gMzQgMCBSID4+CnN0YXJ0eHJlZgo4MTUzCiUlRU9GCg==",
-      "text/plain": [
-       "<Figure size 2700x1800 with 1 Axes>"
-      ]
-     },
-     "metadata": {},
-     "output_type": "display_data"
-    }
-   ],
-   "source": [
-    "spot_tuner.plot_progress(log_y=True, filename=None)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "d36fd678",
-   "metadata": {},
-   "source": [
-    "### Tuned Hyperparameters and Their Importance\n",
-    "\n",
-    "Results can be printed in tabular form.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "1be2a425",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "| name           | type   | default   |   lower |   upper | tuned                | transform             |   importance | stars   |\n",
-      "|----------------|--------|-----------|---------|---------|----------------------|-----------------------|--------------|---------|\n",
-      "| l1             | int    | 3         |     3.0 |     8.0 | 7.0                  | transform_power_2_int |        73.44 | **      |\n",
-      "| epochs         | int    | 4         |     4.0 |     9.0 | 7.0                  | transform_power_2_int |        73.44 | **      |\n",
-      "| batch_size     | int    | 4         |     1.0 |     4.0 | 4.0                  | transform_power_2_int |        73.44 | **      |\n",
-      "| act_fn         | factor | ReLU      |     0.0 |     5.0 | ELU                  | None                  |        89.53 | **      |\n",
-      "| optimizer      | factor | SGD       |     0.0 |    11.0 | Rprop                | None                  |        73.44 | **      |\n",
-      "| dropout_prob   | float  | 0.01      |     0.0 |    0.25 | 0.019661862675751818 | None                  |       100.00 | ***     |\n",
-      "| lr_mult        | float  | 1.0       |     0.1 |    10.0 | 2.33595055362341     | None                  |        73.44 | **      |\n",
-      "| patience       | int    | 2         |     2.0 |     6.0 | 4.0                  | transform_power_2_int |        73.44 | **      |\n",
-      "| initialization | factor | Default   |     0.0 |     0.0 | Default              | None                  |         0.00 |         |\n"
-     ]
-    }
-   ],
-   "source": [
-    "from spotpython.utils.eda import gen_design_table\n",
-    "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "5b6fafc2",
-   "metadata": {},
-   "source": [
-    "A histogram can be used to visualize the most important hyperparameters.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "7210e818",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "application/pdf": "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VnVTYW5zCi9Gb250QkJveCBbIC0xMDIxIC00NjMgMTc5NCAxMjMzIF0gL0ZvbnRNYXRyaXggWyAwLjAwMSAwIDAgMC4wMDEgMCAwIF0KL0NoYXJQcm9jcyAxNiAwIFIKL0VuY29kaW5nIDw8IC9UeXBlIC9FbmNvZGluZwovRGlmZmVyZW5jZXMgWyA0OCAvemVybyAvb25lIC90d28gNTIgL2ZvdXIgNTQgL3NpeCA1NiAvZWlnaHQgOTUgL3VuZGVyc2NvcmUgOTcgL2EgL2IgL2MKL2QgL2UgL2YgMTA0IC9oIC9pIDEwOCAvbCAvbSAvbiAvbyAvcCAxMTQgL3IgL3MgL3QgL3UgMTIyIC96IF0KPj4KL1dpZHRocyAxMyAwIFIgPj4KZW5kb2JqCjE0IDAgb2JqCjw8IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvRm9udE5hbWUgL0JNUVFEVitEZWphVnVTYW5zIC9GbGFncyAzMgovRm9udEJCb3ggWyAtMTAyMSAtNDYzIDE3OTQgMTIzMyBdIC9Bc2NlbnQgOTI5IC9EZXNjZW50IC0yMzYgL0NhcEhlaWdodCAwCi9YSGVpZ2h0IDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDAgL01heFdpZHRoIDEzNDIgPj4KZW5kb2JqCjEzIDAgb2JqClsgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAKNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCAzMTggNDAxIDQ2MCA4MzggNjM2Cjk1MCA3ODAgMjc1IDM5MCAzOTAgNTAwIDgzOCAzMTggMzYxIDMxOCAzMzcgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNgo2MzYgNjM2IDMzNyAzMzcgODM4IDgzOCA4MzggNTMxIDEwMDAgNjg0IDY4NiA2OTggNzcwIDYzMiA1NzUgNzc1IDc1MiAyOTUKMjk1IDY1NiA1NTcgODYzIDc0OCA3ODcgNjAzIDc4NyA2OTUgNjM1IDYxMSA3MzIgNjg0IDk4OSA2ODUgNjExIDY4NSAzOTAgMzM3CjM5MCA4MzggNTAwIDUwMCA2MTMgNjM1IDU1MCA2MzUgNjE1IDM1MiA2MzUgNjM0IDI3OCAyNzggNTc5IDI3OCA5NzQgNjM0IDYxMgo2MzUgNjM1IDQxMSA1MjEgMzkyIDYzNCA1OTIgODE4IDU5MiA1OTIgNTI1IDYzNiAzMzcgNjM2IDgzOCA2MDAgNjM2IDYwMCAzMTgKMzUyIDUxOCAxMDAwIDUwMCA1MDAgNTAwIDEzNDIgNjM1IDQwMCAxMDcwIDYwMCA2ODUgNjAwIDYwMCAzMTggMzE4IDUxOCA1MTgKNTkwIDUwMCAxMDAwIDUwMCAxMDAwIDUyMSA0MDAgMTAyMyA2MDAgNTI1IDYxMSAzMTggNDAxIDYzNiA2MzYgNjM2IDYzNiAzMzcKNTAwIDUwMCAxMDAwIDQ3MSA2MTIgODM4IDM2MSAxMDAwIDUwMCA1MDAgODM4IDQwMSA0MDEgNTAwIDYzNiA2MzYgMzE4IDUwMAo0MDEgNDcxIDYxMiA5NjkgOTY5IDk2OSA1MzEgNjg0IDY4NCA2ODQgNjg0IDY4NCA2ODQgOTc0IDY5OCA2MzIgNjMyIDYzMiA2MzIKMjk1IDI5NSAyOTUgMjk1IDc3NSA3NDggNzg3IDc4NyA3ODcgNzg3IDc4NyA4MzggNzg3IDczMiA3MzIgNzMyIDczMiA2MTEgNjA1CjYzMCA2MTMgNjEzIDYxMyA2MTMgNjEzIDYxMyA5ODIgNTUwIDYxNSA2MTUgNjE1IDYxNSAyNzggMjc4IDI3OCAyNzggNjEyIDYzNAo2MTIgNjEyIDYxMiA2MTIgNjEyIDgzOCA2MTIgNjM0IDYzNCA2MzQgNjM0IDU5MiA2MzUgNTkyIF0KZW5kb2JqCjE2IDAgb2JqCjw8IC9hIDE3IDAgUiAvYiAxOCAwIFIgL2MgMTkgMCBSIC9kIDIwIDAgUiAvZSAyMSAwIFIgL2VpZ2h0IDIyIDAgUgovZiAyMyAwIFIgL2ZvdXIgMjQgMCBSIC9oIDI1IDAgUiAvaSAyNiAwIFIgL2wgMjcgMCBSIC9tIDI4IDAgUiAvbiAyOSAwIFIKL28gMzAgMCBSIC9vbmUgMzEgMCBSIC9wIDMyIDAgUiAvciAzMyAwIFIgL3MgMzQgMCBSIC9zaXggMzUgMCBSIC90IDM2IDAgUgovdHdvIDM3IDAgUiAvdSAzOCAwIFIgL3VuZGVyc2NvcmUgMzkgMCBSIC96IDQwIDAgUiAvemVybyA0MSAwIFIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL0YxIDE1IDAgUiA+PgplbmRvYmoKNCAwIG9iago8PCAvQTEgPDwgL1R5cGUgL0V4dEdTdGF0ZSAvQ0EgMCAvY2EgMSA+PgovQTIgPDwgL1R5cGUgL0V4dEdTdGF0ZSAvQ0EgMSAvY2EgMSA+PiA+PgplbmRvYmoKNSAwIG9iago8PCA+PgplbmRvYmoKNiAwIG9iago8PCA+PgplbmRvYmoKNyAwIG9iago8PCA+PgplbmRvYmoKMiAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAxMSAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKNDIgMCBvYmoKPDwgL0NyZWF0b3IgKE1hdHBsb3RsaWIgdjMuOS4yLCBodHRwczovL21hdHBsb3RsaWIub3JnKQovUHJvZHVjZXIgKE1hdHBsb3RsaWIgcGRmIGJhY2tlbmQgdjMuOS4yKQovQ3JlYXRpb25EYXRlIChEOjIwMjQwOTIyMTI0NDE4KzAyJzAwJykgPj4KZW5kb2JqCnhyZWYKMCA0MwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTYgMDAwMDAgbiAKMDAwMDAxMDE1NSAwMDAwMCBuIAowMDAwMDA5OTYxIDAwMDAwIG4gCjAwMDAwMDk5OTMgMDAwMDAgbiAKMDAwMDAxMDA5MiAwMDAwMCBuIAowMDAwMDEwMTEzIDAwMDAwIG4gCjAwMDAwMTAxMzQgMDAwMDAgbiAKMDAwMDAwMDA2NSAwMDAwMCBuIAowMDAwMDAwMzQ0IDAwMDAwIG4gCjAwMDAwMDEyNzUgMDAwMDAgbiAKMDAwMDAwMDIwOCAwMDAwMCBuIAowMDAwMDAxMjU1IDAwMDAwIG4gCjAwMDAwMDg2MTEgMDAwMDAgbiAKMDAwMDAwODQwNCAwMDAwMCBuIAowMDAwMDA3OTYzIDAwMDAwIG4gCjAwMDAwMDk2NjQgMDAwMDAgbiAKMDAwMDAwMTI5NSAwMDAwMCBuIAowMDAwMDAxNjc1IDAwMDAwIG4gCjAwMDAwMDE5OTIgMDAwMDAgbiAKMDAwMDAwMjI5NyAwMDAwMCBuIAowMDAwMDAyNjAxIDAwMDAwIG4gCjAwMDAwMDI5MjMgMDAwMDAgbiAKMDAwMDAwMzM5MSAwMDAwMCBuIAowMDAwMDAzNjAwIDAwMDAwIG4gCjAwMDAwMDM3NjYgMDAwMDAgbiAKMDAwMDAwNDAwMyAwMDAwMCBuIAowMDAwMDA0MTQ3IDAwMDAwIG4gCjAwMDAwMDQyNjYgMDAwMDAgbiAKMDAwMDAwNDU5NyAwMDAwMCBuIAowMDAwMDA0ODMzIDAwMDAwIG4gCjAwMDAwMDUxMjQgMDAwMDAgbiAKMDAwMDAwNTI3OSAwMDAwMCBuIAowMDAwMDA1NTkxIDAwMDAwIG4gCjAwMDAwMDU4MjQgMDAwMDAgbiAKMDAwMDAwNjIzMSAwMDAwMCBuIAowMDAwMDA2NjI0IDAwMDAwIG4gCjAwMDAwMDY4MzAgMDAwMDAgbiAKMDAwMDAwNzE1NCAwMDAwMCBuIAowMDAwMDA3NDAxIDAwMDAwIG4gCjAwMDAwMDc1MjcgMDAwMDAgbiAKMDAwMDAwNzY3NSAwMDAwMCBuIAowMDAwMDEwMjE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNDMgL1Jvb3QgMSAwIFIgL0luZm8gNDIgMCBSID4+CnN0YXJ0eHJlZgoxMDM3MgolJUVPRgo=",
-      "text/plain": [
-       "<Figure size 1650x1050 with 1 Axes>"
-      ]
-     },
-     "metadata": {},
-     "output_type": "display_data"
-    }
-   ],
-   "source": [
-    "spot_tuner.plot_importance(threshold=1.0)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "57503657",
-   "metadata": {},
-   "source": [
-    "## Extending the Basic Setup\n",
-    "\n",
-    "This basic setup can be adapted to user-specific needs in many ways. For example, the user can specify a custom data set, a custom model, or a custom loss function.\n",
-    "The following sections provide more details on how to customize the hyperparameter tuning process.\n",
-    "Before we proceed, we will provide an overview of the basic settings of the hyperparameter tuning process and explain the parameters used so far.\n",
-    "\n",
-    "### General Experiment Setup {#sec-general-experiment-setup-601}\n",
-    "\n",
-    "To keep track of the different experiments, we use a `PREFIX` for the experiment name. The `PREFIX` is used to create a unique experiment name. The `PREFIX` is also used to create a unique TensorBoard folder, which is used to store the TensorBoard log files.\n",
-    "\n",
-    "`spotpython` allows the specification of two different types of stopping criteria: first, the number of function evaluations (`fun_evals`), and second, the maximum run time in seconds (`max_time`). Here, we will set the number of function evaluations to infinity and the maximum run time to one minute.\n",
-    "\n",
-    "`max_time` is set to one minute for demonstration purposes. For real experiments, this value should be increased.\n",
-    "Note,  the total run time may exceed the specified `max_time`, because the initial design is always evaluated, even if this takes longer than `max_time`.\n",
-    "\n",
-    "\n",
-    "### Data Setup {#sec-data-601}\n",
-    "\n",
-    "Here, we have provided the `Diabetes` data set class, which is a subclass of `torch.utils.data.Dataset`. \n",
-    "Data preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. \n",
-    "\n",
-    "The data splitting, i.e., the generation of training, validation, and testing data, is handled by `Lightning`.\n",
-    "\n",
-    "\n",
-    "### Objective Function `fun` {#sec-the-objective-function-31}\n",
-    "\n",
-    "The objective function `fun` from the class `HyperLight` [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/hyperlight.py) is selected next. It implements an interface from `PyTorch`'s training, validation, and testing methods to `spotpython`.\n",
-    "\n",
-    "### Core-Model Setup\n",
-    "\n",
-    "By using `core_model_name = \"light.regression.NNLinearRegressor\"`, the `spotpython` model class `NetLightRegression` [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/light/regression/netlightregression/) from the `light.regression` module is selected.\n",
-    "\n",
-    "### Hyperdict Setup\n",
-    "\n",
-    "For a given `core_model_name`, the corresponding hyperparameters are automatically loaded from the associated dictionary, which is stored as a JSON file. The JSON file contains hyperparameter type information, names, and bounds. For `spotpython` models, the hyperparameters are stored in the `LightHyperDict`, see [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/hyperdict/light_hyper_dict.json)\n",
-    "Alternatively, you can load a local hyper_dict.\n",
-    "The `hyperdict`  uses the default hyperparameter settings. These can be modified as described in @sec-modifying-hyperparameter-levels.\n",
-    "\n",
-    "### Other Settings {#sec-other-settings-601}\n",
-    "\n",
-    "There are several additional parameters that can be specified, e.g., since we did not specify a loss function, `mean_squared_error` is used, which is the default loss function. These will be explained in more detail in the following sections.\n",
-    "\n",
-    "\n",
-    "## Tensorboard {#sec-tensorboard-601}\n",
-    "\n",
-    "The textual output shown in the console (or code cell) can be visualized with Tensorboard, if the argument `tensorboard_log` to `fun_control_init()` is set to `True`. The Tensorboard log files are stored in the `runs` folder. To start Tensorboard, run the following command in the terminal:\n",
-    "\n",
-    "\n",
-    "\n",
-    "```{raw}\n",
-    "tensorboard --logdir=\"runs/\"\n",
-    "```\n",
-    "\n",
-    "\n",
-    "Further information can be found in the [PyTorch Lightning documentation](https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html) for Tensorboard.\n",
-    "\n",
-    "## Loading the Saved Experiment and Getting the Hyperparameters of the Tuned Model\n",
-    "\n",
-    "To get the tuned hyperparameters as a dictionary, the `get_experiment_from_PREFIX` function can be used.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "0c05a079",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "{'l1': 128,\n",
-       " 'epochs': 128,\n",
-       " 'batch_size': 16,\n",
-       " 'act_fn': ELU(),\n",
-       " 'optimizer': 'Rprop',\n",
-       " 'dropout_prob': 0.019661862675751818,\n",
-       " 'lr_mult': 2.33595055362341,\n",
-       " 'patience': 16,\n",
-       " 'initialization': 'Default'}"
-      ]
-     },
-     "execution_count": 7,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
-   "source": [
-    "from spotpython.utils.file import get_experiment_from_PREFIX\n",
-    "config = get_experiment_from_PREFIX(\"601\")[\"config\"]\n",
-    "config"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "00bd08cd",
-   "metadata": {},
-   "source": [
-    "## Using the `spotgui`\n",
-    "\n",
-    "The `spotgui` [[github]](https://github.com/sequential-parameter-optimization/spotGUI) provides a convenient way to interact with the hyperparameter tuning process.\n",
-    "To obtain the settings from @sec-summary-setting-up-the-experiment-601, the `spotgui` can be started as shown in @fig-spotgui.\n",
-    "\n",
-    "![spotgui](./figures_static/024_gui.png){width=100% #fig-spotgui}\n",
-    "\n",
-    "## Summary\n",
-    "\n",
-    "This section presented an introduction to the basic setup of hyperparameter tuning with `spotpython` and `PyTorch` Lightning."
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3",
-   "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.12.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+  "nbformat": 4,
+  "nbformat_minor": 5
 }

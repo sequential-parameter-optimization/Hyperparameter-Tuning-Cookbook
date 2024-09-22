@@ -22,7 +22,7 @@
         "@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.\n",
         "@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.\n"
       ],
-      "id": "911ec07b"
+      "id": "51d18246"
     },
     {
       "cell_type": "code",
@@ -67,7 +67,7 @@
         "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
         "Finally, a `Spot` object is created.\n"
       ],
-      "id": "784c447e"
+      "id": "29eb0c3b"
     },
     {
       "cell_type": "code",
@@ -104,12 +104,13 @@
         "                \"AdamW\",\n",
         "                \"Adamax\",\n",
         "            ])\n",
-        "set_hyperparameter(fun_control, \"epochs\", [5,7])\n",
+        "set_hyperparameter(fun_control, \"epochs\", [5, 7])\n",
+        "set_hyperparameter(fun_control, \"nhead\", [1, 2])\n",
+        "set_hyperparameter(fun_control, \"dim_feedforward_mult\", [1, 1])\n",
         "\n",
         "design_control = design_control_init(init_size=5)\n",
         "surrogate_control = surrogate_control_init(\n",
         "    noise=True,\n",
-        "    n_theta=2,\n",
         "    min_Lambda=1e-3,\n",
         "    max_Lambda=10,\n",
         ")\n",
@@ -128,7 +129,7 @@
       "source": [
         "We can take a look at the design table to see the initial design."
       ],
-      "id": "1a37b157"
+      "id": "be89e98e"
     },
     {
       "cell_type": "code",
@@ -147,12 +148,13 @@
       "source": [
         "If we want to run the hyperparameter tuning process on a remote server, we can save the setting as a `pickle` file and load it on the remote server.\n"
       ],
-      "id": "ebdf9bce"
+      "id": "57bf2614"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
+        "#| label: 603_save_experiment\n",
         "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
         "# if userExperimnents directory does not exist, create it\n",
         "if not os.path.exists(\"userExperiment\"):\n",
@@ -165,7 +167,7 @@
         "    delattr(spot_tuner, \"spot_writer\")\n",
         "spot_tuner.save_experiment(filename=filename)"
       ],
-      "id": "bc1eefd1",
+      "id": "save_experiment",
       "execution_count": null,
       "outputs": []
     },
@@ -175,7 +177,7 @@
       "source": [
         "Calling the method `run()` starts the hyperparameter tuning process on the local machine.\n"
       ],
-      "id": "7de6c00e"
+      "id": "6429ca34"
     },
     {
       "cell_type": "code",
@@ -195,7 +197,7 @@
         "Note that we have enabled Tensorboard-Logging, so we can visualize the results with Tensorboard. Execute the\n",
         "following command in the terminal to start Tensorboard.\n"
       ],
-      "id": "7d00ca7d"
+      "id": "8f4a6754"
     },
     {
       "cell_type": "code",
@@ -219,15 +221,16 @@
         "\n",
         "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
       ],
-      "id": "f5b55388"
+      "id": "225f12d9"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
+        "#| label: 603_plot_progress\n",
         "spot_tuner.plot_progress(log_y=True, filename=None)"
       ],
-      "id": "1093b29e",
+      "id": "plot_progress",
       "execution_count": null,
       "outputs": []
     },
@@ -239,16 +242,17 @@
         "\n",
         "Results can be printed in tabular form.\n"
       ],
-      "id": "51f312c7"
+      "id": "6b392f0b"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
+        "#| label: 603_gen_design_table_results\n",
         "from spotpython.utils.eda import gen_design_table\n",
         "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
       ],
-      "id": "d1af12cc",
+      "id": "gen_design_table_results",
       "execution_count": null,
       "outputs": []
     },
@@ -258,15 +262,16 @@
       "source": [
         "A histogram can be used to visualize the most important hyperparameters.\n"
       ],
-      "id": "643dc381"
+      "id": "17aed6f9"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
+        "#| label: 603_plot_importance\n",
         "spot_tuner.plot_importance(threshold=1.0)"
       ],
-      "id": "c90f3ffd",
+      "id": "plot_importance",
       "execution_count": null,
       "outputs": []
     },
@@ -351,7 +356,7 @@
         "\n",
         "This section presented an introduction to the basic setup of hyperparameter tuning of a transformer with `spotpython` and `PyTorch` Lightning."
       ],
-      "id": "3a9aeb82"
+      "id": "f9599d46"
     }
   ],
   "metadata": {
