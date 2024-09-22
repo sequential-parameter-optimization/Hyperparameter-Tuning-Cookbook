@@ -2810,5 +2810,60 @@
       "Appendices",
       "References"
     ]
+  },
+  {
+    "objectID": "a_06_slurm.html",
+    "href": "a_06_slurm.html",
+    "title": "Appendix F — Using Slurm",
+    "section": "",
+    "text": "F.1 Introduction\nThis chapter describes how to generate a spotpython configuration on a local machine and run the spotpython code on a remote machine using Slurm.",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>F</span>  <span class='chapter-title'>Using Slurm</span>"
+    ]
+  },
+  {
+    "objectID": "a_06_slurm.html#generate-a-spotpython-configuration",
+    "href": "a_06_slurm.html#generate-a-spotpython-configuration",
+    "title": "Appendix F — Using Slurm",
+    "section": "F.2 Generate a spotpython configuration",
+    "text": "F.2 Generate a spotpython configuration\nThe configuration can be generated on a local machine using the following command:\n\nimport os\nfrom math import inf\nfrom spotpython.hyperdict.light_hyper_dict import LightHyperDict\nfrom spotpython.fun.hyperlight import HyperLight\nfrom spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init)\nfrom spotpython.utils.eda import gen_design_table\nfrom spotpython.hyperparameters.values import set_hyperparameter\nfrom spotpython.spot import spot\nfrom spotpython.utils.scaler import TorchStandardScaler\nfrom spotpython.utils.device import getDevice\nfrom spotpython.utils.file import get_experiment_filename\n\n# load data (adapt this to your needs)\nfrom pyhcf.utils.io import load_hcf_df, hcf_df2tensor\nfrom pyhcf.utils.names import load_all_features_N_regression_list\ndf = load_hcf_df(A=True, H=True, param_list=load_all_features_N_regression_list(), target='N', rmNA=True, rmMF=True, rmV=4, min_freq=1000, incl_drossel=False)\ndata_set = hcf_df2tensor(df, target='N', return_X_y=False)\n\nfun_control = fun_control_init(\n    PREFIX=\"light-user-model\",\n    TENSORBOARD_CLEAN=False,\n    tensorboard_log=False,\n    fun_evals=inf,\n    max_time=600,\n    data_set=data_set,\n    scaler=TorchStandardScaler(),\n    device=getDevice(),\n    max_surrogate_points=30,\n    core_model_name=\"light.regression.NNLinearRegressor\",\n    hyperdict=LightHyperDict,\n    _L_in=86,\n    _L_out=1)\n\nset_hyperparameter(fun_control, \"optimizer\", [\n                \"Adadelta\",\n                \"Adagrad\",\n                \"Adam\",\n                \"AdamW\",\n                \"Adamax\",\n            ])\n\nset_hyperparameter(fun_control, \"l1\", [3,9])\nset_hyperparameter(fun_control, \"epochs\", [10,12])\nset_hyperparameter(fun_control, \"batch_size\", [4,8])\nset_hyperparameter(fun_control, \"dropout_prob\", [0.0, 0.1])\nset_hyperparameter(fun_control, \"lr_mult\", [0.1, 20.0])\nset_hyperparameter(fun_control, \"patience\", [6,9])\n\ndesign_control = design_control_init(init_size=20)\n\nsurrogate_control = surrogate_control_init(\n    noise=True,\n    n_theta=2,\n    min_Lambda=1e-3,\n    max_Lambda=10,\n)\n\nfun = HyperLight().fun\n\nspot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)\n\nprint(gen_design_table(fun_control))\n\nfilename = get_experiment_filename(fun_control[\"PREFIX\"])\n# if userExperimnents directory does not exist, create it\nif not os.path.exists(\"userExperiment\"):\n    os.makedirs(\"userExperiment\")\nfilename = os.path.join(\"userExperiment\", filename)\nif spot_tuner.spot_writer is not None:\n    spot_tuner.spot_writer.close()\n# remove attribute spot_writer from spot_tuner object\nif hasattr(spot_tuner, \"spot_writer\"):\n    delattr(spot_tuner, \"spot_writer\")\nspot_tuner.save_experiment(filename=filename)\n\nThe configuration is saved in the userExperiment directory as a pickle-file that contains the full information. In our example, the filename is spot_light-user-model_experiment.pickle.\n\n\n\n\n\n\nData\n\n\n\nThe data is loaded from the pyhcf package. You can adapt the data loading to your needs. To generate dummy data, you can use the following code:\n\nnum_samples = 1000\ninput_dim = 86\nX = torch.randn(num_samples, input_dim)  # random data for example\nY = torch.randn(num_samples, 1)  # random target for example\ndata_set = TensorDataset(X, Y)",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>F</span>  <span class='chapter-title'>Using Slurm</span>"
+    ]
+  },
+  {
+    "objectID": "a_06_slurm.html#copy-the-configuration-to-the-remote-machine",
+    "href": "a_06_slurm.html#copy-the-configuration-to-the-remote-machine",
+    "title": "Appendix F — Using Slurm",
+    "section": "F.3 Copy the Configuration to the Remote Machine",
+    "text": "F.3 Copy the Configuration to the Remote Machine\nYou can copy the configuration to the remote machine using the scp command. The following command copies the configuration to the remote machine 144.33.22.1:\n\nscp userExperiment/spot_light-user-model_experiment.pickle user@144.33.22.1:/path/to/remote/directory",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>F</span>  <span class='chapter-title'>Using Slurm</span>"
+    ]
+  },
+  {
+    "objectID": "a_06_slurm.html#prepare-the-slurm-scripts-on-the-remote-machine",
+    "href": "a_06_slurm.html#prepare-the-slurm-scripts-on-the-remote-machine",
+    "title": "Appendix F — Using Slurm",
+    "section": "F.4 Prepare the Slurm Scripts on the Remote Machine",
+    "text": "F.4 Prepare the Slurm Scripts on the Remote Machine\nTwo scripts are required to run the spotpython code on the remote machine:\n\nstartSlurm.sh and\nstartPython.py.\n\nThey should be saved in the same directory, i.e., /path/to/remote/directory as the configuration file.\nThe startSlurm.sh script is a shell script that contains the following code:\n\n#!/bin/python\n \n### Vergabe von Ressourcen\n#SBATCH --job-name=CH10_Test\n#SBATCH --ntasks-per-node=64\n#SBATCH --gres=gpu:1\n#SBATCH --time=24:00:00\n#SBATCH --error=job.%J.err\n#SBATCH --output=job.%J.out\n#----\n#SBATCH --partition=gpu\n\nif [ -z \"$1\" ]; then\n    echo \"Usage: $0 &lt;path_to_spot.pkl&gt;\"\n    exit 1\nfi\n\nSPOT_PKL=$1\n\nmodule load conda\n\nconda activate spot312\n\nsrun python startPython.py \"$SPOT_PKL\"\n\nSave the code in a file named startSlurm.sh and copy the file to the remote machine via scp, i.e., scp startSlurm.sh user@144.33.22.1:/path/to/remote/directory.\nThe startPython.py script is a Python script that contains the following code:\n\nimport argparse\nimport pickle\nfrom spotpython.utils.file import load_and_run_spot_python_experiment\n\ndef main(pickle_file):\n    spot_tuner = load_and_run_spot_python_experiment(pickle_file)\n\nif __name__ == \"__main__\":\n    parser = argparse.ArgumentParser(description='Process a pickle file.')\n    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')\n\n    args = parser.parse_args()\n    main(args.pickle_file)\n\nSave the code in a file named startPython.py and copy the file to the remote machine via scp, i.e., scp startPython.py user@144.33.22.1:/path/to/remote/directory.",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>F</span>  <span class='chapter-title'>Using Slurm</span>"
+    ]
+  },
+  {
+    "objectID": "a_06_slurm.html#run-the-spotpython-code-on-the-remote-machine",
+    "href": "a_06_slurm.html#run-the-spotpython-code-on-the-remote-machine",
+    "title": "Appendix F — Using Slurm",
+    "section": "F.5 Run the spotpython Code on the Remote Machine",
+    "text": "F.5 Run the spotpython Code on the Remote Machine\nLogin on the remote machine and run the following command to start the spotpython code:\n\nssh user@144.33.22.1\ncd /path/to/remote/directory\nsh -x ./startSlurm.sh spot_light-user-model_experiment.pickle",
+    "crumbs": [
+      "Appendices",
+      "<span class='chapter-number'>F</span>  <span class='chapter-title'>Using Slurm</span>"
+    ]
   }
 ]

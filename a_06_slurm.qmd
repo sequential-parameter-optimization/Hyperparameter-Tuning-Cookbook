@@ -1,0 +1,200 @@
+---
+execute:
+  cache: false
+  eval: false
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# Using Slurm
+
+## Introduction
+
+This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.
+
+
+## Generate a `spotpython` configuration
+
+The configuration can be generated on a local machine using the following command:
+
+```{python}
+#| label: generate-spotpython-config
+#| eval: false
+import os
+from math import inf
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init)
+from spotpython.utils.eda import gen_design_table
+from spotpython.hyperparameters.values import set_hyperparameter
+from spotpython.spot import spot
+from spotpython.utils.scaler import TorchStandardScaler
+from spotpython.utils.device import getDevice
+from spotpython.utils.file import get_experiment_filename
+
+# load data (adapt this to your needs)
+from pyhcf.utils.io import load_hcf_df, hcf_df2tensor
+from pyhcf.utils.names import load_all_features_N_regression_list
+df = load_hcf_df(A=True, H=True, param_list=load_all_features_N_regression_list(), target='N', rmNA=True, rmMF=True, rmV=4, min_freq=1000, incl_drossel=False)
+data_set = hcf_df2tensor(df, target='N', return_X_y=False)
+
+fun_control = fun_control_init(
+    PREFIX="light-user-model",
+    TENSORBOARD_CLEAN=False,
+    tensorboard_log=False,
+    fun_evals=inf,
+    max_time=600,
+    data_set=data_set,
+    scaler=TorchStandardScaler(),
+    device=getDevice(),
+    max_surrogate_points=30,
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=86,
+    _L_out=1)
+
+set_hyperparameter(fun_control, "optimizer", [
+                "Adadelta",
+                "Adagrad",
+                "Adam",
+                "AdamW",
+                "Adamax",
+            ])
+
+set_hyperparameter(fun_control, "l1", [3,9])
+set_hyperparameter(fun_control, "epochs", [10,12])
+set_hyperparameter(fun_control, "batch_size", [4,8])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.1])
+set_hyperparameter(fun_control, "lr_mult", [0.1, 20.0])
+set_hyperparameter(fun_control, "patience", [6,9])
+
+design_control = design_control_init(init_size=20)
+
+surrogate_control = surrogate_control_init(
+    noise=True,
+    n_theta=2,
+    min_Lambda=1e-3,
+    max_Lambda=10,
+)
+
+fun = HyperLight().fun
+
+spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)
+
+print(gen_design_table(fun_control))
+
+filename = get_experiment_filename(fun_control["PREFIX"])
+# if userExperimnents directory does not exist, create it
+if not os.path.exists("userExperiment"):
+    os.makedirs("userExperiment")
+filename = os.path.join("userExperiment", filename)
+if spot_tuner.spot_writer is not None:
+    spot_tuner.spot_writer.close()
+# remove attribute spot_writer from spot_tuner object
+if hasattr(spot_tuner, "spot_writer"):
+    delattr(spot_tuner, "spot_writer")
+spot_tuner.save_experiment(filename=filename)
+```
+
+The configuration is saved in the `userExperiment` directory as  a pickle-file that contains the full information. In our example, the filename is `spot_light-user-model_experiment.pickle`.
+
+::: {.callout-note}
+### Data 
+The data is loaded from the `pyhcf` package. You can adapt the data loading to your needs.
+To generate dummy data, you can use the following code:
+```{python}
+#| label: generate-dummy-data
+#| eval: false
+num_samples = 1000
+input_dim = 86
+X = torch.randn(num_samples, input_dim)  # random data for example
+Y = torch.randn(num_samples, 1)  # random target for example
+data_set = TensorDataset(X, Y)
+```
+::: 
+
+## Copy the Configuration to the Remote Machine
+
+You can copy the configuration to the remote machine using the `scp` command. The following command copies the configuration to the remote machine `144.33.22.1`:
+```{python}
+#| label: copy-config-to-remote
+#| eval: false
+scp userExperiment/spot_light-user-model_experiment.pickle user@144.33.22.1:/path/to/remote/directory
+```
+
+## Prepare the Slurm Scripts on the Remote Machine
+
+Two scripts are required to run the `spotpython` code on the remote machine: 
+
+* `startSlurm.sh` and 
+* `startPython.py`.
+
+They should be saved in the same directory, i.e., `/path/to/remote/directory` as the configuration file.
+
+The `startSlurm.sh` script is a shell script that contains the following code:
+```{python}
+#| label: start
+#| eval: false
+#!/bin/python
+ 
+### Vergabe von Ressourcen
+#SBATCH --job-name=CH10_Test
+#SBATCH --ntasks-per-node=64
+#SBATCH --gres=gpu:1
+#SBATCH --time=24:00:00
+#SBATCH --error=job.%J.err
+#SBATCH --output=job.%J.out
+#----
+#SBATCH --partition=gpu
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <path_to_spot.pkl>"
+    exit 1
+fi
+
+SPOT_PKL=$1
+
+module load conda
+
+conda activate spot312
+
+srun python startPython.py "$SPOT_PKL"
+```
+
+Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., `scp startSlurm.sh user@144.33.22.1:/path/to/remote/directory`.
+
+
+The `startPython.py` script is a Python script that contains the following code:
+```{python}
+#| label: startPython
+#| eval: false
+import argparse
+import pickle
+from spotpython.utils.file import load_and_run_spot_python_experiment
+
+def main(pickle_file):
+    spot_tuner = load_and_run_spot_python_experiment(pickle_file)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process a pickle file.')
+    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')
+
+    args = parser.parse_args()
+    main(args.pickle_file)
+```
+
+Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., `scp startPython.py user@144.33.22.1:/path/to/remote/directory`.
+
+
+## Run the `spotpython` Code on the Remote Machine
+
+Login on the remote machine and run the following command to start the `spotpython` code:
+
+```{python}
+#| label: run-spotpython-on-remote
+#| eval: false
+ssh user@144.33.22.1
+cd /path/to/remote/directory
+sh -x ./startSlurm.sh spot_light-user-model_experiment.pickle
+```
