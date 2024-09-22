@@ -2,7 +2,7 @@
  "cells": [
   {
    "cell_type": "markdown",
-   "id": "5896fc9c",
+   "id": "4aff2657",
    "metadata": {},
    "source": [
     "---\n",
@@ -22,6 +22,97 @@
     "This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.\n",
     "\n",
     "\n",
+    "## Prepare the Slurm Scripts on the Remote Machine\n",
+    "\n",
+    "Two scripts are required to run the `spotpython` code on the remote machine: \n",
+    "\n",
+    "* `startSlurm.sh` and \n",
+    "* `startPython.py`.\n",
+    "\n",
+    "They should be saved in the same directory as the configuration (`pickle`) file.\n",
+    "These two scripts must be generated only once and can be reused for different configurations.\n",
+    "\n",
+    "The `startSlurm.sh` script is a shell script that contains the following code:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "start",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: start\n",
+    "#| eval: false\n",
+    "#!/bin/python\n",
+    " \n",
+    "### Vergabe von Ressourcen\n",
+    "#SBATCH --job-name=CH10_Test\n",
+    "#SBATCH --ntasks-per-node=64\n",
+    "#SBATCH --gres=gpu:1\n",
+    "#SBATCH --time=24:00:00\n",
+    "#SBATCH --error=job.%J.err\n",
+    "#SBATCH --output=job.%J.out\n",
+    "#----\n",
+    "#SBATCH --partition=gpu\n",
+    "\n",
+    "if [ -z \"$1\" ]; then\n",
+    "    echo \"Usage: $0 <path_to_spot.pkl>\"\n",
+    "    exit 1\n",
+    "fi\n",
+    "\n",
+    "SPOT_PKL=$1\n",
+    "\n",
+    "module load conda\n",
+    "\n",
+    "conda activate spot312\n",
+    "\n",
+    "srun python startPython.py \"$SPOT_PKL\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "16b16325",
+   "metadata": {},
+   "source": [
+    "Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., `scp startSlurm.sh user@144.33.22.1:`.\n",
+    "\n",
+    "\n",
+    "The `startPython.py` script is a Python script that contains the following code:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "startPython",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: startPython\n",
+    "#| eval: false\n",
+    "import argparse\n",
+    "import pickle\n",
+    "from spotpython.utils.file import load_and_run_spot_python_experiment\n",
+    "\n",
+    "def main(pickle_file):\n",
+    "    spot_tuner = load_and_run_spot_python_experiment(pickle_file)\n",
+    "\n",
+    "if __name__ == \"__main__\":\n",
+    "    parser = argparse.ArgumentParser(description='Process a pickle file.')\n",
+    "    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')\n",
+    "\n",
+    "    args = parser.parse_args()\n",
+    "    main(args.pickle_file)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1a980d0e",
+   "metadata": {},
+   "source": [
+    "Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., `scp startPython.py user@144.33.22.1:`.\n",
+    "\n",
+    "\n",
     "## Generate a `spotpython` configuration\n",
     "\n",
     "The configuration can be generated on a local machine using the following command:\n"
@@ -29,7 +120,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
+   "execution_count": 3,
    "id": "generate-spotpython-config",
    "metadata": {},
    "outputs": [],
@@ -69,6 +160,8 @@
     "    _L_in=86,\n",
     "    _L_out=1)\n",
     "\n",
+    "# The following \"set_hyperparameter\"-block is optional.\n",
+    "# You can adapt the hyperparameters to your needs as follows:\n",
     "set_hyperparameter(fun_control, \"optimizer\", [\n",
     "                \"Adadelta\",\n",
     "                \"Adagrad\",\n",
@@ -76,7 +169,6 @@
     "                \"AdamW\",\n",
     "                \"Adamax\",\n",
     "            ])\n",
-    "\n",
     "set_hyperparameter(fun_control, \"l1\", [3,9])\n",
     "set_hyperparameter(fun_control, \"epochs\", [10,12])\n",
     "set_hyperparameter(fun_control, \"batch_size\", [4,8])\n",
@@ -84,8 +176,9 @@
     "set_hyperparameter(fun_control, \"lr_mult\", [0.1, 20.0])\n",
     "set_hyperparameter(fun_control, \"patience\", [6,9])\n",
     "\n",
+    "# Modify the design control (optional)\n",
     "design_control = design_control_init(init_size=20)\n",
-    "\n",
+    "# Modify the surrogate control (optional)\n",
     "surrogate_control = surrogate_control_init(\n",
     "    noise=True,\n",
     "    n_theta=2,\n",
@@ -93,19 +186,13 @@
     "    max_Lambda=10,\n",
     ")\n",
     "\n",
-    "fun = HyperLight().fun\n",
-    "\n",
-    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)\n",
-    "\n",
+    "# Check the design table\n",
     "print(gen_design_table(fun_control))\n",
     "\n",
+    "# The remaining part is mandatory:\n",
+    "fun = HyperLight().fun\n",
+    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)\n",
     "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
-    "# if userExperimnents directory does not exist, create it\n",
-    "if not os.path.exists(\"userExperiment\"):\n",
-    "    os.makedirs(\"userExperiment\")\n",
-    "filename = os.path.join(\"userExperiment\", filename)\n",
-    "if spot_tuner.spot_writer is not None:\n",
-    "    spot_tuner.spot_writer.close()\n",
     "# remove attribute spot_writer from spot_tuner object\n",
     "if hasattr(spot_tuner, \"spot_writer\"):\n",
     "    delattr(spot_tuner, \"spot_writer\")\n",
@@ -114,10 +201,10 @@
   },
   {
    "cell_type": "markdown",
-   "id": "3c2adae0",
+   "id": "1d5d2188",
    "metadata": {},
    "source": [
-    "The configuration is saved in the `userExperiment` directory as  a pickle-file that contains the full information. In our example, the filename is `spot_light-user-model_experiment.pickle`.\n",
+    "The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_light-user-model_experiment.pickle`.\n",
     "\n",
     "::: {.callout-note}\n",
     "### Data \n",
@@ -127,7 +214,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 2,
+   "execution_count": 4,
    "id": "generate-dummy-data",
    "metadata": {},
    "outputs": [],
@@ -143,7 +230,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "a288e130",
+   "id": "d05869ca",
    "metadata": {},
    "source": [
     "::: \n",
@@ -155,111 +242,21 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 3,
+   "execution_count": 5,
    "id": "copy-config-to-remote",
    "metadata": {},
    "outputs": [],
    "source": [
     "#| label: copy-config-to-remote\n",
     "#| eval: false\n",
-    "scp userExperiment/spot_light-user-model_experiment.pickle user@144.33.22.1:/path/to/remote/directory"
+    "scp spot_light-user-model_experiment.pickle user@144.33.22.1:"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "8e3a447c",
+   "id": "7c037e05",
    "metadata": {},
    "source": [
-    "## Prepare the Slurm Scripts on the Remote Machine\n",
-    "\n",
-    "Two scripts are required to run the `spotpython` code on the remote machine: \n",
-    "\n",
-    "* `startSlurm.sh` and \n",
-    "* `startPython.py`.\n",
-    "\n",
-    "They should be saved in the same directory, i.e., `/path/to/remote/directory` as the configuration file.\n",
-    "\n",
-    "The `startSlurm.sh` script is a shell script that contains the following code:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "start",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: start\n",
-    "#| eval: false\n",
-    "#!/bin/python\n",
-    " \n",
-    "### Vergabe von Ressourcen\n",
-    "#SBATCH --job-name=CH10_Test\n",
-    "#SBATCH --ntasks-per-node=64\n",
-    "#SBATCH --gres=gpu:1\n",
-    "#SBATCH --time=24:00:00\n",
-    "#SBATCH --error=job.%J.err\n",
-    "#SBATCH --output=job.%J.out\n",
-    "#----\n",
-    "#SBATCH --partition=gpu\n",
-    "\n",
-    "if [ -z \"$1\" ]; then\n",
-    "    echo \"Usage: $0 <path_to_spot.pkl>\"\n",
-    "    exit 1\n",
-    "fi\n",
-    "\n",
-    "SPOT_PKL=$1\n",
-    "\n",
-    "module load conda\n",
-    "\n",
-    "conda activate spot312\n",
-    "\n",
-    "srun python startPython.py \"$SPOT_PKL\""
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "955ab065",
-   "metadata": {},
-   "source": [
-    "Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., `scp startSlurm.sh user@144.33.22.1:/path/to/remote/directory`.\n",
-    "\n",
-    "\n",
-    "The `startPython.py` script is a Python script that contains the following code:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "startPython",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: startPython\n",
-    "#| eval: false\n",
-    "import argparse\n",
-    "import pickle\n",
-    "from spotpython.utils.file import load_and_run_spot_python_experiment\n",
-    "\n",
-    "def main(pickle_file):\n",
-    "    spot_tuner = load_and_run_spot_python_experiment(pickle_file)\n",
-    "\n",
-    "if __name__ == \"__main__\":\n",
-    "    parser = argparse.ArgumentParser(description='Process a pickle file.')\n",
-    "    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')\n",
-    "\n",
-    "    args = parser.parse_args()\n",
-    "    main(args.pickle_file)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "a8fcf020",
-   "metadata": {},
-   "source": [
-    "Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., `scp startPython.py user@144.33.22.1:/path/to/remote/directory`.\n",
-    "\n",
-    "\n",
     "## Run the `spotpython` Code on the Remote Machine\n",
     "\n",
     "Login on the remote machine and run the following command to start the `spotpython` code:\n"
@@ -286,6 +283,18 @@
    "language": "python",
    "name": "python3",
    "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.12.5"
   }
  },
  "nbformat": 4,
