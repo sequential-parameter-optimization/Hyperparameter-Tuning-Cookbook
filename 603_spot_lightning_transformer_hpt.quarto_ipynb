@@ -1,0 +1,367 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Hyperparameter Tuning of a Transformer Network with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-603}\n",
+        "\n",
+        "## Basic Setup {#sec-basic-setup-601}\n",
+        "\n",
+        "This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. \n",
+        "@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.\n",
+        "@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.\n"
+      ],
+      "id": "911ec07b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "#| label: 603_imports\n",
+        "import numpy as np\n",
+        "import os\n",
+        "from math import inf\n",
+        "import numpy as np\n",
+        "import warnings\n",
+        "if not os.path.exists('./figures'):\n",
+        "    os.makedirs('./figures')\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "id": "imports",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow for a regression task.\n",
+        "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
+        "\n",
+        "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
+        "The `fun_control` dictionary contains\n",
+        "\n",
+        "* `PREFIX`: a unique identifier for the experiment\n",
+        "* `fun_evals`: the number of function evaluations\n",
+        "* `max_time`: the maximum run time in minutes\n",
+        "* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.\n",
+        "* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.\n",
+        "* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.\n",
+        "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
+        "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
+        "\n",
+        "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
+        "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
+        "Finally, a `Spot` object is created.\n"
+      ],
+      "id": "784c447e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_setup\n",
+        "from spotpython.data.diabetes import Diabetes\n",
+        "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotpython.fun.hyperlight import HyperLight\n",
+        "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "from spotpython.hyperparameters.values import set_hyperparameter\n",
+        "from spotpython.spot import spot\n",
+        "from spotpython.utils.file import get_experiment_filename\n",
+        "from spotpython.utils.scaler import TorchStandardScaler\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"603\",\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    tensorboard_log=True,\n",
+        "    fun_evals=inf,\n",
+        "    max_time=1,\n",
+        "    data_set = Diabetes(),\n",
+        "    scaler=TorchStandardScaler(),\n",
+        "    core_model_name=\"light.regression.NNTransformerRegressor\",\n",
+        "    hyperdict=LightHyperDict,\n",
+        "    _L_in=10,\n",
+        "    _L_out=1)\n",
+        "\n",
+        "set_hyperparameter(fun_control, \"optimizer\", [\n",
+        "                \"Adadelta\",\n",
+        "                \"Adagrad\",\n",
+        "                \"Adam\",\n",
+        "                \"AdamW\",\n",
+        "                \"Adamax\",\n",
+        "            ])\n",
+        "set_hyperparameter(fun_control, \"epochs\", [5,7])\n",
+        "\n",
+        "design_control = design_control_init(init_size=5)\n",
+        "surrogate_control = surrogate_control_init(\n",
+        "    noise=True,\n",
+        "    n_theta=2,\n",
+        "    min_Lambda=1e-3,\n",
+        "    max_Lambda=10,\n",
+        ")\n",
+        "\n",
+        "fun = HyperLight().fun\n",
+        "\n",
+        "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)"
+      ],
+      "id": "setup",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can take a look at the design table to see the initial design."
+      ],
+      "id": "1a37b157"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_design_table\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "design_table",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "If we want to run the hyperparameter tuning process on a remote server, we can save the setting as a `pickle` file and load it on the remote server.\n"
+      ],
+      "id": "ebdf9bce"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
+        "# if userExperimnents directory does not exist, create it\n",
+        "if not os.path.exists(\"userExperiment\"):\n",
+        "    os.makedirs(\"userExperiment\")\n",
+        "filename = os.path.join(\"userExperiment\", filename)\n",
+        "if spot_tuner.spot_writer is not None:\n",
+        "    spot_tuner.spot_writer.close()\n",
+        "# remove attribute spot_writer from spot_tuner object\n",
+        "if hasattr(spot_tuner, \"spot_writer\"):\n",
+        "    delattr(spot_tuner, \"spot_writer\")\n",
+        "spot_tuner.save_experiment(filename=filename)"
+      ],
+      "id": "bc1eefd1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Calling the method `run()` starts the hyperparameter tuning process on the local machine.\n"
+      ],
+      "id": "7de6c00e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_run\n",
+        "res = spot_tuner.run()"
+      ],
+      "id": "run",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Note that we have enabled Tensorboard-Logging, so we can visualize the results with Tensorboard. Execute the\n",
+        "following command in the terminal to start Tensorboard.\n"
+      ],
+      "id": "7d00ca7d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_tensorboard\n",
+        "#| eval: false\n",
+        "tensorboard --logdir=\"runs/\""
+      ],
+      "id": "tensorboard",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Looking at the Results\n",
+        "\n",
+        "### Tuning Progress\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
+      ],
+      "id": "f5b55388"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_progress(log_y=True, filename=None)"
+      ],
+      "id": "1093b29e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Tuned Hyperparameters and Their Importance\n",
+        "\n",
+        "Results can be printed in tabular form.\n"
+      ],
+      "id": "51f312c7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "from spotpython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "d1af12cc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "A histogram can be used to visualize the most important hyperparameters.\n"
+      ],
+      "id": "643dc381"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "spot_tuner.plot_importance(threshold=1.0)"
+      ],
+      "id": "c90f3ffd",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Hyperparameter Considerations\n",
+        "\n",
+        "1. `d_model` (or `d_embedding`):\n",
+        "\n",
+        "   - This is the dimension of the embedding space or the number of expected features in the input.\n",
+        "   - All input features are projected into this dimensional space before entering the transformer encoder.\n",
+        "   - This dimension must be divisible by `nhead` since each head in the multi-head attention mechanism will process a subset of `d_model/nhead` features.\n",
+        "\n",
+        "2. `nhead`:\n",
+        "\n",
+        "   - This is the number of attention heads in the multi-head attention mechanism.\n",
+        "   - It allows the transformer to jointly attend to information from different representation subspaces.\n",
+        "   - It's important that `d_model % nhead == 0` to ensure the dimensions are evenly split among the heads.\n",
+        "\n",
+        "3. `num_encoder_layers`:\n",
+        "\n",
+        "   - This specifies the number of transformer encoder layers stacked together.\n",
+        "   - Each layer contains a multi-head attention mechanism followed by position-wise feedforward layers.\n",
+        "\n",
+        "4. `dim_feedforward`:\n",
+        "\n",
+        "   - This is the dimension of the feedforward network model within the transformer encoder layer.\n",
+        "   - Typically, this dimension is larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`).\n",
+        "\n",
+        "### Important: Constraints and Interconnections:\n",
+        "\n",
+        "- `d_model` and `nhead`:\n",
+        "  - As mentioned, `d_model` must be divisible by `nhead`. This is critical because each attention head operates simultaneously on a part of the embedding, so `d_model/nhead` should be an integer.\n",
+        "\n",
+        "- `num_encoder_layers` and `dim_feedforward`**: \n",
+        "  - These parameters are more flexible and can be chosen independently of `d_model` and `nhead`.\n",
+        "  - However, the choice of `dim_feedforward` does influence the computational cost and model capacity, as larger dimensions allow learning more complex representations. \n",
+        "\n",
+        "- One hyperparameter does not strictly need to be a multiple of others except for ensuring `d_model % nhead == 0`.\n",
+        "\n",
+        "### Practical Considerations:\n",
+        "\n",
+        "1. Setting `d_model`:\n",
+        "\n",
+        "   - Common choices for `d_model` are powers of 2 (e.g., 256, 512, 1024).\n",
+        "   - Ensure that it matches the size of the input data after the linear projection layer.\n",
+        "\n",
+        "2. Setting `nhead`:\n",
+        "\n",
+        "   - Typically, values are 1, 2, 4, 8, etc., depending on the `d_model` value.\n",
+        "   - Each head works on a subset of features, so `d_model / nhead` should be large enough to be meaningful.\n",
+        "\n",
+        "3. Setting `num_encoder_layers`:\n",
+        "\n",
+        "   - Practical values range from 1 to 12 or more depending on the depth desired.\n",
+        "   - Deeper models can capture more complex patterns but are also more computationally intensive.\n",
+        "\n",
+        "4. Setting `dim_feedforward`:\n",
+        "\n",
+        "   - Often set to a multiple of `d_model`, such as 2048 when `d_model` is 512.\n",
+        "   - Ensures sufficient capacity in the intermediate layers for complex feature transformations.\n",
+        "\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: `d_model` Calculation \n",
+        "\n",
+        "Since `d_model % nhead == 0` is a critical constraint to ensure that the multi-head attention mechanism can operate effectively, `spotpython` computes the value of `d_model` based on the `nhead` value provided by the user. This ensures that the hyperparameter configuration is valid. So, the final value of `d_model` is a multiple of `nhead`.\n",
+        "`spotpython` uses the hyperparameter `d_model_mult` to determine the multiple of `nhead` to use for `d_model`, i.e., `d_model = nhead * d_model_mult`.\n",
+        ":::\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: `dim_feedforward` Calculation\n",
+        "\n",
+        "Since this dimension is typically larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`),\n",
+        "`spotpython` uses the hyperparameter `dim_feedforward_mult` to determine the multiple of `d_model` to use for `dim_feedforward`, i.e., `dim_feedforward = d_model * dim_feedforward_mult`.\n",
+        "\n",
+        "::: \n",
+        "\n",
+        "## Summary\n",
+        "\n",
+        "This section presented an introduction to the basic setup of hyperparameter tuning of a transformer with `spotpython` and `PyTorch` Lightning."
+      ],
+      "id": "3a9aeb82"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
