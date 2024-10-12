@@ -1,8 +1,21 @@
-# Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set
+---
+title: Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set
+jupyter: python3
+---
+
 
 In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
 training workflow for a regression task.
 It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.
+
+
+```{python}
+#| label: 601_imports
+import os
+from math import inf
+import warnings
+warnings.filterwarnings("ignore")
+```
 
 After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.
 The `fun_control` dictionary contains
@@ -16,26 +29,19 @@ The `fun_control` dictionary contains
 * `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.
 * `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.
 
-The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `["Default"]`. No other initializations are used in this experiment.
-The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.
-Finally, a `Spot` object is created.
+The `HyperLight` class is used to define the objective function `fun`.
+It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.
 
 ```{python}
-#| label: 601_setup
-import os
-import numpy as np
-from math import inf
-import warnings
+#| label: 601_spotpython_setup
+
 from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
 from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
 from spotpython.utils.eda import gen_design_table
-from spotpython.hyperparameters.values import set_hyperparameter
 from spotpython.spot import spot
 from spotpython.utils.file import get_experiment_filename
-
-warnings.filterwarnings("ignore")
 
 PREFIX="601"
 
@@ -44,8 +50,6 @@ data_set = Diabetes()
 fun_control = fun_control_init(
     save_experiment=True,
     PREFIX=PREFIX,
-    TENSORBOARD_CLEAN=False,
-    tensorboard_log=False,
     fun_evals=inf,
     max_time=1,
     data_set = data_set,
@@ -54,48 +58,41 @@ fun_control = fun_control_init(
     _L_in=10,
     _L_out=1)
 
-set_hyperparameter(fun_control, "optimizer", [
-                "Adadelta",
-                "Adagrad",
-                "Adam",
-                "AdamW",
-                "Adamax",
-            ])
+fun = HyperLight().fun
+```
 
-set_hyperparameter(fun_control, "l1", [3,9])
+The method `set_hyperparameter` allows the user to modify default hyperparameter settings.
+Here we modify some hyperparameters to keep the model small and to decrease the tuning time.
+
+```{python}
+from spotpython.hyperparameters.values import set_hyperparameter
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [3,4])
 set_hyperparameter(fun_control, "epochs", [3,5])
 set_hyperparameter(fun_control, "batch_size", [4,11])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
-# set_hyperparameter(fun_control, "lr_mult", [0.01, 20.0])
 set_hyperparameter(fun_control, "patience", [2,3])
 
 design_control = design_control_init(init_size=10)
-fun = HyperLight().fun
-spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+
+print(gen_design_table(fun_control))
 ```
+
+Saving the experiment is optional. If `save_experiment` is set to `True`, the experiment is saved to a file.
 
 ```{python}
 #| label: 601_save_experiment
-print(gen_design_table(fun_control))
 
-filename = get_experiment_filename(fun_control["PREFIX"])
-# if userExperimnents directory does not exist, create it
-if not os.path.exists("userExperiment"):
-    os.makedirs("userExperiment")
-filename = os.path.join("userExperiment", filename)
-if spot_tuner.spot_writer is not None:
-    spot_tuner.spot_writer.close()
-# remove attribute spot_writer from spot_tuner object
-if hasattr(spot_tuner, "spot_writer"):
-    delattr(spot_tuner, "spot_writer")
-# So the experiment, so that it ccan be executed on a remote machine
-spot_tuner.save_experiment(filename=filename, overwrite=False)
+fun_control.update({"save_experiment": True})
 ```
 
+Finally, a `Spot` object is created.
 Calling the method `run()` starts the hyperparameter tuning process.
 
 ```{python}
 #| label: 601_run
+spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+spot_tuner.save_experiment(path="userExperiment", overwrite=False)
 res = spot_tuner.run()
 ```
 
@@ -174,7 +171,6 @@ else:
         pickle.dump(model_loaded, f)
 
 get_feature_names(fun_control)
-
 ```
 
 ## Cross Validation With Lightning
@@ -190,15 +186,8 @@ config
 
 ```{python}
 from spotpython.light.cvmodel import cv_model
-from spotpython.hyperparameters.values import set_control_key_value
-set_control_key_value(control_dict=fun_control,
-                        key="k_folds",
-                        value=2,
-                        replace=True)
-set_control_key_value(control_dict=fun_control,
-                        key="test_size",
-                        value=0.6,
-                        replace=True)
+fun_control.update({"k_folds": 2})
+fun_control.update({"test_size": 0.6})
 cv_model(config, fun_control)
 ```
 
