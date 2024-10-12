@@ -1,879 +1,351 @@
 {
- "cells": [
-  {
-   "cell_type": "markdown",
-   "id": "26b78431",
-   "metadata": {},
-   "source": [
-    "---\n",
-    "execute:\n",
-    "  cache: false\n",
-    "  eval: true\n",
-    "  echo: true\n",
-    "  warning: false\n",
-    "jupyter: python3\n",
-    "---\n",
-    "\n",
-    "\n",
-    "# Hyperparameter Tuning of a Transformer Network with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-603}\n",
-    "\n",
-    "## Basic Setup {#sec-basic-setup-603}\n",
-    "\n",
-    "This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. \n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "imports",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| echo: false\n",
-    "#| label: 603_imports\n",
-    "import numpy as np\n",
-    "import os\n",
-    "from math import inf\n",
-    "import numpy as np\n",
-    "import warnings\n",
-    "if not os.path.exists('./figures'):\n",
-    "    os.makedirs('./figures')\n",
-    "warnings.filterwarnings(\"ignore\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "0e62b949",
-   "metadata": {},
-   "source": [
-    "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
-    "training workflow for a regression task.\n",
-    "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
-    "\n",
-    "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
-    "The `fun_control` dictionary contains\n",
-    "\n",
-    "* `PREFIX`: a unique identifier for the experiment\n",
-    "* `fun_evals`: the number of function evaluations\n",
-    "* `max_time`: the maximum run time in minutes\n",
-    "* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.\n",
-    "* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.\n",
-    "* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.\n",
-    "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
-    "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
-    "\n",
-    "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
-    "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
-    "Finally, a `Spot` object is created.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "id": "setup",
-   "metadata": {},
-   "outputs": [
+  "cells": [
     {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "Seed set to 123\n"
-     ]
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Hyperparameter Tuning of a Transformer Network with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-603}\n",
+        "\n",
+        "## Basic Setup {#sec-basic-setup-603}\n",
+        "\n",
+        "This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. \n"
+      ],
+      "id": "81edd81a"
     },
     {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "Seed set to 123\n"
-     ]
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "#| label: 603_imports\n",
+        "import numpy as np\n",
+        "import os\n",
+        "from math import inf\n",
+        "import numpy as np\n",
+        "import warnings\n",
+        "if not os.path.exists('./figures'):\n",
+        "    os.makedirs('./figures')\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "id": "imports",
+      "execution_count": null,
+      "outputs": []
     },
     {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2024_09_22_19_34_04\n",
-      "Created spot_tensorboard_path: runs/spot_logs/603_maans14_2024-09-22_19-34-04 for SummaryWriter()\n",
-      "module_name: light\n",
-      "submodule_name: regression\n",
-      "model_name: NNTransformerRegressor\n"
-     ]
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
+        "training workflow for a regression task.\n",
+        "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
+        "\n",
+        "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
+        "The `fun_control` dictionary contains\n",
+        "\n",
+        "* `PREFIX`: a unique identifier for the experiment\n",
+        "* `fun_evals`: the number of function evaluations\n",
+        "* `max_time`: the maximum run time in minutes\n",
+        "* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.\n",
+        "* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.\n",
+        "* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.\n",
+        "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
+        "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
+        "\n",
+        "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
+        "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
+        "Finally, a `Spot` object is created.\n"
+      ],
+      "id": "c98c33dd"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_setup\n",
+        "from spotpython.data.diabetes import Diabetes\n",
+        "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotpython.fun.hyperlight import HyperLight\n",
+        "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "from spotpython.hyperparameters.values import set_hyperparameter\n",
+        "from spotpython.spot import spot\n",
+        "from spotpython.utils.file import get_experiment_filename\n",
+        "from spotpython.utils.scaler import TorchStandardScaler\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    PREFIX=\"603\",\n",
+        "    TENSORBOARD_CLEAN=True,\n",
+        "    tensorboard_log=True,\n",
+        "    fun_evals=inf,\n",
+        "    max_time=1,\n",
+        "    data_set = Diabetes(),\n",
+        "    scaler=TorchStandardScaler(),\n",
+        "    core_model_name=\"light.regression.NNTransformerRegressor\",\n",
+        "    hyperdict=LightHyperDict,\n",
+        "    _L_in=10,\n",
+        "    _L_out=1)\n",
+        "\n",
+        "set_hyperparameter(fun_control, \"optimizer\", [\n",
+        "                \"Adadelta\",\n",
+        "                \"Adagrad\",\n",
+        "                \"Adam\",\n",
+        "                \"AdamW\",\n",
+        "                \"Adamax\",\n",
+        "            ])\n",
+        "set_hyperparameter(fun_control, \"epochs\", [5, 7])\n",
+        "set_hyperparameter(fun_control, \"nhead\", [1, 2])\n",
+        "set_hyperparameter(fun_control, \"dim_feedforward_mult\", [1, 1])\n",
+        "\n",
+        "design_control = design_control_init(init_size=5)\n",
+        "surrogate_control = surrogate_control_init(\n",
+        "    noise=True,\n",
+        "    min_Lambda=1e-3,\n",
+        "    max_Lambda=10,\n",
+        ")\n",
+        "\n",
+        "fun = HyperLight().fun\n",
+        "\n",
+        "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)"
+      ],
+      "id": "setup",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "We can take a look at the design table to see the initial design."
+      ],
+      "id": "e85db17d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_design_table\n",
+        "print(gen_design_table(fun_control))"
+      ],
+      "id": "design_table",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "If we want to run the hyperparameter tuning process on a remote server, we can save the setting as a `pickle` file and load it on the remote server.\n"
+      ],
+      "id": "a0669980"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_save_experiment\n",
+        "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
+        "# if userExperimnents directory does not exist, create it\n",
+        "if not os.path.exists(\"userExperiment\"):\n",
+        "    os.makedirs(\"userExperiment\")\n",
+        "filename = os.path.join(\"userExperiment\", filename)\n",
+        "if spot_tuner.spot_writer is not None:\n",
+        "    spot_tuner.spot_writer.close()\n",
+        "# remove attribute spot_writer from spot_tuner object\n",
+        "if hasattr(spot_tuner, \"spot_writer\"):\n",
+        "    delattr(spot_tuner, \"spot_writer\")\n",
+        "spot_tuner.save_experiment(filename=filename)"
+      ],
+      "id": "save_experiment",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Calling the method `run()` starts the hyperparameter tuning process on the local machine.\n"
+      ],
+      "id": "47eaea9a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_run\n",
+        "res = spot_tuner.run()"
+      ],
+      "id": "run",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Note that we have enabled Tensorboard-Logging, so we can visualize the results with Tensorboard. Execute the\n",
+        "following command in the terminal to start Tensorboard.\n"
+      ],
+      "id": "1e1fc55f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_tensorboard\n",
+        "#| eval: false\n",
+        "tensorboard --logdir=\"runs/\""
+      ],
+      "id": "tensorboard",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Looking at the Results\n",
+        "\n",
+        "### Tuning Progress\n",
+        "\n",
+        "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
+      ],
+      "id": "deb01915"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_plot_progress\n",
+        "spot_tuner.plot_progress(log_y=True, filename=None)"
+      ],
+      "id": "plot_progress",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Tuned Hyperparameters and Their Importance\n",
+        "\n",
+        "Results can be printed in tabular form.\n"
+      ],
+      "id": "1c41bd02"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: 603_gen_design_table_results\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "gen_design_table_results",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Hyperparameter Considerations\n",
+        "\n",
+        "1. `d_model` (or `d_embedding`):\n",
+        "\n",
+        "   - This is the dimension of the embedding space or the number of expected features in the input.\n",
+        "   - All input features are projected into this dimensional space before entering the transformer encoder.\n",
+        "   - This dimension must be divisible by `nhead` since each head in the multi-head attention mechanism will process a subset of `d_model/nhead` features.\n",
+        "\n",
+        "2. `nhead`:\n",
+        "\n",
+        "   - This is the number of attention heads in the multi-head attention mechanism.\n",
+        "   - It allows the transformer to jointly attend to information from different representation subspaces.\n",
+        "   - It's important that `d_model % nhead == 0` to ensure the dimensions are evenly split among the heads.\n",
+        "\n",
+        "3. `num_encoder_layers`:\n",
+        "\n",
+        "   - This specifies the number of transformer encoder layers stacked together.\n",
+        "   - Each layer contains a multi-head attention mechanism followed by position-wise feedforward layers.\n",
+        "\n",
+        "4. `dim_feedforward`:\n",
+        "\n",
+        "   - This is the dimension of the feedforward network model within the transformer encoder layer.\n",
+        "   - Typically, this dimension is larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`).\n",
+        "\n",
+        "### Important: Constraints and Interconnections:\n",
+        "\n",
+        "- `d_model` and `nhead`:\n",
+        "  - As mentioned, `d_model` must be divisible by `nhead`. This is critical because each attention head operates simultaneously on a part of the embedding, so `d_model/nhead` should be an integer.\n",
+        "\n",
+        "- `num_encoder_layers` and `dim_feedforward`**: \n",
+        "  - These parameters are more flexible and can be chosen independently of `d_model` and `nhead`.\n",
+        "  - However, the choice of `dim_feedforward` does influence the computational cost and model capacity, as larger dimensions allow learning more complex representations. \n",
+        "\n",
+        "- One hyperparameter does not strictly need to be a multiple of others except for ensuring `d_model % nhead == 0`.\n",
+        "\n",
+        "### Practical Considerations:\n",
+        "\n",
+        "1. Setting `d_model`:\n",
+        "\n",
+        "   - Common choices for `d_model` are powers of 2 (e.g., 256, 512, 1024).\n",
+        "   - Ensure that it matches the size of the input data after the linear projection layer.\n",
+        "\n",
+        "2. Setting `nhead`:\n",
+        "\n",
+        "   - Typically, values are 1, 2, 4, 8, etc., depending on the `d_model` value.\n",
+        "   - Each head works on a subset of features, so `d_model / nhead` should be large enough to be meaningful.\n",
+        "\n",
+        "3. Setting `num_encoder_layers`:\n",
+        "\n",
+        "   - Practical values range from 1 to 12 or more depending on the depth desired.\n",
+        "   - Deeper models can capture more complex patterns but are also more computationally intensive.\n",
+        "\n",
+        "4. Setting `dim_feedforward`:\n",
+        "\n",
+        "   - Often set to a multiple of `d_model`, such as 2048 when `d_model` is 512.\n",
+        "   - Ensures sufficient capacity in the intermediate layers for complex feature transformations.\n",
+        "\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: `d_model` Calculation \n",
+        "\n",
+        "Since `d_model % nhead == 0` is a critical constraint to ensure that the multi-head attention mechanism can operate effectively, `spotpython` computes the value of `d_model` based on the `nhead` value provided by the user. This ensures that the hyperparameter configuration is valid. So, the final value of `d_model` is a multiple of `nhead`.\n",
+        "`spotpython` uses the hyperparameter `d_model_mult` to determine the multiple of `nhead` to use for `d_model`, i.e., `d_model = nhead * d_model_mult`.\n",
+        ":::\n",
+        "\n",
+        "::: {.callout-note}\n",
+        "### Note: `dim_feedforward` Calculation\n",
+        "\n",
+        "Since this dimension is typically larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`),\n",
+        "`spotpython` uses the hyperparameter `dim_feedforward_mult` to determine the multiple of `d_model` to use for `dim_feedforward`, i.e., `dim_feedforward = d_model * dim_feedforward_mult`.\n",
+        "\n",
+        "::: \n",
+        "\n",
+        "## Summary\n",
+        "\n",
+        "This section presented an introduction to the basic setup of hyperparameter tuning of a transformer with `spotpython` and `PyTorch` Lightning."
+      ],
+      "id": "3cf39482"
     }
-   ],
-   "source": [
-    "#| label: 603_setup\n",
-    "from spotpython.data.diabetes import Diabetes\n",
-    "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
-    "from spotpython.fun.hyperlight import HyperLight\n",
-    "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
-    "from spotpython.utils.eda import gen_design_table\n",
-    "from spotpython.hyperparameters.values import set_hyperparameter\n",
-    "from spotpython.spot import spot\n",
-    "from spotpython.utils.file import get_experiment_filename\n",
-    "from spotpython.utils.scaler import TorchStandardScaler\n",
-    "\n",
-    "fun_control = fun_control_init(\n",
-    "    PREFIX=\"603\",\n",
-    "    TENSORBOARD_CLEAN=True,\n",
-    "    tensorboard_log=True,\n",
-    "    fun_evals=inf,\n",
-    "    max_time=1,\n",
-    "    data_set = Diabetes(),\n",
-    "    scaler=TorchStandardScaler(),\n",
-    "    core_model_name=\"light.regression.NNTransformerRegressor\",\n",
-    "    hyperdict=LightHyperDict,\n",
-    "    _L_in=10,\n",
-    "    _L_out=1)\n",
-    "\n",
-    "set_hyperparameter(fun_control, \"optimizer\", [\n",
-    "                \"Adadelta\",\n",
-    "                \"Adagrad\",\n",
-    "                \"Adam\",\n",
-    "                \"AdamW\",\n",
-    "                \"Adamax\",\n",
-    "            ])\n",
-    "set_hyperparameter(fun_control, \"epochs\", [5, 7])\n",
-    "set_hyperparameter(fun_control, \"nhead\", [1, 2])\n",
-    "set_hyperparameter(fun_control, \"dim_feedforward_mult\", [1, 1])\n",
-    "\n",
-    "design_control = design_control_init(init_size=5)\n",
-    "surrogate_control = surrogate_control_init(\n",
-    "    noise=True,\n",
-    "    min_Lambda=1e-3,\n",
-    "    max_Lambda=10,\n",
-    ")\n",
-    "\n",
-    "fun = HyperLight().fun\n",
-    "\n",
-    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "3f588722",
-   "metadata": {},
-   "source": [
-    "We can take a look at the design table to see the initial design."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "design_table",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "| name                 | type   | default        |   lower |   upper | transform             |\n",
-      "|----------------------|--------|----------------|---------|---------|-----------------------|\n",
-      "| d_model_mult         | int    | 4              |    1    |     9   | transform_power_2_int |\n",
-      "| nhead                | int    | 3              |    1    |     2   | transform_power_2_int |\n",
-      "| num_encoder_layers   | int    | 1              |    1    |     4   | transform_power_2_int |\n",
-      "| dim_feedforward_mult | int    | 1              |    1    |     1   | transform_power_2_int |\n",
-      "| epochs               | int    | 7              |    5    |     7   | transform_power_2_int |\n",
-      "| batch_size           | int    | 5              |    5    |     8   | transform_power_2_int |\n",
-      "| optimizer            | factor | Adam           |    0    |     4   | None                  |\n",
-      "| dropout              | float  | 0.1            |    0.01 |     0.1 | None                  |\n",
-      "| lr_mult              | float  | 0.1            |    0.01 |     0.3 | None                  |\n",
-      "| patience             | int    | 5              |    4    |     7   | transform_power_2_int |\n",
-      "| initialization       | factor | xavier_uniform |    0    |     3   | None                  |\n"
-     ]
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
     }
-   ],
-   "source": [
-    "#| label: 603_design_table\n",
-    "print(gen_design_table(fun_control))"
-   ]
   },
-  {
-   "cell_type": "markdown",
-   "id": "bbfea889",
-   "metadata": {},
-   "source": [
-    "If we want to run the hyperparameter tuning process on a remote server, we can save the setting as a `pickle` file and load it on the remote server.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "save_experiment",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: 603_save_experiment\n",
-    "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
-    "# if userExperimnents directory does not exist, create it\n",
-    "if not os.path.exists(\"userExperiment\"):\n",
-    "    os.makedirs(\"userExperiment\")\n",
-    "filename = os.path.join(\"userExperiment\", filename)\n",
-    "if spot_tuner.spot_writer is not None:\n",
-    "    spot_tuner.spot_writer.close()\n",
-    "# remove attribute spot_writer from spot_tuner object\n",
-    "if hasattr(spot_tuner, \"spot_writer\"):\n",
-    "    delattr(spot_tuner, \"spot_writer\")\n",
-    "spot_tuner.save_experiment(filename=filename)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "dd234cc5",
-   "metadata": {},
-   "source": [
-    "Calling the method `run()` starts the hyperparameter tuning process on the local machine.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "run",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "d_model: 16, dim_feedforward: 32\n",
-      "Milestones: [16, 32, 48]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes       | Out sizes     \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 176    | train | [128, 10]      | [128, 16]     \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [128, 16]      | [128, 128, 16]\n",
-      "2 | transformer_encoder | TransformerEncoder | 17.8 K | train | [128, 128, 16] | [128, 128, 16]\n",
-      "3 | fc_out              | Linear             | 17     | train | [128, 16]      | [128, 1]      \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "18.0 K    Trainable params\n",
-      "0         Non-trainable params\n",
-      "18.0 K    Total params\n",
-      "0.072     Total estimated model params size (MB)\n",
-      "85        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=64` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes       | Out sizes     \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 11.3 K | train | [32, 10]       | [32, 1024]    \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [32, 1024]     | [32, 32, 1024]\n",
-      "2 | transformer_encoder | TransformerEncoder | 33.6 M | train | [32, 32, 1024] | [32, 32, 1024]\n",
-      "3 | fc_out              | Linear             | 1.0 K  | train | [32, 1024]     | [32, 1]       \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "33.6 M    Trainable params\n",
-      "0         Non-trainable params\n",
-      "33.6 M    Total params\n",
-      "134.447   Total estimated model params size (MB)\n",
-      "45        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 23737.96484375, 'hp_metric': 23737.96484375}\n",
-      "d_model: 1024, dim_feedforward: 2048\n",
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=128` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes        | Out sizes      \n",
-      "-------------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 1.4 K  | train | [128, 10]       | [128, 128]     \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [128, 128]      | [128, 128, 128]\n",
-      "2 | transformer_encoder | TransformerEncoder | 1.1 M  | train | [128, 128, 128] | [128, 128, 128]\n",
-      "3 | fc_out              | Linear             | 129    | train | [128, 128]      | [128, 1]       \n",
-      "-------------------------------------------------------------------------------------------------------\n",
-      "1.1 M     Trainable params\n",
-      "0         Non-trainable params\n",
-      "1.1 M     Total params\n",
-      "4.246     Total estimated model params size (MB)\n",
-      "85        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 10616.427734375, 'hp_metric': 10616.427734375}\n",
-      "d_model: 128, dim_feedforward: 256\n",
-      "Milestones: [8, 16, 24]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes      | Out sizes    \n",
-      "---------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 1.4 K  | train | [64, 10]      | [64, 128]    \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [64, 128]     | [64, 64, 128]\n",
-      "2 | transformer_encoder | TransformerEncoder | 2.1 M  | train | [64, 64, 128] | [64, 64, 128]\n",
-      "3 | fc_out              | Linear             | 129    | train | [64, 128]     | [64, 1]      \n",
-      "---------------------------------------------------------------------------------------------------\n",
-      "2.1 M     Trainable params\n",
-      "0         Non-trainable params\n",
-      "2.1 M     Total params\n",
-      "8.485     Total estimated model params size (MB)\n",
-      "165       Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 22227.37109375, 'hp_metric': 22227.37109375}\n",
-      "d_model: 128, dim_feedforward: 256\n",
-      "Milestones: [8, 16, 24]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=32` reached.\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes      | Out sizes    \n",
-      "---------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 88     | train | [256, 10]     | [256, 8]     \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [256, 8]      | [256, 256, 8]\n",
-      "2 | transformer_encoder | TransformerEncoder | 1.2 K  | train | [256, 256, 8] | [256, 256, 8]\n",
-      "3 | fc_out              | Linear             | 9      | train | [256, 8]      | [256, 1]     \n",
-      "---------------------------------------------------------------------------------------------------\n",
-      "1.3 K     Trainable params\n",
-      "0         Non-trainable params\n",
-      "1.3 K     Total params\n",
-      "0.005     Total estimated model params size (MB)\n",
-      "25        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 23569.638671875, 'hp_metric': 23569.638671875}\n",
-      "d_model: 8, dim_feedforward: 16\n",
-      "Milestones: [16, 32, 48]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=64` reached.\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 24153.24609375, 'hp_metric': 24153.24609375}\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes       | Out sizes     \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 11.3 K | train | [32, 10]       | [32, 1024]    \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [32, 1024]     | [32, 32, 1024]\n",
-      "2 | transformer_encoder | TransformerEncoder | 33.6 M | train | [32, 32, 1024] | [32, 32, 1024]\n",
-      "3 | fc_out              | Linear             | 1.0 K  | train | [32, 1024]     | [32, 1]       \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "33.6 M    Trainable params\n",
-      "0         Non-trainable params\n",
-      "33.6 M    Total params\n",
-      "134.447   Total estimated model params size (MB)\n",
-      "45        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "d_model: 1024, dim_feedforward: 2048\n",
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=128` reached.\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 10587.1982421875, 'hp_metric': 10587.1982421875}\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "spotpython tuning: 10587.1982421875 [#######---] 72.48% \r\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "d_model: 1024, dim_feedforward: 2048\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "GPU available: True (mps), used: True\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "TPU available: False, using: 0 TPU cores\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "HPU available: False, using: 0 HPUs\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "  | Name                | Type               | Params | Mode  | In sizes       | Out sizes     \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "0 | input_proj          | Linear             | 11.3 K | train | [32, 10]       | [32, 1024]    \n",
-      "1 | positional_encoding | PositionalEncoding | 0      | train | [32, 1024]     | [32, 32, 1024]\n",
-      "2 | transformer_encoder | TransformerEncoder | 33.6 M | train | [32, 32, 1024] | [32, 32, 1024]\n",
-      "3 | fc_out              | Linear             | 1.0 K  | train | [32, 1024]     | [32, 1]       \n",
-      "-----------------------------------------------------------------------------------------------------\n",
-      "33.6 M    Trainable params\n",
-      "0         Non-trainable params\n",
-      "33.6 M    Total params\n",
-      "134.447   Total estimated model params size (MB)\n",
-      "45        Modules in train mode\n",
-      "0         Modules in eval mode\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Milestones: [32, 64, 96]\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "`Trainer.fit` stopped: `max_epochs=128` reached.\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "train_model result: {'val_loss': 10458.6181640625, 'hp_metric': 10458.6181640625}\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "spotpython tuning: 10458.6181640625 [##########] 100.00% Done...\r\n",
-      "\r\n"
-     ]
-    }
-   ],
-   "source": [
-    "#| label: 603_run\n",
-    "res = spot_tuner.run()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "2c245c1b",
-   "metadata": {},
-   "source": [
-    "Note that we have enabled Tensorboard-Logging, so we can visualize the results with Tensorboard. Execute the\n",
-    "following command in the terminal to start Tensorboard.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "tensorboard",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: 603_tensorboard\n",
-    "#| eval: false\n",
-    "tensorboard --logdir=\"runs/\""
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "bcb91c6c",
-   "metadata": {},
-   "source": [
-    "## Looking at the Results\n",
-    "\n",
-    "### Tuning Progress\n",
-    "\n",
-    "After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "plot_progress",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "application/pdf": "JVBERi0xLjQKJazcIKu6CjEgMCBvYmoKPDwgL1R5cGUgL0NhdGFsb2cgL1BhZ2VzIDIgMCBSID4+CmVuZG9iago4IDAgb2JqCjw8IC9Gb250IDMgMCBSIC9YT2JqZWN0IDcgMCBSIC9FeHRHU3RhdGUgNCAwIFIgL1BhdHRlcm4gNSAwIFIKL1NoYWRpbmcgNiAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0gPj4KZW5kb2JqCjExIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL1Jlc291cmNlcyA4IDAgUgovTWVkaWFCb3ggWyAwIDAgNTY4IDE5NS45NDM3NSBdIC9Db250ZW50cyA5IDAgUiAvQW5ub3RzIDEwIDAgUiA+PgplbmRvYmoKOSAwIG9iago8PCAvTGVuZ3RoIDEyIDAgUiAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJzVV01vEzEQvftX+AiHTmbGHo99pHxUIHFoG4kD4oBKW6jaIgqiP5W/w3izyXqTJguqkIKi3c0+j/3Gz+PZ8ezF+c8vZ+cnR4f++ambDW9n3x35K7suPforu+49+SO7Lh3a242TlO153T2pCJQYVOwdR2+fnbtws2fW7btZHznJkHxQkK69joKQB+C6Byhn0CVSu7RAPyYvxrw0n8w/63RfGSriMkFkZQ0tVQNGwH4sd2hTvHff7I7+wHz3moGjShaupsxQxJ/duMO5m70iT+jnF50C80/uvX9CT/0HP3/jXs7dseuccCTGSZkyt+wtuoueJEIIOZqA1XaKnzf5OQRIWLBQy9+iu/g5oMlUIoZYbaf4wyZ/wALaUvfALtaACYQxEMskZXyAMgtoqbMb8TboTvLMkIiYSartFL9s8sdEkHNd3Za/RXfxR4twRSYTodpO8adNfjHWojW4R3urQXfxi7VqCRiKVtspfm3528ixLRpzXcECrN2f7YO8/nF+9/HHl6+348mkOpm631OCYkFYuMsRI+DBTQvsUwAMwfaPWuz21EYImCImc8aIB0/qxp1fuQQhWcTHlE2bzrcn0DVYRGhWwhJWDdw1ZAiE0nb41eGEEFgp5jj02MqBfYOtPOJCqgCZuz+9m9p5GTvDdXEKg+2pkPNSnAHYJo6tTTDfBEviR4sTgNbFiXsjDlEErgk0LdVpkG3ykHnIqmKUFmP/QJ+0P/rYh0Cy3ctKnwHZqg8XSGzaUODIj99chdf0yfujj1hOzZFwlXoa5MEvdqoCRctPHChFjiVPCrQ/uYQssUpIQWQ13QHZGg6JQVQiqZUV4Q9n+3/mWsq2+Cwah3AYkK36aIKcoiWTlEgfq8/+pdtvflzHC3KdtZDd7879O3/bK1IFWdbdi9qbtAAyZ8lFkUwaP3uL/sXXlblJh2X58weWcMA2VyEV7cqS3fbEVD90JRUJnCbNa1azXGSlS46TxlZDUTLbYrV8Y3zsjv20IJ79G08gdkoZn7Kac4nlEFuXEml8Xhjg67aMb+FFiT1ChuK3hZuatIXd6d9OYiHRydHabMbjR8uIOq5EY4RoWVJ1wYp1wG6ou3qQu1+9NAE0jDkaFxGpDyDaEUAMiCkVI18uMQ2rVueDq+PjeCobR9X1c6i5v3Z8vXng+Fqtpg69S5uh35aRjt1vCgsuJgplbmRzdHJlYW0KZW5kb2JqCjEyIDAgb2JqCjg5NQplbmRvYmoKMTAgMCBvYmoKWyBdCmVuZG9iagoxOSAwIG9iago8PCAvTGVuZ3RoIDUxIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDOyNFUwULC0ABKGluYK5kaWCimGXEA+iJXLBRPLAbMMgDRYaQ5MRQ5XBlcaAL+MDVYKZW5kc3RyZWFtCmVuZG9iagoyMCAwIG9iago8PCAvTGVuZ3RoIDMwNyAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJw9kktuAzEMQ/c+hS4QwPrZnvOkKLqY3n/bJyXpihzZFkVqlrpMWVMekDSThH/p8HCxnfI7bM9mZuBaopeJ5ZTn0BVi7qJ82cxGXVknxeqEZjq36FE5Fwc2Taqfqyyl3S54Dtcmnlv2ET+80KAe1DUuCTd0V6NlKTRjqvt/0nv8jDLgakxdbFKrex88XkRV6OgHR4kiY5cX5+NBCelKwmhaiJV3RQNB7vK0ynsJ7tveasiyB6mYzjspZrDrdFIubheHIR7I8qjw5aPYa0LP+LArJfRI2IYzcifuaMbm1MjikP7ejQRLj65oIfPgr27WLmC8UzpFYmROcqxpi1VO91AU07nDvQwQ9WxFQylzkdXqX8POC2uWbBZ4SvoFHqPdJksOVtnbqE7vrTzZ0PcfWtd0HwplbmRzdHJlYW0KZW5kb2JqCjIxIDAgb2JqCjw8IC9MZW5ndGggMjQ5IC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nD1QO45EIQzrOYUv8CTyI3AeRqstZu/frgOaKVBMfrYzJNARgUcMMZSv4yWtoK6Bv4tC8W7i64PCIKtDUiDOeg+IdOymNpETOh2cMz9hN2OOwEUxBpzpdKY9ByY5+8IKhHMbZexWSCeJqiKO6jOOKZ4qe594FiztyDZbJ5I95CDhUlKJyaWflMo/bcqUCjpm0QQsErngZBNNOMu7SVKMGZQy6h6mdiJ9rDzIozroZE3OrCOZ2dNP25n4HHC3X9pkTpXHdB7M+Jy0zoM5Fbr344k2B02N2ujs9xNpKi9Sux1anX51EpXdGOcYEpdnfxnfZP/5B/6HWiIKZW5kc3RyZWFtCmVuZG9iagoyMiAwIG9iago8PCAvTGVuZ3RoIDM5NSAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJw9UktuxUAI2+cUXKDS8JvPeVJV3bz7b2tDUqkqvIkxxjB9ypC55UtdEnGFybderls8pnwuW1qZeYi7i40lPrbcl+4htl10LrE4HUfyCzKdKkSozarRofhCloUHkE7woQvCfTn+4y+AwdewDbjhPTJBsCTmKULGblEZmhJBEWHnkRWopFCfWcLfUe7r9zIFam+MpQtjHPQJtAVCbUjEAupAAETslFStkI5nJBO/Fd1nYhxg59GyAa4ZVESWe+zHiKnOqIy8RMQ+T036KJZMLVbGblMZX/yUjNR8dAUqqTTylPLQVbPQC1iJeRL2OfxI+OfWbCGGOm7W8onlHzPFMhLOYEs5YKGX40fg21l1Ea4dubjOdIEfldZwTLTrfsj1T/5021rNdbxyCKJA5U1B8LsOrkaxxMQyPp2NKXqiLLAamrxGM8FhEBHW98PIAxr9crwQNKdrIrRYIpu1YkSNimxzPb0E1kzvxTnWwxPCbO+d1qGyMzMqIYLauoZq60B2s77zcLafPzPoom0KZW5kc3RyZWFtCmVuZG9iagoyMyAwIG9iago8PCAvTGVuZ3RoIDI0OSAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxNUUmKAzAMu+cV+kAhXpO8p0OZQ+f/18oOhTkECa+Sk5aYWAsPMYQfLD34kSFzN/0bfqLZu1l6ksnZ/5jnIlNR+FKoLmJCXYgbz6ER8D2haxJZsb3xOSyjmXO+Bx+FuAQzoQFjfUkyuajmlSETTgx1HA5apMK4a2LD4lrRPI3cbvtGZmUmhA2PZELcGICIIOsCshgslDY2EzJZzgPtDckNWmDXqRtRi4IrlNYJdKJWxKrM4LPm1nY3Qy3y4Kh98fpoVpdghdFL9Vh4X4U+mKmZdu6SQnrhTTsizB4KpDI7LSu1e8TqboH6P8tS8P3J9/gdrw/N/FycCmVuZHN0cmVhbQplbmRvYmoKMjQgMCBvYmoKPDwgL0xlbmd0aCA5NCAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxFjcERwCAIBP9UQQkKCtpPJpOH9v+NEDJ8YOcO7oQFC7Z5Rh8FlSZeFVgHSmPcUI9AveFyLcncBQ9wJ3/a0FScltN3aZFJVSncpBJ5/w5nJpCoedFjnfcLY/sjPAplbmRzdHJlYW0KZW5kb2JqCjI1IDAgb2JqCjw8IC9MZW5ndGggNzIgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicMzK3UDBQsDQBEoYWJgrmZgYKKYZcQL6piblCLhdIDMTKAbMMgLQlnIKIZ4CYIG0QxSAWRLGZiRlEHZwBkcvgSgMAJdsWyQplbmRzdHJlYW0KZW5kb2JqCjI2IDAgb2JqCjw8IC9MZW5ndGggOTMgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicNY27DcAwCER7pmAEMMaYfaIohbN/GzBOd3r3mzKRkMVQGI0Y1QdeDFsGfaHbDE9wbeYUYnTJ+ILOjk01FLsWyqkdkkGnlyi3KpUH1RRrZ6zY/7nggfsDwvkdmAplbmRzdHJlYW0KZW5kb2JqCjI3IDAgb2JqCjw8IC9MZW5ndGggMTYzIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nEWQOxIDIQxDe06hI/gjAz7PZjIpNvdvY9hsUsDTWCCDuxOC1NqCieiCh7Yl3QXvrQRnY/zpNm41EuQEdYBWpONolFJ9ucVplXTxaDZzKwutEx1mDnqUoxmgEDoV3u2i5HKm7s75Q3D1X/W/Yt05m4mBycodCM3qU9z5NjuiurrJ/qTH3KzXfivsVWFpWUvLCbedu2ZACdxTOdqrPT8fCjr2CmVuZHN0cmVhbQplbmRvYmoKMjggMCBvYmoKPDwgL0xlbmd0aCAyMTggL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicPVC5jQQxDMtdhRpYwHrtqWcWi0um//RI+fYi0RZFUio1mZIpL3WUJVlT3jp8lsQOeYblbmQ2JSpFL5OwJffQCvF9ieYU993VlrNDNJdoOX4LMyqqGx3TSzaacCoTuqDcwzP6DW10A1aHHrFbINCkYNe2IHLHDxgMwZkTiyIMSk0G/65yj59eixs+w/FDFJGSDuY1/1j98nMNr1OPJ5Fub77iXpypDgMRHJKavCNdWLEuEhFpNUFNz8BaLYC7t17+G7QjugxA9onEcZpSjqG/a3Clzy/lJ1PYCmVuZHN0cmVhbQplbmRvYmoKMjkgMCBvYmoKPDwgL0xlbmd0aCA4MyAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxFjLsNwDAIRHumYAR+JvY+UZTC3r8NECVuuCfdPVwdCZkpbjPDQwaeDCyGXXGB9JYwC1xHUI6d7KNh1b7qBI31plLz7w+Unuys4obrAQJCGmYKZW5kc3RyZWFtCmVuZG9iagozMCAwIG9iago8PCAvTGVuZ3RoIDUxIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDM2tFAwUDA0MAeSRoZAlpGJQoohF0gAxMzlggnmgFkGQBqiOAeuJocrgysNAOG0DZgKZW5kc3RyZWFtCmVuZG9iagozMSAwIG9iago8PCAvTGVuZ3RoIDE2MCAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxFkDkSAzEIBHO9gidIXIL3rMu1wfr/qQfWR6LpAjQcuhZNynoUaD7psUahutBr6CxKkkTBFpIdUKdjiDsoSExIY5JIth6DI5pYs12YmVQqs1LhtGnFwr/ZWtXIRI1wjfyJ6QZU/E/qXJTwTYOvkjH6GFS8O4OMSfheRdxaMe3+RDCxGfYJb0UmBYSJsanZvs9ghsz3Ctc4x/MNTII36wplbmRzdHJlYW0KZW5kb2JqCjMyIDAgb2JqCjw8IC9MZW5ndGggNzAgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicMzM2UzBQsDACEqamhgrmRpYKKYZcQD6IlcsFE8sBs8wszIEsIwuQlhwuQwtjMG1ibKRgZmIGZFkgMSC6MrjSAJiaEwMKZW5kc3RyZWFtCmVuZG9iagozMyAwIG9iago8PCAvTGVuZ3RoIDMyMCAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJw1UktuBTEI288puECl8E/O86qqi777b2sTvRVMMGDjKS9Z0ku+1CXbpcPkWx/3JbFC3o/tmsxSxfcWsxTPLa9HzxG3LQoEURM9WJkvFSLUz/ToOqhwSp+BVwi3FBu8g0kAg2r4Bx6lMyBQ50DGu2IyUgOCJNhzaXEIiXImiX+kvJ7fJ62kofQ9WZnL35NLpdAdTU7oAcXKxUmgXUn5oJmYSkSSl+t9sUL0hsCSPD5HMcmA7DaJbaIFJucepSXMxBQ6sMcCvGaa1VXoYMIehymMVwuzqB5s8lsTlaQdreMZ2TDeyzBTYqHhsAXU5mJlgu7l4zWvwojtUZNdw3Duls13CNFo/hsWyuBjFZKAR6exEg1pOMCIwJ5eOMVe8xM5DsCIY52aLAxjaCaneo6JwNCes6VhxsceWvXzD1TpfIcKZW5kc3RyZWFtCmVuZG9iagozNCAwIG9iago8PCAvTGVuZ3RoIDEzMyAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxFj0sOBCEIRPecoo7Axx/ncTLphXP/7YCdbhNjPYVUgbmCoT0uawOdFR8hGbbxt6mWjkVZPlR6UlYPyeCHrMbLIdygLPCCSSqGIVCLmBqRLWVut4DbNg2yspVTpY6wi6Mwj/a0bBUeX6JbInWSP4PEKi/c47odyKXWu96ii75/pAExCQplbmRzdHJlYW0KZW5kb2JqCjM1IDAgb2JqCjw8IC9MZW5ndGggMzQwIC9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nDVSOW4EMQzr/Qp9IIBu2+/ZIEiR/L8NqdkUA3F0UpQ7WlR2y4eFVLXsdPm0ldoSN+R3ZYXECcmrEu1ShkiovFYh1e+ZMq+3NWcEyFKlwuSk5HHJgj/DpacLx/m2sa/lyB2PHlgVI6FEwDLFxOgals7usGZbfpZpwI94hJwr1i3HWAVSG9047Yr3oXktsgaIvZmWigodVokWfkHxoEeNffYYVFgg0e0cSXCMiVCRgHaB2kgMOXssdlEf9DMoMRPo2htF3EGBJZKYOcW6dPTf+NCxoP7YjDe/OirpW1pZY9I+G+2Uxiwy6XpY9HTz1seDCzTvovzn1QwSNGWNksYHrdo5hqKZUVZ4t0OTDc0xxyHzDp7DGQlK+jwUv48lEx2UyN8ODaF/Xx6jjJw23gLmoj9tFQcO4rPDXrmBFUoXa5L3AalM6IHp/6/xtb7X1x8d7YDGCmVuZHN0cmVhbQplbmRvYmoKMzYgMCBvYmoKPDwgL0xlbmd0aCAyNTEgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicLVFJcgNBCLvPK/SEZqffY5crh+T/1wjKBwYNi0B0WuKgjJ8gLFe85ZGraMPfMzGC3wWHfivXbVjkQFQgSWNQNaF28Xr0HthxmAnMk9awDGasD/yMKdzoxeExGWe312XUEOxdrz2ZQcmsXMQlExdM1WEjZw4/mTIutHM9NyDnRliXYZBuVhozEo40hUghhaqbpM4EQRKMrkaNNnIU+6Uvj3SGVY2oMexzLW1fz004a9DsWKzy5JQeXXEuJxcvrBz09TYDF1FprPJASMD9bg/1c7KT33hL584W0+N7zcnywlRgxZvXbkA21eLfvIjj+4yv5+f5/ANfYFuICmVuZHN0cmVhbQplbmRvYmoKMzcgMCBvYmoKPDwgL0xlbmd0aCAyMTUgL0ZpbHRlciAvRmxhdGVEZWNvZGUgPj4Kc3RyZWFtCnicNVE5DgMhDOz3Ff5AJIwveE+iKM3+v82M0VYewVyGtJQhmfJSk6gh5VM+epkunLrc18xqNOeWtC1zgLi2vC+tksCJZoiDwWmYuAGaPAFD19GoUUMXHtDUpVMosNwEPoq3bg/dY7WBl7Yh54kgYigZLEHNqUUTFm3PJ6Q1v16LG96X7d3IU6XGlhiBBgFWOBzX6NfwlT1PJtF0FTLUqzXLGAkTRSI8+Y6m1RPrWjTSMhLUxhGsagO8O/0wTgAAE3HLAmSfSpSz5MRvsfSzBlf6/gGfR1SWCmVuZHN0cmVhbQplbmRvYmoKMTcgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL0Jhc2VGb250IC9CTVFRRFYrRGVqYVZ1U2FucyAvRmlyc3RDaGFyIDAgL0xhc3RDaGFyIDI1NQovRm9udERlc2NyaXB0b3IgMTYgMCBSIC9TdWJ0eXBlIC9UeXBlMyAvTmFtZSAvQk1RUURWK0RlamFWdVNhbnMKL0ZvbnRCQm94IFsgLTEwMjEgLTQ2MyAxNzk0IDEyMzMgXSAvRm9udE1hdHJpeCBbIDAuMDAxIDAgMCAwLjAwMSAwIDAgXQovQ2hhclByb2NzIDE4IDAgUgovRW5jb2RpbmcgPDwgL1R5cGUgL0VuY29kaW5nCi9EaWZmZXJlbmNlcyBbIDQ2IC9wZXJpb2QgNDggL3plcm8gL29uZSAvdHdvIC90aHJlZSAvZm91ciAvZml2ZSAvc2l4IC9zZXZlbiAvZWlnaHQgNzMKL0kgOTcgL2EgMTAxIC9lIDEwNSAvaSAxMTAgL24gL28gMTE0IC9yIDExNiAvdCAyMTUgL211bHRpcGx5IF0KPj4KL1dpZHRocyAxNSAwIFIgPj4KZW5kb2JqCjE2IDAgb2JqCjw8IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvRm9udE5hbWUgL0JNUVFEVitEZWphVnVTYW5zIC9GbGFncyAzMgovRm9udEJCb3ggWyAtMTAyMSAtNDYzIDE3OTQgMTIzMyBdIC9Bc2NlbnQgOTI5IC9EZXNjZW50IC0yMzYgL0NhcEhlaWdodCAwCi9YSGVpZ2h0IDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDAgL01heFdpZHRoIDEzNDIgPj4KZW5kb2JqCjE1IDAgb2JqClsgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAKNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCAzMTggNDAxIDQ2MCA4MzggNjM2Cjk1MCA3ODAgMjc1IDM5MCAzOTAgNTAwIDgzOCAzMTggMzYxIDMxOCAzMzcgNjM2IDYzNiA2MzYgNjM2IDYzNiA2MzYgNjM2IDYzNgo2MzYgNjM2IDMzNyAzMzcgODM4IDgzOCA4MzggNTMxIDEwMDAgNjg0IDY4NiA2OTggNzcwIDYzMiA1NzUgNzc1IDc1MiAyOTUKMjk1IDY1NiA1NTcgODYzIDc0OCA3ODcgNjAzIDc4NyA2OTUgNjM1IDYxMSA3MzIgNjg0IDk4OSA2ODUgNjExIDY4NSAzOTAgMzM3CjM5MCA4MzggNTAwIDUwMCA2MTMgNjM1IDU1MCA2MzUgNjE1IDM1MiA2MzUgNjM0IDI3OCAyNzggNTc5IDI3OCA5NzQgNjM0IDYxMgo2MzUgNjM1IDQxMSA1MjEgMzkyIDYzNCA1OTIgODE4IDU5MiA1OTIgNTI1IDYzNiAzMzcgNjM2IDgzOCA2MDAgNjM2IDYwMCAzMTgKMzUyIDUxOCAxMDAwIDUwMCA1MDAgNTAwIDEzNDIgNjM1IDQwMCAxMDcwIDYwMCA2ODUgNjAwIDYwMCAzMTggMzE4IDUxOCA1MTgKNTkwIDUwMCAxMDAwIDUwMCAxMDAwIDUyMSA0MDAgMTAyMyA2MDAgNTI1IDYxMSAzMTggNDAxIDYzNiA2MzYgNjM2IDYzNiAzMzcKNTAwIDUwMCAxMDAwIDQ3MSA2MTIgODM4IDM2MSAxMDAwIDUwMCA1MDAgODM4IDQwMSA0MDEgNTAwIDYzNiA2MzYgMzE4IDUwMAo0MDEgNDcxIDYxMiA5NjkgOTY5IDk2OSA1MzEgNjg0IDY4NCA2ODQgNjg0IDY4NCA2ODQgOTc0IDY5OCA2MzIgNjMyIDYzMiA2MzIKMjk1IDI5NSAyOTUgMjk1IDc3NSA3NDggNzg3IDc4NyA3ODcgNzg3IDc4NyA4MzggNzg3IDczMiA3MzIgNzMyIDczMiA2MTEgNjA1CjYzMCA2MTMgNjEzIDYxMyA2MTMgNjEzIDYxMyA5ODIgNTUwIDYxNSA2MTUgNjE1IDYxNSAyNzggMjc4IDI3OCAyNzggNjEyIDYzNAo2MTIgNjEyIDYxMiA2MTIgNjEyIDgzOCA2MTIgNjM0IDYzNCA2MzQgNjM0IDU5MiA2MzUgNTkyIF0KZW5kb2JqCjE4IDAgb2JqCjw8IC9JIDE5IDAgUiAvYSAyMCAwIFIgL2UgMjEgMCBSIC9laWdodCAyMiAwIFIgL2ZpdmUgMjMgMCBSIC9mb3VyIDI0IDAgUgovaSAyNSAwIFIgL211bHRpcGx5IDI2IDAgUiAvbiAyNyAwIFIgL28gMjggMCBSIC9vbmUgMjkgMCBSIC9wZXJpb2QgMzAgMCBSCi9yIDMxIDAgUiAvc2V2ZW4gMzIgMCBSIC9zaXggMzMgMCBSIC90IDM0IDAgUiAvdGhyZWUgMzUgMCBSIC90d28gMzYgMCBSCi96ZXJvIDM3IDAgUiA+PgplbmRvYmoKMyAwIG9iago8PCAvRjEgMTcgMCBSID4+CmVuZG9iago0IDAgb2JqCjw8IC9BMSA8PCAvVHlwZSAvRXh0R1N0YXRlIC9DQSAwIC9jYSAxID4+Ci9BMiA8PCAvVHlwZSAvRXh0R1N0YXRlIC9DQSAxIC9jYSAxID4+ID4+CmVuZG9iago1IDAgb2JqCjw8ID4+CmVuZG9iago2IDAgb2JqCjw8ID4+CmVuZG9iago3IDAgb2JqCjw8IC9NMCAxMyAwIFIgL00xIDE0IDAgUiA+PgplbmRvYmoKMTMgMCBvYmoKPDwgL1R5cGUgL1hPYmplY3QgL1N1YnR5cGUgL0Zvcm0gL0JCb3ggWyAtOCAtOCA4IDggXSAvTGVuZ3RoIDEzMQovRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJxtkEEOhCAMRfc9RS/wSUtFZevSa7iZTOL9twNxQEzdNNC+PH5R/pLwTqXA+CQJS06z5HrTkNK6TIwY5tWyKMegUS3WznU4qM/QcGN0i7EUptTW6Hijm+k23pM/+rBZIUY/HA6vhHsWQyZcKTEGh98LL9vD/xGeXtTAH6KNfmNaQ/0KZW5kc3RyZWFtCmVuZG9iagoxNCAwIG9iago8PCAvVHlwZSAvWE9iamVjdCAvU3VidHlwZSAvRm9ybSAvQkJveCBbIC04IC04IDggOCBdIC9MZW5ndGggMTMxCi9GaWx0ZXIgL0ZsYXRlRGVjb2RlID4+CnN0cmVhbQp4nG2QQQ6EIAxF9z1FL/BJS0Vl69JruJlM4v23A3FATN000L48flH+kvBOpcD4JAlLTrPketOQ0rpMjBjm1bIox6BRLdbOdTioz9BwY3SLsRSm1NboeKOb6Tbekz/6sFkhRj8cDq+EexZDJlwpMQaH3wsv28P/EZ5e1MAfoo1+Y1pD/QplbmRzdHJlYW0KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFsgMTEgMCBSIF0gL0NvdW50IDEgPj4KZW5kb2JqCjM4IDAgb2JqCjw8IC9DcmVhdG9yIChNYXRwbG90bGliIHYzLjkuMiwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZykKL1Byb2R1Y2VyIChNYXRwbG90bGliIHBkZiBiYWNrZW5kIHYzLjkuMikKL0NyZWF0aW9uRGF0ZSAoRDoyMDI0MDkyMjE5MzY0MiswMicwMCcpID4+CmVuZG9iagp4cmVmCjAgMzkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE2IDAwMDAwIG4gCjAwMDAwMDg5MTQgMDAwMDAgbiAKMDAwMDAwODE5MCAwMDAwMCBuIAowMDAwMDA4MjIyIDAwMDAwIG4gCjAwMDAwMDgzMjEgMDAwMDAgbiAKMDAwMDAwODM0MiAwMDAwMCBuIAowMDAwMDA4MzYzIDAwMDAwIG4gCjAwMDAwMDAwNjUgMDAwMDAgbiAKMDAwMDAwMDMzNiAwMDAwMCBuIAowMDAwMDAxMzI2IDAwMDAwIG4gCjAwMDAwMDAyMDggMDAwMDAgbiAKMDAwMDAwMTMwNiAwMDAwMCBuIAowMDAwMDA4NDA2IDAwMDAwIG4gCjAwMDAwMDg2NjAgMDAwMDAgbiAKMDAwMDAwNjg4NiAwMDAwMCBuIAowMDAwMDA2Njc5IDAwMDAwIG4gCjAwMDAwMDYyNDAgMDAwMDAgbiAKMDAwMDAwNzkzOSAwMDAwMCBuIAowMDAwMDAxMzQ2IDAwMDAwIG4gCjAwMDAwMDE0NjkgMDAwMDAgbiAKMDAwMDAwMTg0OSAwMDAwMCBuIAowMDAwMDAyMTcxIDAwMDAwIG4gCjAwMDAwMDI2MzkgMDAwMDAgbiAKMDAwMDAwMjk2MSAwMDAwMCBuIAowMDAwMDAzMTI3IDAwMDAwIG4gCjAwMDAwMDMyNzEgMDAwMDAgbiAKMDAwMDAwMzQzNiAwMDAwMCBuIAowMDAwMDAzNjcyIDAwMDAwIG4gCjAwMDAwMDM5NjMgMDAwMDAgbiAKMDAwMDAwNDExOCAwMDAwMCBuIAowMDAwMDA0MjQxIDAwMDAwIG4gCjAwMDAwMDQ0NzQgMDAwMDAgbiAKMDAwMDAwNDYxNiAwMDAwMCBuIAowMDAwMDA1MDA5IDAwMDAwIG4gCjAwMDAwMDUyMTUgMDAwMDAgbiAKMDAwMDAwNTYyOCAwMDAwMCBuIAowMDAwMDA1OTUyIDAwMDAwIG4gCjAwMDAwMDg5NzQgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAzOSAvUm9vdCAxIDAgUiAvSW5mbyAzOCAwIFIgPj4Kc3RhcnR4cmVmCjkxMzEKJSVFT0YK",
-      "text/plain": [
-       "<Figure size 2700x1800 with 1 Axes>"
-      ]
-     },
-     "metadata": {},
-     "output_type": "display_data"
-    }
-   ],
-   "source": [
-    "#| label: 603_plot_progress\n",
-    "spot_tuner.plot_progress(log_y=True, filename=None)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "14a72676",
-   "metadata": {},
-   "source": [
-    "### Tuned Hyperparameters and Their Importance\n",
-    "\n",
-    "Results can be printed in tabular form.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 8,
-   "id": "gen_design_table_results",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "| name                 | type   | default        |   lower |   upper | tuned                | transform             |   importance | stars   |\n",
-      "|----------------------|--------|----------------|---------|---------|----------------------|-----------------------|--------------|---------|\n",
-      "| d_model_mult         | int    | 4              |     1.0 |     9.0 | 8.0                  | transform_power_2_int |         0.00 |         |\n",
-      "| nhead                | int    | 3              |     1.0 |     2.0 | 2.0                  | transform_power_2_int |         0.07 |         |\n",
-      "| num_encoder_layers   | int    | 1              |     1.0 |     4.0 | 2.0                  | transform_power_2_int |         0.00 |         |\n",
-      "| dim_feedforward_mult | int    | 1              |     1.0 |     1.0 | 1.0                  | transform_power_2_int |         0.00 |         |\n",
-      "| epochs               | int    | 7              |     5.0 |     7.0 | 7.0                  | transform_power_2_int |       100.00 | ***     |\n",
-      "| batch_size           | int    | 5              |     5.0 |     8.0 | 5.0                  | transform_power_2_int |         0.00 |         |\n",
-      "| optimizer            | factor | Adam           |     0.0 |     4.0 | Adagrad              | None                  |         0.00 |         |\n",
-      "| dropout              | float  | 0.1            |    0.01 |     0.1 | 0.029313497926507982 | None                  |         0.00 |         |\n",
-      "| lr_mult              | float  | 0.1            |    0.01 |     0.3 | 0.17049415493701156  | None                  |         0.00 |         |\n",
-      "| patience             | int    | 5              |     4.0 |     7.0 | 4.0                  | transform_power_2_int |         0.00 |         |\n",
-      "| initialization       | factor | xavier_uniform |     0.0 |     3.0 | xavier_normal        | None                  |         0.00 |         |\n"
-     ]
-    }
-   ],
-   "source": [
-    "#| label: 603_gen_design_table_results\n",
-    "from spotpython.utils.eda import gen_design_table\n",
-    "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "c666067e",
-   "metadata": {},
-   "source": [
-    "## Hyperparameter Considerations\n",
-    "\n",
-    "1. `d_model` (or `d_embedding`):\n",
-    "\n",
-    "   - This is the dimension of the embedding space or the number of expected features in the input.\n",
-    "   - All input features are projected into this dimensional space before entering the transformer encoder.\n",
-    "   - This dimension must be divisible by `nhead` since each head in the multi-head attention mechanism will process a subset of `d_model/nhead` features.\n",
-    "\n",
-    "2. `nhead`:\n",
-    "\n",
-    "   - This is the number of attention heads in the multi-head attention mechanism.\n",
-    "   - It allows the transformer to jointly attend to information from different representation subspaces.\n",
-    "   - It's important that `d_model % nhead == 0` to ensure the dimensions are evenly split among the heads.\n",
-    "\n",
-    "3. `num_encoder_layers`:\n",
-    "\n",
-    "   - This specifies the number of transformer encoder layers stacked together.\n",
-    "   - Each layer contains a multi-head attention mechanism followed by position-wise feedforward layers.\n",
-    "\n",
-    "4. `dim_feedforward`:\n",
-    "\n",
-    "   - This is the dimension of the feedforward network model within the transformer encoder layer.\n",
-    "   - Typically, this dimension is larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`).\n",
-    "\n",
-    "### Important: Constraints and Interconnections:\n",
-    "\n",
-    "- `d_model` and `nhead`:\n",
-    "  - As mentioned, `d_model` must be divisible by `nhead`. This is critical because each attention head operates simultaneously on a part of the embedding, so `d_model/nhead` should be an integer.\n",
-    "\n",
-    "- `num_encoder_layers` and `dim_feedforward`**: \n",
-    "  - These parameters are more flexible and can be chosen independently of `d_model` and `nhead`.\n",
-    "  - However, the choice of `dim_feedforward` does influence the computational cost and model capacity, as larger dimensions allow learning more complex representations. \n",
-    "\n",
-    "- One hyperparameter does not strictly need to be a multiple of others except for ensuring `d_model % nhead == 0`.\n",
-    "\n",
-    "### Practical Considerations:\n",
-    "\n",
-    "1. Setting `d_model`:\n",
-    "\n",
-    "   - Common choices for `d_model` are powers of 2 (e.g., 256, 512, 1024).\n",
-    "   - Ensure that it matches the size of the input data after the linear projection layer.\n",
-    "\n",
-    "2. Setting `nhead`:\n",
-    "\n",
-    "   - Typically, values are 1, 2, 4, 8, etc., depending on the `d_model` value.\n",
-    "   - Each head works on a subset of features, so `d_model / nhead` should be large enough to be meaningful.\n",
-    "\n",
-    "3. Setting `num_encoder_layers`:\n",
-    "\n",
-    "   - Practical values range from 1 to 12 or more depending on the depth desired.\n",
-    "   - Deeper models can capture more complex patterns but are also more computationally intensive.\n",
-    "\n",
-    "4. Setting `dim_feedforward`:\n",
-    "\n",
-    "   - Often set to a multiple of `d_model`, such as 2048 when `d_model` is 512.\n",
-    "   - Ensures sufficient capacity in the intermediate layers for complex feature transformations.\n",
-    "\n",
-    "\n",
-    "::: {.callout-note}\n",
-    "### Note: `d_model` Calculation \n",
-    "\n",
-    "Since `d_model % nhead == 0` is a critical constraint to ensure that the multi-head attention mechanism can operate effectively, `spotpython` computes the value of `d_model` based on the `nhead` value provided by the user. This ensures that the hyperparameter configuration is valid. So, the final value of `d_model` is a multiple of `nhead`.\n",
-    "`spotpython` uses the hyperparameter `d_model_mult` to determine the multiple of `nhead` to use for `d_model`, i.e., `d_model = nhead * d_model_mult`.\n",
-    ":::\n",
-    "\n",
-    "::: {.callout-note}\n",
-    "### Note: `dim_feedforward` Calculation\n",
-    "\n",
-    "Since this dimension is typically larger than `d_model` (e.g., 2048 for a Transformer model with `d_model=512`),\n",
-    "`spotpython` uses the hyperparameter `dim_feedforward_mult` to determine the multiple of `d_model` to use for `dim_feedforward`, i.e., `dim_feedforward = d_model * dim_feedforward_mult`.\n",
-    "\n",
-    "::: \n",
-    "\n",
-    "## Summary\n",
-    "\n",
-    "This section presented an introduction to the basic setup of hyperparameter tuning of a transformer with `spotpython` and `PyTorch` Lightning."
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3",
-   "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.12.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+  "nbformat": 4,
+  "nbformat_minor": 5
 }

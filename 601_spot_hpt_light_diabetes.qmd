@@ -7,25 +7,9 @@ execute:
 jupyter: python3
 ---
 
-# Hyperparameter Tuning with PyTorch Lightning {#sec-hyperparameter-tuning-with-pytorch-lightning-601}
-
-## Basic Setup {#sec-basic-setup-601}
-
-This section provides an overview of the hyperparameter tuning process using `spotpython` and `PyTorch` Lightning. It uses the `Diabetes` data set (see @sec-a-05-diabetes-data-set) for a regression task. 
-@sec-light-user-data-601 describes how user data can be used in the hyperparameter tuning process.
-@sec-light-user-model-601 explains how user models can be used in the hyperparameter tuning process.
-
 ```{python}
 #| echo: false
 #| label: 601_imports
-import numpy as np
-import os
-from math import inf
-import numpy as np
-import warnings
-if not os.path.exists('./figures'):
-    os.makedirs('./figures')
-warnings.filterwarnings("ignore")
 ```
 
 In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
@@ -50,6 +34,10 @@ Finally, a `Spot` object is created.
 
 ```{python}
 #| label: 601_setup
+import os
+import numpy as np
+from math import inf
+import warnings
 from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
@@ -57,24 +45,63 @@ from spotpython.utils.init import (fun_control_init, surrogate_control_init, des
 from spotpython.utils.eda import gen_design_table
 from spotpython.hyperparameters.values import set_hyperparameter
 from spotpython.spot import spot
+from spotpython.utils.file import get_experiment_filename
+
+warnings.filterwarnings("ignore")
+
+PREFIX="601"
+
+data_set = Diabetes()
 
 fun_control = fun_control_init(
-    PREFIX="601",
+    save_experiment=True,
+    PREFIX=PREFIX,
+    TENSORBOARD_CLEAN=False,
+    tensorboard_log=False,
     fun_evals=inf,
     max_time=1,
-    data_set = Diabetes(),
+    data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
     hyperdict=LightHyperDict,
     _L_in=10,
     _L_out=1)
 
+set_hyperparameter(fun_control, "optimizer", [
+                "Adadelta",
+                "Adagrad",
+                "Adam",
+                "AdamW",
+                "Adamax",
+            ])
+
+set_hyperparameter(fun_control, "l1", [3,9])
+set_hyperparameter(fun_control, "epochs", [3,5])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+# set_hyperparameter(fun_control, "lr_mult", [0.01, 20.0])
+set_hyperparameter(fun_control, "patience", [2,3])
+
 design_control = design_control_init(init_size=10)
-
-set_hyperparameter(fun_control, "initialization", ["Default"])
-
 fun = HyperLight().fun
-
 spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+```
+
+```{python}
+#| label: 601_save_experiment
+print(gen_design_table(fun_control))
+
+filename = get_experiment_filename(fun_control["PREFIX"])
+# if userExperimnents directory does not exist, create it
+if not os.path.exists("userExperiment"):
+    os.makedirs("userExperiment")
+filename = os.path.join("userExperiment", filename)
+if spot_tuner.spot_writer is not None:
+    spot_tuner.spot_writer.close()
+# remove attribute spot_writer from spot_tuner object
+if hasattr(spot_tuner, "spot_writer"):
+    delattr(spot_tuner, "spot_writer")
+# So the experiment, so that it ccan be executed on a remote machine
+spot_tuner.save_experiment(filename=filename, overwrite=False)
 ```
 
 Calling the method `run()` starts the hyperparameter tuning process.
@@ -84,7 +111,6 @@ Calling the method `run()` starts the hyperparameter tuning process.
 res = spot_tuner.run()
 ```
 
-
 ## Looking at the Results
 
 ### Tuning Progress
@@ -92,7 +118,7 @@ res = spot_tuner.run()
 After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
 
 ```{python}
-spot_tuner.plot_progress(log_y=True, filename=None)
+spot_tuner.plot_progress()
 ```
 
 ### Tuned Hyperparameters and Their Importance
@@ -108,6 +134,84 @@ A histogram can be used to visualize the most important hyperparameters.
 
 ```{python}
 spot_tuner.plot_importance(threshold=1.0)
+```
+
+```{python}
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+```
+
+### Get the Tuned Architecture {#sec-get-spot-results-31}
+
+```{python}
+import pprint
+from spotpython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner, fun_control)
+pprint.pprint(config)
+```
+
+* Test on the full data set
+
+```{python}
+# set the value of the key "TENSORBOARD_CLEAN" to True in the fun_control dictionary and use the update() method to update the fun_control dictionary
+fun_control.update({"TENSORBOARD_CLEAN": True})
+fun_control.update({"tensorboard_log": True})
+```
+
+```{python}
+import os
+import pickle
+
+def chk_pickle(s):
+    # Construct the filename
+    filename = s + '.pickle'
+
+    # Check if the file exists
+    return os.path.isfile(filename)
+```
+
+```{python}
+from spotpython.light.testmodel import test_model
+from spotpython.light.loadmodel import load_light_from_checkpoint
+from spotpython.utils.init import get_feature_names
+
+
+if chk_pickle("model_loaded_" + PREFIX):
+    with open("model_loaded_" + PREFIX + ".pickle", "rb") as f:
+        model_loaded = pickle.load(f)
+else:
+    test_model(config, fun_control)
+    model_loaded = load_light_from_checkpoint(config, fun_control)
+    # save model_loaded to pickle file
+    with open("model_loaded_" + PREFIX + ".pickle", "wb") as f:
+        pickle.dump(model_loaded, f)
+
+get_feature_names(fun_control)
+
+```
+
+## Cross Validation With Lightning
+
+* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
+* These mechanism is used to generate the folds for the final evaluation of the model.
+* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
+* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/cvmodel.py).
+
+```{python}
+config
+```
+
+```{python}
+from spotpython.light.cvmodel import cv_model
+from spotpython.hyperparameters.values import set_control_key_value
+set_control_key_value(control_dict=fun_control,
+                        key="k_folds",
+                        value=2,
+                        replace=True)
+set_control_key_value(control_dict=fun_control,
+                        key="test_size",
+                        value=0.6,
+                        replace=True)
+cv_model(config, fun_control)
 ```
 
 ## Extending the Basic Setup
@@ -174,7 +278,6 @@ config = get_experiment_from_PREFIX("601")["config"]
 config
 ```
 
-
 ## Using the `spotgui`
 
 The `spotgui` [[github]](https://github.com/sequential-parameter-optimization/spotGUI) provides a convenient way to interact with the hyperparameter tuning process.
@@ -185,3 +288,4 @@ To obtain the settings from @sec-summary-setting-up-the-experiment-601, the `spo
 ## Summary
 
 This section presented an introduction to the basic setup of hyperparameter tuning with `spotpython` and `PyTorch` Lightning.
+
