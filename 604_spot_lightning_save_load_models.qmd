@@ -224,6 +224,7 @@ Therefore, the `spot` object has to be created as shown in the following code.
 spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 spot_tuner.save_experiment(path="userExperiment", overwrite=False)
 ```
+
 Here, we have added a `path` argument to specify the directory where the experiment is saved.
 The resulting pickle file can be copied to another directory or computer and reloaded with the `load_experiment` function.
 It can also be used for performing the tuning run.
@@ -278,7 +279,6 @@ spot_tuner.plot_progress()
 spot_tuner_1.plot_progress()
 ```
 
-
 ::: {.callout-note}
 ### Summary: Saving and Loading Hyperparameter-Tuning Experiments
 * If `spotpython` is used as an hyperparameter tuner (with an hyperparameter dictionary), experiments can be saved and reloaded with the `save_experiment` and `load_experiment` functions.
@@ -294,7 +294,8 @@ This section shows how to save and load `PyTorch Lightning` models.
 
 ### Get the Tuned Architecture {#sec-get-spot-results-31}
 
-In contrast to the function `get_tuned_hyperparameters`, the function `get_tuned_architecture` returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model. The `config` dictionary can be passed to the model without any modifications.
+In contrast to the function `get_tuned_hyperparameters`, the function `get_tuned_architecture` returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model.
+Important: The `config` dictionary from `get_tuned_architecture` can be passed to the model without any modifications.
 
 ```{python}
 from spotpython.hyperparameters.values import get_tuned_architecture
@@ -310,6 +311,27 @@ test_model(config, fun_control)
 ```
 
 ### Load a Model from Checkpoint
+
+The method `load_light_from_checkpoint` loads a model from a checkpoint file.
+Important: The model has to be trained before the checkpoint is loaded. As shown here, loading a model with trained weights is possible, but requires two steps:
+
+1. The model weights have  to be learned using `test_model`. The `test_model` method writes a checkpoint file.
+2. The model has to be loaded from the checkpoint file.
+
+#### Details About the `load_light_from_checkpoint` Method
+
+* The `test_model` method saves the last checkpoint to a file using the following code:
+```python
+ModelCheckpoint(
+    dirpath=os.path.join(fun_control["CHECKPOINT_PATH"], config_id), save_last=True
+), 
+```
+
+The filename of the last checkpoint has a specific structure:
+
+* A `config_id` is generated from the `config` dictionary. It does not use a timestamp. This differs from the config id generated in cvmodel.py and trainmodel.py, which provide time information for the TensorBoard logging.
+* Furthermore, the postfix `_TEST` is added to the `config_id` to indicate that the model is tested.
+* For example: `runs/saved_models/16_16_64_LeakyReLU_Adadelta_0.0014_8.5895_8_False_kaiming_uniform_TEST/last.ckpt`
 
 ```{python}
 from spotpython.light.loadmodel import load_light_from_checkpoint
