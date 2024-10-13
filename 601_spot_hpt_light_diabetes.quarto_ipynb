@@ -2,15 +2,40 @@
  "cells": [
   {
    "cell_type": "markdown",
-   "id": "de97ae81",
+   "id": "c46ba639",
    "metadata": {},
    "source": [
-    "# Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set\n",
+    "---\n",
+    "title: Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set\n",
+    "jupyter: python3\n",
+    "---\n",
+    "\n",
+    "\n",
     "\n",
     "In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning\n",
     "training workflow for a regression task.\n",
-    "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n",
-    "\n",
+    "It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "imports",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: 601_imports\n",
+    "import os\n",
+    "from math import inf\n",
+    "import warnings\n",
+    "warnings.filterwarnings(\"ignore\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6d483dca",
+   "metadata": {},
+   "source": [
     "After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.\n",
     "The `fun_control` dictionary contains\n",
     "\n",
@@ -23,43 +48,33 @@
     "* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.\n",
     "* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.\n",
     "\n",
-    "The method `set_hyperparameter` allows the user to modify default hyperparameter settings. Here we set the `initialization` method to `[\"Default\"]`. No other initializations are used in this experiment.\n",
-    "The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n",
-    "Finally, a `Spot` object is created.\n"
+    "The `HyperLight` class is used to define the objective function `fun`.\n",
+    "It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.\n"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
-   "id": "setup",
+   "execution_count": 2,
+   "id": "spotpython_setup",
    "metadata": {},
    "outputs": [],
    "source": [
-    "#| label: 601_setup\n",
-    "import os\n",
-    "import numpy as np\n",
-    "from math import inf\n",
-    "import warnings\n",
+    "#| label: 601_spotpython_setup\n",
+    "\n",
     "from spotpython.data.diabetes import Diabetes\n",
     "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
     "from spotpython.fun.hyperlight import HyperLight\n",
     "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
     "from spotpython.utils.eda import gen_design_table\n",
-    "from spotpython.hyperparameters.values import set_hyperparameter\n",
     "from spotpython.spot import spot\n",
     "from spotpython.utils.file import get_experiment_filename\n",
-    "\n",
-    "warnings.filterwarnings(\"ignore\")\n",
     "\n",
     "PREFIX=\"601\"\n",
     "\n",
     "data_set = Diabetes()\n",
     "\n",
     "fun_control = fun_control_init(\n",
-    "    save_experiment=True,\n",
     "    PREFIX=PREFIX,\n",
-    "    TENSORBOARD_CLEAN=False,\n",
-    "    tensorboard_log=False,\n",
     "    fun_evals=inf,\n",
     "    max_time=1,\n",
     "    data_set = data_set,\n",
@@ -68,72 +83,82 @@
     "    _L_in=10,\n",
     "    _L_out=1)\n",
     "\n",
-    "set_hyperparameter(fun_control, \"optimizer\", [\n",
-    "                \"Adadelta\",\n",
-    "                \"Adagrad\",\n",
-    "                \"Adam\",\n",
-    "                \"AdamW\",\n",
-    "                \"Adamax\",\n",
-    "            ])\n",
-    "\n",
-    "set_hyperparameter(fun_control, \"l1\", [3,9])\n",
-    "set_hyperparameter(fun_control, \"epochs\", [3,5])\n",
-    "set_hyperparameter(fun_control, \"batch_size\", [4,11])\n",
-    "set_hyperparameter(fun_control, \"dropout_prob\", [0.0, 0.025])\n",
-    "# set_hyperparameter(fun_control, \"lr_mult\", [0.01, 20.0])\n",
-    "set_hyperparameter(fun_control, \"patience\", [2,3])\n",
-    "\n",
-    "design_control = design_control_init(init_size=10)\n",
-    "fun = HyperLight().fun\n",
-    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "id": "save_experiment",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: 601_save_experiment\n",
-    "print(gen_design_table(fun_control))\n",
-    "\n",
-    "filename = get_experiment_filename(fun_control[\"PREFIX\"])\n",
-    "# if userExperimnents directory does not exist, create it\n",
-    "if not os.path.exists(\"userExperiment\"):\n",
-    "    os.makedirs(\"userExperiment\")\n",
-    "filename = os.path.join(\"userExperiment\", filename)\n",
-    "if spot_tuner.spot_writer is not None:\n",
-    "    spot_tuner.spot_writer.close()\n",
-    "# remove attribute spot_writer from spot_tuner object\n",
-    "if hasattr(spot_tuner, \"spot_writer\"):\n",
-    "    delattr(spot_tuner, \"spot_writer\")\n",
-    "# So the experiment, so that it ccan be executed on a remote machine\n",
-    "spot_tuner.save_experiment(filename=filename, overwrite=False)"
+    "fun = HyperLight().fun"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "095cd49c",
+   "id": "7f647490",
    "metadata": {},
    "source": [
-    "Calling the method `run()` starts the hyperparameter tuning process.\n"
+    "The method `set_hyperparameter` allows the user to modify default hyperparameter settings.\n",
+    "Here we modify some hyperparameters to keep the model small and to decrease the tuning time.\n"
    ]
   },
   {
    "cell_type": "code",
    "execution_count": 3,
+   "id": "2bbf177c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from spotpython.hyperparameters.values import set_hyperparameter\n",
+    "set_hyperparameter(fun_control, \"optimizer\", [ \"Adadelta\", \"Adam\", \"Adamax\"])\n",
+    "set_hyperparameter(fun_control, \"l1\", [3,4])\n",
+    "set_hyperparameter(fun_control, \"epochs\", [3,5])\n",
+    "set_hyperparameter(fun_control, \"batch_size\", [4,11])\n",
+    "set_hyperparameter(fun_control, \"dropout_prob\", [0.0, 0.025])\n",
+    "set_hyperparameter(fun_control, \"patience\", [2,3])\n",
+    "\n",
+    "design_control = design_control_init(init_size=10)\n",
+    "\n",
+    "print(gen_design_table(fun_control))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b89dbf40",
+   "metadata": {},
+   "source": [
+    "Saving the experiment is optional. If `save_experiment` is set to `True`, the experiment is saved to a file.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "save_experiment",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#| label: 601_save_experiment\n",
+    "fun_control.update({\"save_experiment\": True})"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c58e3411",
+   "metadata": {},
+   "source": [
+    "Finally, a `Spot` object is created.\n",
+    "Calling the method `run()` starts the hyperparameter tuning process.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
    "id": "run",
    "metadata": {},
    "outputs": [],
    "source": [
     "#| label: 601_run\n",
+    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)\n",
+    "spot_tuner.save_experiment(path=\"userExperiment\", overwrite=False)\n",
     "res = spot_tuner.run()"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "fed54e3d",
+   "id": "cc251371",
    "metadata": {},
    "source": [
     "## Looking at the Results\n",
@@ -145,8 +170,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 4,
-   "id": "64739377",
+   "execution_count": 6,
+   "id": "4917f534",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -155,7 +180,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "b380ee45",
+   "id": "ab141eb3",
    "metadata": {},
    "source": [
     "### Tuned Hyperparameters and Their Importance\n",
@@ -165,8 +190,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 5,
-   "id": "0956abd5",
+   "execution_count": 7,
+   "id": "604ea4e1",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -176,7 +201,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "2d32a1e4",
+   "id": "2ba8a5b8",
    "metadata": {},
    "source": [
     "A histogram can be used to visualize the most important hyperparameters.\n"
@@ -184,8 +209,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 6,
-   "id": "e38a2469",
+   "execution_count": 8,
+   "id": "2235707d",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -194,8 +219,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
-   "id": "3808fdc6",
+   "execution_count": 9,
+   "id": "54df2e3e",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -204,7 +229,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "522f3726",
+   "id": "00d357eb",
    "metadata": {},
    "source": [
     "### Get the Tuned Architecture {#sec-get-spot-results-31}\n"
@@ -212,8 +237,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 8,
-   "id": "19cbf233",
+   "execution_count": 10,
+   "id": "d1fba125",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -225,7 +250,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "22d3a825",
+   "id": "1c85d348",
    "metadata": {},
    "source": [
     "* Test on the full data set\n"
@@ -233,8 +258,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 9,
-   "id": "9d2704a0",
+   "execution_count": 11,
+   "id": "ede566df",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -245,8 +270,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 10,
-   "id": "70b63742",
+   "execution_count": 12,
+   "id": "77945696",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -263,8 +288,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 11,
-   "id": "e13dfb6a",
+   "execution_count": 13,
+   "id": "98717ce8",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -288,7 +313,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "91d24d16",
+   "id": "8dff297a",
    "metadata": {},
    "source": [
     "## Cross Validation With Lightning\n",
@@ -301,8 +326,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 12,
-   "id": "4d21e3b6",
+   "execution_count": 14,
+   "id": "31335311",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -311,27 +336,20 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 13,
-   "id": "914b5398",
+   "execution_count": 15,
+   "id": "20d09885",
    "metadata": {},
    "outputs": [],
    "source": [
     "from spotpython.light.cvmodel import cv_model\n",
-    "from spotpython.hyperparameters.values import set_control_key_value\n",
-    "set_control_key_value(control_dict=fun_control,\n",
-    "                        key=\"k_folds\",\n",
-    "                        value=2,\n",
-    "                        replace=True)\n",
-    "set_control_key_value(control_dict=fun_control,\n",
-    "                        key=\"test_size\",\n",
-    "                        value=0.6,\n",
-    "                        replace=True)\n",
+    "fun_control.update({\"k_folds\": 2})\n",
+    "fun_control.update({\"test_size\": 0.6})\n",
     "cv_model(config, fun_control)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "5a656dbc",
+   "id": "885a19eb",
    "metadata": {},
    "source": [
     "## Extending the Basic Setup\n",
@@ -397,8 +415,8 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 14,
-   "id": "62b1e8e4",
+   "execution_count": 16,
+   "id": "8b78f04a",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -409,7 +427,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "fbe99874",
+   "id": "8eb6c337",
    "metadata": {},
    "source": [
     "## Using the `spotgui`\n",
