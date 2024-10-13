@@ -67,7 +67,7 @@ Here we modify some hyperparameters to keep the model small and to decrease the 
 from spotpython.hyperparameters.values import set_hyperparameter
 set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
 set_hyperparameter(fun_control, "l1", [3,4])
-set_hyperparameter(fun_control, "epochs", [3,5])
+set_hyperparameter(fun_control, "epochs", [3,7])
 set_hyperparameter(fun_control, "batch_size", [4,11])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
 set_hyperparameter(fun_control, "patience", [2,3])
@@ -77,20 +77,12 @@ design_control = design_control_init(init_size=10)
 print(gen_design_table(fun_control))
 ```
 
-Saving the experiment is optional. If `save_experiment` is set to `True`, the experiment is saved to a file.
-
-```{python}
-#| label: 601_save_experiment
-fun_control.update({"save_experiment": True})
-```
-
 Finally, a `Spot` object is created.
 Calling the method `run()` starts the hyperparameter tuning process.
 
 ```{python}
 #| label: 601_run
 spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
-spot_tuner.save_experiment(path="userExperiment", overwrite=False)
 res = spot_tuner.run()
 ```
 
@@ -141,33 +133,10 @@ fun_control.update({"tensorboard_log": True})
 ```
 
 ```{python}
-import os
-import pickle
-
-def chk_pickle(s):
-    # Construct the filename
-    filename = s + '.pickle'
-
-    # Check if the file exists
-    return os.path.isfile(filename)
-```
-
-```{python}
 from spotpython.light.testmodel import test_model
-from spotpython.light.loadmodel import load_light_from_checkpoint
 from spotpython.utils.init import get_feature_names
 
-
-if chk_pickle("model_loaded_" + PREFIX):
-    with open("model_loaded_" + PREFIX + ".pickle", "rb") as f:
-        model_loaded = pickle.load(f)
-else:
-    test_model(config, fun_control)
-    model_loaded = load_light_from_checkpoint(config, fun_control)
-    # save model_loaded to pickle file
-    with open("model_loaded_" + PREFIX + ".pickle", "wb") as f:
-        pickle.dump(model_loaded, f)
-
+test_model(config, fun_control)
 get_feature_names(fun_control)
 ```
 
