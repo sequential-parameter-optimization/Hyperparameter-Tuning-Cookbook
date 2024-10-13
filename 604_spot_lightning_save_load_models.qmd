@@ -22,11 +22,8 @@ It is split into the following parts:
 
 In this section, we will show how results from `spotpython` can be saved and reloaded.
 Here, `spotpython` can be used as an optimizer. 
-
-## spotpython as an Optimizer
-
-If `spotpython` is used as an optimizer, no dictionary of hyperparameters has be specified. The `fun_control` dictionary is sufficient. 
-
+If `spotpython` is used as an optimizer, no dictionary of hyperparameters has be specified.
+The `fun_control` dictionary is sufficient. 
 
 
 ```{python}
@@ -96,7 +93,7 @@ print(f"filename: {filename}")
     surrogate_control_1, optimizer_control_1) = load_experiment(filename)
 ```
 
-The progress of the original experiment is shown in @fig-plot-progress-37a and the reloaded experiment in @fig-plot-progress-37b.
+The progress of the original experiment is shown in @fig-plot-progress-604a and the reloaded experiment in @fig-plot-progress-604b.
 
 ```{python}
 #| label: fig-plot-progress-604a
@@ -110,7 +107,7 @@ spot_tuner.plot_progress(log_y=True)
 spot_tuner_1.plot_progress(log_y=True)
 ```
 
-The results from the original experiment are shown in @tbl-results-37a and the reloaded experiment in @tbl-results-37b.
+The results from the original experiment are shown in @tbl-results-604a and the reloaded experiment in @tbl-results-604b.
 
 ```{python}
 #| label: tbl-results-604a
@@ -122,9 +119,10 @@ spot_tuner.print_results()
 spot_tuner_1.print_results()
 ```
 
-#### Getting the Tuned Hyperparameters
+### Getting the Tuned Hyperparameters
 
 The tuned hyperparameters can be obtained as a dictionary with the following code.
+Since `spotpython` is used as an optimizer, the numerical levels of the hyperparameters are identical to the optimized values of the underlying optimization problem, here: the Branin function.
 
 ```{python}
 #| label: code-get-tuned-optimization-604
@@ -147,11 +145,10 @@ Here, we will use the `Diabetes` data set.
 
 ```{python}
 #| label: warnings-off-604
+#| echo: false
 import warnings
 warnings.filterwarnings("ignore")
 ```
-
-
 
 ### The Diabetes Data Set
 
@@ -166,8 +163,15 @@ The `Diabetes` data set is has the following properties:
 * Targets: integer $25 - 346$
 
 ```{python}
-#| label: code-hyperparameter-tuning-604
+#| label: code-diabetes-data-set-604
+#| eval: true
 from spotpython.data.diabetes import Diabetes
+data_set = Diabetes()
+```
+
+```{python}
+#| label: code-hyperparameter-tuning-604
+
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
 from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
@@ -176,10 +180,8 @@ from spotpython.spot import spot
 from spotpython.utils.file import get_experiment_filename
 
 PREFIX="604"
-
-data_set = Diabetes()
-
 fun_control = fun_control_init(
+    save_experiment=True,
     PREFIX=PREFIX,
     fun_evals=inf,
     max_time=1,
@@ -204,44 +206,37 @@ design_control = design_control_init(init_size=10)
 print(gen_design_table(fun_control))
 ```
 
+In contrast to the default setttin, where `sava_experiment` is set to `False`,
+here the `fun_control` dictionary is initialized `save_experiment=True`.
+Alternatively, an existing `fun_control` dictionary can be updated with `{"save_experiment": True}` as shown in the following code.
+
 ```{python}
 #| label: 604_save_experiment
 fun_control.update({"save_experiment": True})
 ```
 
+If `save_experiment` is set to `True`, the results of the hyperparameter tuning experiment are stored in a pickle file with the name `PREFIX` after the tuning is finished in the current directory.
+
+Alternatively, the spot object and the corresponding dictionaries can be saved with the `save_experiment` method, which is part of the `spot` object.
+Therefore, the `spot` object has to be created as shown in the following code.
+
 ```{python}
 spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 spot_tuner.save_experiment(path="userExperiment", overwrite=False)
+```
+Here, we have added a `path` argument to specify the directory where the experiment is saved.
+The resulting pickle file can be copied to another directory or computer and reloaded with the `load_experiment` function.
+It can also be used for performing the tuning run.
+Here, we will execute the tuning run on the local machine, which can be done with the following code.
+
+```{python}
 res = spot_tuner.run()
 ```
 
-The tuned hyperparameters can be obtained as a dictionary with the following code.
-
-```{python}
-#| label: code-get-tuned-hyperparameters-37
-from spotpython.hyperparameters.values import get_tuned_hyperparameters
-get_tuned_hyperparameters(spot_tuner)
-```
-
-Here , the numerical levels of the hyperparameters are used as keys in the dictionary.
-If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. 
-
-```{python}
-#| label: code-get-tuned-hyperparameters-fun-ctrl37
-get_tuned_hyperparameters(spot_tuner, fun_control)
-```
-
-```{python}
-#| label: code-save-experiment-37
-spot_tuner.save_experiment(path="userExperiment", overwrite=False)
-```
-
-The results from the experiment are stored in the pickle file `{python} filename`.
-The experiment can be reloaded with the following code.
-
-```{python}
-print(f"filename: {filename}")
-```
+After the tuning run is finished, a pickle file with the name `spot_604_experiment.pickle` is stored in the local directory.
+This is a result of setting the `save_experiment` argument to `True` in the `fun_control` dictionary.
+We can load the experiment with the following code. Here, we have specified the `PREFIX` as an argument to the `load_experiment` function.
+Alternatively, the filename (`PKL_NAME`) can be used as an argument.
 
 ```{python}
 #| label: code-reload-hyper-experiment-37
@@ -250,18 +245,39 @@ from spotpython.utils.file import load_experiment
     surrogate_control_1, optimizer_control_1) = load_experiment(PREFIX=PREFIX)
 ```
 
-Plot the progress of the original experiment are identical to the reloaded experiment.
+For comparison, the tuned hyperparameters of the original experiment are shown first: 
 
 ```{python}
-spot_tuner.plot_progress(log_y=True)
-spot_tuner_1.plot_progress(log_y=True)
+#| label: code-get-tuned-hyperparameters-fun-ctrl604a
+get_tuned_hyperparameters(spot_tuner, fun_control)
 ```
 
-Finally, the tuned hyperparameters can be obtained as a dictionary from the reloaded experiment with the following code.
+Second, the tuned hyperparameters of the reloaded experiment are shown:
+
+```{python}
+#| label: code-get-tuned-hyperparameters-fun-ctrl604b
+get_tuned_hyperparameters(spot_tuner_1, fun_control_1)
+```
+
+Note: The numerical levels of the hyperparameters are used as keys in the dictionary.
+If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. 
 
 ```{python}
 get_tuned_hyperparameters(spot_tuner_1, fun_control_1)
 ```
+
+Plot the progress of the original experiment are identical to the reloaded experiment.
+
+```{python}
+#| label: fig-plot-progress-604a
+spot_tuner.plot_progress()
+```
+
+```{python}
+#| label: fig-plot-progress-604b
+spot_tuner_1.plot_progress()
+```
+
 
 ::: {.callout-note}
 ### Summary: Saving and Loading Hyperparameter-Tuning Experiments
