@@ -1,40 +1,11 @@
 ---
-execute:
-  cache: false
-  eval: true
-  echo: true
-  warning: false
 jupyter: python3
 title: Explainable AI with SpotPython and Pytorch
 ---
 
 ```{python}
-# from spotpython.utils.init import fun_control_init
-# from spotpython.data.diabetes import Diabetes
-# from spotpython.hyperdict.light_hyper_dict import LightHyperDict
-# from spotpython.hyperparameters.values import (
-#         get_default_hyperparameters_as_array, get_one_config_from_X)
-# from spotpython.plot.xai import (get_activations, get_gradients, get_weights, plot_nn_values_hist, plot_nn_values_scatter, visualize_weights, visualize_gradients, visualize_activations, visualize_gradient_distributions, visualize_weights_distributions)
-
-# data_set = Diabetes()
-# fun_control = fun_control_init(
-#     data_set=data_set,
-#     _L_in=10, 
-#     _L_out=1,
-#     _torchmetric="mean_squared_error",
-#     core_model_name="light.regression.NNLinearRegressor",
-#     hyperdict=LightHyperDict,
-#     )
-# X = get_default_hyperparameters_as_array(fun_control)
-# config = get_one_config_from_X(X, fun_control)
-# _L_in = fun_control["_L_in"]
-# _L_out = fun_control["_L_out"]
-# _torchmetric = fun_control["_torchmetric"]
-# model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchmetric=_torchmetric)
-# batch_size=config["batch_size"]
-```
-
-```{python}
+#| echo: false
+#| label: imports
 import warnings
 warnings.filterwarnings("ignore")
 ```
@@ -50,7 +21,7 @@ from spotpython.utils.file import get_experiment_filename
 from spotpython.hyperparameters.values import set_hyperparameter
 from math import inf
 
-PREFIX="602"
+PREFIX="602_1"
 
 data_set = Diabetes()
 
@@ -69,7 +40,7 @@ fun = HyperLight().fun
 
 
 set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
-set_hyperparameter(fun_control, "l1", [2,3])
+set_hyperparameter(fun_control, "l1", [5,7])
 set_hyperparameter(fun_control, "epochs", [10,12])
 set_hyperparameter(fun_control, "batch_size", [4,11])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
@@ -131,18 +102,21 @@ pprint.pprint(config)
 * Since we are interested in the explainability of the model, we will train the tuned architecture on the test data.
 * `spotpythons`'s `test_model` function [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/testmodel/) is used to train the model on the test data.
 * Note: Until now, we do not use any information about the NN's weights and biases. Only the architecture, which is available as the `config`, is used.
-* `spotpython` used the TensorBoard logger to save the training process in the `./runs` directory. Therefore, we have to enable the TensorBoard logger in the `fun_control` dictionary. To get a clean start, we also set the `TENSORBOARD_CLEAN` flag to `True`.
+* `spotpython` used the TensorBoard logger to save the training process in the `./runs` directory. Therefore, we have to enable the TensorBoard logger in the `fun_control` dictionary. To get a clean start, we remove an existing `runs` folder.
 
 ```{python}
 from spotpython.light.testmodel import test_model
 from spotpython.light.loadmodel import load_light_from_checkpoint
-
-fun_control.update({"TENSORBOARD_CLEAN": True})
+import os
+# if the directory "./runs" exists, delete it
+if os.path.exists("./runs"):
+    os.system("rm -r ./runs")
 fun_control.update({"tensorboard_log": True})
 test_model(config, fun_control)
 ```
 
 ```{python}
+#| label: load_model_from_chkpt
 model = load_light_from_checkpoint(config, fun_control)
 ```
 
@@ -183,10 +157,6 @@ model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchme
 * As shown in the code above, the last checkpoint ist saved.
 * `spotpython`'s method `load_light_from_checkpoint` is used to load the last checkpoint and to get the model's weights and biases. It requires the `fun_control` dictionary and the `config_id` as input to find the correct checkpoint.
 * Now, the model is trained and the weights and biases are available.
-
-```{python}
-pprint.pprint(model)
-```
 
 ```{python}
 from torchviz import make_dot
@@ -238,28 +208,32 @@ visualize_weights(model, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
 ```
 
 ```{python}
-visualize_weights_distributions(model, color=f"C{0}")
+visualize_weights_distributions(model, color=f"C{0}", columns=4)
 ```
 
 ### Getting the Activations
 
 ```{python}
-activations = get_activations(model, fun_control=fun_control, batch_size=batch_size, device = "mps")
-print(activations)
+from spotpython.plot.xai import get_activations
+activations, mean_activations = get_activations(net=model, fun_control=fun_control, batch_size=batch_size, device="mps")
 ```
 
 ```{python}
-visualize_activations(model, fun_control=fun_control, batch_size=batch_size, device = "mps", cmap="GreenYellowRed", absolute=True)
+#| label: visualize_mean_activations
+visualize_mean_activations(mean_activations, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
 ```
 
 ```{python}
-visualize_activations_distributions(net=model, fun_control=fun_control, batch_size=batch_size, device="mps", color="C0", columns=2)
+#| label: visualize_activations_distributions
+visualize_activations_distributions(activations=activations,
+                                    net=model, color="C0", columns=4)
 ```
 
 ### Getting the Gradients
 
 ```{python}
-gradients = get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "mps")
+#| label: get_gradients
+gradients = get_gradients(net=model, fun_control=fun_control, batch_size=batch_size, device = "mps")
 ```
 
 ```{python}
@@ -267,7 +241,7 @@ visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="GreenYe
 ```
 
 ```{python}
-visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device="mps")
+visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device="mps", columns=3)
 ```
 
 ## Feature Attributions
