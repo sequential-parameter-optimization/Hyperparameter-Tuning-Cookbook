@@ -1,4 +1,9 @@
 ---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
 jupyter: python3
 title: Explainable AI with SpotPython and Pytorch
 ---
@@ -11,6 +16,7 @@ warnings.filterwarnings("ignore")
 ```
 
 ```{python}
+#|label: configure_spot
 from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
@@ -55,6 +61,7 @@ spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_co
 
 
 ```{python}
+#| label: run_experiment
 from spotpython.utils.file import get_experiment_filename, load_experiment
 import os
 overwrite = False
@@ -74,6 +81,7 @@ else:
     * `fun_control` dictionary
 
 ```{python}
+#| label: print_results
 res = spot_tuner.print_results(print_screen=True)
 ```
 
@@ -83,6 +91,7 @@ res = spot_tuner.print_results(print_screen=True)
 * It returns the transformed values, i.e., `batch_size = 2^x` if the hyperparameter `batch_size` was transformed with the `transform_power_2_int` function.
 
 ```{python}
+#| label: get_tuned_architecture
 from spotpython.hyperparameters.values import get_tuned_architecture
 import pprint
 config = get_tuned_architecture(spot_tuner, fun_control)
@@ -92,6 +101,7 @@ pprint.pprint(config)
 * Note: `get_tuned_architecture` has the option `force_minX` which does not have any effect in this case.
 
 ```{python}
+#| label: get_tuned_architecture_force_minX
 from spotpython.hyperparameters.values import get_tuned_architecture
 config = get_tuned_architecture(spot_tuner, fun_control, force_minX=True)
 pprint.pprint(config)
@@ -105,6 +115,7 @@ pprint.pprint(config)
 * `spotpython` used the TensorBoard logger to save the training process in the `./runs` directory. Therefore, we have to enable the TensorBoard logger in the `fun_control` dictionary. To get a clean start, we remove an existing `runs` folder.
 
 ```{python}
+#| label: test_model
 from spotpython.light.testmodel import test_model
 from spotpython.light.loadmodel import load_light_from_checkpoint
 import os
@@ -159,9 +170,9 @@ model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchme
 * Now, the model is trained and the weights and biases are available.
 
 ```{python}
+#| label: model_viz
 from torchviz import make_dot
 import torch
-
 x = torch.randn(1, 10).requires_grad_(True)
 x = x.to("mps")
 output = model(x)
@@ -191,6 +202,7 @@ dot.render("model_architecture", format="png")
 * Interpretation of the gradients: The magnitude of the gradient indicates how much a parameter should change to reduce the error. A large gradient implies a steeper slope and a bigger update, while a small gradient suggests that the parameter is near an optimal point. If gradients are too small (vanishing gradient problem), the network may learn slowly or stop learning. If they are too large (exploding gradient problem), the updates may be unstable.
 
 ```{python}
+#| import_xai
 from spotpython.plot.xai import (get_activations, get_gradients, get_weights, visualize_weights, visualize_gradients, visualize_mean_activations, visualize_gradient_distributions, visualize_weights_distributions, visualize_activations_distributions)
 batch_size = config["batch_size"]
 ```
@@ -198,22 +210,26 @@ batch_size = config["batch_size"]
 ### Getting the Weights
 
 ```{python}
+#| label: get_weights
 from spotpython.plot.xai import sort_layers
 weights = get_weights(model)
 sort_layers(weights)
 ```
 
 ```{python}
+#| label: visualize_weights
 visualize_weights(model, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
 ```
 
 ```{python}
+#| label: visualize_weights_distributions
 visualize_weights_distributions(model, color=f"C{0}", columns=4)
 ```
 
 ### Getting the Activations
 
 ```{python}
+#| label: get_activations
 from spotpython.plot.xai import get_activations
 activations, mean_activations = get_activations(net=model, fun_control=fun_control, batch_size=batch_size, device="mps")
 ```
@@ -237,10 +253,12 @@ gradients = get_gradients(net=model, fun_control=fun_control, batch_size=batch_s
 ```
 
 ```{python}
+#| label: visualize_gradients
 visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="GreenYellowRed", figsize=(6, 6), device="mps")
 ```
 
 ```{python}
+#| label: visualize_gradient_distributions
 visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device="mps", columns=3)
 ```
 
@@ -249,6 +267,7 @@ visualize_gradient_distributions(model, fun_control, batch_size=batch_size, colo
 ### Integrated Gradients
 
 ```{python}
+#| label: get_attributions_xai
 from spotpython.plot.xai import get_attributions, plot_attributions
 df_att = get_attributions(spot_tuner, fun_control, attr_method="IntegratedGradients", n_rel=10)
 plot_attributions(df_att, attr_method="IntegratedGradients")
@@ -257,6 +276,7 @@ plot_attributions(df_att, attr_method="IntegratedGradients")
 ### Deep Lift
 
 ```{python}
+#| label: get_attributions_deep_lift
 df_lift = get_attributions(spot_tuner, fun_control, attr_method="DeepLift",n_rel=10)
 print(df_lift)
 plot_attributions(df_lift,  attr_method="DeepLift")
@@ -265,10 +285,12 @@ plot_attributions(df_lift,  attr_method="DeepLift")
 ### Feature Ablation
 
 ```{python}
+#| label: get_attributions_feature_ablation
 df_fl = get_attributions(spot_tuner, fun_control, attr_method="FeatureAblation",n_rel=10)
 ```
 
 ```{python}
+#| label: plot_attributions_feature_ablation
 print(df_fl)
 plot_attributions(df_fl, attr_method="FeatureAblation")
 ```
@@ -276,6 +298,7 @@ plot_attributions(df_fl, attr_method="FeatureAblation")
 ## Conductance
 
 ```{python}
+#| label: get_conductance
 from spotpython.plot.xai import plot_conductance_last_layer, get_weights_conductance_last_layer
 weights_last, layer_conductance_last = get_weights_conductance_last_layer(spot_tuner, fun_control)
 plot_conductance_last_layer(weights_last, layer_conductance_last, figsize=(6, 6))
