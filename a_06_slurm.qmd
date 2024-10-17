@@ -28,13 +28,14 @@ The `startSlurm.sh` script is a shell script that contains the following code:
 ```{python}
 #| label: start
 #| eval: false
-#!/bin/python
+
+#!/bin/bash
  
 ### Vergabe von Ressourcen
-#SBATCH --job-name=CH10_Test
-#SBATCH --ntasks-per-node=64
+#SBATCH --job-name=Test
+#SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --error=job.%J.err
 #SBATCH --output=job.%J.out
 #----
@@ -49,9 +50,13 @@ SPOT_PKL=$1
 
 module load conda
 
+### change to your conda environment with spotpython installed via
+### pip install spotpython
 conda activate spot312
 
-srun python startPython.py "$SPOT_PKL"
+python startPython.py "$SPOT_PKL"
+
+exit
 ```
 
 Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., 
@@ -95,94 +100,61 @@ The configuration can be generated on a local machine using the following comman
 ```{python}
 #| label: generate-spotpython-config
 #| eval: false
-import os
-from math import inf
+from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
-from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init)
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
 from spotpython.utils.eda import gen_design_table
-from spotpython.hyperparameters.values import set_hyperparameter
 from spotpython.spot import spot
-from spotpython.utils.scaler import TorchStandardScaler
-from spotpython.utils.device import getDevice
 from spotpython.utils.file import get_experiment_filename
-
-# load data (adapt this to your needs)
-from pyhcf.utils.io import load_hcf_df, hcf_df2tensor
-from pyhcf.utils.names import load_all_features_N_regression_list
-df = load_hcf_df(A=True, H=True, param_list=load_all_features_N_regression_list(), target='N', rmNA=True, rmMF=True, rmV=4, min_freq=1000, incl_drossel=False)
-data_set = hcf_df2tensor(df, target='N', return_X_y=False)
-
-fun_control = fun_control_init(
-    PREFIX="01",
-    TENSORBOARD_CLEAN=False,
-    tensorboard_log=False,
-    fun_evals=inf,
-    max_time=600,
-    data_set=data_set,
-    scaler=TorchStandardScaler(),
-    device=getDevice(),
-    max_surrogate_points=30,
-    core_model_name="light.regression.NNLinearRegressor",
-    hyperdict=LightHyperDict,
-    _L_in=86,
-    _L_out=1)
-
-# The following "set_hyperparameter"-block is optional.
-# You can adapt the hyperparameters to your needs as follows:
-set_hyperparameter(fun_control, "optimizer", [
-                "Adadelta",
-                "Adagrad",
-                "Adam",
-                "AdamW",
-                "Adamax",
-            ])
-set_hyperparameter(fun_control, "l1", [3,9])
-set_hyperparameter(fun_control, "epochs", [10,12])
-set_hyperparameter(fun_control, "batch_size", [4,8])
-set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.1])
-set_hyperparameter(fun_control, "lr_mult", [0.1, 20.0])
-set_hyperparameter(fun_control, "patience", [6,9])
-
-# Modify the design control (optional)
-design_control = design_control_init(init_size=20)
-# Modify the surrogate control (optional)
-surrogate_control = surrogate_control_init(
-    noise=True,
-    n_theta=2,
-    min_Lambda=1e-3,
-    max_Lambda=10,
-)
-
-# Check the design table
-print(gen_design_table(fun_control))
-
-# The remaining part is mandatory:
-fun = HyperLight().fun
-spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control, surrogate_control=surrogate_control)
-filename = get_experiment_filename(fun_control["PREFIX"])
-# remove attribute spot_writer from spot_tuner object
-if hasattr(spot_tuner, "spot_writer"):
-    delattr(spot_tuner, "spot_writer")
-spot_tuner.save_experiment(filename=filename)
-```
-
-The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_01_experiment.pickle`.
-
-::: {.callout-note}
-### Data 
-The data is loaded from the `pyhcf` package. You can adapt the data loading to your needs.
-To generate dummy data, you can use the following code:
-```{python}
-#| label: generate-dummy-data
-#| eval: false
-num_samples = 1000
-input_dim = 86
+from spotpython.hyperparameters.values import set_hyperparameter
+from math import inf
+import torch
+from torch.utils.data import TensorDataset
+# generate data
+num_samples = 100_000
+input_dim = 100
 X = torch.randn(num_samples, input_dim)  # random data for example
 Y = torch.randn(num_samples, 1)  # random target for example
 data_set = TensorDataset(X, Y)
+
+PREFIX="0123456789"
+
+
+fun_control = fun_control_init(
+    accelerator="gpu",
+    devices="auto",
+    num_nodes=1,
+    num_workers=19,
+    precision="32",
+    strategy="auto",
+    save_experiment=True,
+    PREFIX=PREFIX,
+    fun_evals=50,
+    max_time=inf,
+    data_set = data_set,
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=input_dim,
+    _L_out=1)
+
+fun = HyperLight().fun
+
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [5,10])
+set_hyperparameter(fun_control, "epochs", [10,12])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,9])
+
+design_control = design_control_init(init_size=10)
+
+spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+spot_tuner.save_experiment(overwrite=True)
 ```
-::: 
+
+The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_0123456789_experiment.pickle`.
+
 
 ## Copy the Configuration to the Remote Machine
 
@@ -190,7 +162,7 @@ You can copy the configuration to the remote machine using the `scp` command. Th
 ```{python}
 #| label: copy-config-to-remote
 #| eval: false
-scp spot_01_experiment.pickle user@144.33.22.1:
+scp spot_0123456789_experiment.pickle user@144.33.22.1:
 ```
 
 ## Run the `spotpython` Code on the Remote Machine
@@ -201,8 +173,10 @@ Login on the remote machine and run the following command to start the `spotpyth
 #| label: run-spotpython-on-remote
 #| eval: false
 ssh user@144.33.22.1
-cd /path/to/remote/directory
-sh -x ./startSlurm.sh spot_01_experiment.pickle
+srun --cpus-per-task=20 --time=6:00:00 --gpus 1 --pty bash -i
+# change this to your conda environment!
+conda activate spot312 
+sh -x ./startSlurm.sh spot_0123456789_experiment.pickle
 ```
 
 ## Copy the Results to the Local Machine
@@ -211,19 +185,19 @@ After the `spotpython` code has finished, you can copy the results back to the l
 ```{python}
 #| label: copy-results-to-local
 #| eval: false
-scp user@144.33.22.1:spot_01_experiment.pickle .
+scp user@144.33.22.1:spot_0123456789_experiment.pickle .
 ```
 
 ## Analyze the Results on the Local Machine
 
-The file `spot_01_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.
+The file `spot_0123456789_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.
 
 
 ```{python}
 #| label: spotgui
 #| eval: false
 from spotpython.utils.file import load_experiment
-spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment("spot_01_experiment.pickle")
+spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment("spot_0123456789_experiment.pickle")
 ```
 
 ### Visualizing the Tuning Progress
