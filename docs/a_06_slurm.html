@@ -588,13 +588,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>They should be saved in the same directory as the configuration (<code>pickle</code>) file. These two scripts must be generated only once and can be reused for different configurations.</p>
 <p>The <code>startSlurm.sh</code> script is a shell script that contains the following code:</p>
 <div id="start" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/python</span></span>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> </span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">### Vergabe von Ressourcen</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=CH10_Test</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks-per-node=64</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=Test</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=20</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --gres=gpu:1</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=24:00:00</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=48:00:00</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --error=job.%J.err</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=job.%J.out</span></span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#----</span></span>
@@ -609,9 +609,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>module load conda</span>
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>conda activate spot312</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>srun python startPython.py <span class="st">"$SPOT_PKL"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">### change to your conda environment with spotpython installed via</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">### pip install spotpython</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>conda activate spot312</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>python startPython.py <span class="st">"$SPOT_PKL"</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>exit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Save the code in a file named <code>startSlurm.sh</code> and copy the file to the remote machine via <code>scp</code>, i.e.,</p>
 <div id="copy-startslurm-to-remote" class="cell" data-execution_count="2">
@@ -642,147 +646,110 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="F.3" class="anchored" data-anchor-id="generate-a-spotpython-configuration"><span class="header-section-number">F.3</span> Generate a <code>spotpython</code> Configuration</h2>
 <p>The configuration can be generated on a local machine using the following command:</p>
 <div id="generate-spotpython-config" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperdict.light_hyper_dict <span class="im">import</span> LightHyperDict</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.hyperlight <span class="im">import</span> HyperLight</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, design_control_init, surrogate_control_init)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> spot</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.scaler <span class="im">import</span> TorchStandardScaler</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.device <span class="im">import</span> getDevice</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># load data (adapt this to your needs)</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pyhcf.utils.io <span class="im">import</span> load_hcf_df, hcf_df2tensor</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pyhcf.utils.names <span class="im">import</span> load_all_features_N_regression_list</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> load_hcf_df(A<span class="op">=</span><span class="va">True</span>, H<span class="op">=</span><span class="va">True</span>, param_list<span class="op">=</span>load_all_features_N_regression_list(), target<span class="op">=</span><span class="st">'N'</span>, rmNA<span class="op">=</span><span class="va">True</span>, rmMF<span class="op">=</span><span class="va">True</span>, rmV<span class="op">=</span><span class="dv">4</span>, min_freq<span class="op">=</span><span class="dv">1000</span>, incl_drossel<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>data_set <span class="op">=</span> hcf_df2tensor(df, target<span class="op">=</span><span class="st">'N'</span>, return_X_y<span class="op">=</span><span class="va">False</span>)</span>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data.diabetes <span class="im">import</span> Diabetes</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperdict.light_hyper_dict <span class="im">import</span> LightHyperDict</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.hyperlight <span class="im">import</span> HyperLight</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, surrogate_control_init, design_control_init)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> spot</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> TensorDataset</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># generate data</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="dv">100_000</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>input_dim <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> torch.randn(num_samples, input_dim)  <span class="co"># random data for example</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> torch.randn(num_samples, <span class="dv">1</span>)  <span class="co"># random target for example</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>data_set <span class="op">=</span> TensorDataset(X, Y)</span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    PREFIX<span class="op">=</span><span class="st">"01"</span>,</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    TENSORBOARD_CLEAN<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    tensorboard_log<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    fun_evals<span class="op">=</span>inf,</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    max_time<span class="op">=</span><span class="dv">600</span>,</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    data_set<span class="op">=</span>data_set,</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    scaler<span class="op">=</span>TorchStandardScaler(),</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    device<span class="op">=</span>getDevice(),</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    max_surrogate_points<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    core_model_name<span class="op">=</span><span class="st">"light.regression.NNLinearRegressor"</span>,</span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    hyperdict<span class="op">=</span>LightHyperDict,</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span><span class="dv">86</span>,</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co"># The following "set_hyperparameter"-block is optional.</span></span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co"># You can adapt the hyperparameters to your needs as follows:</span></span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [</span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>            ])</span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"l1"</span>, [<span class="dv">3</span>,<span class="dv">9</span>])</span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"epochs"</span>, [<span class="dv">10</span>,<span class="dv">12</span>])</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"batch_size"</span>, [<span class="dv">4</span>,<span class="dv">8</span>])</span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"dropout_prob"</span>, [<span class="fl">0.0</span>, <span class="fl">0.1</span>])</span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"lr_mult"</span>, [<span class="fl">0.1</span>, <span class="fl">20.0</span>])</span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"patience"</span>, [<span class="dv">6</span>,<span class="dv">9</span>])</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"0123456789"</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    accelerator<span class="op">=</span><span class="st">"gpu"</span>,</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    devices<span class="op">=</span><span class="st">"auto"</span>,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    num_nodes<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span><span class="dv">19</span>,</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    precision<span class="op">=</span><span class="st">"32"</span>,</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    strategy<span class="op">=</span><span class="st">"auto"</span>,</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    save_experiment<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    PREFIX<span class="op">=</span>PREFIX,</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    fun_evals<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    max_time<span class="op">=</span>inf,</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    data_set <span class="op">=</span> data_set,</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    core_model_name<span class="op">=</span><span class="st">"light.regression.NNLinearRegressor"</span>,</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    hyperdict<span class="op">=</span>LightHyperDict,</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span>input_dim,</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [ <span class="st">"Adadelta"</span>, <span class="st">"Adam"</span>, <span class="st">"Adamax"</span>])</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"l1"</span>, [<span class="dv">5</span>,<span class="dv">10</span>])</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"epochs"</span>, [<span class="dv">10</span>,<span class="dv">12</span>])</span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"batch_size"</span>, [<span class="dv">4</span>,<span class="dv">11</span>])</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"dropout_prob"</span>, [<span class="fl">0.0</span>, <span class="fl">0.025</span>])</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"patience"</span>, [<span class="dv">2</span>,<span class="dv">9</span>])</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="co"># Modify the design control (optional)</span></span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">20</span>)</span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a><span class="co"># Modify the surrogate control (optional)</span></span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
-<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>    noise<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>    n_theta<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>    min_Lambda<span class="op">=</span><span class="fl">1e-3</span>,</span>
-<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>    max_Lambda<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a><span class="co"># Check the design table</span></span>
-<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control))</span>
-<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a><span class="co"># The remaining part is mandatory:</span></span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span>
-<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control, surrogate_control<span class="op">=</span>surrogate_control)</span>
-<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>filename <span class="op">=</span> get_experiment_filename(fun_control[<span class="st">"PREFIX"</span>])</span>
-<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a><span class="co"># remove attribute spot_writer from spot_tuner object</span></span>
-<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">hasattr</span>(spot_tuner, <span class="st">"spot_writer"</span>):</span>
-<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>    <span class="bu">delattr</span>(spot_tuner, <span class="st">"spot_writer"</span>)</span>
-<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(filename<span class="op">=</span>filename)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(overwrite<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The configuration is saved as a pickle-file that contains the full information. In our example, the filename is <code>spot_01_experiment.pickle</code>.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Data
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The data is loaded from the <code>pyhcf</code> package. You can adapt the data loading to your needs. To generate dummy data, you can use the following code:</p>
-<div id="generate-dummy-data" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>input_dim <span class="op">=</span> <span class="dv">86</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> torch.randn(num_samples, input_dim)  <span class="co"># random data for example</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> torch.randn(num_samples, <span class="dv">1</span>)  <span class="co"># random target for example</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>data_set <span class="op">=</span> TensorDataset(X, Y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</div>
-</div>
+<p>The configuration is saved as a pickle-file that contains the full information. In our example, the filename is <code>spot_0123456789_experiment.pickle</code>.</p>
 </section>
 <section id="copy-the-configuration-to-the-remote-machine" class="level2" data-number="F.4">
 <h2 data-number="F.4" class="anchored" data-anchor-id="copy-the-configuration-to-the-remote-machine"><span class="header-section-number">F.4</span> Copy the Configuration to the Remote Machine</h2>
 <p>You can copy the configuration to the remote machine using the <code>scp</code> command. The following command copies the configuration to the remote machine <code>144.33.22.1</code>:</p>
-<div id="copy-config-to-remote" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>scp spot_01_experiment.pickle user<span class="op">@</span><span class="fl">144.33.22.1</span>:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="copy-config-to-remote" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>scp spot_0123456789_experiment.pickle user<span class="op">@</span><span class="fl">144.33.22.1</span>:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="run-the-spotpython-code-on-the-remote-machine" class="level2" data-number="F.5">
 <h2 data-number="F.5" class="anchored" data-anchor-id="run-the-spotpython-code-on-the-remote-machine"><span class="header-section-number">F.5</span> Run the <code>spotpython</code> Code on the Remote Machine</h2>
 <p>Login on the remote machine and run the following command to start the <code>spotpython</code> code:</p>
-<div id="run-spotpython-on-remote" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ssh user<span class="op">@</span><span class="fl">144.33.22.1</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>cd <span class="op">/</span>path<span class="op">/</span>to<span class="op">/</span>remote<span class="op">/</span>directory</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>sh <span class="op">-</span>x .<span class="op">/</span>startSlurm.sh spot_01_experiment.pickle</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="run-spotpython-on-remote" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ssh user<span class="op">@</span><span class="fl">144.33.22.1</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>srun <span class="op">--</span>cpus<span class="op">-</span>per<span class="op">-</span>task<span class="op">=</span><span class="dv">20</span> <span class="op">--</span>time<span class="op">=</span><span class="dv">6</span>:<span class="dv">00</span>:<span class="dv">00</span> <span class="op">--</span>gpus <span class="dv">1</span> <span class="op">--</span>pty bash <span class="op">-</span>i</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># change this to your conda environment!</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>conda activate spot312 </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>sh <span class="op">-</span>x .<span class="op">/</span>startSlurm.sh spot_0123456789_experiment.pickle</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="copy-the-results-to-the-local-machine" class="level2" data-number="F.6">
 <h2 data-number="F.6" class="anchored" data-anchor-id="copy-the-results-to-the-local-machine"><span class="header-section-number">F.6</span> Copy the Results to the Local Machine</h2>
 <p>After the <code>spotpython</code> code has finished, you can copy the results back to the local machine using the <code>scp</code> command. The following command copies the results to the local machine:</p>
-<div id="copy-results-to-local" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>scp user<span class="op">@</span><span class="fl">144.33.22.1</span>:spot_01_experiment.pickle .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="copy-results-to-local" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>scp user<span class="op">@</span><span class="fl">144.33.22.1</span>:spot_0123456789_experiment.pickle .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="analyze-the-results-on-the-local-machine" class="level2" data-number="F.7">
 <h2 data-number="F.7" class="anchored" data-anchor-id="analyze-the-results-on-the-local-machine"><span class="header-section-number">F.7</span> Analyze the Results on the Local Machine</h2>
-<p>The file <code>spot_01_experiment.pickle</code> contains the results of the <code>spotpython</code> code. You can analyze the results on the local machine using the following code.</p>
-<div id="spotgui" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>spot_tuner, fun_control, design_control, surrogate_control, optimizer_control <span class="op">=</span> load_experiment(<span class="st">"spot_01_experiment.pickle"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The file <code>spot_0123456789_experiment.pickle</code> contains the results of the <code>spotpython</code> code. You can analyze the results on the local machine using the following code.</p>
+<div id="spotgui" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>spot_tuner, fun_control, design_control, surrogate_control, optimizer_control <span class="op">=</span> load_experiment(<span class="st">"spot_0123456789_experiment.pickle"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="visualizing-the-tuning-progress" class="level3" data-number="F.7.1">
 <h3 data-number="F.7.1" class="anchored" data-anchor-id="visualizing-the-tuning-progress"><span class="header-section-number">F.7.1</span> Visualizing the Tuning Progress</h3>
 <p>Now the <code>spot_tuner</code> object is loaded and you can analyze the results interactively.</p>
-<div id="analyze-results-progress-plot" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress(log_y<span class="op">=</span><span class="va">True</span>, filename<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="analyze-results-progress-plot" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress(log_y<span class="op">=</span><span class="va">True</span>, filename<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="design-table-with-default-and-tuned-hyperparameters" class="level3" data-number="F.7.2">
 <h3 data-number="F.7.2" class="anchored" data-anchor-id="design-table-with-default-and-tuned-hyperparameters"><span class="header-section-number">F.7.2</span> Design Table with Default and Tuned Hyperparameters</h3>
-<div id="analyze-results-design-table" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control<span class="op">=</span>fun_control, spot<span class="op">=</span>spot_tuner))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="analyze-results-design-table" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control<span class="op">=</span>fun_control, spot<span class="op">=</span>spot_tuner))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="plotting-important-hyperparameters" class="level3" data-number="F.7.3">
 <h3 data-number="F.7.3" class="anchored" data-anchor-id="plotting-important-hyperparameters"><span class="header-section-number">F.7.3</span> Plotting Important Hyperparameters</h3>
-<div id="analyze-results-plot-imp-hyperparam" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(max_imp<span class="op">=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="analyze-results-plot-imp-hyperparam" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(max_imp<span class="op">=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
