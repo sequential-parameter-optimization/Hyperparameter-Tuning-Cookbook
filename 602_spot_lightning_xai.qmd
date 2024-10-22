@@ -204,6 +204,38 @@ dot.render("model_architecture", format="png")
 
 * Gradients are the partial derivatives of the loss function with respect to different parameters (weights) of the network. During backpropagation, gradients are used to update the weights in the direction that reduces the loss by methods like gradient descent.
 * Interpretation of the gradients: The magnitude of the gradient indicates how much a parameter should change to reduce the error. A large gradient implies a steeper slope and a bigger update, while a small gradient suggests that the parameter is near an optimal point. If gradients are too small (vanishing gradient problem), the network may learn slowly or stop learning. If they are too large (exploding gradient problem), the updates may be unstable.
+* `sptpython` provides the method `get_gradients` to get the gradients of the model. Here is a short example:
+```{python}
+#| label: get_gradients_demo
+from spotpython.utils.init import fun_control_init
+from spotpython.data.diabetes import Diabetes
+from spotpython.light.regression.nn_linear_regressor import NNLinearRegressor
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.hyperparameters.values import (
+        get_default_hyperparameters_as_array, get_one_config_from_X)
+from spotpython.plot.xai import get_gradients
+import numpy as np
+fun_control = fun_control_init(
+    _L_in=10, # 10: diabetes
+    _L_out=1,
+    _torchmetric="mean_squared_error",
+    data_set=Diabetes(),
+    core_model=NNLinearRegressor,
+    hyperdict=LightHyperDict)
+X = get_default_hyperparameters_as_array(fun_control)
+config = get_one_config_from_X(X, fun_control)
+_L_in = fun_control["_L_in"]
+_L_out = fun_control["_L_out"]
+_torchmetric = fun_control["_torchmetric"]
+batch_size = 16
+model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchmetric=_torchmetric)
+gradients = get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+# assert that the gradients are a dictionary with keys that contain the string 'layers' and values that are arrays
+assert all([key in gradients.keys() for key in gradients.keys()])
+assert all([isinstance(value, np.ndarray) for value in gradients.values()])
+print(gradients)
+```
+
 
 ```{python}
 #| label: import_xai
