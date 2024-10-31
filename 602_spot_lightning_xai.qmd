@@ -27,7 +27,7 @@ from spotpython.utils.file import get_experiment_filename
 from spotpython.hyperparameters.values import set_hyperparameter
 from math import inf
 
-PREFIX="602_2"
+PREFIX="602_3"
 
 data_set = Diabetes()
 
@@ -35,7 +35,7 @@ fun_control = fun_control_init(
     save_experiment=True,
     PREFIX=PREFIX,
     fun_evals=inf,
-    max_time=60,
+    max_time=360,
     data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
     hyperdict=LightHyperDict,
@@ -46,7 +46,7 @@ fun = HyperLight().fun
 
 
 set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
-set_hyperparameter(fun_control, "l1", [5,7])
+set_hyperparameter(fun_control, "l1", [3,7])
 set_hyperparameter(fun_control, "epochs", [10,12])
 set_hyperparameter(fun_control, "batch_size", [4,11])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
@@ -231,7 +231,7 @@ _L_out = fun_control["_L_out"]
 _torchmetric = fun_control["_torchmetric"]
 batch_size = 16
 model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchmetric=_torchmetric)
-gradients = get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+gradients,_  = get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
 # assert that the gradients are a dictionary with keys that contain the string 'layers' and values that are arrays
 assert all([key in gradients.keys() for key in gradients.keys()])
 assert all([isinstance(value, np.ndarray) for value in gradients.values()])
