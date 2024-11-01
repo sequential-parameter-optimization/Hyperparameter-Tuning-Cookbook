@@ -27,7 +27,7 @@ from spotpython.utils.file import get_experiment_filename
 from spotpython.hyperparameters.values import set_hyperparameter
 from math import inf
 
-PREFIX="602_3"
+PREFIX="602_4"
 
 data_set = Diabetes()
 
@@ -35,7 +35,7 @@ fun_control = fun_control_init(
     save_experiment=True,
     PREFIX=PREFIX,
     fun_evals=inf,
-    max_time=360,
+    max_time=1,
     data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
     hyperdict=LightHyperDict,
@@ -52,7 +52,7 @@ set_hyperparameter(fun_control, "batch_size", [4,11])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
 set_hyperparameter(fun_control, "patience", [2,9])
 
-design_control = design_control_init(init_size=20)
+design_control = design_control_init(init_size=7)
 
 spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 ```
@@ -206,38 +206,7 @@ dot.render("model_architecture", format="png")
 
 * Gradients are the partial derivatives of the loss function with respect to different parameters (weights) of the network. During backpropagation, gradients are used to update the weights in the direction that reduces the loss by methods like gradient descent.
 * Interpretation of the gradients: The magnitude of the gradient indicates how much a parameter should change to reduce the error. A large gradient implies a steeper slope and a bigger update, while a small gradient suggests that the parameter is near an optimal point. If gradients are too small (vanishing gradient problem), the network may learn slowly or stop learning. If they are too large (exploding gradient problem), the updates may be unstable.
-* `sptpython` provides the method `get_gradients` to get the gradients of the model. Here is a short example:
-```{python}
-#| label: get_gradients_demo
-from spotpython.utils.init import fun_control_init
-from spotpython.data.diabetes import Diabetes
-from spotpython.light.regression.nn_linear_regressor import NNLinearRegressor
-from spotpython.hyperdict.light_hyper_dict import LightHyperDict
-from spotpython.hyperparameters.values import (
-        get_default_hyperparameters_as_array, get_one_config_from_X)
-from spotpython.plot.xai import get_gradients
-import numpy as np
-fun_control = fun_control_init(
-    _L_in=10, # 10: diabetes
-    _L_out=1,
-    _torchmetric="mean_squared_error",
-    data_set=Diabetes(),
-    core_model=NNLinearRegressor,
-    hyperdict=LightHyperDict)
-X = get_default_hyperparameters_as_array(fun_control)
-config = get_one_config_from_X(X, fun_control)
-_L_in = fun_control["_L_in"]
-_L_out = fun_control["_L_out"]
-_torchmetric = fun_control["_torchmetric"]
-batch_size = 16
-model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchmetric=_torchmetric)
-gradients,_  = get_gradients(model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
-# assert that the gradients are a dictionary with keys that contain the string 'layers' and values that are arrays
-assert all([key in gradients.keys() for key in gradients.keys()])
-assert all([isinstance(value, np.ndarray) for value in gradients.values()])
-print(gradients)
-```
-
+* `sptpython` provides the method `get_gradients` to get the gradients of the model. 
 
 ```{python}
 #| label: import_xai
@@ -250,8 +219,8 @@ batch_size = config["batch_size"]
 ```{python}
 #| label: get_weights
 from spotpython.plot.xai import sort_layers
-weights = get_weights(model)
-sort_layers(weights)
+weights, _ = get_weights(model)
+# sort_layers(weights)
 ```
 
 ```{python}
@@ -269,12 +238,12 @@ visualize_weights_distributions(model, color=f"C{0}", columns=4)
 ```{python}
 #| label: get_activations
 from spotpython.plot.xai import get_activations
-activations, mean_activations = get_activations(net=model, fun_control=fun_control, batch_size=batch_size, device="cpu")
+activations, mean_activations, layer_sizes = get_activations(net=model, fun_control=fun_control, batch_size=batch_size, device="mps")
 ```
 
 ```{python}
 #| label: visualize_mean_activations
-visualize_mean_activations(mean_activations, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
+visualize_mean_activations(mean_activations, layer_sizes=layer_sizes, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
 ```
 
 ```{python}
@@ -287,17 +256,17 @@ visualize_activations_distributions(activations=activations,
 
 ```{python}
 #| label: get_gradients
-gradients = get_gradients(net=model, fun_control=fun_control, batch_size=batch_size, device = "cpu")
+gradients, _ = get_gradients(net=model, fun_control=fun_control, batch_size=batch_size, device = "mps")
 ```
 
 ```{python}
 #| label: visualize_gradients
-visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="GreenYellowRed", figsize=(6, 6), device="cpu")
+visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="GreenYellowRed", figsize=(6, 6), device="mps")
 ```
 
 ```{python}
 #| label: visualize_gradient_distributions
-visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device="cpu", columns=3)
+visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device="mps", columns=3)
 ```
 
 ## Feature Attributions

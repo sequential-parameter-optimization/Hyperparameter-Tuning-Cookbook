@@ -1,415 +1,403 @@
 {
- "cells": [
-  {
-   "cell_type": "markdown",
-   "id": "6732b0c2",
-   "metadata": {},
-   "source": [
-    "---\n",
-    "execute:\n",
-    "  cache: false\n",
-    "  eval: true\n",
-    "  echo: true\n",
-    "  warning: false\n",
-    "jupyter: python3\n",
-    "---\n",
-    "\n",
-    "\n",
-    "# Using Slurm\n",
-    "\n",
-    "## Introduction\n",
-    "\n",
-    "This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.\n",
-    "\n",
-    "\n",
-    "## Prepare the Slurm Scripts on the Remote Machine\n",
-    "\n",
-    "Two scripts are required to run the `spotpython` code on the remote machine: \n",
-    "\n",
-    "* `startSlurm.sh` and \n",
-    "* `startPython.py`.\n",
-    "\n",
-    "They should be saved in the same directory as the configuration (`pickle`) file.\n",
-    "These two scripts must be generated only once and can be reused for different configurations.\n",
-    "\n",
-    "The `startSlurm.sh` script is a shell script that contains the following code:"
-   ]
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "execute:\n",
+        "  cache: false\n",
+        "  eval: true\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "jupyter: python3\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Using Slurm\n",
+        "\n",
+        "## Introduction\n",
+        "\n",
+        "This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.\n",
+        "\n",
+        "\n",
+        "## Prepare the Slurm Scripts on the Remote Machine\n",
+        "\n",
+        "Two scripts are required to run the `spotpython` code on the remote machine: \n",
+        "\n",
+        "* `startSlurm.sh` and \n",
+        "* `startPython.py`.\n",
+        "\n",
+        "They should be saved in the same directory as the configuration (`pickle`) file.\n",
+        "These two scripts must be generated only once and can be reused for different configurations.\n",
+        "\n",
+        "The `startSlurm.sh` script is a shell script that contains the following code:"
+      ],
+      "id": "bdd1fffb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: start\n",
+        "#| eval: false\n",
+        "\n",
+        "#!/bin/bash\n",
+        " \n",
+        "### Vergabe von Ressourcen\n",
+        "#SBATCH --job-name=Test\n",
+        "#SBATCH --cpus-per-task=20\n",
+        "#SBATCH --gres=gpu:1\n",
+        "#SBATCH --time=48:00:00\n",
+        "#SBATCH --error=job.%J.err\n",
+        "#SBATCH --output=job.%J.out\n",
+        "#----\n",
+        "#SBATCH --partition=gpu\n",
+        "\n",
+        "if [ -z \"$1\" ]; then\n",
+        "    echo \"Usage: $0 <path_to_spot.pkl>\"\n",
+        "    exit 1\n",
+        "fi\n",
+        "\n",
+        "SPOT_PKL=$1\n",
+        "\n",
+        "module load conda\n",
+        "\n",
+        "### change to your conda environment with spotpython installed via\n",
+        "### pip install spotpython\n",
+        "conda activate spot312\n",
+        "\n",
+        "python startPython.py \"$SPOT_PKL\"\n",
+        "\n",
+        "exit"
+      ],
+      "id": "start",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., "
+      ],
+      "id": "142434db"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: copy-startSlurm-to-remote\n",
+        "#| eval: false\n",
+        "scp startSlurm.sh user@144.33.22.1:"
+      ],
+      "id": "copy-startSlurm-to-remote",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The `startPython.py` script is a Python script that contains the following code:"
+      ],
+      "id": "5238af71"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: startPython\n",
+        "#| eval: false\n",
+        "import argparse\n",
+        "import pickle\n",
+        "from spotpython.utils.file import load_and_run_spot_python_experiment\n",
+        "\n",
+        "def main(pickle_file):\n",
+        "    spot_tuner = load_and_run_spot_python_experiment(pickle_file)\n",
+        "\n",
+        "if __name__ == \"__main__\":\n",
+        "    parser = argparse.ArgumentParser(description='Process a pickle file.')\n",
+        "    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')\n",
+        "\n",
+        "    args = parser.parse_args()\n",
+        "    main(args.pickle_file)"
+      ],
+      "id": "startPython",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., "
+      ],
+      "id": "2a49e968"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: copy-startPython-to-remote\n",
+        "#| eval: false\n",
+        "scp startPython.py user@144.33.22.1:"
+      ],
+      "id": "copy-startPython-to-remote",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Generate a `spotpython` Configuration\n",
+        "\n",
+        "The configuration can be generated on a local machine using the following command:\n"
+      ],
+      "id": "5c676f3b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: generate-spotpython-config\n",
+        "#| eval: false\n",
+        "from spotpython.data.diabetes import Diabetes\n",
+        "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
+        "from spotpython.fun.hyperlight import HyperLight\n",
+        "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "from spotpython.spot import spot\n",
+        "from spotpython.utils.file import get_experiment_filename\n",
+        "from spotpython.hyperparameters.values import set_hyperparameter\n",
+        "from math import inf\n",
+        "import torch\n",
+        "from torch.utils.data import TensorDataset\n",
+        "# generate data\n",
+        "num_samples = 100_000\n",
+        "input_dim = 100\n",
+        "X = torch.randn(num_samples, input_dim)  # random data for example\n",
+        "Y = torch.randn(num_samples, 1)  # random target for example\n",
+        "data_set = TensorDataset(X, Y)\n",
+        "\n",
+        "PREFIX=\"0123456789\"\n",
+        "\n",
+        "\n",
+        "fun_control = fun_control_init(\n",
+        "    accelerator=\"gpu\",\n",
+        "    devices=\"auto\",\n",
+        "    num_nodes=1,\n",
+        "    num_workers=19,\n",
+        "    precision=\"32\",\n",
+        "    strategy=\"auto\",\n",
+        "    save_experiment=True,\n",
+        "    PREFIX=PREFIX,\n",
+        "    fun_evals=50,\n",
+        "    max_time=inf,\n",
+        "    data_set = data_set,\n",
+        "    core_model_name=\"light.regression.NNLinearRegressor\",\n",
+        "    hyperdict=LightHyperDict,\n",
+        "    _L_in=input_dim,\n",
+        "    _L_out=1)\n",
+        "\n",
+        "fun = HyperLight().fun\n",
+        "\n",
+        "set_hyperparameter(fun_control, \"optimizer\", [ \"Adadelta\", \"Adam\", \"Adamax\"])\n",
+        "set_hyperparameter(fun_control, \"l1\", [5,10])\n",
+        "set_hyperparameter(fun_control, \"epochs\", [10,12])\n",
+        "set_hyperparameter(fun_control, \"batch_size\", [4,11])\n",
+        "set_hyperparameter(fun_control, \"dropout_prob\", [0.0, 0.025])\n",
+        "set_hyperparameter(fun_control, \"patience\", [2,9])\n",
+        "\n",
+        "design_control = design_control_init(init_size=10)\n",
+        "\n",
+        "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)\n",
+        "spot_tuner.save_experiment(overwrite=True)"
+      ],
+      "id": "generate-spotpython-config",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_0123456789_experiment.pickle`.\n",
+        "\n",
+        "\n",
+        "## Copy the Configuration to the Remote Machine\n",
+        "\n",
+        "You can copy the configuration to the remote machine using the `scp` command. The following command copies the configuration to the remote machine `144.33.22.1`:"
+      ],
+      "id": "0b355b7a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: copy-config-to-remote\n",
+        "#| eval: false\n",
+        "scp spot_0123456789_experiment.pickle user@144.33.22.1:"
+      ],
+      "id": "copy-config-to-remote",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Run the `spotpython` Code on the Remote Machine\n",
+        "\n",
+        "Login on the remote machine and run the following command to start the `spotpython` code:\n"
+      ],
+      "id": "14d50930"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: run-spotpython-on-remote\n",
+        "#| eval: false\n",
+        "ssh user@144.33.22.1\n",
+        "srun --cpus-per-task=20 --time=6:00:00 --gpus 1 --pty bash -i\n",
+        "# change this to your conda environment!\n",
+        "conda activate spot312 \n",
+        "sh -x ./startSlurm.sh spot_0123456789_experiment.pickle"
+      ],
+      "id": "run-spotpython-on-remote",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Copy the Results to the Local Machine\n",
+        "\n",
+        "After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command. The following command copies the results to the local machine:"
+      ],
+      "id": "4ca5bea7"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: copy-results-to-local\n",
+        "#| eval: false\n",
+        "scp user@144.33.22.1:spot_0123456789_experiment.pickle ."
+      ],
+      "id": "copy-results-to-local",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Analyze the Results on the Local Machine\n",
+        "\n",
+        "The file `spot_0123456789_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.\n"
+      ],
+      "id": "258caaf5"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: spotgui\n",
+        "#| eval: false\n",
+        "from spotpython.utils.file import load_experiment\n",
+        "spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(\"spot_0123456789_experiment.pickle\")"
+      ],
+      "id": "spotgui",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Visualizing the Tuning Progress\n",
+        "\n",
+        "Now the `spot_tuner` object is loaded and you can analyze the results interactively."
+      ],
+      "id": "2920ae38"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: analyze-results-progress-plot\n",
+        "#| eval: false\n",
+        "spot_tuner.plot_progress(log_y=True, filename=None)"
+      ],
+      "id": "analyze-results-progress-plot",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Design Table with Default and Tuned Hyperparameters\n"
+      ],
+      "id": "85733079"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: analyze-results-design-table\n",
+        "#| eval: false\n",
+        "from spotpython.utils.eda import gen_design_table\n",
+        "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
+      ],
+      "id": "analyze-results-design-table",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Plotting Important Hyperparameters\n"
+      ],
+      "id": "2fb53788"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| label: analyze-results-plot-imp-hyperparam\n",
+        "#| eval: false\n",
+        "spot_tuner.plot_important_hyperparameter_contour(max_imp=3)"
+      ],
+      "id": "analyze-results-plot-imp-hyperparam",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "::: {.callout-note}\n",
+        "### spotgui\n",
+        "The `spotgui` can be used to analyze the results interactively.\n",
+        ":::"
+      ],
+      "id": "fba7b6e1"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
+    }
   },
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "start",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: start\n",
-    "#| eval: false\n",
-    "\n",
-    "#!/bin/bash\n",
-    " \n",
-    "### Vergabe von Ressourcen\n",
-    "#SBATCH --job-name=Test\n",
-    "#SBATCH --cpus-per-task=20\n",
-    "#SBATCH --gres=gpu:1\n",
-    "#SBATCH --time=48:00:00\n",
-    "#SBATCH --error=job.%J.err\n",
-    "#SBATCH --output=job.%J.out\n",
-    "#----\n",
-    "#SBATCH --partition=gpu\n",
-    "\n",
-    "if [ -z \"$1\" ]; then\n",
-    "    echo \"Usage: $0 <path_to_spot.pkl>\"\n",
-    "    exit 1\n",
-    "fi\n",
-    "\n",
-    "SPOT_PKL=$1\n",
-    "\n",
-    "module load conda\n",
-    "\n",
-    "### change to your conda environment with spotpython installed via\n",
-    "### pip install spotpython\n",
-    "conda activate spot312\n",
-    "\n",
-    "python startPython.py \"$SPOT_PKL\"\n",
-    "\n",
-    "exit"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "80e3c305",
-   "metadata": {},
-   "source": [
-    "Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., "
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 2,
-   "id": "copy-startSlurm-to-remote",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: copy-startSlurm-to-remote\n",
-    "#| eval: false\n",
-    "scp startSlurm.sh user@144.33.22.1:"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "d465c9bd",
-   "metadata": {},
-   "source": [
-    "The `startPython.py` script is a Python script that contains the following code:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "startPython",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: startPython\n",
-    "#| eval: false\n",
-    "import argparse\n",
-    "import pickle\n",
-    "from spotpython.utils.file import load_and_run_spot_python_experiment\n",
-    "\n",
-    "def main(pickle_file):\n",
-    "    spot_tuner = load_and_run_spot_python_experiment(pickle_file)\n",
-    "\n",
-    "if __name__ == \"__main__\":\n",
-    "    parser = argparse.ArgumentParser(description='Process a pickle file.')\n",
-    "    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')\n",
-    "\n",
-    "    args = parser.parse_args()\n",
-    "    main(args.pickle_file)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "2d40517f",
-   "metadata": {},
-   "source": [
-    "Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., "
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "copy-startPython-to-remote",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: copy-startPython-to-remote\n",
-    "#| eval: false\n",
-    "scp startPython.py user@144.33.22.1:"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "baccd0c6",
-   "metadata": {},
-   "source": [
-    "## Generate a `spotpython` Configuration\n",
-    "\n",
-    "The configuration can be generated on a local machine using the following command:\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "generate-spotpython-config",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: generate-spotpython-config\n",
-    "#| eval: false\n",
-    "from spotpython.data.diabetes import Diabetes\n",
-    "from spotpython.hyperdict.light_hyper_dict import LightHyperDict\n",
-    "from spotpython.fun.hyperlight import HyperLight\n",
-    "from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)\n",
-    "from spotpython.utils.eda import gen_design_table\n",
-    "from spotpython.spot import spot\n",
-    "from spotpython.utils.file import get_experiment_filename\n",
-    "from spotpython.hyperparameters.values import set_hyperparameter\n",
-    "from math import inf\n",
-    "import torch\n",
-    "from torch.utils.data import TensorDataset\n",
-    "# generate data\n",
-    "num_samples = 100_000\n",
-    "input_dim = 100\n",
-    "X = torch.randn(num_samples, input_dim)  # random data for example\n",
-    "Y = torch.randn(num_samples, 1)  # random target for example\n",
-    "data_set = TensorDataset(X, Y)\n",
-    "\n",
-    "PREFIX=\"0123456789\"\n",
-    "\n",
-    "\n",
-    "fun_control = fun_control_init(\n",
-    "    accelerator=\"gpu\",\n",
-    "    devices=\"auto\",\n",
-    "    num_nodes=1,\n",
-    "    num_workers=19,\n",
-    "    precision=\"32\",\n",
-    "    strategy=\"auto\",\n",
-    "    save_experiment=True,\n",
-    "    PREFIX=PREFIX,\n",
-    "    fun_evals=50,\n",
-    "    max_time=inf,\n",
-    "    data_set = data_set,\n",
-    "    core_model_name=\"light.regression.NNLinearRegressor\",\n",
-    "    hyperdict=LightHyperDict,\n",
-    "    _L_in=input_dim,\n",
-    "    _L_out=1)\n",
-    "\n",
-    "fun = HyperLight().fun\n",
-    "\n",
-    "set_hyperparameter(fun_control, \"optimizer\", [ \"Adadelta\", \"Adam\", \"Adamax\"])\n",
-    "set_hyperparameter(fun_control, \"l1\", [5,10])\n",
-    "set_hyperparameter(fun_control, \"epochs\", [10,12])\n",
-    "set_hyperparameter(fun_control, \"batch_size\", [4,11])\n",
-    "set_hyperparameter(fun_control, \"dropout_prob\", [0.0, 0.025])\n",
-    "set_hyperparameter(fun_control, \"patience\", [2,9])\n",
-    "\n",
-    "design_control = design_control_init(init_size=10)\n",
-    "\n",
-    "spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)\n",
-    "spot_tuner.save_experiment(overwrite=True)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "87ebb932",
-   "metadata": {},
-   "source": [
-    "The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_0123456789_experiment.pickle`.\n",
-    "\n",
-    "\n",
-    "## Copy the Configuration to the Remote Machine\n",
-    "\n",
-    "You can copy the configuration to the remote machine using the `scp` command. The following command copies the configuration to the remote machine `144.33.22.1`:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "copy-config-to-remote",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: copy-config-to-remote\n",
-    "#| eval: false\n",
-    "scp spot_0123456789_experiment.pickle user@144.33.22.1:"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "7183f1d6",
-   "metadata": {},
-   "source": [
-    "## Run the `spotpython` Code on the Remote Machine\n",
-    "\n",
-    "Login on the remote machine and run the following command to start the `spotpython` code:\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "run-spotpython-on-remote",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: run-spotpython-on-remote\n",
-    "#| eval: false\n",
-    "ssh user@144.33.22.1\n",
-    "srun --cpus-per-task=20 --time=6:00:00 --gpus 1 --pty bash -i\n",
-    "# change this to your conda environment!\n",
-    "conda activate spot312 \n",
-    "sh -x ./startSlurm.sh spot_0123456789_experiment.pickle"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "741d3f26",
-   "metadata": {},
-   "source": [
-    "## Copy the Results to the Local Machine\n",
-    "\n",
-    "After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command. The following command copies the results to the local machine:"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 8,
-   "id": "copy-results-to-local",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: copy-results-to-local\n",
-    "#| eval: false\n",
-    "scp user@144.33.22.1:spot_0123456789_experiment.pickle ."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "d68eb32f",
-   "metadata": {},
-   "source": [
-    "## Analyze the Results on the Local Machine\n",
-    "\n",
-    "The file `spot_0123456789_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 9,
-   "id": "spotgui",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: spotgui\n",
-    "#| eval: false\n",
-    "from spotpython.utils.file import load_experiment\n",
-    "spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment(\"spot_0123456789_experiment.pickle\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "926006cd",
-   "metadata": {},
-   "source": [
-    "### Visualizing the Tuning Progress\n",
-    "\n",
-    "Now the `spot_tuner` object is loaded and you can analyze the results interactively."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 10,
-   "id": "analyze-results-progress-plot",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: analyze-results-progress-plot\n",
-    "#| eval: false\n",
-    "spot_tuner.plot_progress(log_y=True, filename=None)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "91a8bdcf",
-   "metadata": {},
-   "source": [
-    "### Design Table with Default and Tuned Hyperparameters\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 11,
-   "id": "analyze-results-design-table",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: analyze-results-design-table\n",
-    "#| eval: false\n",
-    "from spotpython.utils.eda import gen_design_table\n",
-    "print(gen_design_table(fun_control=fun_control, spot=spot_tuner))"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "2e8429d6",
-   "metadata": {},
-   "source": [
-    "### Plotting Important Hyperparameters\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 12,
-   "id": "analyze-results-plot-imp-hyperparam",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#| label: analyze-results-plot-imp-hyperparam\n",
-    "#| eval: false\n",
-    "spot_tuner.plot_important_hyperparameter_contour(max_imp=3)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "a1e58aa7",
-   "metadata": {},
-   "source": [
-    "::: {.callout-note}\n",
-    "### spotgui\n",
-    "The `spotgui` can be used to analyze the results interactively.\n",
-    ":::"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3",
-   "path": "/Users/bartz/miniforge3/envs/spot312/share/jupyter/kernels/python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.12.6"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+  "nbformat": 4,
+  "nbformat_minor": 5
 }
