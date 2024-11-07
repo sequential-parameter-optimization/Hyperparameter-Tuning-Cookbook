@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>33&nbsp; Saving and Loading – Hyperparameter Tuning Cookbook</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./605_spot_hpt_light_diabetes_resnet.html" rel="next">
+<link href="./603_spot_lightning_transformer_hpt.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-2486e1f0a3ee9ee1fc393803a1361cdb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-655408964d659c5aa54803d8c389d5f7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<meta name="twitter:title" content="33&nbsp; Saving and Loading – Hyperparameter Tuning Cookbook">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar docked">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./600_spot_lightning_data.html">Hyperparameter Tuning with PyTorch Lightning</a></li><li class="breadcrumb-item"><a href="./604_spot_lightning_save_load_models.html"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Saving and Loading</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Hyperparameter Tuning Cookbook</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/sequential-parameter-optimization/spotpython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <div class="dropdown">
+      <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Share"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./001_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Numerical Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./005_num_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./006_num_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotpython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./008_num_spot_multidim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./009_num_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotpython</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./012_num_spot_ei.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./013_num_spot_noisy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./015_num_spot_correlation_p.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Data-Driven Modeling and Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./100_ddmo.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Machine Learning and AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./200_mlai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Machine Learning and Artificial Intelligence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Introduction to Hyperparameter Tuning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./300_hpt_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with Sklearn</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./400_spot_hpt_sklearn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">HPT: sklearn</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./401_spot_hpt_sklearn_classification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC on Moons Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with River</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./500_spot_hpt_river.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">HPT: River</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./501_spot_river_gui.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Simplifying Hyperparameter Tuning in Online Machine Learning—The spotRiverGUI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./502_spot_hpt_river_friedman_htr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./503_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">The Friedman Drift Data Set</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with PyTorch Lightning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./600_spot_lightning_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_user_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning and User Data Sets</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_user_model.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning and User Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_pinn_model.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning: Physics Informed Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./602_spot_lightning_xai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Explainable AI with SpotPython and Pytorch</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./603_spot_lightning_transformer_introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./603_spot_lightning_transformer_hpt.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning of a Transformer Network with PyTorch Lightning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./604_spot_lightning_save_load_models.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Saving and Loading</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./605_spot_hpt_light_diabetes_resnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set Using a ResNet Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./606_spot_hpt_light_diabetes_user_resnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set Using a User Specified ResNet Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./608_spot_hpt_light_condnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning Using a CondNet Model</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_01_intro_to_notebooks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_02_git_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Git Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_03_python_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Python Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_04_spot_doc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">D</span>&nbsp; <span class="chapter-title">Documentation of the Sequential Parameter Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_05_datasets.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">E</span>&nbsp; <span class="chapter-title">Datasets</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_06_slurm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">F</span>&nbsp; <span class="chapter-title">Using Slurm</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_99_solutions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">G</span>&nbsp; <span class="chapter-title">Solutions to Selected Exercises</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-spotpython-saving-and-loading" id="toc-sec-spotpython-saving-and-loading" class="nav-link active" data-scroll-target="#sec-spotpython-saving-and-loading"><span class="header-section-number">33.1</span> spotpython: Saving and Loading Optimization Experiments</a>
+  <ul class="collapse">
+  <li><a href="#getting-the-tuned-hyperparameters" id="toc-getting-the-tuned-hyperparameters" class="nav-link" data-scroll-target="#getting-the-tuned-hyperparameters"><span class="header-section-number">33.1.1</span> Getting the Tuned Hyperparameters</a></li>
+  </ul></li>
+  <li><a href="#sec-spotpython-as-a-hyperparameter-tuner-604" id="toc-sec-spotpython-as-a-hyperparameter-tuner-604" class="nav-link" data-scroll-target="#sec-spotpython-as-a-hyperparameter-tuner-604"><span class="header-section-number">33.2</span> spotpython as a Hyperparameter Tuner</a>
+  <ul class="collapse">
+  <li><a href="#the-diabetes-data-set" id="toc-the-diabetes-data-set" class="nav-link" data-scroll-target="#the-diabetes-data-set"><span class="header-section-number">33.2.1</span> The Diabetes Data Set</a></li>
+  </ul></li>
+  <li><a href="#sec-saving-and-loading-pytorch-lightning-models-604" id="toc-sec-saving-and-loading-pytorch-lightning-models-604" class="nav-link" data-scroll-target="#sec-saving-and-loading-pytorch-lightning-models-604"><span class="header-section-number">33.3</span> Saving and Loading PyTorch Lightning Models</a>
+  <ul class="collapse">
+  <li><a href="#sec-get-spot-results-31" id="toc-sec-get-spot-results-31" class="nav-link" data-scroll-target="#sec-get-spot-results-31"><span class="header-section-number">33.3.1</span> Get the Tuned Architecture</a></li>
+  <li><a href="#load-a-model-from-checkpoint" id="toc-load-a-model-from-checkpoint" class="nav-link" data-scroll-target="#load-a-model-from-checkpoint"><span class="header-section-number">33.3.2</span> Load a Model from Checkpoint</a></li>
+  </ul></li>
+  <li><a href="#sec-converting-a-lightning-model-to-a-plain-torch-model-604" id="toc-sec-converting-a-lightning-model-to-a-plain-torch-model-604" class="nav-link" data-scroll-target="#sec-converting-a-lightning-model-to-a-plain-torch-model-604"><span class="header-section-number">33.4</span> Converting a Lightning Model to a Plain Torch Model</a>
+  <ul class="collapse">
+  <li><a href="#the-function-get_removed_attributes_and_base_net" id="toc-the-function-get_removed_attributes_and_base_net" class="nav-link" data-scroll-target="#the-function-get_removed_attributes_and_base_net"><span class="header-section-number">33.4.1</span> The Function <code>get_removed_attributes_and_base_net</code></a></li>
+  <li><a href="#an-example-how-to-use-the-plain-torch-net" id="toc-an-example-how-to-use-the-plain-torch-net" class="nav-link" data-scroll-target="#an-example-how-to-use-the-plain-torch-net"><span class="header-section-number">33.4.2</span> An Example how to use the Plain Torch Net</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./600_spot_lightning_data.html">Hyperparameter Tuning with PyTorch Lightning</a></li><li class="breadcrumb-item"><a href="./604_spot_lightning_save_load_models.html"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Saving and Loading</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Saving and Loading</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This tutorial shows how to save and load objects in <code>spotpython</code>. It is split into the following parts:</p>
+<ul>
+<li><a href="#sec-spotpython-saving-and-loading" class="quarto-xref"><span>Section 33.1</span></a> shows how to save and load objects in <code>spotpython</code>, if <code>spotpython</code> is used as an optimizer.</li>
+<li><a href="#sec-spotpython-as-a-hyperparameter-tuner-604" class="quarto-xref"><span>Section 33.2</span></a> shows how to save and load hyperparameter tuning experiments.</li>
+<li><a href="#sec-saving-and-loading-pytorch-lightning-models-604" class="quarto-xref"><span>Section 33.3</span></a> shows how to save and load <code>PyTorch Lightning</code> models.</li>
+<li><a href="#sec-converting-a-lightning-model-to-a-plain-torch-model-604" class="quarto-xref"><span>Section 33.4</span></a> shows how to convert a <code>PyTorch Lightning</code> model to a plain <code>PyTorch</code> model.</li>
+</ul>
+<section id="sec-spotpython-saving-and-loading" class="level2" data-number="33.1">
+<h2 data-number="33.1" class="anchored" data-anchor-id="sec-spotpython-saving-and-loading"><span class="header-section-number">33.1</span> spotpython: Saving and Loading Optimization Experiments</h2>
+<p>In this section, we will show how results from <code>spotpython</code> can be saved and reloaded. Here, <code>spotpython</code> can be used as an optimizer. If <code>spotpython</code> is used as an optimizer, no dictionary of hyperparameters has be specified. The <code>fun_control</code> dictionary is sufficient.</p>
+<div id="code-optimization-experiment-604" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> spot</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    fun_control_init,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    design_control_init,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    surrogate_control_init,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    optimizer_control_init)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.objectivefunctions <span class="im">import</span> analytical</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> analytical().fun_branin</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>            PREFIX<span class="op">=</span><span class="st">"branin"</span>,            </span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>            lower <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>]),</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>            upper <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>]),</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            fun_evals<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>            fun_repeats<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>            max_time<span class="op">=</span>inf,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>            noise<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>            tolerance_x<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>            ocba_delta<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            infill_criterion<span class="op">=</span><span class="st">"ei"</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>            n_points<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">123</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>            log_level<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            show_models<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>            show_progress<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            init_size<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            repeats<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            model_fun_evals<span class="op">=</span><span class="dv">10000</span>,</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            min_theta<span class="op">=-</span><span class="dv">3</span>,</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            max_theta<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            n_theta<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            theta_init_zero<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>            n_p<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>            optim_p<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            var_type<span class="op">=</span>[<span class="st">"num"</span>, <span class="st">"num"</span>],</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">124</span>)</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>optimizer_control <span class="op">=</span> optimizer_control_init(</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>            max_iter<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>            seed<span class="op">=</span><span class="dv">125</span>)</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>            fun_control<span class="op">=</span>fun_control,</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            design_control<span class="op">=</span>design_control,</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>            surrogate_control<span class="op">=</span>surrogate_control,</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>            optimizer_control<span class="op">=</span>optimizer_control)</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>spot_tuner.run()</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>PREFIX <span class="op">=</span> fun_control[<span class="st">"PREFIX"</span>]</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>filename <span class="op">=</span> get_experiment_filename(PREFIX)</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(filename<span class="op">=</span>filename)</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"filename: </span><span class="sc">{</span>filename<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="code-reload-optimization-experiment-604" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>(spot_tuner_1, fun_control_1, design_control_1,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(filename)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The progress of the original experiment is shown in <a href="#fig-plot-progress-604a" class="quarto-xref">Figure&nbsp;<span>33.1</span></a> and the reloaded experiment in <a href="#fig-plot-progress-604b" class="quarto-xref">Figure&nbsp;<span>33.2</span></a>.</p>
+<div id="fig-plot-progress-604a" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-plot-progress-604a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code" id="fig-plot-progress-604a" data-execution_count="3"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="fig-plot-progress-604a-1"><a href="#fig-plot-progress-604a-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-plot-progress-604a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;33.1
+</figcaption>
+</figure>
+</div>
+<div id="fig-plot-progress-604b" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-plot-progress-604b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code" id="fig-plot-progress-604b" data-execution_count="4"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="fig-plot-progress-604b-1"><a href="#fig-plot-progress-604b-1" aria-hidden="true" tabindex="-1"></a>spot_tuner_1.plot_progress(log_y<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-plot-progress-604b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;33.2
+</figcaption>
+</figure>
+</div>
+<p>The results from the original experiment are shown in <a href="#tbl-results-604a" class="quarto-xref">Table&nbsp;<span>33.1</span></a> and the reloaded experiment in <a href="#tbl-results-604b" class="quarto-xref">Table&nbsp;<span>33.2</span></a>.</p>
+<div id="tbl-results-604a" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-results-604a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;33.1
+</figcaption>
+<div aria-describedby="tbl-results-604a-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code anchored" id="tbl-results-604a" data-execution_count="5"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="tbl-results-604a-1"><a href="#tbl-results-604a-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</figure>
+</div>
+<div id="tbl-results-604b" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="6">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-results-604b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;33.2
+</figcaption>
+<div aria-describedby="tbl-results-604b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code anchored" id="tbl-results-604b" data-execution_count="6"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="tbl-results-604b-1"><a href="#tbl-results-604b-1" aria-hidden="true" tabindex="-1"></a>spot_tuner_1.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</figure>
+</div>
+<section id="getting-the-tuned-hyperparameters" class="level3" data-number="33.1.1">
+<h3 data-number="33.1.1" class="anchored" data-anchor-id="getting-the-tuned-hyperparameters"><span class="header-section-number">33.1.1</span> Getting the Tuned Hyperparameters</h3>
+<p>The tuned hyperparameters can be obtained as a dictionary with the following code. Since <code>spotpython</code> is used as an optimizer, the numerical levels of the hyperparameters are identical to the optimized values of the underlying optimization problem, here: the Branin function.</p>
+<div id="code-get-tuned-optimization-604" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> get_tuned_hyperparameters</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>get_tuned_hyperparameters(spot_tuner<span class="op">=</span>spot_tuner)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Summary: Saving and Loading Optimization Experiments
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>If <code>spotpython</code> is used as an optimizer (without an hyperparameter dictionary), experiments can be saved and reloaded with the <code>save_experiment</code> and <code>load_experiment</code> functions.</li>
+<li>The tuned hyperparameters can be obtained with the <code>get_tuned_hyperparameters</code> function.</li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-spotpython-as-a-hyperparameter-tuner-604" class="level2" data-number="33.2">
+<h2 data-number="33.2" class="anchored" data-anchor-id="sec-spotpython-as-a-hyperparameter-tuner-604"><span class="header-section-number">33.2</span> spotpython as a Hyperparameter Tuner</h2>
+<p>If <code>spotpython</code> is used as a hyperparameter tuner, in addition to the <code>fun_control</code> dictionary a <code>core_model</code> dictionary has to be specified. Furthermore, a data set has to be selected and added to the <code>fun_control</code> dictionary. Here, we will use the <code>Diabetes</code> data set.</p>
+<section id="the-diabetes-data-set" class="level3" data-number="33.2.1">
+<h3 data-number="33.2.1" class="anchored" data-anchor-id="the-diabetes-data-set"><span class="header-section-number">33.2.1</span> The Diabetes Data Set</h3>
+<p>The hyperparameter tuning of a <code>PyTorch Lightning</code> network on the <code>Diabetes</code> data set is used as an example. The <code>Diabetes</code> data set is a PyTorch Dataset for regression, which originates from the <code>scikit-learn</code> package, see <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes">https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html#sklearn.datasets.load_diabetes</a>.</p>
+<p>Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients, as well as the response of interest, a quantitative measure of disease progression one year after baseline. The <code>Diabetes</code> data set is has the following properties:</p>
+<ul>
+<li>Samples total: 442</li>
+<li>Dimensionality: 10</li>
+<li>Features: real, <span class="math inline">\(-.2 &lt; x &lt; .2\)</span></li>
+<li>Targets: integer <span class="math inline">\(25 - 346\)</span></li>
+</ul>
+<div id="code-diabetes-data-set-604" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data.diabetes <span class="im">import</span> Diabetes</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>data_set <span class="op">=</span> Diabetes()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="code-hyperparameter-tuning-604" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperdict.light_hyper_dict <span class="im">import</span> LightHyperDict</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.hyperlight <span class="im">import</span> HyperLight</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, surrogate_control_init, design_control_init)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> spot</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"604"</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    save_experiment<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    PREFIX<span class="op">=</span>PREFIX,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    fun_evals<span class="op">=</span>inf,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    max_time<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    data_set <span class="op">=</span> data_set,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    core_model_name<span class="op">=</span><span class="st">"light.regression.NNLinearRegressor"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    hyperdict<span class="op">=</span>LightHyperDict,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [ <span class="st">"Adadelta"</span>, <span class="st">"Adam"</span>, <span class="st">"Adamax"</span>])</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"l1"</span>, [<span class="dv">3</span>,<span class="dv">4</span>])</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"epochs"</span>, [<span class="dv">3</span>,<span class="dv">5</span>])</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"batch_size"</span>, [<span class="dv">4</span>,<span class="dv">11</span>])</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"dropout_prob"</span>, [<span class="fl">0.0</span>, <span class="fl">0.025</span>])</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"patience"</span>, [<span class="dv">2</span>,<span class="dv">3</span>])</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In contrast to the default setttin, where <code>sava_experiment</code> is set to <code>False</code>, here the <code>fun_control</code> dictionary is initialized <code>save_experiment=True</code>. Alternatively, an existing <code>fun_control</code> dictionary can be updated with <code>{"save_experiment": True}</code> as shown in the following code.</p>
+<div id="save_experiment" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fun_control.update({<span class="st">"save_experiment"</span>: <span class="va">True</span>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>If <code>save_experiment</code> is set to <code>True</code>, the results of the hyperparameter tuning experiment are stored in a pickle file with the name <code>PREFIX</code> after the tuning is finished in the current directory.</p>
+<p>Alternatively, the spot object and the corresponding dictionaries can be saved with the <code>save_experiment</code> method, which is part of the <code>spot</code> object. Therefore, the <code>spot</code> object has to be created as shown in the following code.</p>
+<div id="d1c6dbf2" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(path<span class="op">=</span><span class="st">"userExperiment"</span>, overwrite<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here, we have added a <code>path</code> argument to specify the directory where the experiment is saved. The resulting pickle file can be copied to another directory or computer and reloaded with the <code>load_experiment</code> function. It can also be used for performing the tuning run. Here, we will execute the tuning run on the local machine, which can be done with the following code.</p>
+<div id="221e9961" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> spot_tuner.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After the tuning run is finished, a pickle file with the name <code>spot_604_experiment.pickle</code> is stored in the local directory. This is a result of setting the <code>save_experiment</code> argument to <code>True</code> in the <code>fun_control</code> dictionary. We can load the experiment with the following code. Here, we have specified the <code>PREFIX</code> as an argument to the <code>load_experiment</code> function. Alternatively, the filename (<code>PKL_NAME</code>) can be used as an argument.</p>
+<div id="code-reload-hyper-experiment-37" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>(spot_tuner_1, fun_control_1, design_control_1,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    surrogate_control_1, optimizer_control_1) <span class="op">=</span> load_experiment(PREFIX<span class="op">=</span>PREFIX)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>For comparison, the tuned hyperparameters of the original experiment are shown first:</p>
+<div id="code-get-tuned-hyperparameters-fun-ctrl604a" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>get_tuned_hyperparameters(spot_tuner, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Second, the tuned hyperparameters of the reloaded experiment are shown:</p>
+<div id="code-get-tuned-hyperparameters-fun-ctrl604b" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>get_tuned_hyperparameters(spot_tuner_1, fun_control_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Note: The numerical levels of the hyperparameters are used as keys in the dictionary. If the <code>fun_control</code> dictionary is used, the names of the hyperparameters are used as keys in the dictionary.</p>
+<div id="3b7d38e2" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>get_tuned_hyperparameters(spot_tuner_1, fun_control_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Plot the progress of the original experiment are identical to the reloaded experiment.</p>
+<div id="fig-plot-progress-604aa" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="18">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-plot-progress-604aa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code" id="fig-plot-progress-604aa" data-execution_count="18"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="fig-plot-progress-604aa-1"><a href="#fig-plot-progress-604aa-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-plot-progress-604aa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;33.3
+</figcaption>
+</figure>
+</div>
+<div id="fig-plot-progress-604bb" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="19">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-plot-progress-604bb-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="sourceCode cell-code" id="fig-plot-progress-604bb" data-execution_count="19"><pre class="sourceCode python cell code-with-copy"><code class="sourceCode python"><span id="fig-plot-progress-604bb-1"><a href="#fig-plot-progress-604bb-1" aria-hidden="true" tabindex="-1"></a>spot_tuner_1.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-plot-progress-604bb-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;33.4
+</figcaption>
+</figure>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Summary: Saving and Loading Hyperparameter-Tuning Experiments
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>If <code>spotpython</code> is used as an hyperparameter tuner (with an hyperparameter dictionary), experiments can be saved and reloaded with the <code>save_experiment</code> and <code>load_experiment</code> functions.</li>
+<li>The tuned hyperparameters can be obtained with the <code>get_tuned_hyperparameters</code> function.</li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-saving-and-loading-pytorch-lightning-models-604" class="level2" data-number="33.3">
+<h2 data-number="33.3" class="anchored" data-anchor-id="sec-saving-and-loading-pytorch-lightning-models-604"><span class="header-section-number">33.3</span> Saving and Loading PyTorch Lightning Models</h2>
+<p><a href="#sec-spotpython-saving-and-loading" class="quarto-xref"><span>Section 33.1</span></a> and <a href="#sec-spotpython-as-a-hyperparameter-tuner-604" class="quarto-xref"><span>Section 33.2</span></a> explained how to save and load optimization and hyperparameter tuning experiments and how to get the tuned hyperparameters as a dictionary. This section shows how to save and load <code>PyTorch Lightning</code> models.</p>
+<section id="sec-get-spot-results-31" class="level3" data-number="33.3.1">
+<h3 data-number="33.3.1" class="anchored" data-anchor-id="sec-get-spot-results-31"><span class="header-section-number">33.3.1</span> Get the Tuned Architecture</h3>
+<p>In contrast to the function <code>get_tuned_hyperparameters</code>, the function <code>get_tuned_architecture</code> returns the tuned architecture of the model as a dictionary. Here, the transformations are already applied to the numerical levels of the hyperparameters and the encoding (and types) are the original types of the hyperparameters used by the model. Important: The <code>config</code> dictionary from <code>get_tuned_architecture</code> can be passed to the model without any modifications.</p>
+<div id="ea21ded4" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> get_tuned_architecture</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner, fun_control)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>pprint.pprint(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After getting the tuned architecture, the model can be created and tested with the following code.</p>
+<div id="8abd7d35" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.light.testmodel <span class="im">import</span> test_model</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>test_model(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="load-a-model-from-checkpoint" class="level3" data-number="33.3.2">
+<h3 data-number="33.3.2" class="anchored" data-anchor-id="load-a-model-from-checkpoint"><span class="header-section-number">33.3.2</span> Load a Model from Checkpoint</h3>
+<p>The method <code>load_light_from_checkpoint</code> loads a model from a checkpoint file. Important: The model has to be trained before the checkpoint is loaded. As shown here, loading a model with trained weights is possible, but requires two steps:</p>
+<ol type="1">
+<li>The model weights have to be learned using <code>test_model</code>. The <code>test_model</code> method writes a checkpoint file.</li>
+<li>The model has to be loaded from the checkpoint file.</li>
+</ol>
+<section id="details-about-the-load_light_from_checkpoint-method" class="level4" data-number="33.3.2.1">
+<h4 data-number="33.3.2.1" class="anchored" data-anchor-id="details-about-the-load_light_from_checkpoint-method"><span class="header-section-number">33.3.2.1</span> Details About the <code>load_light_from_checkpoint</code> Method</h4>
+<ul>
+<li>The <code>test_model</code> method saves the last checkpoint to a file using the following code:</li>
+</ul>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ModelCheckpoint(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    dirpath<span class="op">=</span>os.path.join(fun_control[<span class="st">"CHECKPOINT_PATH"</span>], config_id), save_last<span class="op">=</span><span class="va">True</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>), </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The filename of the last checkpoint has a specific structure:</p>
+<ul>
+<li>A <code>config_id</code> is generated from the <code>config</code> dictionary. It does not use a timestamp. This differs from the config id generated in cvmodel.py and trainmodel.py, which provide time information for the TensorBoard logging.</li>
+<li>Furthermore, the postfix <code>_TEST</code> is added to the <code>config_id</code> to indicate that the model is tested.</li>
+<li>For example: <code>runs/saved_models/16_16_64_LeakyReLU_Adadelta_0.0014_8.5895_8_False_kaiming_uniform_TEST/last.ckpt</code></li>
+</ul>
+<div id="d5b8d453" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.light.loadmodel <span class="im">import</span> load_light_from_checkpoint</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>model_loaded <span class="op">=</span> load_light_from_checkpoint(config, fun_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="b5b01a88" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">vars</span>(model_loaded)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="d55b2e3f" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>torch.save(model_loaded, <span class="st">"model.pt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="5a6a4913" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>mymodel <span class="op">=</span> torch.load(<span class="st">"model.pt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="eaa4372f" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># show all attributes of the model</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">vars</span>(mymodel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="sec-converting-a-lightning-model-to-a-plain-torch-model-604" class="level2" data-number="33.4">
+<h2 data-number="33.4" class="anchored" data-anchor-id="sec-converting-a-lightning-model-to-a-plain-torch-model-604"><span class="header-section-number">33.4</span> Converting a Lightning Model to a Plain Torch Model</h2>
+<section id="the-function-get_removed_attributes_and_base_net" class="level3" data-number="33.4.1">
+<h3 data-number="33.4.1" class="anchored" data-anchor-id="the-function-get_removed_attributes_and_base_net"><span class="header-section-number">33.4.1</span> The Function <code>get_removed_attributes_and_base_net</code></h3>
+<p><code>spotpython</code> provides a function to covert a <code>PyTorch Lightning</code> model to a plain <code>PyTorch</code> model. The function <code>get_removed_attributes_and_base_net</code> returns a tuple with the removed attributes and the base net. The base net is a plain <code>PyTorch</code> model. The removed attributes are the attributes of the <code>PyTorch Lightning</code> model that are not part of the base net.</p>
+<p>This conversion can be reverted.</p>
+<div id="d8ce16fe" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.device <span class="im">import</span> getDevice</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> random_split</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.classes <span class="im">import</span> get_removed_attributes_and_base_net</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.optimizer <span class="im">import</span> optimizer_handler</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>removed_attributes, torch_net <span class="op">=</span> get_removed_attributes_and_base_net(net<span class="op">=</span>mymodel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="29ea6377" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(removed_attributes)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="3b6f0786" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(torch_net)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="an-example-how-to-use-the-plain-torch-net" class="level3" data-number="33.4.2">
+<h3 data-number="33.4.2" class="anchored" data-anchor-id="an-example-how-to-use-the-plain-torch-net"><span class="header-section-number">33.4.2</span> An Example how to use the Plain Torch Net</h3>
+<div id="1007fda5" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader, TensorDataset</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> load_diabetes</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the Diabetes dataset from sklearn</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>diabetes <span class="op">=</span> load_diabetes()</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> diabetes.data</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> diabetes.target</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Split the dataset into training and testing sets</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(X, y, test_size<span class="op">=</span><span class="fl">0.2</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Scale the features</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> scaler.fit_transform(X_train)</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>X_test <span class="op">=</span> scaler.transform(X_test)</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert the data to PyTorch tensors</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>X_train_tensor <span class="op">=</span> torch.tensor(X_train, dtype<span class="op">=</span>torch.float32)</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>y_train_tensor <span class="op">=</span> torch.tensor(y_train, dtype<span class="op">=</span>torch.float32)</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>X_test_tensor <span class="op">=</span> torch.tensor(X_test, dtype<span class="op">=</span>torch.float32)</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>y_test_tensor <span class="op">=</span> torch.tensor(y_test, dtype<span class="op">=</span>torch.float32)</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a PyTorch dataset</span></span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>train_dataset <span class="op">=</span> TensorDataset(X_train_tensor, y_train_tensor)</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>test_dataset <span class="op">=</span> TensorDataset(X_test_tensor, y_test_tensor)</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a PyTorch dataloader</span></span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>batch_size <span class="op">=</span> <span class="dv">32</span></span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>train_dataloader <span class="op">=</span> DataLoader(train_dataset, batch_size<span class="op">=</span>batch_size, shuffle<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>test_dataloader <span class="op">=</span> DataLoader(test_dataset, batch_size<span class="op">=</span>batch_size)</span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>torch_net.to(getDevice(<span class="st">"cpu"</span>))</span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a><span class="co"># train the net</span></span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>criterion <span class="op">=</span> nn.MSELoss()</span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> optim.Adam(torch_net.parameters(), lr<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a>n_epochs <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>losses <span class="op">=</span> []</span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(n_epochs):</span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> inputs, targets <span class="kw">in</span> train_dataloader:</span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>        targets <span class="op">=</span> targets.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a>        optimizer.zero_grad()</span>
+<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> torch_net(inputs)</span>
+<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> criterion(outputs, targets)</span>
+<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a>        losses.append(loss.item())</span>
+<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a>        loss.backward()</span>
+<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a>        optimizer.step()</span>
+<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize the network training</span></span>
+<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>plt.plot(losses)</span>
+<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Epoch"</span>)</span>
+<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Loss"</span>)</span>
+<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./603_spot_lightning_transformer_hpt.html" class="pagination-link" aria-label="Hyperparameter Tuning of a Transformer Network with PyTorch Lightning">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning of a Transformer Network with PyTorch Lightning</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./605_spot_hpt_light_diabetes_resnet.html" class="pagination-link" aria-label="Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set Using a ResNet Model">
+        <span class="nav-page-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set Using a ResNet Model</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
