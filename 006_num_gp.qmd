@@ -12,7 +12,7 @@ execute:
 
 ## DACE and RSM
 
-Mathematical models implemented in computer codes are used to circumvent the need for expensive field data collection. These models are particularly useful when dealing with highly nonlinear response surfaces, high signal-to-noise ratios (which often involve deterministic evaluations), and a global scope. As a result, a new approach is required in comparison to Response Surface Methodology (RSM).
+Mathematical models implemented in computer codes are used to circumvent the need for expensive field data collection. These models are particularly useful when dealing with highly nonlinear response surfaces, high signal-to-noise ratios (which often involve deterministic evaluations), and a global scope. As a result, a new approach is required in comparison to Response Surface Methodology (RSM), which was discussed in @sec-rsm-intro.
 
 With the improvement in computing power and simulation fidelity, researchers gain higher confidence and a better understanding of the dynamics in physical, biological, and social systems. However, the expansion of configuration spaces and increasing input dimensions necessitates more extensive designs. High-performance computing (HPC) allows for thousands of runs, whereas previously only tens were possible. This shift towards larger models and training data presents new computational challenges.
 
@@ -24,22 +24,95 @@ One of the remaining differences between RSM and DACE lies in how they handle no
 
 Two very good texts on computer experiments and surrogate modeling are @Sant03a and @Forr08a. The former is the canonical reference in the statistics literature and the latter is perhaps more popular in engineering.
 
+::: {#exm-dace-rsm}
+### Example: DACE and RSM
+Imagine you are a chemical engineer tasked with optimizing a chemical process to maximize yield. You can control temperature and pressure, but repeated experiments show variability in yield due to inconsistencies in raw materials.
+
+* Using RSM: You would use RSM to design a series of experiments varying temperature and pressure. You would then fit a response surface (a mathematical model) to the data, helping you understand how changes in temperature and pressure affect yield. Using this model, you can identify optimal conditions for maximizing yield despite the noise.
+
+* Using DACE: If instead you use a computational model to simulate the chemical process and want to account for numerical noise or uncertainty in model parameters, you might use DACE. You would run simulations at different conditions, possibly repeating them to assess variability and build a surrogate model that accurately predicts yields, which can be optimized to find the best conditions.
+
+:::
+
+
+### Noise Handling in RSM and DACE
+
+Noise in RSM: In experimental settings, noise often arises due to variability in experimental conditions, measurement errors, or other uncontrollable factors. This noise can significantly affect the response variable, $Y$. Replication is a standard procedure for handling noise in RSM.
+In the context of computer experiments, noise might not be present in the traditional sense since simulations can be deterministic. However, variability can arise from uncertainty in input parameters or model inaccuracies. DACE predominantly utilizes advanced interpolation to construct accurate models of deterministic data, sometimes considering statistical noise modeling if needed.
 
 ## Background: Expectation, Mean, Standard Deviation
 
-The distribution of a random vector is characterized by some indexes. One of them is the expected value, which is defined as
+
+The distribution of a random vector is characterized by some indexes. These are the expectation, the mean, and the standard deviation. The expectation is a measure of the central tendency of a random variable, while the standard deviation quantifies the spread of the distribution. These indexes are essential for understanding the behavior of random variables and making predictions based on them.
+
+
+::: {#def-random-variable}
+### Random Variable
+A random variable $X$ is a mapping from the sample space of a random experiment to the real numbers. It assigns a numerical value to each outcome of the experiment. Random variables can be either:
+
+* Discrete: If $X$ takes on a countable number of distinct values.
+* Continuous: If $X$ takes on an uncountable number of values.
+
+Mathematically, a random variable is a function $X: \Omega \rightarrow \mathbb{R}$, where $\Omega$ is the sample space.
+:::
+
+::: {#def-probability-distribution}
+### Probability Distribution
+
+A probability distribution describes how the values of a random variable are distributed.
+It is characterized for a discrete random variable $X$ by the probability mass function (PMF) $p_X(x)$ and for a continuous random variable $X$ by the probability density function (PDF) $f_X(x)$.
+
+:::
+
+
+::: {#def-probability-mass-function}
+### Probability Mass Function (PMF)
+
+$p_X(x) = P(X = x)$ gives the probability that $X$ takes the value $x$.
+
+:::
+
+::: {#def-probability-density-function}
+### Probability Density Function (PDF):
+
+$f_X(x)$ is a function such that for any interval $[a, b]$, the probability that $X$ falls within this interval is given by the integral $\int_a^b f_X(x) \mathrm{d}x$.
+
+:::
+
+The distribution function must satisfy:
 $$
-E[X] = \sum_{x \in D_X} xp_X(x)  \qquad \text{if $X$ is discrete}
+\sum_{x \in D_X} p_X(x) = 1
 $$
+for discrete random variables, where $D_X$ is the domain of $X$ and
 $$
-E[X] = \int\limits_{x \in D_X} xf_X(x)\mathrm{d}x  \quad  \text{if $X$ is continuous.}
+\int_{-\infty}^{\infty} f_X(x) \mathrm{d}x = 1
 $$
+for continuous random variables.
+
+
+With these definitions in place, we can now introduce the definition of the expectation, which is a fundamental measure of the central tendency of a random variable.
+
+::: {#def-expectation}
+### Expectation
+The expectation or expected value of a random variable $X$, denoted $E[X]$, is defined as follows:
+
+For a discrete random variable $X$:
+$$
+E[X] = \sum_{x \in D_X} x p_X(x) \quad \text{if $X$ is discrete}.
+$$
+
+For a continuous random variable $X$:
+$$
+E[X] = \int_{x \in D_X} x f_X(x) \mathrm{d}x \quad \text{if $X$ is continuous.}
+$$
+:::
+
 
 The mean, $\mu$, of a probability distribution is a measure of its central tendency or location. That is, $E(X)$ is defined as the average of all possible values of $X$, weighted by their probabilities.
 
 
-:::{.callout-note}
-### Example: Expectation
+::: {#exm-expectation}
+### Expectation
 
 Let $X$ denote the number produced by rolling a fair die.
 Then
@@ -48,20 +121,41 @@ E(X) = 1 \times 1/6 + 2 \times 1/6 + 3 \times 1/6 + 4 \times 1/6 + 5 \times 1/6 
 $$
 :::
 
+
+::: {#def-sample-mean}
 ### Sample Mean
 
 The sample mean is an important estimate of the population mean. The sample mean of a sample $\{x_i\}$ ($i=1,2,\ldots,n$) is defined as 
-$$\overline{x}  = \frac{1}{n} \sum_i x_i.$$
+$$
+\overline{x}  = \frac{1}{n} \sum_i x_i.
+$$
 
-### Variance and Standard Deviation
+:::
+
+
+While both the expectation of a random variable and the sample mean provide measures of central tendency, they differ in their context, calculation, and interpretation.
+
+* The expectation is a theoretical measure that characterizes the average value of a random variable over an infinite number of repetitions of an experiment. 
+The expectation is calculated using a probability distribution and provides a parameter of the entire population or distribution. It reflects the long-term average or central value of the outcomes generated by the random process.
+* The sample mean is a statistic. It provides an estimate of the population mean based on a finite sample of data.
+It is computed directly from the data sample, and its value can vary between different samples from the same population.
+It serves as an approximation or estimate of the population mean.
+It is used in statistical inference to make conclusions about the population mean based on sample data.
 
 If we are trying to predict the value of a random variable $X$ by its mean $\mu = E(X)$, the error will be $X-\mu$. In many situations it is useful to have an idea how large this deviation or error is.  Since $E(X-\mu) = E(X) -\mu = 0$, it is necessary to use the absolute value or the square of ($X-\mu$).  The squared error is the first choice, because the derivatives are easier to calculate.  These considerations motivate the definition of the variance:
+
+::: {#def-variance}
+### Variance
 
 The variance of a random variable $X$ is the mean squared deviation of $X$ from its expected value $\mu = E(X)$.
 \begin{equation}
 Var(X) = E[ (X-\mu)^2].
 \end{equation}
+::: 
 
+The variance is a measure of the spread of a distribution. It quantifies how much the values of a random variable differ from the mean. A high variance indicates that the values are spread out over a wide range, while a low variance indicates that the values are clustered closely around the mean.
+
+::: {#def-standard-deviation}
 ### Standard Deviation
 
 Taking the square root of the variance to get back to the same scale of units as $X$ gives the standard deviation. The standard deviation of $X$ is the square root of the variance of $X$.
@@ -69,15 +163,21 @@ Taking the square root of the variance to get back to the same scale of units as
 sd(X) = \sqrt{Var(X)}.
 \end{equation}
 
+:::
+
 ### Calculation of the Standard Deviation with Python
 
-The function `numpy.std` returns the standard deviation, a measure of the spread of a distribution, of the array elements.  The argument `ddof` specifies the Delta Degrees of Freedom. The divisor used in calculations is `N - ddof`, where `N` represents the number of elements.  By default `ddof` is zero, i.e., `std` uses the formula 
-\begin{equation}  \sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N. \end{equation}
+The function `numpy.std` returns the standard deviation,
+a measure of the spread of a distribution, of the array elements.
+The argument `ddof` specifies the Delta Degrees of Freedom.
+The divisor used in calculations is `N - ddof`, where `N` represents the number of elements. 
+By default `ddof` is zero, i.e., `std` uses the formula 
+$$
+\sqrt{  \frac{1}{N} \sum_i \left( x_i - \bar{x} \right)^2  } \qquad \text{with } \quad \bar{x} = \sum_{i=1}^N x_i /N.
+$$
 
-
-
-::: {.callout-note}
-#### Example: Standard Deviation with Python
+::: {#exm-std-python}
+#### Standard Deviation with Python
 
 Consider the array $[1,2,3]$:
 Since $\bar{x} = 2$, the following value is computed: $$ \sqrt{1/3 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/3}.$$
@@ -90,9 +190,8 @@ np.std(a)
 :::
 
 
-### The Empirical Standard Deviation
-
-The empirical standard deviation (which uses $N-1$),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,  can be calculated as follows:
+The empirical standard deviation (which uses $N-1$),  $\sqrt{1/2 \times \left( (1-2)^2 + (2-2)^2 + (3-2)^2  \right)} = \sqrt{2/2}$,
+can be calculated in Python as follows:
 
 ```{python}
 np.std(a, ddof=1)
@@ -100,82 +199,52 @@ np.std(a, ddof=1)
 
 
 ### The Argument "axis" 
+When you compute `np.std` with `axis=0`,
+it calculates the standard deviation along the vertical axis, meaning it computes the standard deviation for each column of the array.
+On the other hand, when you compute `np.std` with `axis=1`,
+it calculates the standard deviation along the horizontal axis, meaning it computes the standard deviation for each row of the array.
+If the axis parameter is not specified, `np.std` computes the standard deviation of the flattened array,
+i.e., it calculates the standard deviation of all the elements in the array.
 
-::: {.callout-note}
+::: {#exm-std-axis}
 ### Axes along which the standard deviation is computed
-
-* When you compute np.std with axis=0, it calculates the standard deviation along the vertical axis, meaning it computes the standard deviation for each column of the array.
-* On the other hand, when you compute np.std with axis=1, it calculates the standard deviation along the horizontal axis, meaning it computes the standard deviation for each row of the array.
-* If the axis parameter is not specified, np.std computes the standard deviation of the flattened array.
-
-:::
 
 ```{python}
 A = np.array([[1, 2], [3, 4]])
 A
 ```
 
+First, we calculate the standard deviation of all elements in the array:
+
 ```{python}
 np.std(A)
 ```
+
+Setting `axis=0` calculates the standard deviation along the vertical axis (column-wise):
 
 ```{python}
 np.std(A, axis=0)
 ```
 
+Finally, setting `axis=1` calculates the standard deviation along the horizontal axis (row-wise):
+
 ```{python}
 np.std(A, axis=1)
 ```
-
+:::
 
 ## Data Types and Precision in Python
 
-We consider single versus double precision in Python.
-In single precision, `std()` can be inaccurate:
+The float16 data type in numpy represents a half-precision floating point number. It uses 16 bits of memory, which gives it a precision of about 3 decimal digits.
 
-```{python}
-a = np.zeros((2, 4*4), dtype=np.float32)
-a[0, :] = 1.0
-a[1, :] = 0.1
-a 
-```
+The float32 data type in numpy represents a single-precision floating point number. It uses 32 bits of memory, which gives it a precision of about 7 decimal digits.
+On the other hand, float64 represents a double-precision floating point number. It uses 64 bits of memory, which gives it a precision of about 15 decimal digits.
 
+The reason float16 and float32 show fewer digits is because it has less precision due to using less memory.
+The bits of memory are used to store the sign, exponent, and fraction parts of the floating point number, and with fewer bits, you can represent fewer digits accurately.
 
-
-```{python}
-np.std(a, axis=0)
-```
-
-
-```{python}
-np.std(a, axis=1)
-```
-
-
-
-```{python}
-abs(0.45 - np.std(a))
-```
-
-
-::: {.callout-note}
-### Float data types
-
-* float32 and float64 are data types in numpy that specify the precision of floating point numbers.
-* float32 is a single-precision floating point number that occupies 32 bits of memory. It has a precision of about 7 decimal digits.
-* float64 is a double-precision floating point number that occupies 64 bits of memory. It has a precision of about 15 decimal digits.
-* The main difference between float32 and float64 is the precision and memory usage. float64 provides a higher precision but uses more memory, while float32 uses less memory but has a lower precision. 
-:::
-
-Computing the standard deviation in float64 is more accurate (result may vary), see [https://numpy.org/devdocs/reference/generated/numpy.std.html](https://numpy.org/devdocs/reference/generated/numpy.std.html).
-
-```{python}
-abs(0.45 - np.std(a, dtype=np.float64))
-```
-
-
-::: {.callout-note}
-#### Example: 32 versus 64 bit
+::: {#exm-float}
+#### 16 versus 32 versus 64 bit
 
 ```{python}
 import numpy as np
@@ -183,20 +252,17 @@ import numpy as np
 # Define a number
 num = 0.123456789123456789
 
-# Convert to float32 and float64
+num_float16 = np.float16(num)
 num_float32 = np.float32(num)
 num_float64 = np.float64(num)
 
-# Print the number in both formats
+print("float16: ", num_float16) 
 print("float32: ", num_float32)
 print("float64: ", num_float64)
 ```
 
 :::
 
-The float32 data type in numpy represents a single-precision floating point number. It uses 32 bits of memory, which gives it a precision of about 7 decimal digits. On the other hand, float64 represents a double-precision floating point number. It uses 64 bits of memory, which gives it a precision of about 15 decimal digits.
-
-The reason float32 shows fewer digits is because it has less precision due to using less memory. The bits of memory are used to store the sign, exponent, and fraction parts of the floating point number, and with fewer bits, you can represent fewer digits accurately.
 
 ## Distributions and Random Numbers in Python
 
@@ -212,11 +278,15 @@ Standard computers generate pseudo-randomnumbers, i.e., numbers that behave as i
 
 ### The Uniform Distribution
 
+::: {#def-uniform-distribution}
+### The Uniform Distribution
+
 The probability density function of the uniform distribution is defined as:
 $$
 f_X(x) = \frac{1}{b-a} \qquad \text{for $x \in [a,b]$}.
 $$
 
+:::
 
 Generate 10 random numbers from a uniform distribution between $a=0$ and $b=1$:
 
@@ -251,7 +321,16 @@ plt.show()
 
 ```
 
+### The Normal Distribution
 
+A normally distributed random variable is a random variable whose associated probability distribution is the normal (or Gaussian) distribution. The normal distribution is a continuous probability distribution characterized by a symmetric bell-shaped curve.
+
+The distribution is defined by two parameters: the mean $\mu$  and the standard deviation $\sigma$. The mean indicates the center of the distribution, while the standard deviation measures the spread or dispersion of the distribution.
+
+This distribution is widely used in statistics and the natural and social sciences as a simple model for random variables with unknown distributions.
+
+
+::: {#def-normal-distribution}
 ### The Normal Distribution
 
 The probability density function of the normal distribution is defined as:
@@ -262,11 +341,12 @@ where:
 $\mu$ is the mean;
 $\sigma$ is the standard deviation.
 
+:::
 
 To generate ten random numbers from a normal distribution, the following command can be used.
 
 ```{python}
-# generate 10 random numbers between from a normal distribution
+#| label: gen-normal-10
 import numpy as np
 rng = np.random.default_rng()
 n = 10
@@ -274,8 +354,6 @@ mu, sigma = 2, 0.1
 x = rng.normal(mu, sigma, n)
 x
 ```
-
-
 
 Verify the mean:
 
@@ -289,13 +367,6 @@ Note: To verify the standard deviation, we use `ddof = 1` (empirical standard de
 abs(sigma - np.std(x, ddof=1))
 ```
 
-
-
-A normally distributed random variable is a random variable whose associated probability distribution is the normal (or Gaussian) distribution. The normal distribution is a continuous probability distribution characterized by a symmetric bell-shaped curve.
-
-The distribution is defined by two parameters: the mean $\mu$  and the standard deviation $\sigma$. The mean indicates the center of the distribution, while the standard deviation measures the spread or dispersion of the distribution.
-
-This distribution is widely used in statistics and the natural and social sciences as a simple model for random variables with unknown distributions.
 
 ```{python}
 #| echo: false
@@ -365,12 +436,16 @@ plt.show()
 ### Standardization of Random Variables
 
 To compare statistical properties of random variables which use different units, it is a common practice to transform these random variables into standardized variables. 
+
+::: {#def-standard-units}
+### Standard Units
 If a random variable $X$ has expectation $E(X) = \mu$ and standard deviation $sd(X) = \sigma >0$, the random variable 
 $$
 X^{\ast} = (X-\mu)/\sigma
 $$ 
 is called $X$ in standard units. 
 It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
+:::
 
 
 ### Realizations of a Normal Distribution
@@ -378,26 +453,24 @@ It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
 Realizations of a normal distribution refers to the actual values that you get when you draw samples from a normal distribution.
 Each sample drawn from the distribution is a realization of that distribution.
 
-For example, if you have a normal distribution with a mean of 0 and a standard deviation of 1, each number you draw from that distribution is a realization.
-
-Here's a Python example:
+::: {exm-realizations}
+### Realizations of a Normal Distribution
+If you have a normal distribution with a mean of 0 and a standard deviation of 1,
+each number you draw from that distribution is a realization.
+Here is a Python example that generates 10 realizations of a normal distribution with a mean of 0 and a standard deviation of 1:
 
 ```{python}
 import numpy as np
-
-# Define the parameters of the normal distribution
 mu = 0
 sigma = 1
-
-# Draw 10 samples (realizations) from the normal distribution
 realizations = np.random.normal(mu, sigma, 10)
-
 print(realizations)
 ```
 
-
-In this code, np.random.normal generates 10 realizations of a normal distribution with a mean of 0 and a standard deviation of 1.
+In this code, `np.random.normal` generates ten realizations of a normal distribution with a mean of 0 and a standard deviation of 1.
 The realizations array contains the actual values drawn from the distribution.
+:::
+
 
 ### The Multivariate Normal Distribution
 
@@ -405,23 +478,8 @@ The multivariate normal, multinormal, or Gaussian distribution serves as a gener
 We will consider $k$-dimensional random vectors $X = (X_1, X_2, \ldots, X_k)$. When drawing samples from this distribution, it results in a set of values represented as $\{x_1, x_2, \ldots, x_k\}$.
 To fully define this distribution, it is necessary to specify its mean $\mu$ and covariance matrix $\Sigma$. These parameters are analogous to the mean, which represents the central location, and the variance (squared standard deviation) of the one-dimensional normal distribution introduced in @eq-normal-one.
 
-In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an $k$-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
-
-::: {.callout-note}
-#### Covariance of two random variables
-
-For two random variables
-$X$
-and 
-$Y$,
-the covariance is defined as the expected value (or mean) of the product of their deviations from their individual expected values:
-$$
-\operatorname{cov}(X, Y) = \operatorname{E}{\big[(X - \operatorname{E}[X])(Y - \operatorname{E}[Y])\big]}
-$$
-
-
-The covariance within the multivariate normal distribution denotes the extent to which two variables vary together. 
-The elements of the covariance matrix, such as $\Sigma_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
+::: {#def-multivariate-normal}
+### The Multivariate Normal Distribution
 
 The probability density function (PDF) of the multivariate normal distribution is defined as:
 $$
@@ -432,6 +490,23 @@ $\mu$ is the $k \times 1$  mean vector;
 $\Sigma$ is the  $k \times k$ covariance matrix.
 The covariance matrix  $\Sigma$ is assumed to be positive definite, so that its determinant is strictly positive.
 
+:::
+
+
+In the context of the multivariate normal distribution, the mean takes the form of a coordinate within an $k$-dimensional space. This coordinate represents the location where samples are most likely to be generated, akin to the peak of the bell curve in a one-dimensional or univariate normal distribution.
+
+::: {#def-covariance-2}
+### Covariance of two random variables
+
+For two random variables
+$X$
+and 
+$Y$,
+the covariance is defined as the expected value (or mean) of the product of their deviations from their individual expected values:
+$$
+\operatorname{cov}(X, Y) = \operatorname{E}{\big[(X - \operatorname{E}[X])(Y - \operatorname{E}[Y])\big]}
+$$
+
 For discrete random variables, covariance can be written as:
 $$
 \operatorname{cov} (X,Y) = \frac{1}{n}\sum_{i=1}^n (x_i-E(X)) (y_i-E(Y)).
@@ -439,12 +514,19 @@ $$
 :::
 
 
+The covariance within the multivariate normal distribution denotes the extent to which two variables vary together. 
+The elements of the covariance matrix, such as $\Sigma_{ij}$, represent the covariances between the variables $x_i$ and $x_j$. These covariances describe how the different variables in the distribution are related to each other in terms of their variability.
+
+::: {#exm-bivariate-normal-cov-pos}
+
+### The Bivariate Normal Distribution with Positive Covariances
 @fig-bi9040 shows draws from a bivariate normal distribution with $\mu = \begin{pmatrix}0 \\ 0\end{pmatrix}$ and 
 $\Sigma=\begin{pmatrix} 9 & 4 \\ 4 & 9 \end{pmatrix}$.
 
 ```{python}
 #| label: fig-bi9040
 #| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 4 & 9\\end{pmatrix}$"
+#| echo: false
 import numpy as np
 rng = np.random.default_rng()
 import matplotlib.pyplot as plt
@@ -459,9 +541,13 @@ plt.title(f"Bivariate Normal. Mean zero and positive covariance: {cov}")
 plt.show()
 ```
 
-The covariance matrix of a bivariate normal distribution determines the shape, orientation, and spread of the distribution in the two-dimensional space.
+::: 
 
-The diagonal elements of the covariance matrix ($\sigma_1^2$, $\sigma_2^2$) are the variances of the individual variables. They determine the spread of the distribution along each axis. A larger variance corresponds to a greater spread along that axis.
+The covariance matrix of a bivariate normal distribution determines the shape,
+orientation, and spread of the distribution in the two-dimensional space.
+
+The diagonal elements of the covariance matrix ($\sigma_1^2$, $\sigma_2^2$) are the variances of the individual variables.
+They determine the spread of the distribution along each axis. A larger variance corresponds to a greater spread along that axis.
 
 The off-diagonal elements of the covariance matrix ($\sigma_{12}, \sigma_{21}$) are the covariances between the variables.
 They determine the orientation and shape of the distribution.
@@ -476,7 +562,8 @@ In @fig-bi9040, the variances are identical and the variables are correlated (co
 
 ```{python}
 #| label: fig-bi90403d
-#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 4 & 9\\end{pmatrix}$"
+#| fig-cap: "Bivariate Normal. Mean zero and covariance $\\Sigma=\\begin{pmatrix} 9 & 4 \\\\ 4 & 9\\end{pmatrix}$."
+#| echo: false
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
@@ -505,9 +592,10 @@ plt.show()
 ```
 
 
+::: {#exm-bivariate-normal-zero}
+### The Bivariate Normal Distribution with Mean Zero and Zero Covariances
 
-### The Bivariate Normal Distribution with Mean Zero and Zero Covariances $\sigma_{12} = \sigma_{21} = 0$
-
+The Bivariate Normal Distribution with Mean Zero and Zero Covariances $\sigma_{12} = \sigma_{21} = 0$.
 
 $\Sigma=\begin{pmatrix} 9 & 0 \\ 0 & 9\end{pmatrix}$
 
@@ -527,9 +615,12 @@ plt.grid()
 plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
 plt.show()
 ```
+:::
 
+::: {#exm-bivariate-normal-zero-neg}
+### The Bivariate Normal Distribution with Mean Zero and Negative Covariances
 
-### The Bivariate Normal Distribution with Mean Zero and Negative Covariances $\sigma_{12} = \sigma_{21} = -4$
+The Bivariate Normal Distribution with Mean Zero and Negative Covariances $\sigma_{12} = \sigma_{21} = -4$.
 
 $\Sigma=\begin{pmatrix} 9 & -4 \\ -4 & 9\end{pmatrix}$
 
@@ -549,381 +640,10 @@ plt.grid()
 plt.title(f"Bivariate Normal. Mean zero and covariance: {cov}")
 plt.show()
 ```
+:::
 
 
-## Cholesky Decomposition and Positive Definite Matrices
-
-The covariance matrix must be positive definite for a multivariate normal distribution for a couple of reasons:
-
-* Semidefinite vs Definite: A covariance matrix is always symmetric and positive semidefinite. However, for a multivariate normal distribution, it must be positive definite, not just semidefinite. This is because a positive semidefinite matrix can have zero eigenvalues, which would imply that some dimensions in the distribution have zero variance, collapsing the distribution in those dimensions. A positive definite matrix has all positive eigenvalues, ensuring that the distribution has positive variance in all dimensions.
-* Invertibility: The multivariate normal distribution's probability density function involves the inverse of the covariance matrix. If the covariance matrix is not positive definite, it may not be invertible, and the density function would be undefined.
-
-In summary, the covariance matrix being positive definite ensures that the multivariate normal distribution is well-defined and has positive variance in all dimensions.
-
-```{python}
-import numpy as np
-
-def is_positive_definite(matrix):
-    return np.all(np.linalg.eigvals(matrix) > 0)
-
-matrix = np.array([[9, 4], [4, 9]])
-print(is_positive_definite(matrix))  # Outputs: True
-```
-
-
-More effficent (and check if symmetric) is based on Cholesky decomposition.
-
-
-```{python}
-import numpy as np
-
-def is_pd(K):
-    try:
-        np.linalg.cholesky(K)
-        return True
-    except np.linalg.linalg.LinAlgError as err:
-        if 'Matrix is not positive definite' in err.message:
-            return False
-        else:
-            raise
-matrix = np.array([[9, 4], [4, 9]])
-print(is_pd(matrix))  # Outputs: True
-```
-
-::: {.callout-note}
-### Example: Cholesky decomposition.
-
-`linalg.cholesky` computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix $L$ such that $LL^T = A$. If the matrix is not positive definite, an error (`LinAlgError`) is raised.
-
-
-```{python}
-import numpy as np
-
-# Define a Hermitian, positive-definite matrix
-A = np.array([[9, 4], [4, 9]]) 
-
-# Compute the Cholesky decomposition
-L = np.linalg.cholesky(A)
-
-print("L = \n", L)
-print("L*LT = \n", np.dot(L, L.T))
-
-```
-
-::: 
-
-
-## Maximum Likelihood Estimation: Multivariate Normal Distribution
-
-Consider the first $n$ terms of an identically and independently distributed (i.i..d.) sequence ${X^{(j)}}$ of $k$-dimensional multivariate normal random vectors, i.e., $X^{(j)} \sim N(\mu, \Sigma)$, $j=1,2,\ldots$.
-The joint probability density function of the  $j$-th term of the sequence is
-$$
-f_X(x_j) = \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right),
-$$
-
-where:
-$\mu$ is the $k \times 1$  mean vector;
-$\Sigma$ is the  $k \times k$ covariance matrix.
-The covariance matrix $\Sigma$ is assumed to be positive definite, so that its determinant is strictly positive.
-We use $x_1, \ldots x_n$, i.e., the realizations of the first $n$ random vectors in the sequence, to estimate the two unknown parameters  $\mu$ and  $\Sigma$.
-
-The likelihood function is defined as the joint probability density function of the observed data, viewed as a function of the unknown parameters. Since the terms in the sequence are independent, their joint density is equal to the product of their marginal densities. As a consequence, the likelihood function can be written as the product of the individual densities:
-
-$$
-L(\mu, \Sigma) = \prod_{j=1}^n f_X(x_j) = \prod_{j=1}^n \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right)
-$$
-$$
-= \frac{1}{(2\pi)^{nk/2} \det(\Sigma)^{n/2}} \exp\left(-\frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right).
-$$
-The log-likelihood function is
-$$
-\ell(\mu, \Sigma) = -\frac{nk}{2} \ln(2\pi) - \frac{n}{2} \ln(\det(\Sigma)) - \frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu).
-$$
-The likelihood function is well-defined only if $\det(\Sigma)>0$.
-
-
-## Introduction to Gaussian Processes
-
-The concept of GP (Gaussian Process) regression can be understood as a simple extension of linear modeling. It is worth noting that this approach goes by various names and acronyms, including "kriging," a term derived from geostatistics, as introduced by Matheron in 1963. Additionally, it is referred to as Gaussian spatial modeling or a Gaussian stochastic process, and machine learning (ML) researchers often use the term Gaussian process regression (GPR).
-In all of these instances, the central focus is on regression. This involves training on both inputs and outputs, with the ultimate objective of making predictions and quantifying uncertainty (referred to as uncertainty quantification or UQ).
-
-However, it's important to emphasize that GPs are not a universal solution for every problem. Specialized tools may outperform GPs in specific, non-generic contexts, and GPs have their own set of limitations that need to be considered.
-
-### Gaussian Process Prior
-
-In the context of GP, any finite collection of realizations, which is represented by $n$ observations, is modeled as having a multivariate normal (MVN) distribution. The characteristics of these realizations can be fully described by two key parameters:
-
-1. Their mean, denoted as an $n$-vector $\mu$.
-2. The covariance matrix, denoted as an $n \times n$ matrix $\Sigma$. This covariance matrix encapsulates the relationships and variability between the individual realizations within the collection.
-
-
-### Covariance Function
-
-The covariance function is defined by inverse exponentiated squared Euclidean distance:
-$$
-\Sigma(\vec{x}, \vec{x}') = \exp\{ - || \vec{x} - \vec{x}'||^2 \},
-$$
-where $\vec{x}$ and $\vec{x}'$ are two points in the $k$-dimensional input space and $\| \cdot \|$ denotes the Euclidean distance, i.e.,
-$$
-|| \vec{x} - \vec{x}'||^2 = \sum_{i=1}^k (x_i - x_i')^2.
-$$
-
-An 1-d example is shown in @fig-exp2euclid. 
-
-```{python}
-#| echo: false
-import numpy as np
-import matplotlib.pyplot as plt
-
-def squared_euclidean_distance(point1, point2, sigma2=1.0):
-    return (point1 - point2)**2/ (2 * sigma2)
-
-def inverse_exp_squared_distance(point1, point2,sigma2):
-    return np.exp(-squared_euclidean_distance(point1, point2, sigma2))
-
-def generate_line(distance, step=0.01):
-    return np.arange(0, distance+step, step)
-
-def visualize_inverse_exp_squared_distance(distance, point, sigma2_values):
-    line = generate_line(distance)
-    
-    for sigma2 in sigma2_values:
-        distances = [inverse_exp_squared_distance(p, point, sigma2) for p in line]
-        plt.plot(line, distances, label=f'sigma2={sigma2}')
-    
-    plt.legend()
-    plt.show()
-```
-
-```{python}
-#| label: fig-exp2euclid
-#| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
-visualize_inverse_exp_squared_distance(5, 0.0, [0.5, 1, 2.0])
-```
-
-The covariance function is also referred to as the kernel function. The *Gaussian* kernel uses an additional parameter, $\sigma^2$, to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
-
-$$
-\Sigma(\vec{x}, \vec{x}') = \exp\{ - || \vec{x} - \vec{x}'||^2 / (2 \sigma^2) \}.
-$$ {#eq-Sigma}
-
-The covariance decays exponentially fast as $\vec{x}$ and $\vec{x}'$ become farther apart. Observe that 
-
-$$
-\Sigma(\vec{x},\vec{x}) = 1
-$$ 
-and 
-
-$$
-\Sigma(\vec{x}, \vec{x}') < 1
-$$ 
-for  $\vec{x} \neq \vec{x}'$. The function $\Sigma(\vec{x},\vec{x}')$ must be positive definite.
-
-:::{.callout-note}
-
-#### Positive Definiteness
-
-Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement. It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $\vec{x}$-values, denoted as $\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n$. The condition for positive definiteness is that for all $\vec{x}$ vectors that are not equal to zero, the expression $\vec{x}^\top \Sigma_n \vec{x}$ must be greater than zero. This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis. It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
-
-::: 
-
-Gaussian Processes (GPs) can be effectively utilized to generate random data that follows a smooth functional relationship. The process involves the following steps:
-
-1. Select a set of $\vec{x}$-values, denoted as $\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n$.
-2. Define the covariance matrix $\Sigma_n$ by evaluating $\Sigma_n^{ij} = \Sigma(\vec{x}_i, \vec{x}_j)$ for $i, j = 1, 2, \ldots, n$.
-3. Generate an $n$-variate realization $Y$ that follows a multivariate normal distribution with a mean of zero and a covariance matrix $\Sigma_n$, expressed as $Y \sim \mathcal{N}_n(0, \Sigma_n)$.
-4. Visualize the result by plotting it in the $x$-$y$ plane.
-
-### Construction of the Covariance Matrix
-
-Here is an one-dimensional example. The process begins by creating an input grid using $\vec{x}$-values. This grid consists of 100 elements, providing the basis for further analysis and visualization.
-
-```{python}
-import numpy as np
-n = 100
-X = np.linspace(0, 10, n, endpoint=False).reshape(-1,1)
-```
-
-In the context of this discussion, the construction of the covariance matrix, denoted as $\Sigma_n$, relies on the concept of inverse exponentiated squared Euclidean distances. However, it's important to note that a modification is introduced later in the process. Specifically, the diagonal of the covariance matrix is augmented with a small value, represented as "eps" or $\epsilon$.
-
-The reason for this augmentation is that while inverse exponentiated distances theoretically ensure the covariance matrix's positive definiteness, in practical applications, the matrix can sometimes become numerically ill-conditioned. By adding a small value to the diagonal, such as $\epsilon$, this ill-conditioning issue is mitigated. In this context, $\epsilon$ is often referred to as "jitter."
-
-
-```{python}
-import numpy as np
-from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
-from numpy.linalg import cholesky, solve
-from numpy.random import multivariate_normal
-def build_Sigma(X, sigma2):
-    n = X.shape[0]
-    k = X.shape[1]
-    D = zeros((k, n, n))
-    for l in range(k):
-        for i in range(n):
-            for j in range(i, n):
-                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
-    D = sum(D)
-    D = D + D.T
-    return exp(-D)  
-```
-
-
-```{python}
-sigma2 = np.array([1.0])
-Sigma = build_Sigma(X, sigma2)
-np.round(Sigma[:3,:], 3)
-```
-
-
-```{python}
-import matplotlib.pyplot as plt
-plt.imshow(Sigma, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
-```
-
-### Generation of Random Samples and Plotting the Realizations of the Random Function
-
-In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Sigma`. It is used as an essential component in generating random samples from the multivariate normal distribution.
-
-The function `multivariate_normal` is employed for this purpose. It serves as a random number generator specifically designed for the multivariate normal distribution. In this case, the mean of the distribution is set equal to `mean`, and the covariance matrix is provided as `Psi`. The argument `size` specifies the number of realizations, which, in this specific scenario, is set to one.
-
-By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Sigma` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples (here taken from the size of the matrix, e.g.,: `Sigma.shape[0]`).
-
-```{python}
-rng = np.random.default_rng(seed=12345)
-Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 1, check_valid="raise").reshape(-1,1)
-Y.shape
-```
-
-Now we can plot the results, i.e., a finite realization of the random function $Y()$ under a GP prior with a particular covariance structure. We will plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
-
-```{python}
-#| label: fig-mvn1-1
-#| fig-cap: "Realization of one random function under a GP prior. sigma2: 1.0"
-import matplotlib.pyplot as plt
-plt.plot(X, Y)
-plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
-plt.show()
-```
-
-```{python}
-#| label: fig-mvn1-3
-#| fig-cap: "Realization of three random functions under a GP prior. sigma2: 1.0"
-rng = np.random.default_rng(seed=12345)
-Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 3, check_valid="raise")
-plt.plot(X, Y.T)
-plt.title("Realization of Three Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
-plt.show()
-```
-
-### Properties of the 1d Example
-
-#### Several Bumps:
-In this analysis, we observe several bumps in the $x$-range of $[0,10]$.
-These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior:
-
-* When $x$ and $x'$ are one $\sigma$ unit apart, the correlation is $\exp\left(-\sigma^2 / (2\sigma^2)\right) = \exp(-1/2) \approx 0.61$, i.e., a relative high correlation.
-* $2\sigma$ apart means correlation $\exp(− 2^2 /2) \approx 0.14$, i.e., only small correlation.
-* $4\sigma$ apart means correlation $\exp(− 4^2 /2) \approx 0.0003$, i.e., nearly no correlation---variables are considered independent for almost all practical application.
-
-
-#### Smoothness:
-The function plotted in @fig-mvn1-1 represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
-
-#### Scale of Two:
-Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
-
-
-```{python}
-import numpy as np
-from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
-from numpy.random import multivariate_normal
-
-def build_Sigma(X, sigma2):
-    n = X.shape[0]
-    k = X.shape[1]
-    D = zeros((k, n, n))
-    for l in range(k):
-        for i in range(n):
-            for j in range(i, n):
-                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
-    D = sum(D)
-    D = D + D.T
-    return exp(-D)
-
-def plot_mvn( a=0, b=10, sigma2=1.0, size=1, n=100, show=True):    
-    X = np.linspace(a, b, n, endpoint=False).reshape(-1,1)
-    sigma2 = np.array([sigma2])
-    Sigma = build_Sigma(X, sigma2)
-    rng = np.random.default_rng(seed=12345)
-    Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = size, check_valid="raise")
-    plt.plot(X, Y.T)
-    plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
-    if show:
-        plt.show()
-```
-
-```{python}
-#| label: fig-mvn2
-#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 10"
-plot_mvn(a=0, b=10, sigma2=10.0, size=3, n=250)
-```
-
-```{python}
-#| label: fig-mvn5
-#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 0.1"
-plot_mvn(a=0, b=10, sigma2=0.1, size=3, n=250)
-```
-
-
-## Kriging: Modeling Basics
-
-### The Kriging Idea in a Nutshell
-
-We consider observed data of an unknown function $f$ at $n$ points $x_1, \ldots, x_n$, see @fig-unknownf.
-These measurements a considered as realizations of MVN random variables $Y_1, \ldots, Y_n$ with mean $\mu$ and covariance matrix $\Sigma_n$ as shown in @fig-mvn1-3, @fig-mvn2 or @fig-mvn5. In Kriging, a more general covariance matrix (or equivalently, a correlation matrix $\Psi$) is used, see @eq-krigingbase.
-Using a maximum likelihood approach, we can estimate the unknown parameters $\mu$ and $\Sigma_n$ from the data so that the likelihood function is maximized.
-
-```{python}
-#| label: fig-unknownf
-#| fig-cap: "Eight measurements of an unknown function"
-#| echo: false
-import matplotlib.pyplot as plt
-import numpy as np
-n = 8
-X = np.linspace(0, 2*np.pi, n, endpoint=False).reshape(-1,1)
-y = 3.5 * np.sin(X)*np.cos(X)
-plt.plot(X, y, "bo", label="Measurements")
-plt.grid()
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
-```
-
-
-
-### The Kriging Basis Function
-
-$k$-dimensional basis functions of the form 
-$$
-\psi(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l}^{(j)} | ^{p_l} \right)
-$$ {#eq-krigingbase}
-are used in a method known as Kriging. Note, $\vec{x}^{(i)}$ denotes the $k$-dim vector $\vec{x}^{(i)}= (x_1^{(i)}, \ldots, x_k^{(i)})^T$.
-
-The Kriging basis function is related to the 1-dim Gaussian basis function (@eq-Sigma),
-which is defined as
-$$
-\Sigma(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\{ - || \vec{x}^{(i)} - \vec{x}^{(j)}||^2 / (2\sigma^2) \}.
-$$ {#eq-Sigma2}
-
-There are some differences between Gaussian basis functions and Kriging basis functions:
-
-  * Where the Gaussian basis function has $1/(2\sigma^2)$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
-  * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
-  * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent $p_l$ to vary (typically from 1 to 2).
-
-### The Correlation Coefficient
+## Covariance and Correlation
 
 In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
 The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
@@ -945,7 +665,6 @@ $$
 So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
 The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
 
-### Covariance Matrix and Correlation Matrix
 
 
 ::: {.callout-note}
@@ -988,7 +707,7 @@ and from @eq-corrxy
 
 $$
 \text{Cov}(Y, Y) = \sigma_Y^2 \text{Cor}(Y, Y).
-$$
+$$ {#eq-covyy-corr}
 
 :::
 
@@ -1014,12 +733,485 @@ print(covariance_to_correlation(cov))
 
 
 
+
+## Cholesky Decomposition and Positive Definite Matrices
+
+The covariance matrix must be positive definite for a multivariate normal distribution for a couple of reasons:
+
+* Semidefinite vs Definite: A covariance matrix is always symmetric and positive semidefinite. However, for a multivariate normal distribution, it must be positive definite, not just semidefinite. This is because a positive semidefinite matrix can have zero eigenvalues, which would imply that some dimensions in the distribution have zero variance, collapsing the distribution in those dimensions. A positive definite matrix has all positive eigenvalues, ensuring that the distribution has positive variance in all dimensions.
+* Invertibility: The multivariate normal distribution's probability density function involves the inverse of the covariance matrix. If the covariance matrix is not positive definite, it may not be invertible, and the density function would be undefined.
+
+In summary, the covariance matrix being positive definite ensures that the multivariate normal distribution is well-defined and has positive variance in all dimensions.
+
+
+The definiteness of a matrix can be checked by examining the eigenvalues of the matrix. If all eigenvalues are positive, the matrix is positive definite.
+
+```{python}
+import numpy as np
+
+def is_positive_definite(matrix):
+    return np.all(np.linalg.eigvals(matrix) > 0)
+
+matrix = np.array([[9, 4], [4, 9]])
+print(is_positive_definite(matrix))  # Outputs: True
+```
+
+ However, a more efficient way to check the definiteness of a matrix is through the Cholesky decomposition.
+
+::: {#def-cholesky-decomposition}
+### Cholesky Decomposition
+For a given symmetric positive-definite matrix $A \in \mathbb{R}^{n \times n}$,
+there exists a unique lower triangular matrix $L \in \mathbb{R}^{n \times n}$ with positive diagonal elements such that:
+
+$$
+A = L L^T.
+$$
+
+Here, $L^T$ denotes the transpose of $L$.
+:::
+
+::: {#exm-cholesky-decomposition}
+### Cholesky Decomposition
+
+Given a symmetric positive-definite matrix $A = \begin{pmatrix} 9 & 4 \\ 4 & 9 \end{pmatrix}$,
+the Cholesky decomposition computes the lower triangular matrix $L$ such that $A = L L^T$.
+The matrix $L$ is computed as:
+$$
+L = \begin{pmatrix} 3 & 0 \\ 4/3 & 2 \end{pmatrix},
+$$
+so that
+$$
+L L^T = \begin{pmatrix} 3 & 0 \\ 4/3 & \sqrt{65}/3 \end{pmatrix} \begin{pmatrix} 3 & 4/3 \\ 0 & \sqrt{65}/3 \end{pmatrix} = \begin{pmatrix} 9 & 4 \\ 4 & 9 \end{pmatrix} = A.
+$$
+
+:::
+
+An efficient implementation of the definiteness-check based on Cholesky is already available in the `numpy` library.
+It provides the `np.linalg.cholesky` function to compute the Cholesky decomposition of a matrix.
+This more efficient `numpy`-approach can be used as follows:
+
+```{python}
+import numpy as np
+
+def is_pd(K):
+    try:
+        np.linalg.cholesky(K)
+        return True
+    except np.linalg.linalg.LinAlgError as err:
+        if 'Matrix is not positive definite' in err.message:
+            return False
+        else:
+            raise
+matrix = np.array([[9, 4], [4, 9]])
+print(is_pd(matrix))  # Outputs: True
+```
+
+
+
+
+
+::: {#exm-cholesky-decomposition}
+### Cholesky decomposition using `numpy`
+
+`linalg.cholesky` computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix $L$ such that $LL^T = A$. If the matrix is not positive definite, an error (`LinAlgError`) is raised.
+
+
+```{python}
+import numpy as np
+
+# Define a Hermitian, positive-definite matrix
+A = np.array([[9, 4], [4, 9]]) 
+
+# Compute the Cholesky decomposition
+L = np.linalg.cholesky(A)
+
+print("L = \n", L)
+print("L*LT = \n", np.dot(L, L.T))
+
+```
+
+::: 
+
+
+## Maximum Likelihood Estimation: Multivariate Normal Distribution
+
+### The Joint Probability Density Function of the Multivariate Normal Distribution
+
+Consider the first $n$ terms of an identically and independently distributed (i.i..d.) sequence ${X^{(j)}}$ of $k$-dimensional multivariate normal random vectors, i.e.,
+$$
+X^{(j)} \sim N(\mu, \Sigma), j=1,2,\ldots.
+$$ {#eq-mvn}
+
+The joint probability density function of the  $j$-th term of the sequence is
+$$
+f_X(x_j) = \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right),
+$$
+
+where:
+$\mu$ is the $k \times 1$  mean vector;
+$\Sigma$ is the  $k \times k$ covariance matrix.
+The covariance matrix $\Sigma$ is assumed to be positive definite, so that its determinant is strictly positive.
+We use $x_1, \ldots x_n$, i.e., the realizations of the first $n$ random vectors in the sequence, to estimate the two unknown parameters  $\mu$ and  $\Sigma$.
+
+### The Log-Likelihood Function
+
+::: {#def-likelihood}
+### Likelihood Function
+The likelihood function is defined as the joint probability density function of the observed data, viewed as a function of the unknown parameters.
+:::
+
+Since the terms in the sequence @eq-mvn are independent, their joint density is equal to the product of their marginal densities. As a consequence, the likelihood function can be written as the product of the individual densities:
+
+$$
+L(\mu, \Sigma) = \prod_{j=1}^n f_X(x_j) = \prod_{j=1}^n \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}} \exp\left(-\frac{1}{2} (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right)
+$$
+$$
+= \frac{1}{(2\pi)^{nk/2} \det(\Sigma)^{n/2}} \exp\left(-\frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu)\right).
+$$ {#eq-likelihood-mvn}
+
+Taking the natural logarithm of the likelihood function, we obtain the log-likelihood function:
+
+::: {#exm-log-likelihood}
+### Log-Likelihood Function of the Multivariate Normal Distribution
+
+The log-likelihood function of the multivariate normal distribution is given by
+$$
+\ell(\mu, \Sigma) = -\frac{nk}{2} \ln(2\pi) - \frac{n}{2} \ln(\det(\Sigma)) - \frac{1}{2} \sum_{j=1}^n (x_j-\mu)^T\Sigma^{-1} (x_j-\mu).
+$$
+:::
+
+The likelihood function is well-defined only if $\det(\Sigma)>0$.
+
+
+## Constructing a Surrogate
+
+::: {.callout-note}
+### Note
+This section is based on chapter 2 in @Forr08a.
+:::
+
+::: {#def-black-box}
+### Black Box Problem
+We are trying to learn a mapping that converts the vector $\mathbf{x}$ into a scalar
+output $y$, i.e., we are trying to learn a function
+$$
+y = f(x).
+$$
+If  function is hidden ("lives in a black box"), so that the physics of the problem is not known, the 
+problem is called a black box problem.
+:::
+
+This black box could take the form of either a physical or computer experiment, for
+example, a finite element code, which calculates the maximum stress ($\sigma$) for given product
+dimensions ($\mathbf{x}$).
+
+::: {#def-generic-solution}
+### Generic Solution
+The generic solution method is to collect the output values $y^{(1)}$, $y^{(2)}$, \ldots, $y^{(n)}$
+that result from a set of inputs $\mathbf{x}^{(1)}$, $\mathbf{x}^{(2)}$, \ldots, $\mathbf{x}^{(n)}$ 
+and find a best guess $\hat{f}(\mathbf{x})$ for the black box
+mapping $f$, based on these known observations.
+:::
+
+#### Stage One: Preparing the Data and Choosing a Modelling Approach
+
+The first step is the identification, through a small number of observations,
+of the inputs that have a significant impact on $f$;
+that is the determination of the shortest design variable vector $\mathbf{x} = \{x_1, x_2, \ldots, x_k\}^T$ that, by
+sweeping the ranges of all of its variables, can still elicit most of the behavior the black box
+is capable of.
+The ranges of the various design variables also have to be established at this stage.
+
+The second step is to recruit $n$ of these $k$-vectors into a list 
+$$
+\mathbf{X} = \{ \mathbf{x}^{(1)},\mathbf{x}^{(2)}, \ldots, \mathbf{x}^{(n)} \}^T,
+$$
+where each $\mathbf{x}^{(i)}$ is a $k$-vector. The corresponding responses are collected in a vector
+such that this represents the design space as thoroughly as possible.
+
+In the surrogate modeling process, the number of samples $n$ is often limited,
+as it is constrained by the computational cost (money and/or time)
+associated with obtaining each observation.
+
+It is advisable to scale $\mathbf{x}$ at this stage into the unit cube $[0, 1]^k$,
+a step that can simplify the subsequent mathematics and prevent multidimensional scaling issues.
+
+We now focus on the attempt to learn $f$ through data pairs 
+$$
+\{ (\mathbf{x}^{(1)}, y^{(1)}), (\mathbf{x}^{(2)}, y^{(2)}), \ldots, (\mathbf{x}^{(n)}, y^{(n)}) \}.
+$$
+
+This supervised learning process essentially involves searching across the space of possible functions 
+$\hat{f}$ that would replicate observations of $f$.
+This space of functions is infinite.
+Any number of hypersurfaces could be drawn to pass through or near the known observations,
+accounting for experimental error.
+However, most of these would generalize poorly;
+they would be practically useless at predicting responses at new sites, which is the ultimate goal.
+
+::: {#exm-needle-haystack}
+### The Needle(s) in the Haystack Function
+
+An extreme example is the 'needle(s) in the haystack' function:
+
+$$
+f(x) = \begin{cases} 
+y^{(1)}, & \text{if } x = \mathbf{x}^{(1)} \\
+y^{(2)}, & \text{if } x = \mathbf{x}^{(2)} \\
+\vdots & \\
+y^{(n)}, & \text{if } x = \mathbf{x}^{(n)} \\
+0, & \text{otherwise.}
+\end{cases}
+$$
+
+While this predictor reproduces all training data,
+it seems counter-intuitive and unsettling to predict 0 everywhere else for most engineering functions.
+Although there is a small chance that the function genuinely resembles the equation above and we sampled exactly where the needles are,
+it is highly unlikely.
+:::
+
+There are countless other configurations, perhaps less contrived, that still generalize poorly.
+This suggests a need for systematic means to filter out nonsensical predictors.
+In our approach, we embed the structure of $f$ into the model selection algorithm and search over its parameters to fine-tune the approximation to observations. For instance, consider one of the simplest models,
+$$
+f(x, \mathbf{w}) = \mathbf{w}^T\mathbf{x} + v.
+$$
+Learning $f$ with this model implies that its structure---a hyperplane---is predetermined, and the fitting process involves finding the $k + 1$ parameters (the slope vector $\mathbf{w}$ and the intercept $v$) that best fit the data.
+This will be accomplished in Stage Two.
+
+Complicating this further is the noise present in observed responses
+(we assume design vectors $\mathbf{x}$ are not corrupted).
+Here, we focus on learning from such data, which sometimes risks overfitting.
+
+::: {#def-overfitting}
+### Overfitting
+Overfitting occurs when the model becomes too flexible and captures not only the underlying trend but also the noise in the data.
+:::
+
+In the surrogate modeling process, the second stage as described in  @sec-stage-two,
+addresses this issue of complexity control by estimating the parameters of the fixed structure model.
+However, foresight is necessary even at the model type selection stage.
+
+Model selection often involves physics-based considerations,
+where the modeling technique is chosen based on expected underlying responses.
+
+::: {#exm-model-selection}
+### Model Selection
+
+Modeling stress in an elastically deformed solid due to small strains may justify using a simple linear approximation.
+Without insights into the physics, and if one fails to account for the simplicity of the data, a more complex and excessively flexible model may be incorrectly chosen. Although parameter estimation might still adjust the approximation to become linear,
+an opportunity to develop a simpler and robust model may be lost.
+
+* Simple linear (or polynomial) models, despite their lack of flexibility, have advantages like applicability in further symbolic computations.
+* Conversely, if we incorrectly assume a quadratic process when multiple peaks and troughs exist, the parameter estimation stage will not compensate for an unsuitable model choice. A quadratic model is too rigid to fit a multimodal function, regardless of parameter adjustments.
+
+:::
+
+#### Stage Two: Parameter Estimation and Training {#sec-stage-two}
+
+Assuming that Stage One helped identify the $k$ critical design variables, acquire the learning data set, and select a generic model structure $f(\mathbf{x}, \mathbf{w})$, the task now is to estimate parameters $\mathbf{w}$ to ensure the model fits the data optimally. Among several estimation criteria, we will discuss two methods here.
+
+::: {#def-mle}
+
+### Maximum Likelihood Estimation
+
+Given a set of parameters $\mathbf{w}$, the model $f(\mathbf{x}, \mathbf{w})$ allows computation of the probability of the data set 
+$$
+\{(\mathbf{x}^{(1)}, y^{(1)} \pm \epsilon), (\mathbf{x}^{(2)}, y^{(2)} \pm \epsilon), \ldots, (\mathbf{x}^{(n)}, y^{(n)} \pm \epsilon)\}
+$$
+resulting from $f$ (where $\epsilon$ is a small error margin around each data point).
+
+Taking @eq-likelihood-mvn and assuming errors $\epsilon$ are independently and normally distributed with standard deviation $\sigma$,
+the probability of the data set is given by:
+
+$$
+P = \frac{1}{(2\pi \sigma^2)^{n/2}} \exp \left[ -\frac{1}{2\sigma^2} \sum_{i=1}^{n} \left( y^{(i)} - f(\mathbf{x}^{(i)}, \mathbf{w}) \right)^2 \epsilon \right].
+$$
+
+Intuitively, this is equivalent to the likelihood of the parameters given the data. 
+Accepting this intuitive relationship as a mathematical one aids in model parameter estimation.
+This is achieved by maximizing the likelihood or, more conveniently, minimizing the negative of its natural logarithm:
+
+$$ 
+\min_{\mathbf{w}} \sum_{i=1}^{n} \frac{[y^{(i)} - f(\mathbf{x}^{(i)}, \mathbf{w})]^2}{2\sigma^2} + \frac{n}{2} \ln \epsilon .
+$$ {#eq-forr23}
+
+:::
+
+
+If we assume $\sigma$ and $\epsilon$ are constants, @eq-forr23 simplifies to the well-known least squares criterion:
+
+$$ 
+\min_{\mathbf{w}} \sum_{i=1}^{n} [y^{(i)} - f(\mathbf{x}^{(i)}, \mathbf{w})]^2 . 
+$$
+
+Cross-validation is another method used to estimate model performance.
+
+::: {#def-cross-validation}
+### Cross-Validation
+Cross-validation splits the data randomly into $q$ roughly equal subsets,
+and then cyclically removing each subset and fitting the model to the remaining $q - 1$ subsets.
+A loss function $L$ is then computed to measure the error between the predictor and the withheld subset for each iteration,
+with contributions summed over all $q$ iterations.
+More formally, if a mapping $\theta: \{1, \ldots, n\} \to \{1, \ldots, q\}$ describes the allocation of the $n$ training points to one of the $q$ subsets and $f^{(-\theta(i))}(\mathbf{x})$ is the predicted value by removing the subset $\theta(i)$ (i.e., the subset where observation $i$ belongs), the cross-validation measure, used as an estimate of prediction error, is:
+
+$$ 
+CV = \frac{1}{n} \sum_{i=1}^{n} L(y^{(i)}, f^{(-\theta(i))}(\mathbf{x}^{(i)})) . 
+$$ {#eq-cv-basis}
+
+:::
+
+Introducing the squared error as the loss function and considering our generic model $f$ still dependent on undetermined parameters,
+we write @eq-cv-basis as:
+
+$$ 
+CV = \frac{1}{n} \sum_{i=1}^{n} [y^{(i)} - f^{(-\theta(i))}(\mathbf{x}^{(i)})]^2 .
+$$ {#eq-cv-sse}
+
+
+The extent to which @eq-cv-sse is an unbiased estimator of true risk depends on $q$.
+It is shown that if $q = n$, the leave-one-out cross-validation (LOOCV) measure is almost unbiased.
+However, LOOCV can have high variance because subsets are very similar.
+ @Hast17a) suggest using compromise values like $q = 5$ or $q = 10$.
+Using fewer subsets also reduces the computational cost of the cross-validation process, see also @arlot2010 and @Koha95a.
+
+#### Stage Three: Model Testing
+
+If there is a sufficient amount of observational data, a random subset should be set aside initially for model testing. @Hast17a recommend setting aside approximately $0.25n$ of $\mathbf{x} \rightarrow y$ pairs for testing purposes. 
+These observations must remain untouched during Stages One and Two, as their sole purpose is to evaluate the testing error---the difference between true and approximated function values at the test sites---once the model has been built.
+Interestingly, if the main goal is to construct an initial surrogate for seeding a global refinement criterion-based strategy (as discussed in Section 3.2 in @Forr08a), the model testing phase might be skipped.
+
+It is noted that, ideally, parameter estimation (Stage Two) should also rely on a separate subset. However, observational data is rarely abundant enough to afford this luxury (if the function is cheap to evaluate and evaluation sites are selectable, a surrogate model might not be necessary).
+
+When data are available for model testing and the primary objective is a globally accurate model, using either a root mean square error (RMSE) metric or the correlation coefficient ($r^2$) is recommended.
+To test the model, a test data set of size $n_t$ is used alongside predictions at the corresponding locations to calculate these metrics, which are defined as follows:
+
+::: {#def-rmse}
+
+### Root Mean Square Error (RMSE)
+$$
+\text{RMSE} = \sqrt{\frac{1}{n_t} \sum_{i=1}^{n_t} (y^{(i)} - \hat{y}^{(i)})^2}, 
+$$
+:::
+
+and
+
+::: {#def-r2}
+### Correlation Coefficient ($r^2$)
+
+$$ 
+r^2 = \frac{\text{cov}(y, \hat{y})}{\sqrt{\text{var}(y)\text{var}(\hat{y})}}, 
+$$ {#eq-r2}
+:::
+
+@eq-r2 is the correlation coefficient between the observed $y$ and predicted $\hat{y}$ values and can be expanded as:
+
+$$ 
+r^2 = \frac{n_t \sum_{i=1}^{n_t} y^{(i)} \hat{y}^{(i)} - \left(\sum_{i=1}^{n_t} y^{(i)}\right) \left(\sum_{i=1}^{n_t} \hat{y}^{(i)}\right)}{\left( n_t \sum_{i=1}^{n_t} (y^{(i)})^2 - \left(\sum_{i=1}^{n_t} y^{(i)}\right)^2 \right) \left( n_t \sum_{i=1}^{n_t} (\hat{y}^{(i)})^2 - \left(\sum_{i=1}^{n_t} \hat{y}^{(i)}\right)^2 \right)}.
+$$
+
+
+Ideally, the RMSE should be minimized, acknowledging its limitation by errors in the objective function $f$ calculation. If the error level is known, like a standard deviation, the aim might be to achieve an RMSE within this value. Often, the target is an RMSE within a specific percentage of the observed data's objective value range. 
+
+The correlation coefficient $r^2$ does not require scaling the data sets and only compares landscape shapes, not values. An $r^2 > 0.8$ typically indicates a surrogate with good predictive capability.
+
+
+The methods outlined provide quantitative assessments of model accuracy, yet visual evaluations can also be insightful. In general, the RMSE won't reach zero but will stabilize around a low value.
+At this point, the surrogate model is saturated with data, and further additions do not enhance the model globally (though local improvements can occur at newly added points if using an interpolating model). 
+
+::: {#exm-tea-sugar}
+### The Tea and Sugar Analogy
+
+@Forr08a illustrates this saturation point using a comparision with a cup of tea and sugar.
+The tea represents the surrogate model, and sugar represents data. 
+Initially, the tea is unsweetened, and adding sugar increases its sweetness.
+Eventually, a saturation point is reached where no more sugar dissolves, and the tea cannot get any sweeter.
+Similarly, a more flexible model, like one with additional parameters or employing interpolation rather than regression, can increase the saturation point---akin to making a hotter cup of tea for dissolving more sugar.
+
+:::
+
+### Sampling Plans
+
+::: {#def-sampling-plan}
+
+#### Sampling Plan
+In the context of computer experiments, the term "sampling plan" refers to the set of input values at which the computer code is evaluated.
+
+:::
+
+The goal of a sampling plan is to efficiently explore the input space to understand the behavior of the computer code and build a surrogate model that accurately represents the code's behavior.
+Traditionally, Response Surface Methodology (RSM) has been used to design sampling plans for computer experiments. 
+These sampling plans are based on procedures that generate points by means of a rectangiular grid or a factorial design.
+However, more recently, Design and Analysis of Computer Experiments (DACE) has emerged as a more flexible and powerful approach for designing sampling plans. `spotpython` uses a class for generating space-filling designs using Latin Hypercube Sampling (LHS) and maximin distance criteria. It is based on `scipy`'s `LatinHypercube` class. The following example demonstrates how to generate a Latin Hypercube Sampling design using `spotpython`. The result is shown in @fig-lhs-spotpython. As can seen in the figure, a Latin hypercube sample generates $n$ points in $[0,1)^{d}$. Each univariate marginal distribution is stratified, placing exactly one point in $[j/n, (j+1)/n)$ for $j=0,1,...,n-1$.
+
+```{python}
+#| label: fig-lhs-spotpython
+#| fig-cap: "Latin Hypercube Sampling design (sampling plan)"
+import matplotlib.pyplot as plt
+import numpy as np
+from spotpython.design.spacefilling import SpaceFilling
+lhd = SpaceFilling(k=2, seed=123)
+X = lhd.scipy_lhd(n=10, repeats=1, lower=np.array([0, 0]), upper=np.array([10, 10]))
+plt.scatter(X[:, 0], X[:, 1])
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.grid()
+```
+
+
+## Kriging
+
+### The Kriging Idea in a Nutshell
+
+Kriging can be applied to planned experiments, where the design is based on a sampling plan as shown in @fig-lhs-spotpython, as well as to computer experiments, where the design is based on the computer code's input space, as shown in @fig-unknownf.
+
+
+```{python}
+#| label: fig-unknownf
+#| fig-cap: "Eight measurements of an unknown function. No sampling plan was used."
+#| echo: false
+import matplotlib.pyplot as plt
+import numpy as np
+n = 8
+X = np.linspace(0, 2*np.pi, n, endpoint=False).reshape(-1,1)
+y = 3.5 * np.sin(X)*np.cos(X)
+plt.plot(X, y, "bo", label="Measurements")
+plt.grid()
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
+```
+
+In general, we onsider observed data of an unknown function $f$ at $n$ points $x_1, \ldots, x_n$.
+These measurements a considered as realizations of MVN random variables $Y_1, \ldots, Y_n$ with mean $\mu$ and covariance matrix $\Sigma_n$
+as shown in @fig-mvn1-3, @fig-mvn2 or @fig-mvn5.
+
+In Kriging, a more general covariance matrix (or equivalently, a correlation matrix $\Psi$) is used, see @eq-krigingbase.
+Using a maximum likelihood approach, we can estimate the unknown parameters $\mu$ and $\Sigma_n$ from the data so that the likelihood function is maximized.
+
+
+::: {#def-kriging-basis-function}
+
+### The Kriging Basis Functions
+
+Kriging uses $k$-dimensional basis functions of the form 
+$$
+\psi(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp \left( - \sum_{l=1}^k \theta_l | x_{l}^{(i)} - x_{l}^{(j)} | ^{p_l} \right),
+$$ {#eq-krigingbase}
+where $\vec{x}^{(i)}$ denotes the $k$-dim vector $\vec{x}^{(i)}= (x_1^{(i)}, \ldots, x_k^{(i)})^T$.
+
+:::
+
+
+
 ### The Kriging Model
 
 Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
 $\vec{X}$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
 $\vec{y}$ is a $(n\times 1)$ vector.
+We want to find an expression for a predicted values at a new point $\vec{x}$, denoted as $\hat{y}$.
 
+We start with an abstract, not really intuitive concept:
 The observed responses $\vec{y}$ are considered as if they are from a stochastic
 process, which will be denoted as
 $$
@@ -1028,18 +1220,14 @@ $$
 \vdots\\
 \vec{Y}(\vec{x}^{(n)})\\
 \end{pmatrix}.
-$$
+$$ {#eq-yvec-51}
 
-The set of random vectors (also referred to as a *random field*) has a mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
-
-### Correlations
-
+The set of random vectors from @eq-yvec-51 (also referred to as a *random field*) has a mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
 The random vectors are correlated with each other using the basis function expression from @eq-krigingbase:
 $$
 \text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\left\{ - \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right\}.
-$$
-
-The $(n \times n)$ correlation matrix of the observed sample data is 
+$$ {#eq-corr-kriging-51}
+Using @eq-corr-kriging-51, we can compute the $(n \times n)$ correlation matrix $\vec{\Psi}$ of the observed sample data as shown in @eq-corr-matrix-kriging-51, 
 
 $$
 \vec{\Psi} = \begin{pmatrix}
@@ -1061,20 +1249,25 @@ $$
 \vec{Y}(\vec{x}^{(i)}),
 \vec{Y}(\vec{x}^{(l)}) 
 \right)
-\end{pmatrix}.
+\end{pmatrix},
+$$ {#eq-corr-matrix-kriging-51}
+
+and a covariance matrix as shown in @eq-cov-matrix-kriging-52,
+
 $$
+\text{Cov}(\mathbf{Y}, \mathbf{Y} ) = \sigma^2 \mathbf{\Psi}.
+$$ {#eq-cov-matrix-kriging-52}
 
-Note: correlations depend on the absolute distances between sample points
-$|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$.
+This assumed correlation between the sample data reflects our expectation that an engineering function will behave in a certain way and it will be smoothly and continuous.
 
-Correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
+We now have a set of $n$ random variables ($\mathbf{Y}$) that are correlated with each other as described in the $(n \times n)$ correlation matrix $\mathbf{\Psi}$, see @eq-corr-matrix-kriging-51. The correlations depend on the absolute distances between sample points $|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$. The correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
 
-$\theta$ can be seen as a width parameter:
+Three different correlations are shown in @fig-pval12: $p_j= 0.1, 1, 2$. The smoothness parameter $p_j$ affects the correlation:
 
-* low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample.
-* high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s.
-* $\theta_j$ is a measure of how active the function we are approximating is.
-* High $\theta_j$ indicate important parameters, see @fig-theta12.
+* With $p_j=0.1$, there is basicaly no immediate correlation between the points and there is a near discontinuity between the points $Y(\vec{x}_j^{(i)})$ and $Y(\vec{x}_j)$.
+* With $p_j=2$, the correlation is more smooth and we have a continuous gradient through $x_j^{(i)} - x_j$. 
+
+Reducing $p_j$ increases the rate at which the correlation initially drops with distance. This is shown in @fig-pval12.
 
 
 ```{python}
@@ -1082,37 +1275,62 @@ $\theta$ can be seen as a width parameter:
 import numpy as np
 import matplotlib.pyplot as plt
 
-def squared_euclidean_distance(point1, point2, theta=1.0):
-    return theta* (point1 - point2)**2
+def squared_euclidean_distance(point1, point2, theta=1.0, p_val=2):
+    return theta* (point1 - point2)**p_val
 
-def inverse_exp_squared_distance(point1, point2,theta):
-    return np.exp(-squared_euclidean_distance(point1, point2, theta))
+def inverse_exp_squared_distance(point1, point2, theta, p_val=2):
+    return np.exp(-squared_euclidean_distance(point1=point1, point2=point2, theta=theta, p_val=p_val))
 
 def generate_line(distance, step=0.01):
     return np.arange(0, distance+step, step)
 
-def visualize_inverse_exp_squared_distance(distance, point, theta_values):
+def visualize_inverse_exp_squared_distance_theta(distance, point, theta_values, p_val=2):
     line = generate_line(distance)
-    
     for theta in theta_values:
-        distances = [inverse_exp_squared_distance(p, point, theta) for p in line]
+        distances = [inverse_exp_squared_distance(p, point, theta, p_val) for p in line]
         plt.plot(line, distances, label=f'theta={theta}')
-    
     plt.legend()
     plt.show()
+
+def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
+    line = generate_line(distance)
+    for p_val in p_values:
+        distances = [inverse_exp_squared_distance(p, point, theta, p_val) for p in line]
+        plt.plot(line, distances, label=f'p={p_val}')
+    plt.legend()
+    plt.show()
+
 ```
 
 
 ```{python}
-#| label: fig-theta12
-#| fig-cap: "Theta set to 1/2, 1, and 2"
-visualize_inverse_exp_squared_distance(5, 0, theta_values=[0.5, 1, 2.0])
+#| label: fig-pval12
+#| fig-cap: "Correlations with varying $\\theta$. $\\theta$ set to 1/10, 1, and 10."
+#| echo: false
+visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_values=[0.1, 1, 2.0])
 ```
 
 
+@fig-theta12 visualizes the correlation between two points $Y(\vec{x}_j^{(i)})$ and $Y(\vec{x}_j)$ for different values of $\theta$. The parameter $\theta$ can be seen as a width parameter:
+
+* low $\theta_j$ means that all points will have a high correlation, with $Y(x_j)$ being similar across the sample.
+* high $\theta_j$ means that there is a significant difference between the $Y(x_j)$'s.
+* $\theta_j$ is a measure of how active the function we are approximating is.
+* High $\theta_j$ indicate important parameters, see @fig-theta12.
+
+```{python}
+#| label: fig-theta12
+#| fig-cap: "Correlations with varying $\\theta$. $\\theta$ set to 1/10, 1, and 10."
+#| echo: false
+visualize_inverse_exp_squared_distance_theta(distance= 2.5, point=0, theta_values=[0.1, 1, 10.0])
+```
+
+Considering the activity parameter $\theta$ is useful in high-dimensional problems where it is difficult to visualize the design landscape and the effect of the variable is unknown. By examining the elements of the vector $\vec{\theta}$, we can identify the most important variables and focus on them. This is a crucial step in the optimization process, as it allows us to reduce the dimensionality of the problem and focus on the most important variables.
 
 
-::: {.callout-note}
+
+::: {#exm-corr-matrix-detailed}
+
 #### Example: The Correlation Matrix (Detailed Computation)
 
 Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
@@ -1215,7 +1433,7 @@ Psi
 ```
 :::
 
-::: {.callout-note}
+::: {#exm-corr-matrix-existing}
 ### Example: The Correlation Matrix (Using Existing Functions)
 
 The same result as computed in the previous example can be obtained with existing python functions, e.g., from the package `scipy`.
@@ -1262,40 +1480,59 @@ np.linalg.cond(Psi)
 ```
 
 
-
-
 ### MLE to estimate $\theta$ and $p$
 
+Until now, the observed data $\vec{y}$ was not used.
 We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
 To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
 which can be expressed in terms of the sample data 
 $$L\left(\vec{Y}(\vec{x}^{(1)}), \ldots, \vec{Y}(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left\{ \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right\},$$ 
 and formulated as the log-likelihood:
-$$\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.$$
+$$
+\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
+$$ {#eq-loglikelihood-55}
 
 Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
-$$\hat{\mu} = \frac{\vec{1}^T \vec{\Psi}^{-1} \vec{y}^T}{\vec{1}^T \vec{\Psi}^{-1} \vec{1}^T}$$ 
+$$
+\hat{\mu} = \frac{\vec{1}^T \vec{\Psi}^{-1} \vec{y}^T}{\vec{1}^T \vec{\Psi}^{-1} \vec{1}^T}
+$$ {#eq-muhat-55}
 and 
-$$\hat{\sigma} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.$$
+$$
+\hat{\sigma}^2 = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.
+$$ {#eq-sigmahat-55}
 
-Combining the equations leads to the concentrated log-likelihood: 
-$$\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.$$ {#eq-concentrated-loglikelihood}
+Combining the equations, i.e., substituting @eq-muhat-55 and @eq-sigmahat-55 inti @eq-loglikelihood-55 leads to the concentrated log-likelihood function: 
+$$
+\ln(L) = - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.
+$$ {#eq-concentrated-loglikelihood}
 
-::: {.callout-note}
-#### Note: The Concentrated Log-Likelihood
+::: {#rem-concentrated-loglikelihood}
+### The Concentrated Log-Likelihood
 * The first term in @eq-concentrated-loglikelihood requires information about the measured point (observations) $y_i$.
-* To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the equation  is not differentiable.
+* To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the function (@eq-concentrated-loglikelihood) is not differentiable.
 :::
 
-
-### Tuning $\theta$ and $p$
-
+The concentrated log-likelihood function is very quick to compute. We do not need a statistical model, because we are only interested in the maximum likelihood estimate (MLE) of $\theta$ and $p$.
 Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
 After the optimization, the correlation matrix $\Psi$ is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. 
 
-## Kriging Prediction
+Observing @fig-theta12, there's significant change between $\theta = 0.1$ and $\theta = 1$, just as there is between $\theta = 1$ and $\theta = 10$. Hence, it is sensible to search for $\theta$ on a logarithmic scale. Suitable search bounds typically range from $10^{-3}$ to $10^2$, although this is not a stringent requirement. Importantly, the scaling of the observed data does not affect the
+values of $\hat{\theta}$, but the scaling of the design space does.
+Therefore, it is advisable to consistently scale variable ranges between zero and one to ensure consistency in the degree of activity $\hat{\theta}_j$ represents across different problems.
 
-### The Augmented Correlation Matrix
+Optimizing $\hat{\phi}$ can enhance prediction accuracy across various problems.
+
+### Implementing an MLE of the Model Parameters
+
+The matrix algebra necessary for calculating the likelihood is the most computationally intensive aspect of the Kriging process. It's crucial to ensure that the code implementation is as efficient as possible.
+
+Given that $\Psi$ (our correlation matrix) is symmetric, only half of the matrix needs to be computed before adding it to its transpose. When calculating the log-likelihood, several matrix inversions are required. The fastest approach is to conduct one Cholesky factorization and then apply backward and forward substitution for each inverse.
+
+The Cholesky factorization is applicable only to positive-definite matrices, which $\Psi$ generally is. However, if $\Psi$ becomes nearly singular, such as when the $\mathbf{x}^{(i)}$'s are densely packed, the Cholesky factorization might fail. In these cases, one could employ an LU-decomposition, though the result might be unreliable. When $\Psi$ is near singular, the best course of action is to either use regression techniques or, as we do here, assign a poor likelihood value to parameters generating the near singular matrix, thus diverting the MLE search towards better-conditioned $\Psi$ matrices.
+
+Another consideration in calculating the concentrated log-likelihood is that $\det(\Psi) \rightarrow 0$ for poorly conditioned matrices, so it is advisable to use twice the sum of the logarithms of the diagonal of the Cholesky factorization when calculating $\ln(\lvert\Psi\rvert)$ in @eq-concentrated-loglikelihood.
+
+### Kriging Prediction
 
 We will use the Kriging correlation $\Psi$ to predict new values based on the observed data. The matrix algebra involved for calculating the likelihood is the most computationally intensive part of the Kriging process. Care must be taken that the computer code is as efficient as possible.
 
@@ -1322,6 +1559,10 @@ $$ \vec{\psi} = \begin{pmatrix}
 \vec{\psi}^{(n)}
 \end{pmatrix}.
 $$
+
+::: {#def-augmented-correlation-matrix}
+### The Augmented Correlation Matrix
+
 The augmented correlation matrix is constructed as
 $$ \tilde{\vec{\Psi}} =
 \begin{pmatrix}
@@ -1329,18 +1570,19 @@ $$ \tilde{\vec{\Psi}} =
 \vec{\psi}^T & 1
 \end{pmatrix}.
 $$
+::: 
 
 The log-likelihood of the augmented data is
 $$
-\ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2}.
-$$
+\ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2},
+$$ {#eq-loglikelihood-augmented}
 
-The MLE for $\hat{y}$ can be calculated as 
+where $\vec{1}$ is a vector of ones and $\hat{\mu}$ and $\hat{\sigma}^2$ are the MLEs from @eq-muhat-55 and @eq-sigmahat-55. Only the last term in  @eq-loglikelihood-augmented depends on $\hat{y}$, so we need only consider this term in the maximization. Details cen be found in @Forr08a. Finally, the MLE for $\hat{y}$ can be calculated as
 $$
 \hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
 $$ {#eq-mle-yhat}
 
-
+::: {#lem-mle-yhat}
 ### Properties of the Predictor
 
 @eq-mle-yhat reveals two important properties of the Kriging predictor:
@@ -1348,11 +1590,13 @@ $$ {#eq-mle-yhat}
 1. Basis functions: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
 2. Interpolation: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
 
-## Kriging Example: Sinusoid Function 
+::: 
+
+### Kriging Example: Sinusoid Function 
 
 Toy example in 1d where the response is a simple sinusoid measured at eight equally spaced  $x$-locations in the span of a single period of oscillation.
 
-### Calculating the Correlation Matrix $\Psi$
+#### Calculating the Correlation Matrix $\Psi$
 
 The correlation matrix $\Psi$ is based on the pairwise squared distances between the input locations. Here we will use $n=8$ sample locations and $\theta$ is set to 1.0.
 
@@ -1377,7 +1621,7 @@ plt.title(f"Sin(x) evaluated at {n} points")
 plt.show()
 ```
 
-### Computing the $\psi$ Vector
+#### Computing the $\psi$ Vector
 
 Distances between testing locations $x$ and training data locations $X$.
 
@@ -1402,7 +1646,7 @@ def build_psi(X, x, theta, eps=sqrt(spacing(1))):
     return(psi.T)
 ```
 
-### Predicting at New Locations
+#### Predicting at New Locations
 
 We would like to predict at $m = 100$ new locations in the interval $[0, 2\pi]$. The new locations are stored in the variable `x`.
 
@@ -1413,7 +1657,7 @@ psi = build_psi(X, x, theta)
 ```
 
 Computation of the predictive equations.
-
+CV
 ```{python}
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1,1)
@@ -1423,7 +1667,7 @@ f = mu * ones(m).reshape(-1,1) + psi.T.dot(solve(U, solve(U.T, y - one * mu)))
 
 To compute $f$, @eq-mle-yhat is used. 
 
-### Visualization
+#### Visualization
 
 ```{python}
 import matplotlib.pyplot as plt
@@ -1582,6 +1826,262 @@ Psi_inv = np.dot(L_inv.T, L_inv)
 print("Psi:\n", Psi)
 print("Psi Inverse:\n", Psi_inv)
 ```
+
+
+
+## Gaussian Processes---Some Background Information
+
+The concept of GP (Gaussian Process) regression can be understood as a simple extension of linear modeling. It is worth noting that this approach goes by various names and acronyms, including "kriging," a term derived from geostatistics, as introduced by Matheron in 1963. Additionally, it is referred to as Gaussian spatial modeling or a Gaussian stochastic process, and machine learning (ML) researchers often use the term Gaussian process regression (GPR).
+In all of these instances, the central focus is on regression. This involves training on both inputs and outputs, with the ultimate objective of making predictions and quantifying uncertainty (referred to as uncertainty quantification or UQ).
+
+However, it's important to emphasize that GPs are not a universal solution for every problem. Specialized tools may outperform GPs in specific, non-generic contexts, and GPs have their own set of limitations that need to be considered.
+
+### Gaussian Process Prior
+
+In the context of GP, any finite collection of realizations, which is represented by $n$ observations, is modeled as having a multivariate normal (MVN) distribution. The characteristics of these realizations can be fully described by two key parameters:
+
+1. Their mean, denoted as an $n$-vector $\mu$.
+2. The covariance matrix, denoted as an $n \times n$ matrix $\Sigma$. This covariance matrix encapsulates the relationships and variability between the individual realizations within the collection.
+
+
+### Covariance Function
+
+The covariance function is defined by inverse exponentiated squared Euclidean distance:
+$$
+\Sigma(\vec{x}, \vec{x}') = \exp\{ - || \vec{x} - \vec{x}'||^2 \},
+$$
+where $\vec{x}$ and $\vec{x}'$ are two points in the $k$-dimensional input space and $\| \cdot \|$ denotes the Euclidean distance, i.e.,
+$$
+|| \vec{x} - \vec{x}'||^2 = \sum_{i=1}^k (x_i - x_i')^2.
+$$
+
+An 1-d example is shown in @fig-exp2euclid. 
+
+```{python}
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
+
+def squared_euclidean_distance(point1, point2, sigma2=1.0):
+    return (point1 - point2)**2/ (2 * sigma2)
+
+def inverse_exp_squared_distance(point1, point2,sigma2):
+    return np.exp(-squared_euclidean_distance(point1, point2, sigma2))
+
+def generate_line(distance, step=0.01):
+    return np.arange(0, distance+step, step)
+
+def visualize_inverse_exp_squared_distance(distance, point, sigma2_values):
+    line = generate_line(distance)
+    
+    for sigma2 in sigma2_values:
+        distances = [inverse_exp_squared_distance(p, point, sigma2) for p in line]
+        plt.plot(line, distances, label=f'sigma2={sigma2}')
+    
+    plt.legend()
+    plt.show()
+```
+
+```{python}
+#| label: fig-exp2euclid
+#| fig-cap: "One-dim inverse exponentiated squared Euclidean distance"
+#| echo: false
+visualize_inverse_exp_squared_distance(5, 0.0, [0.5, 1, 2.0])
+```
+
+The covariance function is also referred to as the kernel function. The *Gaussian* kernel uses an additional parameter, $\sigma^2$, to control the rate of decay. This parameter is referred to as the length scale or the characteristic length scale. The covariance function is then defined as 
+
+$$
+\Sigma(\vec{x}, \vec{x}') = \exp\{ - || \vec{x} - \vec{x}'||^2 / (2 \sigma^2) \}.
+$$ {#eq-Sigma}
+
+The covariance decays exponentially fast as $\vec{x}$ and $\vec{x}'$ become farther apart. Observe that 
+
+$$
+\Sigma(\vec{x},\vec{x}) = 1
+$$ 
+and 
+
+$$
+\Sigma(\vec{x}, \vec{x}') < 1
+$$ 
+for  $\vec{x} \neq \vec{x}'$. The function $\Sigma(\vec{x},\vec{x}')$ must be positive definite.
+
+
+::: {#rem-krigingbase-gauss}
+### Kriging and Gaussian Basis Functions
+
+The Kriging basis function (@eq-krigingbase) is related to the 1-dim Gaussian basis function (@eq-Sigma),
+which is defined as
+$$
+\Sigma(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\{ - || \vec{x}^{(i)} - \vec{x}^{(j)}||^2 / (2\sigma^2) \}.
+$$ {#eq-Sigma2}
+
+There are some differences between Gaussian basis functions and Kriging basis functions:
+
+  * Where the Gaussian basis function has $1/(2\sigma^2)$, the Kriging basis has a vector $\theta = [\theta_1, \theta_2, \ldots, \theta_k]^T$.
+  * The $\theta$ vector allows the width of the basis function to vary from dimension to dimension.
+  * In the Gaussian basis function, the exponent is fixed at 2, Kriging allows this exponent $p_l$ to vary (typically from 1 to 2).
+
+:::
+
+
+#### Positive Definiteness
+
+Positive definiteness in the context of the covariance matrix $\Sigma_n$ is a fundamental requirement. It is determined by evaluating $\Sigma(x_i, x_j)$ at pairs of $n$ $\vec{x}$-values, denoted as $\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n$. The condition for positive definiteness is that for all $\vec{x}$ vectors that are not equal to zero, the expression $\vec{x}^\top \Sigma_n \vec{x}$ must be greater than zero. This property is essential when intending to use $\Sigma_n$ as a covariance matrix in multivariate normal (MVN) analysis. It is analogous to the requirement in univariate Gaussian distributions where the variance parameter, $\sigma^2$, must be positive.
+
+
+
+Gaussian Processes (GPs) can be effectively utilized to generate random data that follows a smooth functional relationship. The process involves the following steps:
+
+1. Select a set of $\vec{x}$-values, denoted as $\vec{x}_1, \vec{x}_2, \ldots, \vec{x}_n$.
+2. Define the covariance matrix $\Sigma_n$ by evaluating $\Sigma_n^{ij} = \Sigma(\vec{x}_i, \vec{x}_j)$ for $i, j = 1, 2, \ldots, n$.
+3. Generate an $n$-variate realization $Y$ that follows a multivariate normal distribution with a mean of zero and a covariance matrix $\Sigma_n$, expressed as $Y \sim \mathcal{N}_n(0, \Sigma_n)$.
+4. Visualize the result by plotting it in the $x$-$y$ plane.
+
+### Construction of the Covariance Matrix
+
+Here is an one-dimensional example. The process begins by creating an input grid using $\vec{x}$-values. This grid consists of 100 elements, providing the basis for further analysis and visualization.
+
+```{python}
+import numpy as np
+n = 100
+X = np.linspace(0, 10, n, endpoint=False).reshape(-1,1)
+```
+
+In the context of this discussion, the construction of the covariance matrix, denoted as $\Sigma_n$, relies on the concept of inverse exponentiated squared Euclidean distances. However, it's important to note that a modification is introduced later in the process. Specifically, the diagonal of the covariance matrix is augmented with a small value, represented as "eps" or $\epsilon$.
+
+The reason for this augmentation is that while inverse exponentiated distances theoretically ensure the covariance matrix's positive definiteness, in practical applications, the matrix can sometimes become numerically ill-conditioned. By adding a small value to the diagonal, such as $\epsilon$, this ill-conditioning issue is mitigated. In this context, $\epsilon$ is often referred to as "jitter."
+
+
+```{python}
+import numpy as np
+from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy.linalg import cholesky, solve
+from numpy.random import multivariate_normal
+def build_Sigma(X, sigma2):
+    n = X.shape[0]
+    k = X.shape[1]
+    D = zeros((k, n, n))
+    for l in range(k):
+        for i in range(n):
+            for j in range(i, n):
+                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
+    D = sum(D)
+    D = D + D.T
+    return exp(-D)  
+```
+
+
+```{python}
+sigma2 = np.array([1.0])
+Sigma = build_Sigma(X, sigma2)
+np.round(Sigma[:3,:], 3)
+```
+
+
+```{python}
+import matplotlib.pyplot as plt
+plt.imshow(Sigma, cmap='hot', interpolation='nearest')
+plt.colorbar()
+plt.show()
+```
+
+### Generation of Random Samples and Plotting the Realizations of the Random Function
+
+In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Sigma`. It is used as an essential component in generating random samples from the multivariate normal distribution.
+
+The function `multivariate_normal` is employed for this purpose. It serves as a random number generator specifically designed for the multivariate normal distribution. In this case, the mean of the distribution is set equal to `mean`, and the covariance matrix is provided as `Psi`. The argument `size` specifies the number of realizations, which, in this specific scenario, is set to one.
+
+By default, the mean vector is initialized to zero. To match the number of samples, which is equivalent to the number of rows in the `X` and `Sigma` matrices, the argument `zeros(n)` is used, where `n` represents the number of samples (here taken from the size of the matrix, e.g.,: `Sigma.shape[0]`).
+
+```{python}
+rng = np.random.default_rng(seed=12345)
+Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 1, check_valid="raise").reshape(-1,1)
+Y.shape
+```
+
+Now we can plot the results, i.e., a finite realization of the random function $Y()$ under a GP prior with a particular covariance structure. We will plot those `X` and `Y` pairs as connected points on an  $x$-$y$ plane.
+
+```{python}
+#| label: fig-mvn1-1
+#| fig-cap: "Realization of one random function under a GP prior. sigma2: 1.0"
+import matplotlib.pyplot as plt
+plt.plot(X, Y)
+plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
+plt.show()
+```
+
+```{python}
+#| label: fig-mvn1-3
+#| fig-cap: "Realization of three random functions under a GP prior. sigma2: 1.0"
+rng = np.random.default_rng(seed=12345)
+Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = 3, check_valid="raise")
+plt.plot(X, Y.T)
+plt.title("Realization of Three Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
+plt.show()
+```
+
+### Properties of the 1d Example
+
+#### Several Bumps:
+In this analysis, we observe several bumps in the $x$-range of $[0,10]$.
+These bumps in the function occur because shorter distances exhibit high correlation, while longer distances tend to be essentially uncorrelated. This leads to variations in the function's behavior:
+
+* When $x$ and $x'$ are one $\sigma$ unit apart, the correlation is $\exp\left(-\sigma^2 / (2\sigma^2)\right) = \exp(-1/2) \approx 0.61$, i.e., a relative high correlation.
+* $2\sigma$ apart means correlation $\exp(− 2^2 /2) \approx 0.14$, i.e., only small correlation.
+* $4\sigma$ apart means correlation $\exp(− 4^2 /2) \approx 0.0003$, i.e., nearly no correlation---variables are considered independent for almost all practical application.
+
+
+#### Smoothness:
+The function plotted in @fig-mvn1-1 represents only a finite realization, which means that we have data for a limited number of pairs, specifically 100 points. These points appear smooth in a tactile sense because they are closely spaced, and the plot function connects the dots with lines to create the appearance of smoothness. The complete surface, which can be conceptually extended to an infinite realization over a compact domain, is exceptionally smooth in a calculus sense due to the covariance function's property of being infinitely differentiable.
+
+#### Scale of Two:
+Regarding the scale of the $Y$ values, they have a range of approximately $[-2,2]$, with a 95% probability of falling within this range. In standard statistical terms, 95% of the data points typically fall within two standard deviations of the mean, which is a common measure of the spread or range of data.
+
+
+```{python}
+import numpy as np
+from numpy import array, zeros, power, ones, exp, multiply, eye, linspace, mat, spacing, sqrt, arange, append, ravel
+from numpy.random import multivariate_normal
+
+def build_Sigma(X, sigma2):
+    n = X.shape[0]
+    k = X.shape[1]
+    D = zeros((k, n, n))
+    for l in range(k):
+        for i in range(n):
+            for j in range(i, n):
+                D[l, i, j] = 1/(2*sigma2[l])*(X[i,l] - X[j,l])**2
+    D = sum(D)
+    D = D + D.T
+    return exp(-D)
+
+def plot_mvn( a=0, b=10, sigma2=1.0, size=1, n=100, show=True):    
+    X = np.linspace(a, b, n, endpoint=False).reshape(-1,1)
+    sigma2 = np.array([sigma2])
+    Sigma = build_Sigma(X, sigma2)
+    rng = np.random.default_rng(seed=12345)
+    Y = rng.multivariate_normal(zeros(Sigma.shape[0]), Sigma, size = size, check_valid="raise")
+    plt.plot(X, Y.T)
+    plt.title("Realization of Random Functions under a GP prior.\n sigma2: {}".format(sigma2[0]))
+    if show:
+        plt.show()
+```
+
+```{python}
+#| label: fig-mvn2
+#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 10"
+plot_mvn(a=0, b=10, sigma2=10.0, size=3, n=250)
+```
+
+```{python}
+#| label: fig-mvn5
+#| fig-cap: "Realization of Random Functions under a GP prior. sigma2: 0.1"
+plot_mvn(a=0, b=10, sigma2=0.1, size=3, n=250)
+```
+
+
 
 
 ## Jupyter Notebook
