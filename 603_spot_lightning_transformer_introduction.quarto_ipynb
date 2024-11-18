@@ -201,7 +201,7 @@
         "\n",
         "First, we import the necessary libraries and download the pretrained models.\n"
       ],
-      "id": "22141712"
+      "id": "4721247f"
     },
     {
       "cell_type": "code",
@@ -232,7 +232,7 @@
         "import pytorch_lightning as pl\n",
         "from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint"
       ],
-      "id": "a5a8f309",
+      "id": "1fcc6c5a",
       "execution_count": null,
       "outputs": []
     },
@@ -247,7 +247,7 @@
         "torch.backends.cudnn.deterministic = True\n",
         "torch.backends.cudnn.benchmark = False"
       ],
-      "id": "69bd15ed",
+      "id": "cc8e694d",
       "execution_count": null,
       "outputs": []
     },
@@ -259,7 +259,7 @@
         "device = getDevice()\n",
         "print(\"Device:\", device)"
       ],
-      "id": "0ad3e0d9",
+      "id": "559c47f7",
       "execution_count": null,
       "outputs": []
     },
@@ -270,7 +270,7 @@
         "# Setting the seed\n",
         "pl.seed_everything(42)"
       ],
-      "id": "4b9fb274",
+      "id": "7157ed89",
       "execution_count": null,
       "outputs": []
     },
@@ -280,7 +280,7 @@
       "source": [
         "Two pre-trained models are downloaded below. Make sure to have adjusted your `CHECKPOINT_PATH` before running this code if not already done.\n"
       ],
-      "id": "40ca9632"
+      "id": "d3c58e52"
     },
     {
       "cell_type": "code",
@@ -296,7 +296,7 @@
         "# Create checkpoint path if it doesn't exist yet\n",
         "os.makedirs(CHECKPOINT_PATH, exist_ok=True)"
       ],
-      "id": "10cc4a2b",
+      "id": "a9ac0470",
       "execution_count": null,
       "outputs": []
     },
@@ -306,7 +306,7 @@
       "source": [
         "### Downloading the Pretrained Models\n"
       ],
-      "id": "530fb761"
+      "id": "0ce1256a"
     },
     {
       "cell_type": "code",
@@ -325,7 +325,7 @@
         "        except HTTPError as e:\n",
         "            print(\"Error:\\n\", e)"
       ],
-      "id": "21fe9d6c",
+      "id": "64c68084",
       "execution_count": null,
       "outputs": []
     },
@@ -340,7 +340,7 @@
         "\n",
         "### Attention Mechanism\n"
       ],
-      "id": "339e2c26"
+      "id": "ab11d779"
     },
     {
       "cell_type": "code",
@@ -380,7 +380,7 @@
         "    values = torch.matmul(attention, v)\n",
         "    return values, attention"
       ],
-      "id": "7691e00e",
+      "id": "e3695175",
       "execution_count": null,
       "outputs": []
     },
@@ -390,7 +390,7 @@
       "source": [
         "Note that our code above supports any additional dimensionality in front of the sequence length so that we can also use it for batches. However, for a better understanding, let's generate a few random queries, keys, and value vectors, and calculate the attention outputs:\n"
       ],
-      "id": "b807b1c3"
+      "id": "865dadc2"
     },
     {
       "cell_type": "code",
@@ -408,7 +408,7 @@
         "print(\"Values\\n\", values)\n",
         "print(\"Attention\\n\", attention)"
       ],
-      "id": "fb6ec332",
+      "id": "f6f91fc1",
       "execution_count": null,
       "outputs": []
     },
@@ -436,7 +436,7 @@
         "\n",
         "As a consequence, if the embedding dimension is 4, then 1, 2 or 4 heads can be used, but not 3. If 4 heads are used, then the dimension of the query, key and value vectors is 1. If 2 heads are used, then the dimension of the query, key and value vectors is $D=2$. If 1 head is used, then the dimension of the query, key and value vectors is $D=4$. The number of heads is a hyperparameter that can be adjusted. The number of heads is usually 8 or 16.\n"
       ],
-      "id": "a670b8a0"
+      "id": "3e70f968"
     },
     {
       "cell_type": "code",
@@ -455,7 +455,7 @@
         "        mask = mask.unsqueeze(0)\n",
         "    return mask"
       ],
-      "id": "d7daf39f",
+      "id": "cce6b8c5",
       "execution_count": null,
       "outputs": []
     },
@@ -509,7 +509,7 @@
         "        else:\n",
         "            return o"
       ],
-      "id": "e5bee109",
+      "id": "e61d689b",
       "execution_count": null,
       "outputs": []
     },
@@ -557,7 +557,7 @@
         "\n",
         "Finally, after looking at all parts of the encoder architecture, we can start implementing it below. We first start by implementing a single encoder block. Additionally to the layers described above, we will add dropout layers in the MLP and on the output of the MLP and Multi-Head Attention for regularization.\n"
       ],
-      "id": "c01fc7d8"
+      "id": "787e30a2"
     },
     {
       "cell_type": "code",
@@ -604,7 +604,7 @@
         "        \n",
         "        return x"
       ],
-      "id": "fd219c28",
+      "id": "2f753240",
       "execution_count": null,
       "outputs": []
     },
@@ -614,7 +614,7 @@
       "source": [
         "Based on this block, we can implement a module for the full Transformer encoder. Additionally to a forward function that iterates through the sequence of encoder blocks, we also provide a function called `get_attention_maps`. The idea of this function is to return the attention probabilities for all Multi-Head Attention blocks in the encoder. This helps us in understanding, and in a sense, explaining the model. However, the attention probabilities should be interpreted with a grain of salt as it does not necessarily reflect the true interpretation of the model (there is a series of papers about this, including @jain19a and @wieg19a).\n"
       ],
-      "id": "a14c3c04"
+      "id": "15ed9ad9"
     },
     {
       "cell_type": "code",
@@ -640,7 +640,7 @@
         "            x = l(x)\n",
         "        return attention_maps"
       ],
-      "id": "b2cc6673",
+      "id": "21e4b2b3",
       "execution_count": null,
       "outputs": []
     },
@@ -663,7 +663,7 @@
         "\n",
         "The positional encoding is implemented below. The code is taken from the PyTorch tutorial [https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model](https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model) about Transformers on NLP and adjusted for our purposes.\n"
       ],
-      "id": "cf7c0056"
+      "id": "9548eafb"
     },
     {
       "cell_type": "code",
@@ -699,7 +699,7 @@
         "        x = x + self.pe[:, :x.size(1)]\n",
         "        return x"
       ],
-      "id": "1fb9f023",
+      "id": "b2d43867",
       "execution_count": null,
       "outputs": []
     },
@@ -709,7 +709,7 @@
       "source": [
         "To understand the positional encoding, we can visualize it below. We will generate an image of the positional encoding over hidden dimensionality and position in a sequence. Each pixel, therefore, represents the change of the input feature we perform to encode the specific position. Let's do it below.\n"
       ],
-      "id": "e9616dcc"
+      "id": "304a253d"
     },
     {
       "cell_type": "code",
@@ -730,7 +730,7 @@
         "ax.set_yticks([1]+[i*10 for i in range(1,1+pe.shape[0]//10)])\n",
         "plt.show()"
       ],
-      "id": "7ccafa4d",
+      "id": "1c0736d2",
       "execution_count": null,
       "outputs": []
     },
@@ -740,7 +740,7 @@
       "source": [
         "You can clearly see the sine and cosine waves with different wavelengths that encode the position in the hidden dimensions. Specifically, we can look at the sine/cosine wave for each hidden dimension separately, to get a better intuition of the pattern. Below we visualize the positional encoding for the hidden dimensions $1$, $2$, $3$ and $4$.\n"
       ],
-      "id": "c47fe121"
+      "id": "9e5d1d72"
     },
     {
       "cell_type": "code",
@@ -763,7 +763,7 @@
         "sns.reset_orig()\n",
         "plt.show()"
       ],
-      "id": "42a01b3a",
+      "id": "65a90803",
       "execution_count": null,
       "outputs": []
     },
@@ -783,7 +783,7 @@
         "\n",
         "Nevertheless, many applications and papers still use the original Transformer architecture with Adam, because warm-up is a simple, yet effective way of solving the gradient problem in the first iterations. There are many different schedulers we could use. For instance, the original Transformer paper used an exponential decay scheduler with a warm-up. However, the currently most popular scheduler is the cosine warm-up scheduler, which combines warm-up with a cosine-shaped learning rate decay. We can implement it below, and visualize the learning rate factor over epochs. \n"
       ],
-      "id": "a05055cd"
+      "id": "fd2bd243"
     },
     {
       "cell_type": "code",
@@ -806,7 +806,7 @@
         "            lr_factor *= epoch * 1.0 / self.warmup\n",
         "        return lr_factor"
       ],
-      "id": "220e78b7",
+      "id": "53dbef6b",
       "execution_count": null,
       "outputs": []
     },
@@ -830,7 +830,7 @@
         "plt.show()\n",
         "sns.reset_orig()"
       ],
-      "id": "ddcf07ba",
+      "id": "47799c06",
       "execution_count": null,
       "outputs": []
     },
@@ -847,7 +847,7 @@
         "Additionally to the Transformer architecture, we add a small input network (maps input dimensions to model dimensions), the positional encoding, and an output network (transforms output encodings to predictions).\n",
         "We also add the learning rate scheduler, which takes a step each iteration instead of once per epoch. This is needed for the warmup and the smooth cosine decay. The training, validation, and test step is left empty for now and will be filled for our task-specific models.\n"
       ],
-      "id": "edc10765"
+      "id": "7bd6e88b"
     },
     {
       "cell_type": "code",
@@ -941,7 +941,7 @@
         "    def test_step(self, batch, batch_idx):\n",
         "        raise NotImplementedError   "
       ],
-      "id": "e57decc5",
+      "id": "8f823fc0",
       "execution_count": null,
       "outputs": []
     },
@@ -959,7 +959,7 @@
         "\n",
         "First, let's create a dataset class below.\n"
       ],
-      "id": "1a85ea56"
+      "id": "446d6a25"
     },
     {
       "cell_type": "code",
@@ -983,7 +983,7 @@
         "        labels = torch.flip(inp_data, dims=(0,))\n",
         "        return inp_data, labels"
       ],
-      "id": "e1638220",
+      "id": "123f64e7",
       "execution_count": null,
       "outputs": []
     },
@@ -993,7 +993,7 @@
       "source": [
         "We create an arbitrary number of random sequences of numbers between 0 and `num_categories-1`. The label is simply the tensor flipped over the sequence dimension. We can create the corresponding data loaders below. \n"
       ],
-      "id": "2e308d7e"
+      "id": "507d8bab"
     },
     {
       "cell_type": "code",
@@ -1008,7 +1008,7 @@
         "val_loader   = data.DataLoader(dataset(1000), batch_size=128)\n",
         "test_loader  = data.DataLoader(dataset(10000), batch_size=128)"
       ],
-      "id": "932f3b20",
+      "id": "9bcabc21",
       "execution_count": null,
       "outputs": []
     },
@@ -1020,7 +1020,7 @@
         "print(\"Input data:\", inp_data)\n",
         "print(\"Labels:    \", labels)"
       ],
-      "id": "fe68fbf1",
+      "id": "a8480875",
       "execution_count": null,
       "outputs": []
     },
@@ -1034,7 +1034,7 @@
         "\n",
         "To implement the training dynamic, we create a new class inheriting from `TransformerPredictor` and overwriting the training, validation and test step functions, which were left empty in the base class. We also add a `_calculate_loss` function to calculate the loss and accuracy for a batch.\n"
       ],
-      "id": "5ba29185"
+      "id": "3b1d9a6e"
     },
     {
       "cell_type": "code",
@@ -1067,7 +1067,7 @@
         "    def test_step(self, batch, batch_idx):\n",
         "        _ = self._calculate_loss(batch, mode=\"test\")"
       ],
-      "id": "2ab0a004",
+      "id": "86f205e9",
       "execution_count": null,
       "outputs": []
     },
@@ -1087,7 +1087,7 @@
         "\n",
         "The Lightning trainer can be implemented as follows:\n"
       ],
-      "id": "bc829a86"
+      "id": "bd3206f7"
     },
     {
       "cell_type": "code",
@@ -1123,7 +1123,7 @@
         "    model = model.to(device)\n",
         "    return model, result"
       ],
-      "id": "23e52eeb",
+      "id": "c8dd77ff",
       "execution_count": null,
       "outputs": []
     },
@@ -1135,7 +1135,7 @@
         "\n",
         "Finally, we can train the model. In this setup, we will use a single encoder block and a single head in the Multi-Head Attention. This is chosen because of the simplicity of the task, and in this case, the attention can actually be interpreted as an \"explanation\" of the predictions (compared to the other papers above dealing with deep Transformers). \n"
       ],
-      "id": "87d4760a"
+      "id": "56866f15"
     },
     {
       "cell_type": "code",
@@ -1150,7 +1150,7 @@
         "                                              lr=5e-4,\n",
         "                                              warmup=50)"
       ],
-      "id": "fe2fad50",
+      "id": "29426c91",
       "execution_count": null,
       "outputs": []
     },
@@ -1160,7 +1160,7 @@
       "source": [
         "The warning of PyTorch Lightning regarding the number of workers can be ignored for now. As the data set is so simple and the `__getitem__` finishes a neglectable time, we don't need subprocesses to provide us the data (in fact, more workers can slow down the training as we have communication overhead among processes/threads). First, let's print the results:\n"
       ],
-      "id": "8c362f0f"
+      "id": "86f24464"
     },
     {
       "cell_type": "code",
@@ -1169,7 +1169,7 @@
         "print(f\"Val accuracy:  {(100.0 * reverse_result['val_acc']):4.2f}%\")\n",
         "print(f\"Test accuracy: {(100.0 * reverse_result['test_acc']):4.2f}%\")"
       ],
-      "id": "319491da",
+      "id": "af7c8480",
       "execution_count": null,
       "outputs": []
     },
@@ -1184,7 +1184,7 @@
         "\n",
         "How does the attention in the Multi-Head Attention block looks like for an arbitrary input? Let's try to visualize it below.\n"
       ],
-      "id": "2c808736"
+      "id": "eb73ed6f"
     },
     {
       "cell_type": "code",
@@ -1195,7 +1195,7 @@
         "inp_data = inp_data.to(device)\n",
         "attention_maps = reverse_model.get_attention_maps(inp_data)"
       ],
-      "id": "a0c9a3e4",
+      "id": "ff0827c6",
       "execution_count": null,
       "outputs": []
     },
@@ -1205,7 +1205,7 @@
       "source": [
         "The object `attention_maps` is a list of length $N$ where $N$ is the number of layers. Each element is a tensor of shape [Batch, Heads, SeqLen, SeqLen], which we can verify below.\n"
       ],
-      "id": "28d47451"
+      "id": "21772415"
     },
     {
       "cell_type": "code",
@@ -1213,7 +1213,7 @@
       "source": [
         "attention_maps[0].shape"
       ],
-      "id": "1e19c937",
+      "id": "1cacc7fd",
       "execution_count": null,
       "outputs": []
     },
@@ -1223,7 +1223,7 @@
       "source": [
         "Next, we will write a plotting function that takes as input the sequences, attention maps, and an index indicating for which batch element we want to visualize the attention map. We will create a plot where over rows, we have different layers, while over columns, we show the different heads. Remember that the softmax has been applied for each row separately.\n"
       ],
-      "id": "a0c454d9"
+      "id": "2d84efe0"
     },
     {
       "cell_type": "code",
@@ -1259,7 +1259,7 @@
         "    cbar.set_label('Attention')\n",
         "    plt.show()"
       ],
-      "id": "628c1d79",
+      "id": "8942b34c",
       "execution_count": null,
       "outputs": []
     },
@@ -1269,7 +1269,7 @@
       "source": [
         "Finally, we can plot the attention map of our trained Transformer on the reverse task:\n"
       ],
-      "id": "124584ad"
+      "id": "42c2de06"
     },
     {
       "cell_type": "code",
@@ -1277,7 +1277,7 @@
       "source": [
         "plot_attention_maps(data_input, attention_maps, idx=0)"
       ],
-      "id": "8e12f550",
+      "id": "a82cccbb",
       "execution_count": null,
       "outputs": []
     },
@@ -1313,7 +1313,7 @@
         "* [Illustrated: Self-Attention (Raimi Karim, 2019)](https://towardsdatascience.com/illustrated-self-attention-2d627e33b20a) - A nice visualization of the steps of self-attention. Recommended going through if the explanation below is too abstract for you.\n",
         "* [The Transformer family (Lilian Weng, 2020)](https://lilianweng.github.io/lil-log/2020/04/07/the-transformer-family.html) - A very detailed blog post reviewing more variants of Transformers besides the original one."
       ],
-      "id": "2dd51084"
+      "id": "47af9a4b"
     }
   ],
   "metadata": {
