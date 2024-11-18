@@ -453,7 +453,7 @@ It has $E(X^{\ast}) = 0$ and $sd(X^{\ast}) =1$.
 Realizations of a normal distribution refers to the actual values that you get when you draw samples from a normal distribution.
 Each sample drawn from the distribution is a realization of that distribution.
 
-::: {exm-realizations}
+::: {#exm-realizations}
 ### Realizations of a Normal Distribution
 If you have a normal distribution with a mean of 0 and a standard deviation of 1,
 each number you draw from that distribution is a realization.
@@ -643,94 +643,275 @@ plt.show()
 :::
 
 
-## Covariance and Correlation
+## Covariance
 
-In a bivariate normal distribution, the covariance matrix and the correlation coefficient are closely related.
-The covariance matrix $\Sigma$ for a bivariate normal distribution is a $2\times 2$ matrix that looks like this:
+In statistics, understanding the relationship between random variables is crucial for making inferences and predictions. Two common measures of such relationships are covariance and correlation. Covariance is a measure of how much two random variables change together. If the variables tend to show similar behavior (i.e., when one increases, the other tends to increase), the covariance is positive. Conversely, if they tend to move in opposite directions, the covariance is negative. 
 
-$$
-\Sigma =
-\begin{pmatrix}
-\sigma_1^2 & \sigma_{12}\\
-\sigma_{21} & \sigma_2^2
-\end{pmatrix},
-$$
-where $\sigma_1^2$ and $\sigma_2^2$ are the variances of $X_1$ and $X_2$, and $\sigma_{12} = \sigma_{21}$ is the covariance between $X_1$ and $X_2$.
+::: {#def-covariance}
 
-The correlation coefficient, often denoted as $\rho$, is a normalized measure of the linear relationship between two variables. It is calculated from the covariance and the standard deviations $\sigma_1$ and $\sigma_2$ (or the square roots of the variances) of $X_1$ and $X_2$ as follows:
-$$
-\rho = \sigma_{12} / (\sqrt{\sigma_1^2} \times \sqrt{\sigma_2^2}) = \sigma_{12} / (\sigma_1 \times \sigma_2).
-$$
-
-So we can express the correlation coefficient $\rho$ in terms of the elements of the covariance matrix $\Sigma$. It can be interpreted as follows:
-The correlation coefficient ranges from -1 to 1. A value of 1 means that $X_1$ and $X_2$ are perfectly positively correlated, a value of -1 means they are perfectly negatively correlated, and a value of 0 means they are uncorrelated. This gives the same information as the covariance, but on a standardized scale that does not depend on the units of $X_1$ and $X_2$.
-
-
-
-::: {.callout-note}
-### Covariance and Correlation (taken from @Forr08a)
-
-Covariance is a measure of the correlation between two or more sets of random variables.
+### Covariance
+Covariance is calculated as:
 
 $$
-\text{Cov}(X,Y) = E[(X - E[X])(Y - E[Y])] = E[XY] - E[X]E[Y]
+\text{Cov}(X, Y) = E[(X - E[X])(Y - E[Y])] = E[XY] - E[X]E[Y]
 $$
 
-From the covariance, we can derive the correlation
-
-$$
-\text{Corr}(X,Y) = \frac{\text{Cov}(X,Y)}{\sqrt{\text{Var}(X)\text{Var}(Y)}} = \frac{\text{Cov}(X,Y)}{\sigma_X\sigma_Y}.
-$$ {#eq-corrxy}
-
-For a vector of random variables 
-
-$$
-Y = 
-\begin{pmatrix}
-(Y^{(l)}, \ldots, Y^{(n)})
-\end{pmatrix}^T
-$$
-
-the covariance matrix is a matrix of covariances between the random variables
-
-$$
-\Sigma =
-\text{Cov}(Y, Y) =
-\begin{pmatrix}
-\text{Cov}(Y^{(1)}, Y^{(1)}) & \ldots & \text{Cov}(Y^{(1)}, Y^{(n)}) \\
-\vdots & \ddots & \vdots \\
-\text{Cov}(Y^{(n)}, Y^{(1)}) & \ldots & \text{Cov}(Y^{(n)}, Y^{(n)})
-\end{pmatrix},
-$$
-
-and from @eq-corrxy
-
-$$
-\text{Cov}(Y, Y) = \sigma_Y^2 \text{Cor}(Y, Y).
-$$ {#eq-covyy-corr}
+Here, $E[X]$ and $E[Y]$ are the expected values (means) of $X$ and $Y$, respectively.
+Covariance has units that are the product of the units of $X$ and $Y$.
 
 :::
 
-You can compute the correlation matrix $\Psi$ from a covariance matrix $\Sigma$ in Python using the numpy library. The correlation matrix is computed by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables.
 
-The function `covariance_to_correlation` first computes the standard deviations of the variables with `np.sqrt(np.diag(cov))`. It then computes the correlation matrix by dividing each element of the covariance matrix by the product of the standard deviations of the corresponding variables with `cov / np.outer(std_devs, std_devs)`.
+For a vector of random variables $\mathbf{Y} = \begin{pmatrix} Y^{(1)}, \ldots, Y^{(n)} \end{pmatrix}^T$, the covariance matrix $\Sigma$ encapsulates the covariances between each pair of variables:
+
+$$
+\Sigma = \text{Cov}(\mathbf{Y}, \mathbf{Y}) =
+\begin{pmatrix}
+\text{Var}(Y^{(1)}) & \text{Cov}(Y^{(1)}, Y^{(2)}) & \ldots \\
+\text{Cov}(Y^{(2)}, Y^{(1)}) & \text{Var}(Y^{(2)}) & \ldots \\
+\vdots & \vdots & \ddots
+\end{pmatrix}
+$$
+
+The diagonal elements represent the variances, while the off-diagonal elements are the covariances.
+
+
+## Correlation
+
+::: {#def-correlation-coefficient}
+### (Pearson) Correlation Coefficient
+The Pearson correlation coefficient, often denoted by $\rho$ for the population or $r$ for a sample,
+is calculated by dividing the covariance of two variables by the product of their standard deviations. 
+
+$$
+\rho_{XY} = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y},
+$$
+
+where $\text{Cov}(X, Y)$ is the covariance between variables $X$ and $Y$, and $\sigma_X$ and $\sigma_Y$ are the standard deviations of $X$ and $Y$, respectively.
+:::
+
+Correlation, specifically the correlation coefficient, is a normalized measure of the linear relationship between two variables. It provides a value ranging from $-1$ to $1$, which is scale-free, making it easier to interpret:
+
+* $-1$: Perfect negative correlation, indicating that as one variable increases, the other decreases.
+* $0$: No correlation, indicating no linear relationship between the variables.
+* $1$: Perfect positive correlation, indicating that both variables increase together.
+
+
+::: {#def-correlation-matrix}
+### The Correlation Matrix $\Psi$
+
+The correlation matrix $\Psi$ is an extension of the concept of the correlation coefficient to multiple variables.
+It is derived from the covariance matrix $\Sigma$ and standardizes each covariance element by dividing it by the product of the standard deviations of the corresponding variables. The correlation matrix $\Psi$ is defined as:
+
+$$
+\Psi = \begin{pmatrix} \rho_{ij} \end{pmatrix} = \begin{pmatrix} \frac{\sigma_{ij}}{\sigma_i \sigma_j} \end{pmatrix}
+$$
+
+where $\rho_{ij}$ denotes the correlation coefficient between the $i^{\text{th}}$ and $j^{\text{th}}$ variables. Hence, $\Psi$ is a symmetric matrix, and its diagonal elements are always 1, because the correlation of any variable with itself is always 1.
+
+:::
+
+::: {#exm-covariance-correlation-matrix}
+### Computing a Correlation Matrix
+
+Suppose you have a dataset consisting of three variables: $X$, $Y$, and $Z$. You can compute the correlation matrix as follows:
+
+1. Calculate the covariance matrix $\Sigma$, which contains covariances between all pairs of variables.
+2. Extract the standard deviations for each variable from the diagonal elements of $\Sigma$.
+3. Use the standard deviations to compute the correlation matrix $\Psi$.
+
+Suppose we have two sets of data points: 
+
+- $X = [1, 2, 3]$
+- $Y = [4, 5, 6]$
+
+We want to compute the correlation matrix $\Psi$ for these variables.
+First, calculate the mean of each variable.
+
+$$
+\bar{X} = \frac{1 + 2 + 3}{3} = 2
+$$
+
+$$
+\bar{Y} = \frac{4 + 5 + 6}{3} = 5
+$$
+
+Second, compute the covariance between $X$ and $Y$. The covariance is calculated as:
+
+$$
+\text{Cov}(X, Y) = \frac{1}{n-1} \sum_{i=1}^{n} (X_i - \bar{X})(Y_i - \bar{Y})
+$$
+
+For our data:
+
+$$
+\text{Cov}(X, Y) = \frac{1}{3-1} \left[(1 - 2)(4 - 5) + (2 - 2)(5 - 5) + (3 - 2)(6 - 5)\right]
+$$
+
+$$
+= \frac{1}{2} \left[1 + 0 + 1\right] = 1
+$$
+
+Third, calculate the variances of $X$ and $Y$.
+Variance is calculated as:
+
+$$
+\text{Var}(X) = \frac{1}{n-1} \sum_{i=1}^{n} (X_i - \bar{X})^2
+$$
+
+$$
+= \frac{1}{2} \left[(1-2)^2 + (2-2)^2 + (3-2)^2\right] = \frac{1}{2} (1 + 0 + 1) = 1
+$$
+
+Similarly,
+
+$$
+\text{Var}(Y) = \frac{1}{2} \left[(4-5)^2 + (5-5)^2 + (6-5)^2\right] = \frac{1}{2} (1 + 0 + 1) = 1
+$$
+
+Then, compute the correlation coefficient.
+The correlation coefficient $\rho_{XY}$ is:
+
+$$
+\rho_{XY} = \frac{\text{Cov}(X, Y)}{\sqrt{\text{Var}(X)} \cdot \sqrt{\text{Var}(Y)}}
+$$
+
+$$
+= \frac{1}{\sqrt{1} \cdot \sqrt{1}} = 1
+$$
+
+Finally, construct the correlation matrix. The correlation matrix $\Psi$ is given as:
+
+$$
+\Psi = \begin{pmatrix}
+1 & \rho_{XY} \\
+\rho_{XY} & 1
+\end{pmatrix}
+= \begin{pmatrix}
+1 & 1 \\
+1 & 1
+\end{pmatrix}
+$$
+
+Thus, for these two variables, the correlation matrix indicates a perfect positive linear relationship (correlation coefficient of 1) between $X$ and $Y$. 
+:::
+
+
+
+::: {#exm-covariance-correlation}
+### Computing the Correlation Matrix from a Covariance Matrix
+
+The provided Python code computes the correlation matrix from a covariance matrix using the NumPy library.
+The steps involved are as follows:
+
+1. Extract Standard Deviations:
+   - `np.sqrt(np.diag(cov))` extracts the diagonal elements of the covariance matrix (variances) and computes their square root to get the standard deviations.
+
+2. Compute Correlation Matrix:
+   - The correlation matrix is obtained by dividing each element of the covariance matrix by the product of the corresponding variables' standard deviations: `cov / np.outer(std_devs, std_devs)`.
+
+3. Function Usage:
+   - The function `covariance_to_correlation` takes a covariance matrix as input and returns the corresponding correlation matrix.
 
 ```{python}
 import numpy as np
 
 def covariance_to_correlation(cov):
-    # Compute standard deviations
     std_devs = np.sqrt(np.diag(cov))
-    
-    # Compute correlation matrix
     corr = cov / np.outer(std_devs, std_devs)
-    
     return corr
 
+# Example covariance matrix
 cov = np.array([[9, -4], [-4, 9]])
-print(covariance_to_correlation(cov))
+
+# Compute and display the correlation matrix
+correlation_matrix = covariance_to_correlation(cov)
+print(correlation_matrix)
+```
+:::
+
+
+::: {#exm-cov-independent}
+### Covariance of Independent Variables
+
+Consider a covariance matrix where variables are independent:
+
+```{python}
+cov_independent = np.array([[4, 0], [0, 9]])
+correlation_independent = covariance_to_correlation(cov_independent)
+print(correlation_independent)
 ```
 
+Here, since the off-diagonal elements are 0, the variables are uncorrelated.
+
+:::
+
+::: {#exm-cov-strong}
+### Strong Correlation
+
+For a covariance matrix with strong positive correlation:
+
+```{python}
+cov_strong = np.array([[16, 12], [12, 16]])
+correlation_strong = covariance_to_correlation(cov_strong)
+print(correlation_strong)
+```
+
+A value close to 1 suggests a strong positive relationship between the variables.
+:::
+
+::: {#exm-cov-negative}
+### Strong Negative Correlation
+
+```{python}
+cov_negative = np.array([[25, -25], [-25, 25]])
+correlation_negative = covariance_to_correlation(cov_negative)
+print(correlation_negative)
+```
+
+This matrix indicates a perfect negative correlation where one variable increases as the other decreases.
+:::
+
+
+### R-Squared in Simple Linear Regression
+
+In simple linear regression, where there is one independent variable $X$ and one dependent variable $Y$, the R-squared ($R^2$) is the square of the Pearson correlation coefficient ($r$) between the observed values of the dependent variable and the values predicted by the regression model.
+
+
+In simple linear regression, the relationship between the independent variable $X$ and the dependent variable $Y$ is modeled using the equation:
+
+$$
+Y = \beta_0 + \beta_1 X + \epsilon
+$$
+
+Here, $\beta_0$ is the intercept, $\beta_1$ is the slope or regression coefficient, and $\epsilon$ is the error term.
+
+
+::: {#def-r-squared}
+### R-Squared ($R^2$)
+
+$R^2$ is a measure of how well the regression model explains the variance in the dependent variable. It is calculated as the square of the correlation coefficient ($r$) between the actual values $Y$ and the predicted values $\hat{Y}$ from the regression model.
+It ranges from 0 to 1, where:
+
+* 1 indicates that the regression predictions perfectly fit the data.
+* 0 indicates that the model does not explain any of the variability in the target data around its mean.
+
+::: 
+
+
+In simple linear regression, we have  
+$$
+R^2 = r^2.
+$$
+
+The correlation coefficient $r$ measures the strength and direction of the linear relationship between two variables.
+So, in simple linear regression, the R-squared is equal to the square of the correlation coefficient between the observed values and the predicted values:
+
+$$
+R^2 = ( \text{correlation coefficient of } Y \text{ and } \hat{Y} )^2
+$$
+
+This equivalence holds specifically for simple linear regression due to the direct relationship between the linear fit and the correlation of two variables. In multiple linear regression, while $R^2$ still represents the proportion of variance explained by the model, it is not simply the square of a single correlation coefficient as it involves multiple predictors.
 
 
 
@@ -2300,7 +2481,7 @@ def get_rbf_weights(Phi, y):
     # U = scipy.linalg.cholesky(Phi, lower=True)
     U = np.linalg.cholesky(Phi)
     U = U.T
-    # w = U\(U'\ModelInfo.y)
+    # w = U$U'\ModelInfo.y)
     w = np.linalg.solve(U, np.linalg.solve(U.T, y))
     return w
 ```
