@@ -676,16 +676,20 @@ $$
 The diagonal elements represent the variances, while the off-diagonal elements are the covariances.
 
 
-## Correlation
+## Correlation 
+
+### Definitions
 
 ::: {#def-correlation-coefficient}
 ### (Pearson) Correlation Coefficient
+\index{correlation coefficient}
+\index{Pearson correlation coefficient}
 The Pearson correlation coefficient, often denoted by $\rho$ for the population or $r$ for a sample,
 is calculated by dividing the covariance of two variables by the product of their standard deviations. 
 
 $$
 \rho_{XY} = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y},
-$$
+$$ {#eq-pears-corr}
 
 where $\text{Cov}(X, Y)$ is the covariance between variables $X$ and $Y$, and $\sigma_X$ and $\sigma_Y$ are the standard deviations of $X$ and $Y$, respectively.
 :::
@@ -697,19 +701,55 @@ Correlation, specifically the correlation coefficient, is a normalized measure o
 * $1$: Perfect positive correlation, indicating that both variables increase together.
 
 
+The correlation matrix $\Psi$ provides a way to quantify the linear relationship between multiple variables, extending the notion of the correlation coefficient beyond just pairs of variables. It is derived from the covariance matrix $\Sigma$ by normalizing each element with respect to the variances of the relevant variables. 
+
 ::: {#def-correlation-matrix}
 ### The Correlation Matrix $\Psi$
 
-The correlation matrix $\Psi$ is an extension of the concept of the correlation coefficient to multiple variables.
-It is derived from the covariance matrix $\Sigma$ and standardizes each covariance element by dividing it by the product of the standard deviations of the corresponding variables. The correlation matrix $\Psi$ is defined as:
+Given a set of random variables $X_1, X_2, \ldots, X_n$, the covariance matrix $\Sigma$ is:
 
 $$
-\Psi = \begin{pmatrix} \rho_{ij} \end{pmatrix} = \begin{pmatrix} \frac{\sigma_{ij}}{\sigma_i \sigma_j} \end{pmatrix}
+\Sigma = \begin{pmatrix}
+\sigma_{11} & \sigma_{12} & \cdots & \sigma_{1n} \\
+\sigma_{21} & \sigma_{22} & \cdots & \sigma_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+\sigma_{n1} & \sigma_{n2} & \cdots & \sigma_{nn}
+\end{pmatrix},
 $$
 
-where $\rho_{ij}$ denotes the correlation coefficient between the $i^{\text{th}}$ and $j^{\text{th}}$ variables. Hence, $\Psi$ is a symmetric matrix, and its diagonal elements are always 1, because the correlation of any variable with itself is always 1.
+where $\sigma_{ij} = \text{cov}(X_i, X_j)$ is the covariance between the $i^{\text{th}}$ and $j^{\text{th}}$ variables.
+The correlation matrix $\Psi$ is then defined as:
+
+$$
+\Psi = \begin{pmatrix} \rho_{ij} \end{pmatrix} = \begin{pmatrix} \frac{\sigma_{ij}}{\sqrt{\sigma_{ii} \sigma_{jj}}} \end{pmatrix},
+$$
+
+where:
+
+* $\rho_{ij}$ is the correlation coefficient between the $i^{\text{th}}$ and $j^{\text{th}}$ variables.
+* $\sigma_{ii}$ is the variance of the $i^{\text{th}}$ variable, i.e., $\sigma_i^2$.
+* $\sqrt{\sigma_{ii}}$ is the standard deviation of the $i^{\text{th}}$ variable, denoted as $\sigma_i$.
+
+Thus, $\Psi$ can also be expressed as:
+
+$$
+\Psi = \begin{pmatrix}
+1 & \frac{\sigma_{12}}{\sigma_1 \sigma_2} & \cdots & \frac{\sigma_{1n}}{\sigma_1 \sigma_n} \\
+\frac{\sigma_{21}}{\sigma_2 \sigma_1} & 1 & \cdots & \frac{\sigma_{2n}}{\sigma_2 \sigma_n} \\
+\vdots & \vdots & \ddots & \vdots \\
+\frac{\sigma_{n1}}{\sigma_n \sigma_1} & \frac{\sigma_{n2}}{\sigma_n \sigma_2} & \cdots & 1
+\end{pmatrix}
+$$
 
 :::
+
+The correlation matrix $\Psi$ has the following properties:
+
+* The matrix $\Psi$ is symmetric, meaning $\rho_{ij} = \rho_{ji}$.
+* The diagonal elements are all 1, as $\rho_{ii} = \frac{\sigma_{ii}}{\sigma_i \sigma_i} = 1$.
+* Each off-diagonal element is constrained between -1 and 1, indicating the strength and direction of the linear relationship between pairs of variables.
+
+### Computations
 
 ::: {#exm-covariance-correlation-matrix}
 ### Computing a Correlation Matrix
@@ -797,38 +837,139 @@ Thus, for these two variables, the correlation matrix indicates a perfect positi
 :::
 
 
+### The Outer-product and the `np.outer` Function
 
-::: {#exm-covariance-correlation}
-### Computing the Correlation Matrix from a Covariance Matrix
+The function `np.outer` from the NumPy library computes the outer product of two vectors.
+The outer product of two vectors results in a matrix, where each element is the product of an element from the first vector and an element from the second vector.
 
-The provided Python code computes the correlation matrix from a covariance matrix using the NumPy library.
-The steps involved are as follows:
+::: {#def-outer-product}
+### Outer Product
 
-1. Extract Standard Deviations:
-   - `np.sqrt(np.diag(cov))` extracts the diagonal elements of the covariance matrix (variances) and computes their square root to get the standard deviations.
+For two vectors $\mathbf{a}$ and $\mathbf{b}$, the outer product is defined in terms of their elements as:
 
-2. Compute Correlation Matrix:
-   - The correlation matrix is obtained by dividing each element of the covariance matrix by the product of the corresponding variables' standard deviations: `cov / np.outer(std_devs, std_devs)`.
+$$
+\text{outer}(\mathbf{a}, \mathbf{b}) = \begin{pmatrix}
+a_1 \cdot b_1 & a_1 \cdot b_2 & \cdots & a_1 \cdot b_n \\
+a_2 \cdot b_1 & a_2 \cdot b_2 & \cdots & a_2 \cdot b_n \\
+\vdots & \vdots & \ddots & \vdots \\
+a_m \cdot b_1 & a_m \cdot b_2 & \cdots & a_m \cdot b_n
+\end{pmatrix},
+$$
 
-3. Function Usage:
-   - The function `covariance_to_correlation` takes a covariance matrix as input and returns the corresponding correlation matrix.
+where $\mathbf{a}$ is a vector of length $m$ and $\mathbf{b}$ is a vector of length $n$.
+
+:::
+
+
+::: {#exm-outer-product}
+### Computing the Outer Product
+
+Let's consider two vectors, \(\mathbf{a}\) and \(\mathbf{b}\):
 
 ```{python}
 import numpy as np
 
-def covariance_to_correlation(cov):
-    std_devs = np.sqrt(np.diag(cov))
-    corr = cov / np.outer(std_devs, std_devs)
-    return corr
+a = np.array([1, 2, 3])
+b = np.array([4, 5])
+outer_product = np.outer(a, b)
+print("Vector a:", a)
+print("Vector b:", b)
+print("Outer Product:\n", outer_product)
+```
 
-# Example covariance matrix
-cov = np.array([[9, -4], [-4, 9]])
+For the vectors defined:
 
-# Compute and display the correlation matrix
-correlation_matrix = covariance_to_correlation(cov)
-print(correlation_matrix)
+$$
+\mathbf{a} = [1, 2, 3], \quad \mathbf{b} = [4, 5]
+$$
+
+The outer product will be:
+
+$$
+\begin{pmatrix}
+1 \cdot 4 & 1 \cdot 5 \\
+2 \cdot 4 & 2 \cdot 5 \\
+3 \cdot 4 & 3 \cdot 5
+\end{pmatrix}
+=
+\begin{pmatrix}
+4 & 5 \\
+8 & 10 \\
+12 & 15
+\end{pmatrix}.
+$$
+
+:::
+
+Thus, `np.outer` creates a matrix with dimensions $m \times n$, where $m$ is the length of the first vector and $n$ is the length of the second vector.
+The function is particularly useful in various mathematical and scientific computations where matrix representations of vector relationships are needed.
+
+
+
+::: {#exm-covariance-correlation}
+### Computing the Covariance and the Correlation Matrix
+
+The following Python code computes the covariance and correlation matrices using the NumPy library.
+
+```{python}
+import numpy as np
+
+def calculate_cov_corr_matrices(data, rowvar=False)->(np.array, np.array):
+    """
+    Calculate the covariance and correlation matrices of the input data.
+
+    Args:
+        data (np.array):
+            Input data array.
+        rowvar (bool):
+            Whether the data is row-wise or column-wise.
+            Default is False (column-wise).
+
+    Returns:
+        np.array: Covariance matrix.
+        np.array: Correlation matrix.
+
+    Examples:
+        >>> data = np.array([[1, 2, 3],
+                         [4, 5, 6],
+                         [7, 8, 9]])
+        >>> calculate_cov_corr_matrices(data)
+    """   
+    cov_matrix = np.cov(data, rowvar=rowvar)
+    std_devs = np.sqrt(np.diag(cov_matrix))
+    # check whether the standard deviations are zero
+    # and throw an error if they are
+    if np.any(std_devs == 0):
+        raise ValueError("Correlation matrix cannot be computed,"+
+                         " because one or more variables have zero variance.")
+    corr_matrix = cov_matrix / np.outer(std_devs, std_devs)
+    return cov_matrix, corr_matrix
+```
+
+```{python}
+A = np.array([[0,1],
+                 [1,0]])
+print(f"Input matrix:\n {A}")
+Sigma, Psi = calculate_cov_corr_matrices(A)
+print(f"Covariance matrix:\n {Sigma}")
+print(f"Correlation matrix:\n {Psi}")
 ```
 :::
+
+### Correlation and Independence
+
+
+::: {#def-statistical-independence}
+### Statistical Independence (Independence of Random Vectors)
+
+Two random vectors are statistically independent if the joint distribution of the vectors is equal to the product of their marginal distributions.
+
+:::
+
+This means that knowing the realization of one vector gives you no information about the realization of the other vector.
+This independence is a probabilistic concept used in statistics and probability theory to denote that two sets of random variables do not affect each other. Independence implies that all pairwise covariances between the components of the two vectors are zero, but zero covariance does not imply independence unless certain conditions are met (e.g., normality).
+Statistical independence is a stronger condition than zero covariance.
+Statistical independence is not related to the linear independence of vectors in linear algebra.
 
 
 ::: {#exm-cov-independent}
@@ -837,14 +978,21 @@ print(correlation_matrix)
 Consider a covariance matrix where variables are independent:
 
 ```{python}
-cov_independent = np.array([[4, 0], [0, 9]])
-correlation_independent = covariance_to_correlation(cov_independent)
-print(correlation_independent)
+A = np.array([[1,-1],
+[2,0],
+[3,1],
+[4,0],
+[5,-1]])
+print(f"Input matrix:\n {A}")
+Sigma, Psi = calculate_cov_corr_matrices(A)
+print(f"Covariance matrix:\n {Sigma}")
+print(f"Correlation matrix:\n {Psi}")
 ```
-
 Here, since the off-diagonal elements are 0, the variables are uncorrelated.
-
+$X$ increases linearly, while $Y$ alternates in a simple pattern with no trend that is linearly related to $Y$.
 :::
+
+
 
 ::: {#exm-cov-strong}
 ### Strong Correlation
@@ -852,9 +1000,15 @@ Here, since the off-diagonal elements are 0, the variables are uncorrelated.
 For a covariance matrix with strong positive correlation:
 
 ```{python}
-cov_strong = np.array([[16, 12], [12, 16]])
-correlation_strong = covariance_to_correlation(cov_strong)
-print(correlation_strong)
+A = np.array([[10,-1],
+[20,0],
+[30,1],
+[40,2],
+[50,3]])
+print(f"Input matrix:\n {A}")
+Sigma, Psi = calculate_cov_corr_matrices(A)
+print(f"Covariance matrix:\n {Sigma}")
+print(f"Correlation matrix:\n {Psi}") 
 ```
 
 A value close to 1 suggests a strong positive relationship between the variables.
@@ -864,19 +1018,22 @@ A value close to 1 suggests a strong positive relationship between the variables
 ### Strong Negative Correlation
 
 ```{python}
-cov_negative = np.array([[25, -25], [-25, 25]])
-correlation_negative = covariance_to_correlation(cov_negative)
-print(correlation_negative)
+A = np.array([[10,1],
+[20,0],
+[30,-1],
+[40,-2],
+[50,-3]])
+print(f"Input matrix:\n {A}")
+Sigma, Psi = calculate_cov_corr_matrices(A)
+print(f"Covariance matrix:\n {Sigma}")
+print(f"Correlation matrix:\n {Psi}") 
 ```
 
 This matrix indicates a perfect negative correlation where one variable increases as the other decreases.
 :::
 
 
-### R-Squared in Simple Linear Regression
-
-In simple linear regression, where there is one independent variable $X$ and one dependent variable $Y$, the R-squared ($R^2$) is the square of the Pearson correlation coefficient ($r$) between the observed values of the dependent variable and the values predicted by the regression model.
-
+## R-Squared in Simple Linear Regression
 
 In simple linear regression, the relationship between the independent variable $X$ and the dependent variable $Y$ is modeled using the equation:
 
@@ -886,9 +1043,8 @@ $$
 
 Here, $\beta_0$ is the intercept, $\beta_1$ is the slope or regression coefficient, and $\epsilon$ is the error term.
 
-
 ::: {#def-r-squared}
-### R-Squared ($R^2$)
+### R-Squared ($R^2$)\index{R-squared}
 
 $R^2$ is a measure of how well the regression model explains the variance in the dependent variable. It is calculated as the square of the correlation coefficient ($r$) between the actual values $Y$ and the predicted values $\hat{Y}$ from the regression model.
 It ranges from 0 to 1, where:
@@ -899,23 +1055,43 @@ It ranges from 0 to 1, where:
 ::: 
 
 
-In simple linear regression, we have  
+In simple linear regression, where there is one independent variable $X$ and one dependent variable $Y$, the R-squared ($R^2$) is the square of the Pearson correlation coefficient ($r$) between the observed values of the dependent variable and the values predicted by the regression model.
+That is, in simple linear regression, we have  
 $$
 R^2 = r^2.
-$$
-
-The correlation coefficient $r$ measures the strength and direction of the linear relationship between two variables.
-So, in simple linear regression, the R-squared is equal to the square of the correlation coefficient between the observed values and the predicted values:
-
-$$
-R^2 = ( \text{correlation coefficient of } Y \text{ and } \hat{Y} )^2
 $$
 
 This equivalence holds specifically for simple linear regression due to the direct relationship between the linear fit and the correlation of two variables. In multiple linear regression, while $R^2$ still represents the proportion of variance explained by the model, it is not simply the square of a single correlation coefficient as it involves multiple predictors.
 
 
-
 ## Cholesky Decomposition and Positive Definite Matrices
+
+We consider the definiteness of a matrix, before discussing the Cholesky decomposition.
+
+::: {#def-positive-definite}
+### Positive Definite Matrix
+
+A symmetric matrix $A$ is positive definite if all its eigenvalues are positive.
+
+:::
+
+::: {#exm-positive-definite}
+### Positive Definite Matrix
+
+Given a symmetric matrix $A = \begin{pmatrix} 9 & 4 \\ 4 & 9 \end{pmatrix}$,
+the eigenvalues of $A$ are $\lambda_1 = 13$ and $\lambda_2 = 5$.
+Since both eigenvalues are positive, the matrix $A$ is positive definite.
+
+:::
+
+::: {#def-negative-definite}
+### Negative Definite, Positive Semidefinite, and Negative Semidefinite Matrices
+
+Similarily, a symmetric matrix $A$ is negative definite if all its eigenvalues are negative.
+It is positive semidefinite if all its eigenvalues are non-negative, and negative semidefinite if all its eigenvalues are non-positive.
+
+:::
+
 
 The covariance matrix must be positive definite for a multivariate normal distribution for a couple of reasons:
 
@@ -950,6 +1126,33 @@ $$
 
 Here, $L^T$ denotes the transpose of $L$.
 :::
+
+
+
+::: {#exm-cholesky-decomposition}
+### Cholesky decomposition using `numpy`
+
+`linalg.cholesky` computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix $L$ such that $LL^T = A$. If the matrix is not positive definite, an error (`LinAlgError`) is raised.
+
+
+```{python}
+import numpy as np
+
+# Define a Hermitian, positive-definite matrix
+A = np.array([[9, 4], [4, 9]]) 
+
+# Compute the Cholesky decomposition
+L = np.linalg.cholesky(A)
+
+print("L = \n", L)
+print("L*LT = \n", np.dot(L, L.T))
+
+```
+
+::: 
+
+
+
 
 ::: {#exm-cholesky-decomposition}
 ### Cholesky Decomposition
@@ -986,32 +1189,6 @@ def is_pd(K):
 matrix = np.array([[9, 4], [4, 9]])
 print(is_pd(matrix))  # Outputs: True
 ```
-
-
-
-
-
-::: {#exm-cholesky-decomposition}
-### Cholesky decomposition using `numpy`
-
-`linalg.cholesky` computes the Cholesky decomposition of a matrix, i.e., it computes a lower triangular matrix $L$ such that $LL^T = A$. If the matrix is not positive definite, an error (`LinAlgError`) is raised.
-
-
-```{python}
-import numpy as np
-
-# Define a Hermitian, positive-definite matrix
-A = np.array([[9, 4], [4, 9]]) 
-
-# Compute the Cholesky decomposition
-L = np.linalg.cholesky(A)
-
-print("L = \n", L)
-print("L*LT = \n", np.dot(L, L.T))
-
-```
-
-::: 
 
 
 ## Maximum Likelihood Estimation: Multivariate Normal Distribution
@@ -1265,7 +1442,9 @@ Interestingly, if the main goal is to construct an initial surrogate for seeding
 It is noted that, ideally, parameter estimation (Stage Two) should also rely on a separate subset. However, observational data is rarely abundant enough to afford this luxury (if the function is cheap to evaluate and evaluation sites are selectable, a surrogate model might not be necessary).
 
 When data are available for model testing and the primary objective is a globally accurate model, using either a root mean square error (RMSE) metric or the correlation coefficient ($r^2$) is recommended.
-To test the model, a test data set of size $n_t$ is used alongside predictions at the corresponding locations to calculate these metrics, which are defined as follows:
+To test the model, a test data set of size $n_t$ is used alongside predictions at the corresponding locations to calculate these metrics.
+
+The RMSE is defined as follows:
 
 ::: {#def-rmse}
 
@@ -1275,29 +1454,29 @@ $$
 $$
 :::
 
-and
-
-::: {#def-r2}
-### Correlation Coefficient ($r^2$)
-
-$$ 
-r^2 = \frac{\text{cov}(y, \hat{y})}{\sqrt{\text{var}(y)\text{var}(\hat{y})}}, 
-$$ {#eq-r2}
-:::
-
-@eq-r2 is the correlation coefficient between the observed $y$ and predicted $\hat{y}$ values and can be expanded as:
-
-$$ 
-r^2 = \frac{n_t \sum_{i=1}^{n_t} y^{(i)} \hat{y}^{(i)} - \left(\sum_{i=1}^{n_t} y^{(i)}\right) \left(\sum_{i=1}^{n_t} \hat{y}^{(i)}\right)}{\left( n_t \sum_{i=1}^{n_t} (y^{(i)})^2 - \left(\sum_{i=1}^{n_t} y^{(i)}\right)^2 \right) \left( n_t \sum_{i=1}^{n_t} (\hat{y}^{(i)})^2 - \left(\sum_{i=1}^{n_t} \hat{y}^{(i)}\right)^2 \right)}.
-$$
-
-
 Ideally, the RMSE should be minimized, acknowledging its limitation by errors in the objective function $f$ calculation. If the error level is known, like a standard deviation, the aim might be to achieve an RMSE within this value. Often, the target is an RMSE within a specific percentage of the observed data's objective value range. 
+
+The squared correlation coefficient $r$, see @eq-pears-corr, between the observed $y$ and predicted $\hat{y}$ values can be computed as:
+
+$$ 
+r^2 = \left( \frac{\text{cov}(y, \hat{y})}{\sqrt{\text{var}(y)\text{var}(\hat{y})}} \right)^2, 
+$$ {#eq-r2}
+
+
+@eq-r2 and can be expanded as:
+
+$$ 
+r^2 = 
+\left(
+\frac{n_t \sum_{i=1}^{n_t} y^{(i)} \hat{y}^{(i)} - \sum_{i=1}^{n_t} y^{(i)} \sum_{i=1}^{n_t} \hat{y}^{(i)}}{ \sqrt{\left( n_t \sum_{i=1}^{n_t} (y^{(i)})^2 - \left(\sum_{i=1}^{n_t} y^{(i)}\right)^2 \right) \left( n_t \sum_{i=1}^{n_t} (\hat{y}^{(i)})^2 - \left(\sum_{i=1}^{n_t} \hat{y}^{(i)}\right)^2 \right)}}
+\right)^2.
+$$
 
 The correlation coefficient $r^2$ does not require scaling the data sets and only compares landscape shapes, not values. An $r^2 > 0.8$ typically indicates a surrogate with good predictive capability.
 
 
-The methods outlined provide quantitative assessments of model accuracy, yet visual evaluations can also be insightful. In general, the RMSE won't reach zero but will stabilize around a low value.
+The methods outlined provide quantitative assessments of model accuracy, yet visual evaluations can also be insightful.
+In general, the RMSE will not reach zero but will stabilize around a low value.
 At this point, the surrogate model is saturated with data, and further additions do not enhance the model globally (though local improvements can occur at newly added points if using an interpolating model). 
 
 ::: {#exm-tea-sugar}
@@ -1413,22 +1592,22 @@ Using @eq-corr-kriging-51, we can compute the $(n \times n)$ correlation matrix 
 $$
 \vec{\Psi} = \begin{pmatrix}
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(i)}),
-\vec{Y}(\vec{x}^{(l)}) 
+\vec{Y}(\vec{x}^{(1)}),
+\vec{Y}(\vec{x}^{(1)}) 
 \right) & \ldots &
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(i)}),
-\vec{Y}(\vec{x}^{(l)}) 
+\vec{Y}(\vec{x}^{(1)}),
+\vec{Y}(\vec{x}^{(n)}) 
 \right)\\
 \vdots  & \vdots &  \vdots\\
  \text{cor}\left(
-\vec{Y}(\vec{x}^{(i)}),
-\vec{Y}(\vec{x}^{(l)}) 
+\vec{Y}(\vec{x}^{(n)}),
+\vec{Y}(\vec{x}^{(1)}) 
 \right)&
 \ldots &
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(i)}),
-\vec{Y}(\vec{x}^{(l)}) 
+\vec{Y}(\vec{x}^{(n)}),
+\vec{Y}(\vec{x}^{(n)}) 
 \right)
 \end{pmatrix},
 $$ {#eq-corr-matrix-kriging-51}
@@ -1441,7 +1620,18 @@ $$ {#eq-cov-matrix-kriging-52}
 
 This assumed correlation between the sample data reflects our expectation that an engineering function will behave in a certain way and it will be smoothly and continuous.
 
-We now have a set of $n$ random variables ($\mathbf{Y}$) that are correlated with each other as described in the $(n \times n)$ correlation matrix $\mathbf{\Psi}$, see @eq-corr-matrix-kriging-51. The correlations depend on the absolute distances between sample points $|x_j^{(n)} - x_j^{(n)}|$ and the parameters $p_j$ and $\theta_j$. The correlation is intuitive, because when two points move close together, then $|x_l^{(i)} - x_l| \to 0$ and $\exp(-|x_l^{(i)} - x_l| \to 1$, points show very close correlation and $Y(x_l^{(i)}) = Y(x_l)$.
+We now have a set of $n$ random variables ($\mathbf{Y}$) that are correlated with each other as described in the $(n \times n)$ correlation matrix
+$\mathbf{\Psi}$,
+see @eq-corr-matrix-kriging-51.
+The correlations depend on the absolute distances in dimension $j$ between the $i$-th and the $l$-th sample point $|x_j^{(i)} - x_j^{(l)}|$ and the 
+corresponding parameters $p_j$ and $\theta_j$ for dimension $j$.
+The correlation is intuitive, because when 
+
+* two points move close together, then $|x_j^{(i)} - x_j| \to 0$ and $\exp \left(-|x_j^{(i)} - x_j|^{p_j} \right) \to 1$ (these points show very close correlation and $Y(x_j^{(i)}) = Y(x_j)$).
+* two points move far apart, then $|x_j^{(i)} - x_j| \to \infty$ and $\exp \left(-|x_j^{(i)} - x_j|^{p_j} \right) \to 0$ (these points show very low correlation).
+
+::: {#exm-kriging-corr-1}
+### Correlations for Different $p_j$
 
 Three different correlations are shown in @fig-pval12: $p_j= 0.1, 1, 2$. The smoothness parameter $p_j$ affects the correlation:
 
@@ -1490,7 +1680,10 @@ def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
 #| echo: false
 visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_values=[0.1, 1, 2.0])
 ```
+:::
 
+::: {#exm-kriging-corr-2}
+### Correlations for Different $\theta$
 
 @fig-theta12 visualizes the correlation between two points $Y(\vec{x}_j^{(i)})$ and $Y(\vec{x}_j)$ for different values of $\theta$. The parameter $\theta$ can be seen as a width parameter:
 
@@ -1505,6 +1698,8 @@ visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_valu
 #| echo: false
 visualize_inverse_exp_squared_distance_theta(distance= 2.5, point=0, theta_values=[0.1, 1, 10.0])
 ```
+
+:::
 
 Considering the activity parameter $\theta$ is useful in high-dimensional problems where it is difficult to visualize the design landscape and the effect of the variable is unknown. By examining the elements of the vector $\vec{\theta}$, we can identify the most important variables and focus on them. This is a crucial step in the optimization process, as it allows us to reduce the dimensionality of the problem and focus on the most important variables.
 
@@ -1583,6 +1778,10 @@ $$
 Finally, $$ \Psi = \exp(-D)$$ is computed.
 
 Next, we will demonstrate how this computation can be implemented in Python.
+We will consider four points in three dimensions and compute the correlation matrix $\Psi$ using the basis function from @eq-krigingbase.
+These points are placed at the origin, at the unit vectors, and at the points $(100, 100, 100)$ and $(101, 100, 100)$.
+So, they form two clusters: one at the origin and one at $(100, 100, 100)$.
+
 
 ```{python}
 from numpy import (array, zeros, power, ones, exp, multiply,
@@ -1763,15 +1962,19 @@ $$
 \hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
 $$ {#eq-mle-yhat}
 
-::: {#lem-mle-yhat}
-### Properties of the Predictor
 
 @eq-mle-yhat reveals two important properties of the Kriging predictor:
 
-1. Basis functions: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings $\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu})$.
-2. Interpolation: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence, $\hat{y}(\vec{x}^{(i)}) = y^{(i)}$.
+* Basis functions: The basis function impacts the vector $\vec{\psi}$, which contains the $n$ correlations between the new point $\vec{x}$ and the observed locations. Values from the $n$ basis functions are added to a mean base term $\mu$ with weightings
+$$
+\vec{w} = \vec{\tilde{\Psi}}^{(-1)} (\vec{y} - \vec{1}\hat{\mu}).
+$$
+* Interpolation: The predictions interpolate the sample data. When calculating the prediction at the $i$th sample point, $\vec{x}^{(i)}$, the $i$th column of $\vec{\Psi}^{-1}$ is $\vec{\psi}$, and $\vec{\psi}  \vec{\Psi}^{-1}$ is the $i$th unit vector. Hence,
 
-::: 
+$$
+\hat{y}(\vec{x}^{(i)}) = y^{(i)}.
+$$
+
 
 ## Kriging Example: Sinusoid Function 
 
@@ -1784,22 +1987,59 @@ The correlation matrix $\Psi$ is based on the pairwise squared distances between
 ```{python}
 n = 8
 X = np.linspace(0, 2*np.pi, n, endpoint=False).reshape(-1,1)
-# theta should be an array (of one value, for the moment, will be changed later)
-theta = np.array([1.0])
-Psi = build_Psi(X, theta)
+print(np.round(X, 2))
 ```
 
 Evaluate at sample points
 
 ```{python}
 y = np.sin(X)
+print(np.round(y, 2))
 ```
 
+We have the data points shown in @tbl-sin-data.
+
+| $x$ | $y$ |
+|---:|--:|
+| 0.0 | 0.0 |
+| 0.79 | 0.71 |
+| 1.57 | 1.0 |
+| 2.36 | 0.71 |
+| 3.14 | 0.0 |
+| 3.93 | -0.71 |
+| 4.71 | -1.0 |
+| 5.5 | -0.71 |
+: Data points for the sinusoid function {#tbl-sin-data}
+
+The data points are visualized in @fig-sin-data.
+
 ```{python}
+#| label: fig-sin-data
+#| fig-cap: "Sin(x) evaluated at 8 points."
 import matplotlib.pyplot as plt
 plt.plot(X, y, "bo")
 plt.title(f"Sin(x) evaluated at {n} points")
+plt.grid()
 plt.show()
+```
+
+### Computing the $\Psi$ Matrix
+
+```{python}
+# theta should be an array (of one value, for the moment, will be changed later)
+theta = np.array([1.0])
+Psi = build_Psi(X, theta)
+print(np.round(Psi, 2))
+```
+
+### Selecting the New Locations
+
+We would like to predict at $m = 100$ new locations (or testign locations)
+in the interval $[0, 2\pi]$. The new locations are stored in the variable `x`.
+
+```{python}
+m = 100
+x = np.linspace(0, 2*np.pi, m, endpoint=False).reshape(-1,1)
 ```
 
 ### Computing the $\psi$ Vector
@@ -1820,30 +2060,24 @@ def build_psi(X, x, theta, eps=sqrt(spacing(1))):
               X.reshape(-1, k),
               metric='sqeuclidean',
               out=None,
-              w=theta)
-    print(D.shape)
+              w=theta)    
     psi = exp(-D)
     # return psi transpose to be consistent with the literature
+    print(f"Dimensions of psi: {psi.T.shape}")
     return(psi.T)
+
+psi = build_psi(X, x, theta)
 ```
 
 ### Predicting at New Locations
 
-We would like to predict at $m = 100$ new locations in the interval $[0, 2\pi]$. The new locations are stored in the variable `x`.
-
-```{python}
-m = 100
-x = np.linspace(0, 2*np.pi, m, endpoint=False).reshape(-1,1)
-psi = build_psi(X, x, theta)
-```
-
 Computation of the predictive equations.
-CV
 ```{python}
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1,1)
 mu = (one.T.dot(solve(U, solve(U.T, y)))) / one.T.dot(solve(U, solve(U.T, one)))
 f = mu * ones(m).reshape(-1,1) + psi.T.dot(solve(U, solve(U.T, y - one * mu)))
+print(f"Dimensions of f: {f.shape}")
 ```
 
 To compute $f$, @eq-mle-yhat is used. 
