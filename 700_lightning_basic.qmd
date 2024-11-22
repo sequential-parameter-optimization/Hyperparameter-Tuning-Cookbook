@@ -115,7 +115,7 @@ The LightningModule has many convenient methods, but the core ones you need to k
 
 We will take a closer look at thes methods.
 
-### Training Loop
+### Training Step
 
 #### Basics
 
@@ -191,7 +191,7 @@ class LightningTransformer(L.LightningModule):
 
 
 
-### Validation Loop
+### Validation Step
 
 #### Basics
 
@@ -248,7 +248,7 @@ class LightningTransformer(L.LightningModule):
         self.validation_step_outputs.clear()  # free memory
 ```
 
-### Testing Loop
+### Test Step
 
 The process for enabling a test loop is the same as the process for enabling a validation loop.
 For this you need to override the `test_step()` method.
@@ -264,7 +264,7 @@ def test_step(self, batch, batch_idx):
     return loss
 ```
 
-### Prediction Loop
+### Predict Step
 
 #### Basics
 
@@ -316,7 +316,12 @@ with torch.no_grad():
     pred = model(batch)
 ```
 
-## Lightning: Save Hyperparameters
+
+## Lightning Extras
+
+This section covers some additional features of Lightning.
+
+### Lightning: Save Hyperparameters
 
 Often times we train many versions of a model. You might share that model or come back to it a few months later at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc.).
 
@@ -342,7 +347,7 @@ class LitMNIST(L.LightningModule):
         self.hparams.layer_1_dim
 ```
 
-## Lightning: Model Loading
+### Lightning: Model Loading
 
 LightningModules that have hyperparameters automatically saved with `save_hyperparameters()` can conveniently be loaded and instantiated directly from a checkpoint with `load_from_checkpoint()`:
 
@@ -357,10 +362,11 @@ model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, gene
 
 
 
-## Starter Example: Simple Neural Network
+## Starter Example: Linear Neural Network
 
 
 We will use the `LightningModule` to create a simple neural network for regression.
+It will be implemented as the `LightningBasic` class.
 
 ### Hidden Layers
 
@@ -475,10 +481,10 @@ class LightningBasic(L.LightningModule):
         return torch.optim.Adam(self.layers.parameters(), lr=0.02)
 ```
 
-
+We can instantiate the `LightningBasic` class as follows:
 
 ```{python}
-#| label: lightning_starter_print_model
+#| label: lightning_starter_instantiate
 #| eval: true
 #| echo: true
 model_base = LightningBasic(
@@ -488,13 +494,23 @@ model_base = LightningBasic(
     _L_in=10,
     _L_out=1,
     _torchmetric="mean_squared_error")
+```
+
+
+It has the following structure:
+
+```{python}
+#| label: lightning_starter_print_model
+#| eval: true
+#| echo: true
 print(model_base)
 ```
 
 
-
-
 ```{python}
+#| label: lightning_starter_model_architecture_plot
+#| eval: true
+#| echo: true
 from spotpython.plot.xai import viz_net
 viz_net(net=model_base,
     device="cpu",
@@ -503,11 +519,58 @@ viz_net(net=model_base,
 
 ![Model architecture](./model_architecture700.png)
 
+### The Data Set: Diabetes
+
+We will use the `Diabetes` [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/data/diabetes/) data set from the `spotpython` package, which is a PyTorch Dataset for regression based on a data set from `scikit-learn`.
+It consists of DataFrame entries, which were converted to PyTorch tensors.
+
+Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients, as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+
+The `Diabetes` data set has the following properties:
+
+* Number of Instances: 442
+* Number of Attributes: First 10 columns are numeric predictive values.
+* Target: Column 11 is a quantitative measure of disease progression one year after baseline.
+* Attribute Information:
+    * age age in years
+    * sex
+    * bmi body mass index
+    * bp average blood pressure
+    * s1 tc, total serum cholesterol
+    * s2 ldl, low-density lipoproteins
+    * s3 hdl, high-density lipoproteins
+    * s4 tch, total cholesterol / HDL
+    * s5 ltg, possibly log of serum triglycerides level
+    * s6 glu, blood sugar level
+
+```{python}
+#| label: lightning_starter_diabetes_dataset
+#| eval: true
+#| echo: true
+from torch.utils.data import DataLoader
+from spotpython.data.diabetes import Diabetes
+import torch
+dataset = Diabetes(feature_type=torch.float32, target_type=torch.float32)
+# Set batch size for DataLoader to 2 for demonstration purposes
+batch_size = 2
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
 
 ### The DataLoaders
 
-Before we can call the `Trainer` to fit, validate, and test the model, we need to create the `DataLoaders`.
-Therefore, we have to spefify the `batch_size`.
+Before we can call the `Trainer` to fit, validate, and test the model, we need to create the `DataLoaders` for each of these steps. 
+The `DataLoaders` are used to load the data into the model in batches and need the `batch_size`.
+
+\index{DataLoaders}
+\index{batch_size}
+
 
 ```{python}
 #| label: lightning_starter_dataloaders
@@ -520,14 +583,13 @@ from torch.utils.data import DataLoader
 batch_size = 8
 
 dataset = Diabetes(target_type=torch.float)
-print(f"Full Data Set: {len(dataset)}")
 train1_set, test_set = torch.utils.data.random_split(dataset, [0.6, 0.4])
-# print the size of the test set
-print(f"Test Set: {len(test_set)}")
 train_set, val_set = torch.utils.data.random_split(train1_set, [0.6, 0.4])
-train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, pin_memory=True)
+print(f"Full Data Set: {len(dataset)}")
 print(f"Train Set: {len(train_set)}")
 print(f"Validation Set: {len(val_set)}")
+print(f"Test Set: {len(test_set)}")
+train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, pin_memory=True)
 test_loader = DataLoader(test_set, batch_size=batch_size)
 val_loader = DataLoader(val_set, batch_size=batch_size)
 ```
@@ -568,9 +630,28 @@ yhat = torch.cat(yhat).numpy()
 yhat.shape
 ```
 
-# Integration in spotpython
+### Using a DataModule
 
-## 1. spotpython.fun.hyperlight.HyperLight.fun()
+Instead of creating the three `DataLoaders` manually, we can use the `LightDataModule` class from the `spotpython` package.
+
+```{python}
+#| label: lightning_starter_datamodule
+#| eval: true
+#| echo: true
+from spotpython.data.lightdatamodule import LightDataModule
+dataset = Diabetes(target_type=torch.float)
+print(f"Full Data Set: {len(dataset)}")
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Training set size: {len(data_module.data_train)}")
+print(f"Validation set size: {len(data_module.data_val)}")
+print(f"Test set size: {len(data_module.data_test)}")
+```
+
+
+## Integration in spotpython
+
+### 1. spotpython.fun.hyperlight.HyperLight.fun()
 
 The class `Hyperlight` provides the method `fun`, which takes `X` (`np.ndarray`) and `fun_control` (`dict`) as arguments.
 It calls the 
@@ -641,7 +722,7 @@ hyper_light = HyperLight(seed=123, log_level=50)
 hyper_light.fun(X, fun_control)
 ```
 
-## 2. spotpython.light.trainmodel.train_model()
+### 2. spotpython.light.trainmodel.train_model()
 
 ```{python}
 from math import inf
@@ -691,7 +772,7 @@ for config in generate_one_config_from_var_dict(var_dict, fun_control):
     y = train_model(config, fun_control)
 ```
 
-## 3. trainer: fit and validate
+### 3. trainer: fit and validate
 
 * Generate the `config` dictionary:
 
@@ -742,14 +823,14 @@ _L_cond = 0
 _torchmetric = "mean_squared_error"
 ```
 
-## Commented: Using the fun_control dictionary
+### Commented: Using the fun_control dictionary
 
 ```{python}
 # model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _L_cond=_L_cond, _torchmetric=_torchmetric)
 # model
 ```
 
-## Using the source code:
+### Using the source code:
 
 ```{python}
 import lightning as L
@@ -1071,7 +1152,7 @@ trainer.fit(model=model, datamodule=dm, ckpt_path=None)
 trainer.validate(model=model, datamodule=dm, verbose=True, ckpt_path=None)
 ```
 
-# DataModule
+### DataModule
 
 ```{python}
 from spotpython.data.lightdatamodule import LightDataModule
