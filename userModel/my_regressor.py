@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from spotpython.hyperparameters.optimizer import optimizer_handler
 import torchmetrics.functional.regression
+from math import ceil
 
 class MyRegressor(L.LightningModule):
     """
@@ -113,7 +114,7 @@ class MyRegressor(L.LightningModule):
         self.example_input_array = torch.zeros((batch_size, self._L_in))
         if self.hparams.l1 < 4:
             raise ValueError("l1 must be at least 4")
-        hidden_sizes = self._get_hidden_sizes()
+        hidden_sizes = [l1 * 2, l1, ceil(l1/2)]
         # Create the network based on the specified hidden sizes
         layers = []
         layer_sizes = [self._L_in] + hidden_sizes
@@ -128,50 +129,6 @@ class MyRegressor(L.LightningModule):
         layers += [nn.Linear(layer_sizes[-1], self._L_out)]
         # nn.Sequential summarizes a list of modules into a single module, applying them in sequence
         self.layers = nn.Sequential(*layers)
-
-    def _generate_div2_list(self, n, n_min) -> list:
-        """
-        Generate a list of numbers from n to n_min (inclusive) by dividing n by 2
-        until the result is less than n_min.
-        This function starts with n and keeps dividing it by 2 until n_min is reached.
-        The number of times each value is added to the list is determined by n // current.
-        No more than 4 repeats of the same value (`max_repeats` below) are added to the list.
-
-        Args:
-            n (int): The number to start with.
-            n_min (int): The minimum number to stop at.
-
-        Returns:
-            list: A list of numbers from n to n_min (inclusive).
-
-        Examples:
-            _generate_div2_list(10, 1)
-            [10, 5, 5, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            _ generate_div2_list(10, 2)
-            [10, 5, 5, 2, 2, 2, 2, 2]
-        """
-        result = []
-        current = n
-        repeats = 1
-        max_repeats = 4
-        while current >= n_min:
-            result.extend([current] * min(repeats, max_repeats))
-            current = current // 2
-            repeats = repeats + 1
-        return result
-
-    def _get_hidden_sizes(self):
-        """
-        Generate the hidden layer sizes for the network.
-
-        Returns:
-            list: A list of hidden layer sizes.
-
-        """
-        n_low = self._L_in // 4
-        n_high = max(self.hparams.l1, 2 * n_low)
-        hidden_sizes = self._generate_div2_list(n_high, n_low)
-        return hidden_sizes
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
