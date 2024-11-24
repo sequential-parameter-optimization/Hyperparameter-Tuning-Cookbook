@@ -270,7 +270,7 @@ class MyRegressor(L.LightningModule):
         self.example_input_array = torch.zeros((batch_size, self._L_in))
         if self.hparams.l1 < 4:
             raise ValueError("l1 must be at least 4")
-        hidden_sizes = self._get_hidden_sizes()
+        hidden_sizes = [l1 * 2, l1, ceil(l1/2)]
         # Create the network based on the specified hidden sizes
         layers = []
         layer_sizes = [self._L_in] + hidden_sizes
@@ -288,21 +288,9 @@ class MyRegressor(L.LightningModule):
         self.layers = nn.Sequential(*layers)
 ```
 
-#### The `_get_hidden_sizes` Method
+#### The `hidden_sizes`
 
-`__init__()` uses the helper method `_get_hidden_sizes()` to calculate the hidden layer sizes based on the number of neurons in the first hidden layer `l1`. The hidden layer sizes are calculated as follows:
-
-```{python}
-#| label: 601_user_model_get_hidden_sizes
-#| eval: false
-def _get_hidden_sizes(self):
-    # Calculate the hidden layer sizes based on the number of neurons in the first hidden layer
-    hidden_sizes = [self.hparams.l1]
-    while hidden_sizes[-1] > 2:
-        hidden_sizes.append(hidden_sizes[-1] // 2)
-    return hidden_sizes
-```
-
+`__init__()` uses the `hidden_sizes` list to define the sizes of the hidden layers in the network. The hidden sizes are calculated based on the `l1` hyperparameter. The hidden sizes can be computed in different ways, depending on the problem and the desired network architecture. We recommend using a separate function to calculate the hidden sizes based on the hyperparameters.
 
 #### The `forward` Method
 
