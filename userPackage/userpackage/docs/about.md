@@ -2,14 +2,7 @@
 
 ## Address
 
-Prof. Dr. Thomas Bartz-Beielstein
-TH Köln
-Raum 1.519
-Steinmüllerallee 6
-51643 Gummersbach
-+49 (0)2261 8196 6391
-thomas.bartz-beielstein [at] th-koeln.de
-www.spotseven.de
+Your Address
 
 
 ## Privacy Policy
@@ -73,20 +66,6 @@ Consent of the data subject is any freely given, specific, informed and unambigu
 2. Name and Address of the controller
 
 Controller for the purposes of the General Data Protection Regulation (GDPR), other data protection laws applicable in Member states of the European Union and other provisions related to data protection is:
-
-TH Köln, Fakultät Informatik und Ingenieurwissenschaften, SPOTSeven Lab
-
-Steinmüllerallee 1
-
-51643 Gummersbach
-
-Deutschland
-
-Phone: +49 2261 81966391
-
-Email: thomas.bartz-beielstein@th-koeln.de
-
-Website: www.spotseven.de
 
 3. Collection of general data and information
 
