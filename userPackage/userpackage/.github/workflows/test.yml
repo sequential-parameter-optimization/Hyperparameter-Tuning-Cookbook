@@ -1,0 +1,28 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        version: ["3.10", "3.11", "3.12"]
+    runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        working-directory: ${{github.workspace}}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{matrix.version}}
+    - run: python -m pip install --upgrade pip build pytest
+    - run: python -m build .
+    - run: python -m pip install .
+    - run: |
+        echo "import matplotlib" > set_backend.py
+        echo "matplotlib.use('Agg')" >> set_backend.py
+        echo "import pytest" >> set_backend.py
+        echo "pytest.main(['test/'])" >> set_backend.py
+        python set_backend.py

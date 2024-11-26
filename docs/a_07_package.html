@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Appendix G — Python Package Building – Hyperparameter Tuning Cookbook</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./a_99_solutions.html" rel="next">
+<link href="./a_06_slurm.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-2486e1f0a3ee9ee1fc393803a1361cdb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-c3f85a7a76990882806989dd406db056.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta name="twitter:title" content="Appendix G — Python Package Building – Hyperparameter Tuning Cookbook">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+<meta name="citation_title" content="Appendix G — Python Package Building">
+<meta name="citation_fulltext_html_url" content="https://arxiv.org/abs/2307.10262">
+<meta name="citation_doi" content="10.48550/arXiv.2307.10262">
+<meta name="citation_language" content="en">
+<meta name="citation_journal_title" content="arXiv">
+<meta name="citation_reference" content="citation_title=Benchmarking in optimization: Best practice and open issues;,citation_author=Thomas Bartz-Beielstein;,citation_author=Carola Doerr;,citation_author=Jakob Bossek;,citation_author=Sowmya Chandrasekaran;,citation_author=Tome Eftimov;,citation_author=Andreas Fischbach;,citation_author=Pascal Kerschke;,citation_author=Manuel Lopez-Ibanez;,citation_author=Katherine M. Malan;,citation_author=Jason H. Moore;,citation_author=Boris Naujoks;,citation_author=Patryk Orzechowski;,citation_author=Vanessa Volz;,citation_author=Markus Wagner;,citation_author=Thomas Weise;,citation_publication_date=2020-07;,citation_cover_date=2020-07;,citation_year=2020;,citation_fulltext_html_url=https://arxiv.org/abs/2007.03488;,citation_publisher=arXiv;">
+<meta name="citation_reference" content="citation_title=Hyperparameter tuning with ray tune;,citation_author=undefined PyTorch;,citation_publication_date=2023-05;,citation_cover_date=2023-05;,citation_year=2023;,citation_fulltext_html_url=https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html;">
+<meta name="citation_reference" content="citation_title=Training a classifier;,citation_author=undefined PyTorch;,citation_publication_date=2023-05;,citation_cover_date=2023-05;,citation_year=2023;,citation_fulltext_html_url=https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html;">
+<meta name="citation_reference" content="citation_title=PyTorch hyperparameter tuning with SPOT: Comparison with Ray Tuner and default hyperparameters on CIFAR10;,citation_author=Thomas Bartz-Beielstein;,citation_publication_date=2023-04;,citation_cover_date=2023-04;,citation_year=2023;,citation_fulltext_html_url=https://github.com/sequential-parameter-optimization/spotpython/blob/main/notebooks/14_spot_ray_hpt_torch_cifar10.ipynb;">
+<meta name="citation_reference" content="citation_title=Machine learning in official statistics;,citation_author=Martin Beck;,citation_author=Florian Dumpert;,citation_author=Joerg Feuerhake;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_doi=10.48550/arXiv.1812.10422;">
+<meta name="citation_reference" content="citation_title=Qualitätshandbuch der Statistischen Ämter des Bundes und der Länder;,citation_publication_date=2021-03;,citation_cover_date=2021-03;,citation_year=2021;,citation_fulltext_html_url=https://www.destatis.de/DE/Methoden/Qualitaet/qualitaetshandbuch.pdf;,citation_language=de;">
+<meta name="citation_reference" content="citation_title=Quality Assurance Framework of the European Statistical System;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;,citation_fulltext_html_url=https://ec.europa.eu/eurostat/documents/64157/4392716/ESS-QAF-V2.0-final.pdf;,citation_language=en;">
+<meta name="citation_reference" content="citation_title=Standardisierung der prozesse: 14 jahre AG SteP;,citation_author=T. Blumöhr;,citation_author=C. Teichmann;,citation_author=A. Noack;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_fulltext_html_url=https://www.destatis.de/DE/Methoden/
+               WISTA-Wirtschaft-und-Statistik/2017/05/standardisierung-prozesse-052017.html;,citation_volume=5;,citation_journal_title=WISTA - Wirtschaft und Statistik;,citation_publisher=Wiesbaden: Statistisches Bundesamt (Destatis);">
+<meta name="citation_reference" content="citation_title=Generic statistical business process model - GSBPM;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;,citation_fulltext_html_url=https://statswiki.unece.org/display/
+               GSBPM/GSBPM+v5.1;,citation_publisher=United Nations Economic Commission for Europe (UNECE);">
+<meta name="citation_reference" content="citation_title=Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_editor=Martin Zaefferer;,citation_editor=Olaf Mersmann;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Engineering Design via Surrogate Modelling;,citation_author=Alexander Forrester;,citation_author=András Sóbester;,citation_author=Andy Keane;,citation_publication_date=2008;,citation_cover_date=2008;,citation_year=2008;">
+<meta name="citation_reference" content="citation_title=No Free Lunch Theorems for Optimization;,citation_author=David H Wolpert;,citation_author=William G Macready;,citation_publication_date=1997-04;,citation_cover_date=1997-04;,citation_year=1997;,citation_issue=1;,citation_volume=1;,citation_journal_title=IEEE Transactions on Evolutionary Computation;">
+<meta name="citation_reference" content="citation_title=An Introduction to Statistical Learning with Applications in R;,citation_author=Gareth James;,citation_author=Daniela Witten;,citation_author=Trevor Hastie;,citation_author=Robert Tibshirani;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;">
+<meta name="citation_reference" content="citation_title=Requirements for papers focusing on new or improved global optimization algorithms;,citation_author=Raphael T. Haftka;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_issue=1;,citation_volume=54;,citation_journal_title=Structural and Multidisciplinary Optimization;">
+<meta name="citation_reference" content="citation_title=LightGBM: A highly efficient gradient boosting decision tree;,citation_author=Guolin Ke;,citation_author=Qi Meng;,citation_author=Thomas Finley;,citation_author=Taifeng Wang;,citation_author=Wei Chen;,citation_author=Weidong Ma;,citation_author=Qiwei Ye;,citation_author=Tie-Yan Liu;,citation_editor=I. Guyon;,citation_editor=U. Von Luxburg;,citation_editor=S. Bengio;,citation_editor=H. Wallach;,citation_editor=R. Fergus;,citation_editor=S. Vishwanathan;,citation_editor=R. Garnett;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_volume=30;,citation_conference_title=Advances in neural information processing systems;,citation_conference=Curran Associates, Inc.;">
+<meta name="citation_reference" content="citation_title=Greedy function approximation: A gradient boosting machine;,citation_author=Jerome H. Friedman;,citation_publication_date=2001;,citation_cover_date=2001;,citation_year=2001;,citation_issue=5;,citation_volume=29;,citation_journal_title=The Annals of Statistics;">
+<meta name="citation_reference" content="citation_title=Machine learning in official statistics;,citation_author=Martin Beck;,citation_author=Florian Dumpert;,citation_author=Joerg Feuerhake;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_doi=10.48550/arXiv.1812.10422;">
+<meta name="citation_reference" content="citation_title=Official statistics in the era of big data opportunities and threats;,citation_author=Walter J. Radermacher;,citation_publication_date=2018-11-01;,citation_cover_date=2018-11-01;,citation_year=2018;,citation_fulltext_html_url=https://doi.org/10.1007/s41060-018-0124-z;,citation_issue=3;,citation_doi=10.1007/s41060-018-0124-z;,citation_volume=6;,citation_language=en;,citation_journal_title=International Journal of Data Science and Analytics;">
+<meta name="citation_reference" content="citation_title=Machine learning in official statistics;,citation_author=Martin Beck;,citation_author=Florian Dumpert;,citation_author=Joerg Feuerhake;">
+<meta name="citation_reference" content="citation_title=A quality framework for statistical algorithms;,citation_author=Wesley Yung;,citation_author=Siu-Ming Tam;,citation_author=Bart Buelens;,citation_author=Hugh Chipman;,citation_author=Florian Dumpert;,citation_author=Gabriele Ascari;,citation_author=Fabiana Rocci;,citation_author=Joep Burger;,citation_author=InKyung Choi;,citation_publication_date=2022-01-01;,citation_cover_date=2022-01-01;,citation_year=2022;,citation_fulltext_html_url=https://content.iospress.com/articles/statistical-journal-of-the-iaos/sji210875;,citation_issue=1;,citation_doi=10.3233/SJI-210875;,citation_volume=38;,citation_language=en;,citation_journal_title=Statistical Journal of the IAOS;">
+<meta name="citation_reference" content="citation_title=A quality framework for statistical algorithms;,citation_author=Wesley Yung;,citation_author=Siu-Ming Tam;,citation_author=Bart Buelens;,citation_author=Hugh Chipman;,citation_author=Florian Dumpert;,citation_author=Gabriele Ascari;,citation_author=Fabiana Rocci;,citation_author=Joep Burger;,citation_author=InKyung Choi;,citation_publication_date=2022-01;,citation_cover_date=2022-01;,citation_year=2022;,citation_issue=1;,citation_volume=38;,citation_journal_title=Statistical Journal of the IAOS;">
+<meta name="citation_reference" content="citation_title=Qualitätshandbuch der statistischen Ämter des bundes und der länder;,citation_author=Michael Reichelt;">
+<meta name="citation_reference" content="citation_title=Data Science and Official Statistics: Toward a New Data Culture;,citation_author=Stefan Schweinfest;,citation_author=Ronald Jansen;,citation_publication_date=2021-10-28;,citation_cover_date=2021-10-28;,citation_year=2021;,citation_fulltext_html_url=https://hdsr.mitpress.mit.edu/pub/1g514ljw/release/4;,citation_issue=4;,citation_doi=10.1162/99608f92.c1237762;,citation_volume=3;,citation_language=en;,citation_journal_title=Harvard Data Science Review;">
+<meta name="citation_reference" content="citation_title=Official statistics 4.0: Verified facts for people in the 21st century;,citation_author=Walter J. Radermacher;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;">
+<meta name="citation_reference" content="citation_title=Detecting covariate drift with explanations;,citation_author=Steffen Castle;,citation_author=Robert Schwarzenberg;,citation_author=Mohsen Pourvali;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_conference_title=Natural language processing and chinese computing: 10th CCF international conference, NLPCC 2021, qingdao, china, october 13–17, 2021, proceedings, part II;,citation_conference=Springer-Verlag;">
+<meta name="citation_reference" content="citation_title=Keras;,citation_author=Francois Chollet;,citation_author=others;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;,citation_publisher=https:://keras.io;">
+<meta name="citation_reference" content="citation_title=TensorFlow: Large-Scale Machine Learning on Heterogeneous Distributed Systems;,citation_author=Martin Abadi;,citation_author=Ashish Agarwal;,citation_author=Paul Barham;,citation_author=Eugene Brevdo;,citation_author=Zhifeng Chen;,citation_author=Craig Citro;,citation_author=Greg S. Corrado;,citation_author=Andy Davis;,citation_author=Jeffrey Dean;,citation_author=Matthieu Devin;,citation_author=Sanjay Ghemawat;,citation_author=Ian Goodfellow;,citation_author=Andrew Harp;,citation_author=Geoffrey Irving;,citation_author=Michael Isard;,citation_author=Yangqing Jia;,citation_author=Rafal Jozefowicz;,citation_author=Lukasz Kaiser;,citation_author=Manjunath Kudlur;,citation_author=Josh Levenberg;,citation_author=Dan Mane;,citation_author=Rajat Monga;,citation_author=Sherry Moore;,citation_author=Derek Murray;,citation_author=Chris Olah;,citation_author=Mike Schuster;,citation_author=Jonathon Shlens;,citation_author=Benoit Steiner;,citation_author=Ilya Sutskever;,citation_author=Kunal Talwar;,citation_author=Paul Tucker;,citation_author=Vincent Vanhoucke;,citation_author=Vijay Vasudevan;,citation_author=Fernanda Viegas;,citation_author=Oriol Vinyals;,citation_author=Pete Warden;,citation_author=Martin Wattenberg;,citation_author=Martin Wicke;,citation_author=Yuan Yu;,citation_author=Xiaoqiang Zheng;,citation_publication_date=2016-03;,citation_cover_date=2016-03;,citation_year=2016;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Statsmodels: Econometric and statistical modeling with python;,citation_author=Skipper Seabold;,citation_author=Josef Perktold;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_conference_title=9th python in science conference;">
+<meta name="citation_reference" content="citation_title=Scikit-learn: Machine learning in Python;,citation_author=F. Pedregosa;,citation_author=G. Varoquaux;,citation_author=A. Gramfort;,citation_author=V. Michel;,citation_author=B. Thirion;,citation_author=O. Grisel;,citation_author=M. Blondel;,citation_author=P. Prettenhofer;,citation_author=R. Weiss;,citation_author=V. Dubourg;,citation_author=J. Vanderplas;,citation_author=A. Passos;,citation_author=D. Cournapeau;,citation_author=M. Brucher;,citation_author=M. Perrot;,citation_author=E. Duchesnay;,citation_publication_date=2011;,citation_cover_date=2011;,citation_year=2011;,citation_volume=12;,citation_journal_title=Journal of Machine Learning Research;">
+<meta name="citation_reference" content="citation_title=Array programming with NumPy;,citation_author=Charles R. Harris;,citation_author=K. Jarrod Millman;,citation_author=Stéfan J. Walt;,citation_author=Ralf Gommers;,citation_author=Pauli Virtanen;,citation_author=David Cournapeau;,citation_author=Eric Wieser;,citation_author=Julian Taylor;,citation_author=Sebastian Berg;,citation_author=Nathaniel J. Smith;,citation_author=Robert Kern;,citation_author=Matti Picus;,citation_author=Stephan Hoyer;,citation_author=Marten H. Kerkwijk;,citation_author=Matthew Brett;,citation_author=Allan Haldane;,citation_author=Jaime Fernández Río;,citation_author=Mark Wiebe;,citation_author=Pearu Peterson;,citation_author=Pierre Gérard-Marchant;,citation_author=Kevin Sheppard;,citation_author=Tyler Reddy;,citation_author=Warren Weckesser;,citation_author=Hameer Abbasi;,citation_author=Christoph Gohlke;,citation_author=Travis E. Oliphant;,citation_publication_date=2020-09;,citation_cover_date=2020-09;,citation_year=2020;,citation_issue=7825;,citation_volume=585;,citation_journal_title=Nature;">
+<meta name="citation_reference" content="citation_title=Algorithms for learning regression trees and ensembles on evolving data streams;,citation_author=Elena Ikonomovska;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_dissertation_institution=Jozef Stefan International Postgraduate School;">
+<meta name="citation_reference" content="citation_title=Online Bagging and Boosting;,citation_author=N C Oza;,citation_conference_title=2005 IEEE international conference on systems, man and cybernetics;,citation_conference=IEEE;">
+<meta name="citation_reference" content="citation_title=Online bagging and boosting;,citation_author=Nikunj C Oza;,citation_author=Stuart Russell;,citation_editor=T Jaakola;,citation_editor=T Richardson;,citation_publication_date=2001;,citation_cover_date=2001;,citation_year=2001;,citation_conference_title=8th insternational workshop on artificial intelligence and statistics;">
+<meta name="citation_reference" content="citation_title=Event labeling combining ensemble detectors and background knowledge;,citation_author=Hadi Fanaee-T;,citation_author=Joao Gama;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;,citation_issue=2;,citation_volume=2;,citation_journal_title=Progress in Artificial Intelligence;">
+<meta name="citation_reference" content="citation_title=Adaptive random forests for evolving data stream classification;,citation_author=Heitor M. Gomes;,citation_author=Albert Bifet;,citation_author=Jesse Read;,citation_author=Jean Paul Barddal;,citation_author=Fabricio Enembreck;,citation_author=Bernhard Pfharinger;,citation_author=Geoff Holmes;,citation_author=Talel Abdessalem;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_issue=9;,citation_volume=106;,citation_journal_title=Machine Learning;">
+<meta name="citation_reference" content="citation_title=Literate programming;,citation_author=Donald E. Knuth;,citation_publication_date=1984-05;,citation_cover_date=1984-05;,citation_year=1984;,citation_fulltext_html_url=https://doi.org/10.1093/comjnl/27.2.97;,citation_issue=2;,citation_doi=10.1093/comjnl/27.2.97;,citation_issn=0010-4620;,citation_volume=27;,citation_journal_title=Comput. J.;,citation_publisher=Oxford University Press, Inc.;">
+<meta name="citation_reference" content="citation_title=A Review and Taxonomy of Interactive Optimization Methods in Operations Research;,citation_author=David Meignan;,citation_author=Sigrid Knust;,citation_author=Jean-Marc Frayet;,citation_author=Gilles Pesant;,citation_author=Nicolas Gaud;,citation_publication_date=2015-09;,citation_cover_date=2015-09;,citation_year=2015;,citation_journal_title=ACM Transactions on Interactive Intelligent Systems;">
+<meta name="citation_reference" content="citation_title=Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_editor=Martin Zaefferer;,citation_editor=Olaf Mersmann;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=In a Nutshell – The Sequential Parameter Optimization Toolbox;,citation_author=Thomas Bartz-Beielstein;,citation_author=Martin Zaefferer;,citation_author=Frederik Rehbach;,citation_publication_date=2021-12;,citation_cover_date=2021-12;,citation_year=2021;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Direct search methods: Then and now;,citation_author=R M Lewis;,citation_author=V Torczon;,citation_author=M W Trosset;,citation_publication_date=2000;,citation_cover_date=2000;,citation_year=2000;,citation_issue=1–2;,citation_volume=124;,citation_journal_title=Journal of Computational and Applied Mathematics;">
+<meta name="citation_reference" content="citation_title=Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization;,citation_author=Lisha Li;,citation_author=Kevin Jamieson;,citation_author=Giulia DeSalvo;,citation_author=Afshin Rostamizadeh;,citation_author=Ameet Talwalkar;,citation_publication_date=2016-03;,citation_cover_date=2016-03;,citation_year=2016;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Sequential Parameter Optimization;,citation_author=Thomas Bartz-Beielstein;,citation_author=Christian Lasarczyk;,citation_author=Mike Preuss;,citation_editor=B McKay;,citation_editor=others;,citation_publication_date=2005;,citation_cover_date=2005;,citation_year=2005;,citation_conference_title=Proceedings 2005 Congress on Evolutionary Computation (CEC’05), Edinburgh, Scotland;,citation_conference=IEEE Press;">
+<meta name="citation_reference" content="citation_title=Evolutionary algorithms;,citation_author=Thomas Bartz-Beielstein;,citation_author=Jürgen Branke;,citation_author=Jörn Mehnen;,citation_author=Olaf Mersmann;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;,citation_issue=3;,citation_volume=4;,citation_journal_title=Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery;">
+<meta name="citation_reference" content="citation_title=Classification and Regression Trees;,citation_author=L Breiman;,citation_author=J H Friedman;,citation_author=R A Olshen;,citation_author=C J Stone;,citation_publication_date=1984;,citation_cover_date=1984;,citation_year=1984;">
+<meta name="citation_reference" content="citation_title=Continuous inspection schemes;,citation_author=E. S. Page;,citation_publication_date=1954-06;,citation_cover_date=1954-06;,citation_year=1954;,citation_issue=1-2;,citation_volume=41;,citation_journal_title=Biometrika;">
+<meta name="citation_reference" content="citation_title=Counting large numbers of events in small registers;,citation_author=Robert Morris;,citation_publication_date=1978-10;,citation_cover_date=1978-10;,citation_year=1978;,citation_issue=10;,citation_volume=21;,citation_journal_title=Commun. ACM;">
+<meta name="citation_reference" content="citation_title=Approximate counting: A detailed analysis;,citation_author=Philippe Flajolet;,citation_publication_date=1985-03;,citation_cover_date=1985-03;,citation_year=1985;,citation_issue=1;,citation_volume=25;,citation_journal_title=BIT;">
+<meta name="citation_reference" content="citation_title=Random sampling with a reservoir;,citation_author=Jeffrey S. Vitter;,citation_publication_date=1985-03;,citation_cover_date=1985-03;,citation_year=1985;,citation_issue=1;,citation_volume=11;,citation_journal_title=ACM Trans. Math. Softw.;">
+<meta name="citation_reference" content="citation_title=Catastrophic interference in connectionist networks: The sequential learning problem;,citation_author=Michael McCloskey;,citation_author=Neal J. Cohen;,citation_publication_date=1989-01;,citation_cover_date=1989-01;,citation_year=1989;,citation_issue=C;,citation_volume=24;,citation_journal_title=Psychology of Learning and Motivation - Advances in Research and Theory;">
+<meta name="citation_reference" content="citation_title=Detection of Abrupt Changes - Theory and Application;,citation_author=Michèle Basseville;,citation_author=Igor V. Nikiforov;,citation_publication_date=1993;,citation_cover_date=1993;,citation_year=1993;">
+<meta name="citation_reference" content="citation_title=An introduction to computational learning theory;,citation_author=Michael J. Kearns;,citation_author=Umesh V. Vazirani;,citation_publication_date=1994;,citation_cover_date=1994;,citation_year=1994;">
+<meta name="citation_reference" content="citation_title=An introduction to the kalman filter;,citation_author=Greg Welch;,citation_author=Gary Bishop;,citation_publication_date=1995;,citation_cover_date=1995;,citation_year=1995;">
+<meta name="citation_reference" content="citation_title=The space complexity of approximating the frequency moments;,citation_author=Noga Alon;,citation_author=Yossi Matias;,citation_author=Mario Szegedy;,citation_publication_date=1996;,citation_cover_date=1996;,citation_year=1996;,citation_conference_title=Proceedings of the twenty-eighth annual ACM symposium on theory of computing;,citation_conference=Association for Computing Machinery;,citation_series_title=STOC ’96;">
+<meta name="citation_reference" content="citation_title=SPLICE-2 comparative evaluation: Electricity pricing;,citation_author=Michael Harries;,citation_author=U Nsw-cse-tr;,citation_author=New South Wales;,citation_publication_date=1999;,citation_cover_date=1999;,citation_year=1999;">
+<meta name="citation_reference" content="citation_title=Mining high-speed data streams;,citation_author=Pedro M. Domingos;,citation_author=Geoff Hulten;,citation_editor=Raghu Ramakrishnan;,citation_editor=Salvatore J. Stolfo;,citation_editor=Roberto J. Bayardo;,citation_editor=Ismail Parsa;,citation_publication_date=2000;,citation_cover_date=2000;,citation_year=2000;,citation_conference_title=Proceedings of the sixth ACM SIGKDD international conference on knowledge discovery and data mining, boston, MA, USA, august 20-23, 2000;,citation_conference=ACM;">
+<meta name="citation_reference" content="citation_title=Mining time-changing data streams;,citation_author=Geoff Hulten;,citation_author=Laurie Spencer;,citation_author=Pedro Domingos;,citation_publication_date=2001;,citation_cover_date=2001;,citation_year=2001;,citation_conference_title=Proceedings of the seventh ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’01;">
+<meta name="citation_reference" content="citation_title=A streaming ensemble algorithm (SEA) for large-scale classification;,citation_author=W. Nick Street;,citation_author=YongSeog Kim;,citation_publication_date=2001;,citation_cover_date=2001;,citation_year=2001;,citation_conference_title=Proceedings of the seventh ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’01;">
+<meta name="citation_reference" content="citation_title=3D data management: Controlling data volume, velocity, and variety;,citation_author=Douglas Laney;,citation_publication_date=2001;,citation_cover_date=2001;,citation_year=2001;,citation_technical_report_institution=META Group;">
+<meta name="citation_reference" content="citation_title=Models and issues in data stream systems;,citation_author=Brian Babcock;,citation_author=Shivnath Babu;,citation_author=Mayur Datar;,citation_author=Rajeev Motwani;,citation_author=Jennifer Widom;,citation_publication_date=2002;,citation_cover_date=2002;,citation_year=2002;,citation_conference_title=Proceedings of the 21st ACM SIGMOD-SIGACT-SIGART symposium on principles of database systems;,citation_conference=ACM;,citation_series_title=PODS ’02;">
+<meta name="citation_reference" content="citation_title=A new approximate maximal margin classification algorithm;,citation_author=Claudio Gentile;,citation_publication_date=2002-03;,citation_cover_date=2002-03;,citation_year=2002;,citation_volume=2;,citation_journal_title=J. Mach. Learn. Res.;">
+<meta name="citation_reference" content="citation_title=The Design and Analysis of Computer Experiments;,citation_author=T J Santner;,citation_author=B J Williams;,citation_author=W I Notz;,citation_publication_date=2003;,citation_cover_date=2003;,citation_year=2003;">
+<meta name="citation_reference" content="citation_title=Learning with drift detection;,citation_author=João Gama;,citation_author=Pedro Medas;,citation_author=Gladys Castillo;,citation_author=Pedro Rodrigues;,citation_publication_date=2004;,citation_cover_date=2004;,citation_year=2004;,citation_conference_title=In SBIA brazilian symposium on artificial intelligence;,citation_conference=Springer Verlag;">
+<meta name="citation_reference" content="citation_title=Learning with Drift Detection;,citation_author=João Gama;,citation_author=Pedro Medas;,citation_author=Gladys Castillo;,citation_author=Pedro Rodrigues;,citation_publication_date=2004;,citation_cover_date=2004;,citation_year=2004;,citation_inbook_title=Parallel problem solving from nature - PPSN XIII - 13th international conference, ljubljana, slovenia, september 13-17, 2014. proceedings;">
+<meta name="citation_reference" content="citation_title=Learning with drift detection;,citation_author=João Gama;,citation_author=Pedro Medas;,citation_author=Gladys Castillo;,citation_author=Pedro Rodrigues;,citation_editor=Ana L. C. Bazzan;,citation_editor=Sofiane Labidi;,citation_publication_date=2004;,citation_cover_date=2004;,citation_year=2004;,citation_conference_title=Advances in artificial intelligence – SBIA 2004;,citation_conference=Springer Berlin Heidelberg;">
+<meta name="citation_reference" content="citation_title=Statistical analysis of massive data streams: Proceedings of a workshop;,citation_editor=Sallie Keller-McNulty;,citation_publication_date=2004;,citation_cover_date=2004;,citation_year=2004;">
+<meta name="citation_reference" content="citation_title=Data mining: Practical machine learning tools and techniques;,citation_author=Ian H. Witten;,citation_author=Eibe Frank;,citation_publication_date=2005;,citation_cover_date=2005;,citation_year=2005;,citation_series_title=The morgan kaufmann series in data management systems;">
+<meta name="citation_reference" content="citation_title=Towards generic pattern mining;,citation_author=Mohammed Javeed Zaki;,citation_author=Nagender Parimi;,citation_author=Nilanjana De;,citation_author=Feng Gao;,citation_author=Benjarath Phoophakdee;,citation_author=Joe Urban;,citation_author=Vineet Chaoji;,citation_author=Mohammad Al Hasan;,citation_author=Saeed Salem;,citation_editor=Bernhard Ganter;,citation_editor=Robert Godin;,citation_publication_date=2005;,citation_cover_date=2005;,citation_year=2005;,citation_volume=3403;,citation_conference_title=Formal concept analysis, third international conference, ICFCA 2005, lens, france, february 14-18, 2005, proceedings;,citation_conference=Springer;,citation_series_title=Lecture notes in computer science;">
+<meta name="citation_reference" content="citation_title=Mining data streams: A review;,citation_author=Mohamed Medhat Gaber;,citation_author=Arkady Zaslavsky;,citation_author=Shonali Krishnaswamy;,citation_publication_date=2005;,citation_cover_date=2005;,citation_year=2005;,citation_volume=34;,citation_journal_title=SIGMOD Rec.;">
+<meta name="citation_reference" content="citation_title=Early drift detection method;,citation_author=Manuel Baena-Garcıa;,citation_author=José Campo-Ávila;,citation_author=Raúl Fidalgo;,citation_author=Albert Bifet;,citation_author=R Gavalda;,citation_author=Rafael Morales-Bueno;,citation_publication_date=2006;,citation_cover_date=2006;,citation_year=2006;,citation_volume=6;,citation_conference_title=Fourth international workshop on knowledge discovery from data streams;">
+<meta name="citation_reference" content="citation_title=Online passive-aggressive algorithms;,citation_author=Koby Crammer;,citation_author=Ofer Dekel;,citation_author=Joseph Keshet;,citation_author=Shai Shalev-Shwartz;,citation_author=Yoram Singer;,citation_publication_date=2006;,citation_cover_date=2006;,citation_year=2006;,citation_issue=19;,citation_volume=7;,citation_journal_title=Journal of Machine Learning Research;">
+<meta name="citation_reference" content="citation_title=Data streams – models and algorithms;,citation_editor=Charu Aggarwal;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;">
+<meta name="citation_reference" content="citation_title=Learning from time-changing data with adaptive windowing;,citation_author=Albert Bifet;,citation_author=Ricard Gavaldà;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_conference_title=Proceedings of the 2007 SIAM international conference on data mining (SDM);">
+<meta name="citation_reference" content="citation_title=Learning from time-changing data with adaptive windowing;,citation_author=Albert Bifet;,citation_author=Ricard Gavalda;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_volume=7;,citation_conference_title=Proceedings of the 2007 SIAM international conference on data mining;,citation_conference=SIAM;">
+<meta name="citation_reference" content="citation_title=A survey of classification methods in data streams;,citation_author=Mohamed Gaber;,citation_author=Arkady Zaslavsky;,citation_author=Shonali Krishnaswamy;,citation_editor=Charu Aggarwal;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_inbook_title=Data streams – models and algorithms;">
+<meta name="citation_reference" content="citation_title=Use of hoeffding trees in concept based data stream mining;,citation_author=Stefan Hoeglinger;,citation_author=Russel Pears;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_journal_title=2007 Third International Conference on Information and Automation for Sustainability;">
+<meta name="citation_reference" content="citation_title=Detecting concept drift using statistical testing;,citation_author=Kyosuke Nishida;,citation_author=Koichiro Yamauchi;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_conference_title=International conference on discovery science;,citation_conference=Springer;">
+<meta name="citation_reference" content="citation_title=Olindda: A cluster-based approach for detecting novelty and concept drift in data streams;,citation_author=Eduardo J Spinosa;,citation_author=André Ponce Leon F. de Carvalho;,citation_author=Joao Gama;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_conference_title=Proceedings of the 2007 ACM symposium on applied computing;">
+<meta name="citation_reference" content="citation_title=Statistical Quality Control;,citation_author=Douglas C Montgomery;,citation_publication_date=2008;,citation_cover_date=2008;,citation_year=2008;">
+<meta name="citation_reference" content="citation_title=Adaptive learning from evolving data streams;,citation_author=Albert Bifet;,citation_author=Ricard Gavaldà;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_conference_title=Proceedings of the 8th international symposium on intelligent data analysis: Advances in intelligent data analysis VIII;,citation_conference=Springer-Verlag;,citation_series_title=IDA ’09;">
+<meta name="citation_reference" content="citation_title=New ensemble methods for evolving data streams;,citation_author=Albert Bifet;,citation_author=Geoff Holmes;,citation_author=Bernhard Pfahringer;,citation_author=Richard Kirkby;,citation_author=Ricard Gavaldà;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_conference_title=Proceedings of the 15th ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’09;">
+<meta name="citation_reference" content="citation_title=Adaptive concept drift detection;,citation_author=Anton Dries;,citation_author=Ulrich Rückert;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_issue=5-6;,citation_volume=2;,citation_journal_title=Stat. Anal. Data Min.;">
+<meta name="citation_reference" content="citation_title=Issues in evaluation of stream learning algorithms;,citation_author=João Gama;,citation_author=Raquel Sebastião;,citation_author=Pedro Pereira Rodrigues;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_conference_title=Proceedings of the 15th ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’09;">
+<meta name="citation_reference" content="citation_title=Stream data processing: A quality of service perspective;,citation_author=Qingchun Jiang;,citation_author=Sharma Chakravarthy;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;">
+<meta name="citation_reference" content="citation_title=Probabilistic counting with randomized storage;,citation_author=Benjamin Van Durme;,citation_author=Ashwin Lall;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_conference_title=Proceedings of the 21st international joint conference on artificial intelligence;,citation_conference=Morgan Kaufmann Publishers Inc.;,citation_series_title=IJCAI’09;">
+<meta name="citation_reference" content="citation_title=Adaptive stream mining: Pattern learning and mining from evolving data streams;,citation_author=Albert Bifet;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_volume=207;,citation_series_title=Frontiers in artificial intelligence and applications;">
+<meta name="citation_reference" content="citation_title=We’re not in kansas anymore: Detecting domain changes in streams;,citation_author=Mark Dredze;,citation_author=Tim Oates;,citation_author=Christine Piatko;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_conference_title=Proceedings of the 2010 conference on empirical methods in natural language processing;">
+<meta name="citation_reference" content="citation_title=Large-Scale Inference: Empirical Bayes Methods for Estimation, Testing, and Prediction (Institute of Mathematical Statistics Monographs);,citation_author=Bradley Efron;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;">
+<meta name="citation_reference" content="citation_title=Knowledge discovery from data streams;,citation_author=João Gama;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_series_title=Chapman and hall / CRC data mining and knowledge discovery series;">
+<meta name="citation_reference" content="citation_title=A DCT based approach for detecting novelty and concept drift in data streams;,citation_author=Morteza Zi Hayat;,citation_author=Mahmoud Reza Hashemi;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_conference_title=2010 international conference of soft computing and pattern recognition;,citation_conference=IEEE;">
+<meta name="citation_reference" content="citation_title=Benchmarking stream clustering algorithms within the MOA framework;,citation_author=Philipp Kranen;,citation_author=Hardy Kremer;,citation_author=Timm Jansen;,citation_author=Thomas Seidl;,citation_author=Albert Bifet;,citation_author=Geoff Holmes;,citation_author=Bernhard Pfahringer;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_conference_title=16th ACM SIGKDD international conference on knowledge discovery and data mining (KDD 2010), washington, DC, USA;">
+<meta name="citation_reference" content="citation_title=MOA: Massive online analysis;,citation_author=Albert Bifet;,citation_author=Geoff Holmes;,citation_author=Richard Kirkby;,citation_author=Bernhard Pfahringer;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_volume=99;,citation_journal_title=Journal of Machine Learning Research;">
+<meta name="citation_reference" content="citation_title=Hellinger distance based drift detection for nonstationary environments;,citation_author=Gregory Ditzler;,citation_author=Robi Polikar;,citation_publication_date=2011;,citation_cover_date=2011;,citation_year=2011;,citation_conference_title=2011 IEEE symposium on computational intelligence in dynamic and uncertain environments (CIDUE);,citation_conference=IEEE;">
+<meta name="citation_reference" content="citation_title=Classification and novel class detection in concept-drifting data streams under time constraints;,citation_author=Mohammad Masud;,citation_author=Jing Gao;,citation_author=Latifur Khan;,citation_author=Jiawei Han;,citation_author=Bhavani M Thuraisingham;,citation_publication_date=2011;,citation_cover_date=2011;,citation_year=2011;,citation_issue=6;,citation_volume=23;,citation_journal_title=IEEE Transactions on Knowledge and Data Engineering;">
+<meta name="citation_reference" content="citation_title=New drift detection method for data streams;,citation_author=Parinaz Sobhani;,citation_author=Hamid Beigy;,citation_publication_date=2011;,citation_cover_date=2011;,citation_year=2011;,citation_conference_title=International conference on adaptive and intelligent systems;,citation_conference=Springer;">
+<meta name="citation_reference" content="citation_title=Birch: Dealing with very large datasets using BIRCH;,citation_author=Lysiane Charest;,citation_author=Justin Harrington;,citation_author=Matias Salibian-Barrera;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=Synopses for massive data: Samples, histograms, wavelets, sketches;,citation_author=Graham Cormode;,citation_author=Minos Garofalakis;,citation_author=Peter J. Haas;,citation_author=Chris Jermaine;,citation_publication_date=2012-01;,citation_cover_date=2012-01;,citation_year=2012;,citation_issue=1–3;,citation_volume=4;,citation_journal_title=Found. Trends Databases;">
+<meta name="citation_reference" content="citation_title=Detection of concept drift for learning from stream data;,citation_author=Jeonghoon Lee;,citation_author=Frederic Magoules;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_conference_title=2012 IEEE 14th international conference on high performance computing and communication &amp;amp;amp; 2012 IEEE 9th international conference on embedded software and systems;,citation_conference=IEEE;">
+<meta name="citation_reference" content="citation_title=Mlbench: Machine learning benchmark problems;,citation_author=Friedrich Leisch;,citation_author=Evgenia Dimitriadou;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=A unifying view on dataset shift in classification;,citation_author=Jose G. Moreno-Torres;,citation_author=Troy Raeder;,citation_author=Rocı́o Alaı́z-Rodrı́guez;,citation_author=Nitesh V. Chawla;,citation_author=Francisco Herrera;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_issue=1;,citation_volume=45;,citation_journal_title=Pattern Recognit.;">
+<meta name="citation_reference" content="citation_title=HadoopStreaming: Utilities for using R scripts in Hadoop streaming;,citation_author=David S. Rosenberg;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=Exponentially weighted moving average charts for detecting concept drift;,citation_author=Gordon J Ross;,citation_author=Niall M Adams;,citation_author=Dimitris K Tasoulis;,citation_author=David J Hand;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_issue=2;,citation_volume=33;,citation_journal_title=Pattern recognition letters;">
+<meta name="citation_reference" content="citation_title=An efficient method of building an ensemble of classifiers in streaming data;,citation_author=Joung Woo Ryu;,citation_author=Mehmed M Kantardzic;,citation_author=Myung-Won Kim;,citation_author=A Ra Khil;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;,citation_conference_title=International conference on big data analytics;,citation_conference=Springer;">
+<meta name="citation_reference" content="citation_title=Rlecuyer: R interface to RNG with multiple streams;,citation_author=Hana Sevcikova;,citation_author=Tony Rossini;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=Machine learning that matters;,citation_author=Kiri Wagstaff;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=CD-MOA: Change detection framework for massive online analysis;,citation_author=Albert Bifet;,citation_author=Jesse Read;,citation_author=Bernhard Pfahringer;,citation_author=Geoff Holmes;,citation_author=Indrė Žliobaitė;,citation_editor=Allan Tucker;,citation_editor=Frank Höppner;,citation_editor=Arno Siebes;,citation_editor=Stephen Swift;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_conference_title=Advances in intelligent data analysis XII;,citation_conference=Springer Berlin Heidelberg;">
+<meta name="citation_reference" content="citation_title=Novelty detection algorithm for data streams multi-class problems;,citation_author=Elaine R Faria;,citation_author=João Gama;,citation_author=André CPLF Carvalho;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_conference_title=Proceedings of the 28th annual ACM symposium on applied computing;">
+<meta name="citation_reference" content="citation_title=Turning big data into tiny data: Constant-size coresets for k-means, PCA and projective clustering;,citation_author=Dan Feldman;,citation_author=Melanie Schmidt;,citation_author=Christian Sohler;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_conference_title=Proceedings of the twenty-fourth annual ACM-SIAM symposium on discrete algorithms;,citation_conference=Society for Industrial; Applied Mathematics;,citation_series_title=SODA ’13;">
+<meta name="citation_reference" content="citation_title=On evaluating stream learning algorithms;,citation_author=João Gama;,citation_author=Raquel Sebastião;,citation_author=Pedro Pereira Rodrigues;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_issue=3;,citation_volume=90;,citation_journal_title=Machine Learning;">
+<meta name="citation_reference" content="citation_title=Scalable strategies for computing with massive data;,citation_author=Michael J. Kane;,citation_author=John Emerson;,citation_author=Stephen Weston;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_issue=14;,citation_volume=55;,citation_journal_title=Journal of Statistical Software;">
+<meta name="citation_reference" content="citation_title=RStorm: Simulate and develop streaming processing in R;,citation_author=Maurits Kaptein;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;">
+<meta name="citation_reference" content="citation_title=Drift detection using uncertainty distribution divergence;,citation_author=Patrick Lindstrom;,citation_author=Brian Mac Namee;,citation_author=Sarah Jane Delany;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_issue=1;,citation_volume=4;,citation_journal_title=Evolving Systems;">
+<meta name="citation_reference" content="citation_title=Ad click prediction: A view from the trenches;,citation_author=H. Brendan McMahan;,citation_author=Gary Holt;,citation_author=D. Sculley;,citation_author=Michael Young;,citation_author=Dietmar Ebner;,citation_author=Julian Grady;,citation_author=Lan Nie;,citation_author=Todd Phillips;,citation_author=Eugene Davydov;,citation_author=Daniel Golovin;,citation_author=Sharat Chikkerur;,citation_author=Dan Liu;,citation_author=Martin Wattenberg;,citation_author=Arnar Mar Hrafnkelsson;,citation_author=Tom Boulos;,citation_author=Jeremy Kubica;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_conference_title=Proceedings of the 19th ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’13;">
+<meta name="citation_reference" content="citation_title=Data stream clustering: A survey.;,citation_author=Jonathan A. Silva;,citation_author=Elaine R. Faria;,citation_author=Rodrigo C. Barros;,citation_author=Eduardo R. Hruschka;,citation_author=Andre Carvalho;,citation_author=Joao Gama;,citation_publication_date=2013;,citation_cover_date=2013;,citation_year=2013;,citation_issue=1;,citation_volume=46;,citation_journal_title=ACM Computer Surveys;">
+<meta name="citation_reference" content="citation_title=ff: Memory-efficient storage of large data on disk and fast access functions;,citation_author=Daniel Adler;,citation_author=Christian Gläser;,citation_author=Oleg Nenadic;,citation_author=Jens Oehlschlägel;,citation_author=Walter Zucchini;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=Factas: Data mining methods for data streams;,citation_author=Romain Bar;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=streamR: Access to Twitter streaming API via R;,citation_author=Pablo Barbera;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=DBI: R database interface;,citation_author=R Special Interest Group on Databases;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=Concept drift detection through resampling;,citation_author=Maayan Harel;,citation_author=Shie Mannor;,citation_author=Ran El-Yaniv;,citation_author=Koby Crammer;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;,citation_conference_title=International conference on machine learning;,citation_conference=PMLR;">
+<meta name="citation_reference" content="citation_title=PCA feature extraction for change detection in multidimensional unlabeled data;,citation_author=Ludmila I Kuncheva;,citation_author=William J Faithfull;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;,citation_issue=1;,citation_volume=25;,citation_journal_title=IEEE transactions on neural networks and learning systems;">
+<meta name="citation_reference" content="citation_title=Mining of massive datasets;,citation_author=Jure Leskovec;,citation_author=Anand Rajaraman;,citation_author=Jeffery D. Ullman;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=RMOA: Connect r with MOA to perform streaming classifications;,citation_author=Jan Wijffels;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=A survey on concept drift adaptation;,citation_author=João Gama;,citation_author=Indrundefined Žliobaitundefined;,citation_author=Albert Bifet;,citation_author=Mykola Pechenizkiy;,citation_author=Abdelhamid Bouchachia;,citation_publication_date=2014-03;,citation_cover_date=2014-03;,citation_year=2014;,citation_issue=4;,citation_volume=46;,citation_journal_title=ACM Comput. Surv.;">
+<meta name="citation_reference" content="citation_title=Graph stream algorithms: A survey;,citation_author=Andrew McGregor;,citation_publication_date=2014-05;,citation_cover_date=2014-05;,citation_year=2014;,citation_issue=1;,citation_volume=43;,citation_journal_title=SIGMOD Rec.;">
+<meta name="citation_reference" content="citation_title=RStorm: Developing and testing streaming algorithms in r;,citation_author=Maurits Kaptein;,citation_publication_date=2014-06;,citation_cover_date=2014-06;,citation_year=2014;,citation_issue=1;,citation_volume=6;,citation_journal_title=The R Journal;">
+<meta name="citation_reference" content="citation_title=SNAP Datasets: Stanford large network dataset collection;,citation_author=Jure Leskovec;,citation_author=Andrej Krevl;,citation_publication_date=2014-06;,citation_cover_date=2014-06;,citation_year=2014;,citation_publisher=http://snap.stanford.edu/data;">
+<meta name="citation_reference" content="citation_title=Questioning the lambda architecture;,citation_author=Jay Kreps;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=Sketching as a tool for numerical linear algebra;,citation_author=David P. Woodruff;,citation_publication_date=2014-10;,citation_cover_date=2014-10;,citation_year=2014;,citation_issue=1–2;,citation_volume=10;,citation_journal_title=Found. Trends Theor. Comput. Sci.;">
+<meta name="citation_reference" content="citation_title=Modeling concept drift: A probabilistic graphical model based approach;,citation_author=Hanen Borchani;,citation_author=Ana Maria Martinez;,citation_author=Andrés R. Masegosa;,citation_author=Helge Langseth;,citation_author=Thomas Dyhre Nielsen;,citation_author=Antonio Salmerón;,citation_author=Antonio Fernández;,citation_author=Anders Læsø Madsen;,citation_author=Ramón Sáez;,citation_editor=Elisa Fromont;,citation_editor=Tijl De Bie;,citation_editor=Matthijs Leeuwen;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;,citation_conference_title=Advances in intelligent data analysis XIV;,citation_conference=Springer;,citation_series_title=Lecture notes in computer science;">
+<meta name="citation_reference" content="citation_title=twitteR: R based Twitter client;,citation_author=Jeff Gentry;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=rEMM: Extensible markov model for data stream clustering in R;,citation_author=Michael Hahsler;,citation_author=Margaret H. Dunham;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=streamMOA: Interface for MOA stream clustering algorithms;,citation_author=Michael Hahsler;,citation_author=Matthew Bolanos;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=Rstream: Streams of random numbers;,citation_author=Josef Leydold;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=Big data: Principles and best practices of scalable realtime data systems;,citation_author=Nathan Marz;,citation_author=James Warren;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=A pca-based change detection framework for multidimensional data streams: Change detection in multidimensional data streams;,citation_author=Abdulhakim A Qahtan;,citation_author=Basma Alharbi;,citation_author=Suojin Wang;,citation_author=Xiangliang Zhang;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;,citation_conference_title=Proceedings of the 21th ACM SIGKDD international conference on knowledge discovery and data mining;">
+<meta name="citation_reference" content="citation_title=Concept drift detection for streaming data;,citation_author=Heng Wang;,citation_author=Zubin Abraham;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;,citation_conference_title=International joint conference on neural networks (IJCNN);">
+<meta name="citation_reference" content="citation_title=Koaning.io: Linear models solving non-linear problems;,citation_author=Vincent Warmerdam;,citation_publication_date=2015;,citation_cover_date=2015;,citation_year=2015;">
+<meta name="citation_reference" content="citation_title=Experimental Algorithmics Applied to On-line Machine Learning;,citation_author=Thomas Bartz-Beielstein;,citation_editor=Gregor Papa;,citation_editor=Marjan Mernik;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_conference_title=Bioinspired optimization methods and their applications;">
+<meta name="citation_reference" content="citation_title=Quantmod: Quantitative financial modelling framework;,citation_author=Jeffrey A. Ryan;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;">
+<meta name="citation_reference" content="citation_title=A grid density based framework for classifying streaming data in the presence of concept drift;,citation_author=Tegjyot Singh Sethi;,citation_author=Mehmed Kantardzic;,citation_author=Hanquing Hu;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_issue=1;,citation_volume=46;,citation_journal_title=Journal of Intelligent Information Systems;">
+<meta name="citation_reference" content="citation_title=rJava: Low-level R to Java interface;,citation_author=Simon Urbanek;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;">
+<meta name="citation_reference" content="citation_title=SparkR: Scaling r programs with spark;,citation_author=Shivaram Venkataraman;,citation_author=Zongheng Yang;,citation_author=Davies Liu;,citation_author=Eric Liang;,citation_author=Hossein Falaki;,citation_author=Xiangrui Meng;,citation_author=Reynold Xin;,citation_author=Ali Ghodsi;,citation_author=Michael Franklin;,citation_author=Ion Stoica;,citation_author=Matei Zaharia;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;,citation_conference_title=Proceedings of the 2016 international conference on management of data;,citation_conference=Association for Computing Machinery;,citation_series_title=SIGMOD ’16;">
+<meta name="citation_reference" content="citation_title=Koaning.io: Bayesian/streaming algorithms;,citation_author=Vincent Warmerdam;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;">
+<meta name="citation_reference" content="citation_title=Outlier analysis;,citation_author=Charu C Aggarwal;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+<meta name="citation_reference" content="citation_title=Video popularity prediction in data streams based on context-independent features;,citation_author=Vitor Silva;,citation_author=Ana Trindade Winck;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_conference_title=Proceedings of the symposium on applied computing;,citation_conference=Association for Computing Machinery;,citation_series_title=SAC ’17;">
+<meta name="citation_reference" content="citation_title=Einsatz von machine-learning-verfahren in amtlichen unternehmensstatistiken;,citation_author=Florian Dumpert;,citation_author=Martin Beck;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_issue=2;,citation_volume=11;,citation_journal_title=AStA Wirtschafts- und Sozialstatistisches Archiv;">
+<meta name="citation_reference" content="citation_title=Introduction to stream: An extensible framework for data stream clustering research with r;,citation_author=Michael Hahsler;,citation_author=Matthew Bolaños;,citation_author=John Forrest;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_issue=14;,citation_volume=76;,citation_journal_title=Journal of Statistical Software;">
+<meta name="citation_reference" content="citation_title=Stream: Infrastructure for data stream mining;,citation_author=Michael Hahsler;,citation_author=Matthew Bolaños;,citation_author=John Forrest;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+<meta name="citation_reference" content="citation_title=Design and Analysis of Experiments;,citation_author=D C Montgomery;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+<meta name="citation_reference" content="citation_title=Time series forecasting in the presence of concept drift: A PSO-based approach;,citation_author=Gustavo H. F. M. Oliveira;,citation_author=Rodolfo C. Cavalcante;,citation_author=George G. Cabral;,citation_author=Leandro L. Minku;,citation_author=Adriano L. I. Oliveira;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;,citation_conference_title=2017 IEEE 29th international conference on tools with artificial intelligence (ICTAI);">
+<meta name="citation_reference" content="citation_title=United nations global pulse. Harnessing big data for development and humanitarian action.;,citation_author=United Nations;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+<meta name="citation_reference" content="citation_title=Koaning.io: Passive agressive algorithms;,citation_author=Vincent Warmerdam;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+<meta name="citation_reference" content="citation_title=On the Reliable Detection of Concept Drift from Streaming Unlabeled Data;,citation_author=Tegjyot Singh Sethi;,citation_author=Mehmed Kantardzic;,citation_publication_date=2017-03;,citation_cover_date=2017-03;,citation_year=2017;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Proof of concept machine learning - Abschlussbericht;,citation_author=Martin Beck;,citation_author=Florian Dumpert;,citation_author=Jörg Feuerhake;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_technical_report_institution=Statistisches Bundesamt (Destatis);">
+<meta name="citation_reference" content="citation_title=Machine learning for data streams with practical examples in MOA;,citation_author=Albert Bifet;,citation_author=Ricard Gavalda;,citation_author=Geoff Holmes;,citation_author=Bernhard Pfahringer;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;">
+<meta name="citation_reference" content="citation_title=Lifelong machine learning;,citation_author=Zhiyuan Chen;,citation_author=Bing Liu;,citation_author=Ronald Brachman;,citation_author=Peter Stone;,citation_author=Francesca Rossi;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;">
+<meta name="citation_reference" content="citation_title=Incremental on-line learning: A review and comparison of state of the art algorithms;,citation_author=Viktor Losing;,citation_author=Barbara Hammer;,citation_author=Heiko Wersing;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_volume=275;,citation_journal_title=Neurocomputing;">
+<meta name="citation_reference" content="citation_title=Extremely fast decision tree;,citation_author=Chaitanya Manapragada;,citation_author=Geoffrey I. Webb;,citation_author=Mahsa Salehi;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_conference_title=Proceedings of the 24th ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’18;">
+<meta name="citation_reference" content="citation_title=An evaluation of data stream clustering algorithms;,citation_author=Stratos Mansalis;,citation_author=Eirini Ntoutsi;,citation_author=Nikos Pelekis;,citation_author=Yannis Theodoridis;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_issue=4;,citation_volume=11;,citation_journal_title=Statistical Analysis and Data Mining: The ASA Data Science Journal;">
+<meta name="citation_reference" content="citation_title=Koaning.io: How to win with simple, even linear, models;,citation_author=Vincent Warmerdam;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;">
+<meta name="citation_reference" content="citation_title=Anomaly detection in manufacturing systems using structured neural networks;,citation_author=J. Liu;,citation_author=J. Guo;,citation_author=P. V. Orlik;,citation_author=M. Shibata;,citation_author=D. Nakahara;,citation_author=S. Mii;,citation_author=M. Takac;,citation_publication_date=2018-07;,citation_cover_date=2018-07;,citation_year=2018;,citation_technical_report_institution=MITSUBISHI ELECTRIC RESEARCH LABORATORIES;">
+<meta name="citation_reference" content="citation_title=Industrial internet of things based ransomware detection using stacked variational neural network;,citation_author=Muna Al-Hawawreh;,citation_author=Elena Sitnikova;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;,citation_conference_title=Proceedings of the 3rd international conference on big data and internet of things;,citation_conference=Association for Computing Machinery;,citation_series_title=BDIOT 2019;">
+<meta name="citation_reference" content="citation_title=Evaluation of cognitive architectures for cyber-physical production systems;,citation_author=Andreas Bunte;,citation_author=Andreas Fischbach;,citation_author=Jan Strohschein;,citation_author=Thomas Bartz-Beielstein;,citation_author=Heide Faeskorn-Woyke;,citation_author=Oliver Niggemann;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;,citation_conference_title=24th IEEE international conference on emerging technologies and factory automation, ETFA 2019, zaragoza, spain, september 10-13, 2019;">
+<meta name="citation_reference" content="citation_title=Nowcasting: Ein echtzeit-indikator für die konjunkturanalyse;,citation_author=Charlotte Senftleben;,citation_author=Till Strohsal;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;">
+<meta name="citation_reference" content="citation_title=Koaning.io: The future of data science is past;,citation_author=Vincent Warmerdam;,citation_publication_date=2019;,citation_cover_date=2019;,citation_year=2019;">
+<meta name="citation_reference" content="citation_title=Forecasting inflation with online prices;,citation_author=Diego Aparicio;,citation_author=Manuel I. Bertolotto;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;,citation_issue=2;,citation_volume=36;,citation_journal_title=International Journal of Forecasting;">
+<meta name="citation_reference" content="citation_title=CAAI—a cognitive architecture to introduce artificial intelligence in cyber-physical production systems;,citation_author=Andreas Fischbach;,citation_author=Jan Strohschein;,citation_author=Andreas Bunte;,citation_author=Jörg Stork;,citation_author=Heide Faeskorn-Woyke;,citation_author=Natalia Moriz;,citation_author=Thomas Bartz-Beielstein;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;,citation_issue=1;,citation_volume=111;,citation_journal_title=The International Journal of Advanced Manufacturing Technology;">
+<meta name="citation_reference" content="citation_title=Delayed labelling evaluation for data streams;,citation_author=Maciej Grzenda;,citation_author=Heitor Murilo Gomes;,citation_author=Albert Bifet;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;,citation_issue=5;,citation_volume=34;,citation_journal_title=Data Mining and Knowledge Discovery;">
+<meta name="citation_reference" content="citation_title=Stream data mining: Algorithms and their probabilistic properties;,citation_editor=Leszek Rutkowski;,citation_editor=Maciej Jaworski;,citation_editor=Piotr Duda;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;,citation_series_title=Studies in big data;">
+<meta name="citation_reference" content="citation_title=Loghub: A Large Collection of System Log Datasets towards Automated Log Analytics;,citation_author=Shilin He;,citation_author=Jieming Zhu;,citation_author=Pinjia He;,citation_author=Michael R. Lyu;,citation_publication_date=2020-08;,citation_cover_date=2020-08;,citation_year=2020;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Nowcasting german GDP: Foreign factors, financial markets, and model averaging;,citation_author=Paolo Andreini;,citation_author=Thomas Hasenzagl;,citation_author=Lucrezia Reichlin;,citation_author=Charlotte Senftleben-König;,citation_author=Till Strohsal;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_journal_title=International Journal of Forecasting;">
+<meta name="citation_reference" content="citation_title=Modelling the COVID-19 virus evolution with incremental machine learning;,citation_author=Andrés L. Suárez-Cetrulo;,citation_author=Ankit Kumar;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;">
+<meta name="citation_reference" content="citation_title=Machine learning for time-series with python: Forecast, predict, and detect;,citation_author=Den Auffarth;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;">
+<meta name="citation_reference" content="citation_title=Machine learning in der amtlichen statistik - ergebnisse und bewertung eines internationalen projekts;,citation_author=Florian Dumpert;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_technical_report_institution=Statistisches Bundesamt (Destatis);,citation_technical_report_number=4;">
+<meta name="citation_reference" content="citation_title=Recurring concept memory management in data streams: Exploiting data stream concept evolution to improve performance and transparency;,citation_author=Ben Halstead;,citation_author=Yun Sing Koh;,citation_author=Patricia Riddle;,citation_author=Russel Pears;,citation_author=Mykola Pechenizkiy;,citation_author=Albert Bifet;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_issue=3;,citation_volume=35;,citation_journal_title=Data Mining and Knowledge Discovery;">
+<meta name="citation_reference" content="citation_title=Soziale marktwirtschaft in der digitalen zukunft: Foresight-bericht strategischer vorausschauprozess des BMWi;,citation_author=Dirk Holtmannspötter;,citation_author=Ulrich Heimeshoff;,citation_author=Justus Haucap;,citation_author=Ina Loebert;,citation_author=Christoph Busch;,citation_author=Andreas Hoffknecht;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_technical_report_institution=VDI Technologiezentrum GmbH im Auftrag des Bundesministerium für Wirtschaft und Energie;">
+<meta name="citation_reference" content="citation_title=River: Machine learning for streaming data in python;,citation_author=Jacob Montiel;,citation_author=Max Halford;,citation_author=Saulo Martiello Mastelini;,citation_author=Geoffrey Bolmier;,citation_author=Raphael Sourty;,citation_author=Robin Vaysse;,citation_author=Adil Zouitine;,citation_author=Heitor Murilo Gomes;,citation_author=Jesse Read;,citation_author=Talel Abdessalem;,citation_author=others;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;">
+<meta name="citation_reference" content="citation_title=Practical machine learning for streaming data with python;,citation_author=Sayan Putatunda;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;">
+<meta name="citation_reference" content="citation_title=Infrerring concept drift without labeled data;,citation_author=Andrew Reed;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_technical_report_institution=Cloudera Fast Forward Labs;,citation_technical_report_number=FF21;">
+<meta name="citation_reference" content="citation_title=Cognitive capabilities for the CAAI in cyber-physical production systems;,citation_author=Jan Strohschein;,citation_author=Andreas Fischbach;,citation_author=Andreas Bunte;,citation_author=Heide Faeskorn-Woyke;,citation_author=Natalia Moriz;,citation_author=Thomas Bartz-Beielstein;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_journal_title=The International Journal of Advanced Manufacturing Technology;">
+<meta name="citation_reference" content="citation_title=FARF: A fair and adaptive random forests classifier;,citation_author=Wenbin Zhang;,citation_author=Albert Bifet;,citation_author=Xiangliang Zhang;,citation_author=Jeremy C. Weiss;,citation_author=Wolfgang Nejdl;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_conference_title=Advances in knowledge discovery and data mining: 25th pacific-asia conference, PAKDD 2021, virtual event, may 11–14, 2021, proceedings, part II;,citation_conference=Springer-Verlag;">
+<meta name="citation_reference" content="citation_title=Modelling the COVID-19 virus evolution with Incremental Machine Learning;,citation_author=Andrés L. Suárez-Cetrulo;,citation_author=Ankit Kumar;,citation_author=Luis Miralles-Pechuán;,citation_publication_date=2021-04;,citation_cover_date=2021-04;,citation_year=2021;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Online learning and active learning: A comparative study of passive-aggressive algorithm with support vector machine (SVM);,citation_author=K. I Ezukwoke;,citation_author=S. J Zareian;,citation_publication_date=2021;,citation_cover_date=2021;,citation_year=2021;,citation_issue=3;,citation_volume=21;,citation_journal_title=Journal of Higher Education Theory and Practice;">
+<meta name="citation_reference" content="citation_title=Digitale ordnungspolitik – wirtschaftspolitik daten- und evidenzbasiert weiterentwickeln;,citation_author=Philipp Steinberg;,citation_author=Nils Börnsen;,citation_author=Dirk Neumann;,citation_publication_date=2021-09;,citation_cover_date=2021-09;,citation_year=2021;,citation_publisher=Wirtschaftsdienst;">
+<meta name="citation_reference" content="citation_title=Incremental unsupervised domain-adversarial training of neural networks;,citation_author=Antonio-Javier Gallego;,citation_author=Jorge Calvo-Zaragoza;,citation_author=Robert B. Fisher;,citation_publication_date=2021-11;,citation_cover_date=2021-11;,citation_year=2021;,citation_issue=11;,citation_volume=32;,citation_journal_title=IEEE Transactions on Neural Networks and Learning Systems;">
+<meta name="citation_reference" content="citation_title=Incremental learning for property price estimation using location-based services and open data;,citation_author=Francisco Alvarez;,citation_author=Edgar Roman-Rangel;,citation_author=Luis V. Montiel;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_volume=107;,citation_journal_title=Engineering Applications of Artificial Intelligence;">
+<meta name="citation_reference" content="citation_title=Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_editor=Martin Zaefferer;,citation_editor=Olaf Mersmann;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Interpretable machine learning: Moving from mythos to diagnostics;,citation_author=Valerie Chen;,citation_author=Jeffrey Li;,citation_author=Joon Sik Kim;,citation_author=Gregory Plumb;,citation_author=Ameet Talwalkar;,citation_publication_date=2022-01;,citation_cover_date=2022-01;,citation_year=2022;,citation_issue=6;,citation_volume=19;,citation_journal_title=Queue;">
+<meta name="citation_reference" content="citation_title=Online time-series anomaly detection: A survey of modern model-based approaches;,citation_author=Lucas Correia;,citation_author=Jan-Christoph Goos;,citation_author=Anna V. Kononova;,citation_author=Thomas Bäck;,citation_author=Philipp Klein;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_technical_report_institution=Mercedes-Benz, Germany;">
+<meta name="citation_reference" content="citation_title=Green accelerated hoeffding tree;,citation_author=Eva Garcia-Martin;,citation_author=Albert Bifet;,citation_author=Niklas Lavesson;,citation_author=Rikard König;,citation_author=Henrik Linusson;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Monitoring the economy in real time: Trends and gaps in real activity and prices;,citation_author=Thomas Hasenzagl;,citation_author=Filippo Pellegrino;,citation_author=Lucrezia Reichlin;,citation_author=Giovanni Ricco;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Efficiently correcting machine learning: Considering the role of example ordering in human-in-the-loop training of image classification models;,citation_author=Geoff Holmes;,citation_author=Eibe Frank;,citation_author=Dale Fletcher;,citation_author=Corey Sterling;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_conference_title=27th international conference on intelligent user interfaces;,citation_conference=Association for Computing Machinery;,citation_series_title=IUI ’22;">
+<meta name="citation_reference" content="citation_title=TemporalWiki: A lifelong benchmark for training and evaluating ever-evolving language models;,citation_author=Joel Jang;,citation_author=Seonghyeon Ye;,citation_author=Changho Lee;,citation_author=Sohee Yang;,citation_author=Joongbo Shin;,citation_author=Janghoon Han;,citation_author=Gyeonghun Kim;,citation_author=Minjoon Seo;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Fast mining and forecasting of co-evolving epidemiological data streams;,citation_author=Tasuku Kimura;,citation_author=Yasuko Matsubara;,citation_author=Koki Kawabata;,citation_author=Yasushi Sakurai;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_conference_title=Proceedings of the 28th ACM SIGKDD conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery;,citation_series_title=KDD ’22;">
+<meta name="citation_reference" content="citation_title=Maschine learning for streaming data with python;,citation_author=Jan Korstanje;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=The disagreement problem in explainable machine learning: A practitioner’s perspective;,citation_author=Satyapriya Krishna;,citation_author=Tessa Han;,citation_author=Alex Gu;,citation_author=Javin Pombra;,citation_author=Shahin Jabbari;,citation_author=Steven Wu;,citation_author=Himabindu Lakkaraju;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=SparkR: R front end for ’apache spark’;,citation_author=The Apache Software Foundation;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Short-term local predictions of COVID-19 in the united kingdom using dynamic supervised machine learning algorithms;,citation_author=Xin Wang;,citation_author=Yijia Dong;,citation_author=William David Thompson;,citation_author=Harish Nair;,citation_author=You Li;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_issue=1;,citation_volume=2;,citation_journal_title=Communications Medicine;">
+<meta name="citation_reference" content="citation_title=Log-based Anomaly Detection with Deep Learning: How Far Are We?;,citation_author=Van-Hoang Le;,citation_author=Hongyu Zhang;,citation_publication_date=2022-02;,citation_cover_date=2022-02;,citation_year=2022;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Reliance on metrics is a fundamental challenge for AI.;,citation_author=Rachel L Thomas;,citation_author=David Uminsky;,citation_publication_date=2022-05;,citation_cover_date=2022-05;,citation_year=2022;,citation_issue=5;,citation_volume=3;,citation_journal_title=Patterns (N Y);">
+<meta name="citation_reference" content="citation_title=SMRD.de Benutzerhandbuch;,citation_author=Niyaz Valitov;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_technical_report_institution=Bundesnetzagentur für Elektrizität, Gas, Telekommunikation, Post und Eisenbahnen;">
+<meta name="citation_reference" content="citation_title=Use of web scraping and text mining techniques in the istat survey on “information and communication technology in enterprises”;,citation_author=G. Barcaroli;,citation_author=A. Nurra;,citation_author=M. Scarnò;,citation_author=D. Summa;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=Who makes mistakes? Using data mining techniques to analyze reporting errors in total acres operated;,citation_author=Jaki S. McCarthy;,citation_author=Morgan S. Earp;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;,citation_fulltext_html_url=https://ideas.repec.org/p/ags/unasrr/234367.html;,citation_doi=10.22004/AG.ECON.234367;,citation_journal_title=NASS Research Reports;,citation_publisher=United States Department of Agriculture, National Agricultural Statistics Service;">
+<meta name="citation_reference" content="citation_title=Modeling non-response in national agricultural statistics service (NASS) surveys using classification trees;,citation_author=Jaki S Mccarthy;,citation_author=Thomas Jacob;,citation_author=Amanda Mccracken;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;">
+<meta name="citation_reference" content="citation_title=2007 census of agriculture non-response methodology;,citation_author=Will Cecere;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;">
+<meta name="citation_reference" content="citation_title=Exploring quarterly agricultural survey questionnaire version reduction scenarios;,citation_author=Morgan Earp;,citation_author=Scott Cox;,citation_author=Jody Mcdaniel;,citation_author=Chadd Crouse;,citation_publication_date=2009;,citation_cover_date=2009;,citation_year=2009;">
+<meta name="citation_reference" content="citation_title=USE OF MACHINE LEARNING METHODS TO IMPUTE CATEGORICAL DATA;,citation_author=P. Rey;,citation_publication_date=2012;,citation_cover_date=2012;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=Innovative uses of data mining techniques in the production of official statistics;,citation_author=Jaki Mccarthy;,citation_author=Thomas Jacob;,citation_author=Dale Atkinson;">
+<meta name="citation_reference" content="citation_title=Automatic coding of occupations. Using machine learning algorithms for occupation coding in several german panel surveys;,citation_fulltext_html_url=https://www.researchgate.net/publication/266259591_Automatic_Coding_of_Occupations_Using_Machine_Learning_Algorithms_for_Occupation_Coding_in_Several_German_Panel_Surveys;">
+<meta name="citation_reference" content="citation_title=Evaluating hourly air quality forecasting in canada with nonlinear updatable machine learning methods;,citation_author=Huiping Peng;,citation_author=Aranildo R. Lima;,citation_author=Andrew Teakles;,citation_author=Jian Jin;,citation_author=Alex J. Cannon;,citation_author=William W. Hsieh;,citation_publication_date=2017-03-01;,citation_cover_date=2017-03-01;,citation_year=2017;,citation_fulltext_html_url=https://doi.org/10.1007/s11869-016-0414-3;,citation_issue=2;,citation_doi=10.1007/s11869-016-0414-3;,citation_issn=1873-9326;,citation_volume=10;,citation_journal_title=Air Quality, Atmosphere &amp;amp;amp; Health;">
+<meta name="citation_reference" content="citation_title=Online machine learning in big data streams;,citation_author=András A. Benczúr;,citation_author=Levente Kocsis;,citation_author=Róbert Pálovics;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_fulltext_html_url=http://arxiv.org/abs/1802.05872;,citation_volume=abs/1802.05872;,citation_journal_title=CoRR;">
+<meta name="citation_reference" content="citation_title=Learn: A novel incremental learning method for text classification;,citation_author=Guangxu Shan;,citation_author=Shiyao Xu;,citation_author=Li Yang;,citation_author=Shengbin Jia;,citation_author=Yang Xiang;,citation_publication_date=2020-06;,citation_cover_date=2020-06;,citation_year=2020;,citation_doi=10.1016/J.ESWA.2020.113198;,citation_issn=0957-4174;,citation_volume=147;,citation_journal_title=Expert Systems with Applications;,citation_publisher=Pergamon;">
+<meta name="citation_reference" content="citation_title=Incremental real-time learning framework for sentiment classification: Indian general election 2019, a case study;,citation_author=Sharmistha Chatterjee;,citation_author=Sushmita Gupta;,citation_publication_date=2021-03;,citation_cover_date=2021-03;,citation_year=2021;,citation_doi=10.1109/ICBDA51983.2021.9402992;,citation_isbn=9780738131672;,citation_journal_title=2021 IEEE 6th International Conference on Big Data Analytics, ICBDA 2021;,citation_publisher=Institute of Electrical; Electronics Engineers Inc.;">
+<meta name="citation_reference" content="citation_title=MOA: Massive online analysis;,citation_abstract=Massive Online Analysis (MOA) is a software environment for implementing algorithms and running experiments for online learning from evolving data streams. MOA includes a collection of offline and online methods as well as tools for evaluation. In particular, it implements boosting, bagging, and Hoeffding Trees, all with and without Na¨ıveNa¨ıve Bayes classifiers at the leaves. MOA supports bi-directional interaction with WEKA, the Waikato Environment for Knowledge Analysis , and is released under the GNU GPL license.;,citation_author=Albert Bifet;,citation_author=Geoff Holmes;,citation_author=Richard Kirkby;,citation_author=Bernhard Pfahringer;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_volume=11;,citation_journal_title=Journal of Machine Learning Research;">
+<meta name="citation_reference" content="citation_title=Evaluation and performance measurement;,citation_author=Thomas Bartz-Beielstein;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_inbook_title=undefined;">
+<meta name="citation_reference" content="citation_title=Hyperparameter tuning;,citation_author=Thomas Bartz-Beielstein;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_inbook_title=undefined;">
+<meta name="citation_reference" content="citation_title=Hyperparameter tuning approaches;,citation_author=Thomas Bartz-Beielstein;,citation_author=Martin Zaefferer;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_editor=Martin Zaefferer;,citation_editor=Olaf Mersmann;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;,citation_inbook_title=Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide;">
+<meta name="citation_reference" content="citation_title=Drift detection and&nbsp;handling;,citation_abstract=Structural changes (“drift”) in the data cause problems for many algorithms. Based on the drift definitions given in Chap. 1, methods for drift detection and handling are discussed. For the algorithms presented in Chap. 2, it is clarified to what extent concept drift is reacted to. In turn, the extent to which catastrophic forgetting is an issue is described in Sect. 4.3. Section&nbsp;3.1 describes three architectures for implementing drift detection algorithms. Basic properties of window-based approaches are presented in Sect.&nbsp;3.2. Section&nbsp;3.4 presents commonly used drift detection techniques. Section&nbsp;3.4 describes how the drift detection techniques introduced in Sect.&nbsp;3.3 are used in Online Machine Learning (OML) algorithms and summarizes the tree-based OML techniques implemented in the River package. Section&nbsp;3.5 introduces scaling methods for handling drift.;,citation_author=Thomas Bartz-Beielstein;,citation_author=Lukas Hans;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_fulltext_html_url=https://doi.org/10.1007/978-981-99-7007-0_3;,citation_doi=10.1007/978-981-99-7007-0_3;,citation_isbn=978-981-99-7007-0;,citation_inbook_title=Online machine learning: A practical guide with examples in python;">
+<meta name="citation_reference" content="citation_title=Introduction: From batch to&nbsp;online machine learning;,citation_abstract=Batch Machine Learning (BML), which is also referred to as “offline machine learning”, reaches its limits when dealing with very large amounts of data. This is especially true for available memory, handling drift in data streams, and processing new, unknown data. Online Machine Learning (OML) is an alternative to BML that overcomes the limitations of BML. In this chapter, the basic terms and concepts of OML are introduced and the differences to BML are shown.;,citation_author=Thomas Bartz-Beielstein;,citation_editor=Eva Bartz;,citation_editor=Thomas Bartz-Beielstein;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_fulltext_html_url=https://doi.org/10.1007/978-981-99-7007-0_1;,citation_doi=10.1007/978-981-99-7007-0_1;,citation_isbn=978-981-99-7007-0;,citation_inbook_title=Online machine learning: A practical guide with examples in python;">
+<meta name="citation_reference" content="citation_title=AMF: Aggregated Mondrian Forests for Online Learning;,citation_author=Jaouad Mourtada;,citation_author=Stephane Gaiffas;,citation_author=Erwan Scornet;,citation_publication_date=2019-06;,citation_cover_date=2019-06;,citation_year=2019;,citation_fulltext_html_url=https://arxiv.org/abs/1906.10529;,citation_doi=10.48550/arXiv.1906.10529;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Extremely fast decision tree;,citation_abstract=We introduce a novel incremental decision tree learning algorithm, Hoeffding Anytime Tree, that is statistically more efficient than the current state-of-the-art, Hoeffding Tree. We demonstrate that an implementation of Hoeffding Anytime Tree’“Extremely Fast Decision Tree”, a minor modification to the MOA implementation of Hoeffding Tree’obtains significantly superior prequential accuracy on most of the largest classification datasets from the UCI repository. Hoeffding Anytime Tree produces the asymptotic batch tree in the limit, is naturally resilient to concept drift, and can be used as a higher accuracy replacement for Hoeffding Tree in most scenarios, at a small additional computational cost.;,citation_author=Chaitanya Manapragada;,citation_author=Geoffrey I. Webb;,citation_author=Mahsa Salehi;,citation_editor=Chih-Jen  Lin;,citation_editor=Hui  Xiong;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;,citation_fulltext_html_url=http://www.kdd.org/kdd2018/, https://dl.acm.org/doi/proceedings/10.1145/3219819;,citation_doi=10.1145/3219819.3220005;,citation_conference_title=KDD’ 2018 - proceedings of the 24th ACM SIGKDD international conference on knowledge discovery and data mining;,citation_conference=Association for Computing Machinery (ACM);">
+<meta name="citation_reference" content="citation_title=Surrogates;,citation_author=Robert B Gramacy;,citation_publication_date=2020;,citation_cover_date=2020;,citation_year=2020;">
+<meta name="citation_reference" content="citation_title=UvA deep learning tutorials;,citation_author=Phillip Lippe;,citation_publication_date=2022;,citation_cover_date=2022;,citation_year=2022;">
+<meta name="citation_reference" content="citation_title=Attention Is All You Need;,citation_author=Ashish Vaswani;,citation_author=Noam Shazeer;,citation_author=Niki Parmar;,citation_author=Jakob Uszkoreit;,citation_author=Llion Jones;,citation_author=Aidan N. Gomez;,citation_author=Lukasz Kaiser;,citation_author=Illia Polosukhin;,citation_publication_date=2017-06;,citation_cover_date=2017-06;,citation_year=2017;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=On the Variance of the Adaptive Learning Rate and Beyond;,citation_author=Liyuan Liu;,citation_author=Haoming Jiang;,citation_author=Pengcheng He;,citation_author=Weizhu Chen;,citation_author=Xiaodong Liu;,citation_author=Jianfeng Gao;,citation_author=Jiawei Han;,citation_publication_date=2019-08;,citation_cover_date=2019-08;,citation_year=2019;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Efficient Transformers: A Survey;,citation_author=Yi Tay;,citation_author=Mostafa Dehghani;,citation_author=Dara Bahri;,citation_author=Donald Metzler;,citation_publication_date=2020-09;,citation_cover_date=2020-09;,citation_year=2020;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding;,citation_author=Jacob Devlin;,citation_author=Ming-Wei Chang;,citation_author=Kenton Lee;,citation_author=Kristina Toutanova;,citation_publication_date=2018-10;,citation_cover_date=2018-10;,citation_year=2018;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale;,citation_author=Alexey Dosovitskiy;,citation_author=Lucas Beyer;,citation_author=Alexander Kolesnikov;,citation_author=Dirk Weissenborn;,citation_author=Xiaohua Zhai;,citation_author=Thomas Unterthiner;,citation_author=Mostafa Dehghani;,citation_author=Matthias Minderer;,citation_author=Georg Heigold;,citation_author=Sylvain Gelly;,citation_author=Jakob Uszkoreit;,citation_author=Neil Houlsby;,citation_publication_date=2020-10;,citation_cover_date=2020-10;,citation_year=2020;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Attention is not Explanation;,citation_author=Sarthak Jain;,citation_author=Byron C. Wallace;,citation_publication_date=2019-02;,citation_cover_date=2019-02;,citation_year=2019;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Attention is not not Explanation;,citation_author=Sarah Wiegreffe;,citation_author=Yuval Pinter;,citation_publication_date=2019-08;,citation_cover_date=2019-08;,citation_year=2019;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Multivariate adaptive regression splines;,citation_author=Jerome H. Friedman;,citation_publication_date=1991;,citation_cover_date=1991;,citation_year=1991;,citation_issue=1;,citation_volume=19;,citation_journal_title=The annals of statistics;">
+<meta name="citation_reference" content="citation_title=Learning model trees from evolving data streams;,citation_author=Elena Ikonomovska;,citation_author=João Gama;,citation_author=Sašo Džeroski;,citation_publication_date=2011;,citation_cover_date=2011;,citation_year=2011;,citation_issue=1;,citation_volume=23;,citation_journal_title=Data Mining and Knowledge Discovery;">
+<meta name="citation_reference" content="citation_title=An Introduction to Statistical Learning with Applications in R;,citation_author=Gareth James;,citation_author=Daniela Witten;,citation_author=Trevor Hastie;,citation_author=Robert Tibshirani;,citation_publication_date=2014;,citation_cover_date=2014;,citation_year=2014;">
+<meta name="citation_reference" content="citation_title=Deep learning with python;,citation_author=Francoise Chollet;,citation_author=J. J. Allaire;,citation_publication_date=2018;,citation_cover_date=2018;,citation_year=2018;">
+<meta name="citation_reference" content="citation_title=A survey of cross-validation procedures for model selection;,citation_author=Sylvain Arlot;,citation_author=Alain Celisse;,citation_author=others;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;,citation_volume=4;,citation_journal_title=Statistics surveys;">
+<meta name="citation_reference" content="citation_title=A cross-validatory method for dependent data;,citation_author=PRABIR BURMAN;,citation_author=EDMOND CHOW;,citation_author=DEBORAH NOLAN;,citation_publication_date=1994;,citation_cover_date=1994;,citation_year=1994;,citation_issue=2;,citation_volume=81;,citation_journal_title=Biometrika;">
+<meta name="citation_reference" content="citation_title=A study of cross-validation and bootstrap for accuracy estimation and model selection;,citation_author=Ron Kohavi;,citation_publication_date=1995;,citation_cover_date=1995;,citation_year=1995;,citation_conference_title=Proceedings of the 14th international joint conference on artificial intelligence - volume 2;,citation_conference=Morgan Kaufmann Publishers Inc.;,citation_series_title=IJCAI’95;">
+<meta name="citation_reference" content="citation_title=Kriging-based sequential design strategies using fast cross-validation techniques with extensions to multi-fidelity computer codes ;,citation_author=Loic Le Gratiet;,citation_author=Claire Cannamela;,citation_publication_date=2012-10;,citation_cover_date=2012-10;,citation_year=2012;">
+<meta name="citation_reference" content="citation_title=Cross-validation of regression models;,citation_author=Richard R. Picard;,citation_author=R. Dennis Cook;,citation_publication_date=1984;,citation_cover_date=1984;,citation_year=1984;,citation_issue=387;,citation_volume=79;,citation_journal_title=Journal of the American Statistical Association;">
+<meta name="citation_reference" content="citation_title=The elements of statistical learning;,citation_author=Trevor Hastie;,citation_author=Robert Tibshirani;,citation_author=Jerome Friedman;,citation_publication_date=2017;,citation_cover_date=2017;,citation_year=2017;">
+</head>
+
+<body class="nav-sidebar docked">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./a_01_intro_to_notebooks.html">Appendices</a></li><li class="breadcrumb-item"><a href="./a_07_package.html"><span class="chapter-number">G</span>&nbsp; <span class="chapter-title">Python Package Building</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Hyperparameter Tuning Cookbook</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/sequential-parameter-optimization/spotpython" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+    <a href="./Hyperparameter-Tuning-Cookbook.pdf" title="Download PDF" class="quarto-navigation-tool px-1" aria-label="Download PDF"><i class="bi bi-file-pdf"></i></a>
+    <div class="dropdown">
+      <a href="" title="Share" id="quarto-navigation-tool-dropdown-0" class="quarto-navigation-tool dropdown-toggle px-1" data-bs-toggle="dropdown" aria-expanded="false" role="link" aria-label="Share"><i class="bi bi-share"></i></a>
+      <ul class="dropdown-menu" aria-labelledby="quarto-navigation-tool-dropdown-0">
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://twitter.com/intent/tweet?url=|url|">
+              <i class="bi bi-twitter pe-1"></i>
+            Twitter
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item sidebar-tools-main-item" href="https://www.linkedin.com/sharing/share-offsite/?url=|url|">
+              <i class="bi bi-linkedin pe-1"></i>
+            LinkedIn
+            </a>
+          </li>
+      </ul>
+    </div>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./001_optimization_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction: Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./002_awwe.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Aircraft Wing Weight Example</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./003_scipy_optimize_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Introduction to <code>scipy.optimize</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./004_spot_sklearn_optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Using <code>scipy</code> Optimizers</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Numerical Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./005_num_rsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Introduction: Numerical Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./006_num_gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Kriging (Gaussian Process Regression)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./007_num_spot_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Introduction to spotpython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./008_num_spot_multidim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Multi-dimensional Functions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./009_num_spot_anisotropic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Isotropic and Anisotropic Kriging</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./010_num_spot_sklearn_surrogate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Using <code>sklearn</code> Surrogates in <code>spotpython</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./011_num_spot_sklearn_gaussian.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Sequential Parameter Optimization: Gaussian Process Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./012_num_spot_ei.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Expected Improvement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./013_num_spot_noisy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Handling Noise</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./014_num_spot_ocba.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Optimal Computational Budget Allocation in <code>Spot</code></span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./015_num_spot_correlation_p.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Kriging with Varying Correlation-p</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Data-Driven Modeling and Optimization</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./100_ddmo.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Data-Driven Modeling and Optimization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Machine Learning and AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./200_mlai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Machine Learning and Artificial Intelligence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Introduction to Hyperparameter Tuning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./300_hpt_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with Sklearn</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./400_spot_hpt_sklearn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">HPT: sklearn</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./401_spot_hpt_sklearn_classification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">HPT: sklearn SVC on Moons Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with River</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./500_spot_hpt_river.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">HPT: River</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./501_spot_river_gui.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Simplifying Hyperparameter Tuning in Online Machine Learning—The spotRiverGUI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./502_spot_hpt_river_friedman_htr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title"><code>river</code> Hyperparameter Tuning: Hoeffding Tree Regressor with Friedman Drift Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./503_spot_hpt_river_friedman_amfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">The Friedman Drift Data Set</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Hyperparameter Tuning with PyTorch Lightning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./700_lightning_basic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Basic Lightning Module</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./701_lightning_details.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Details of the Lightning Module Integration in spotpython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./702_lightning_user_datamodule.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">User Specified Basic Lightning Module With spotpython</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./600_spot_lightning_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning: Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_diabetes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_user_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning and User Data Sets</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_user_model.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning and User Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./601_spot_hpt_light_pinn_model.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with PyTorch Lightning: Physics Informed Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./602_spot_lightning_xai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Explainable AI with SpotPython and Pytorch</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./603_spot_lightning_transformer_introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">34</span>&nbsp; <span class="chapter-title">HPT PyTorch Lightning Transformer: Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./603_spot_lightning_transformer_hpt.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">35</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning of a Transformer Network with PyTorch Lightning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./604_spot_lightning_save_load_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">36</span>&nbsp; <span class="chapter-title">Saving and Loading</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./605_spot_hpt_light_diabetes_resnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">37</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set Using a ResNet Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./606_spot_hpt_light_diabetes_user_resnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">38</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning for the Diabetes Data Set Using a User Specified ResNet Model</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./608_spot_hpt_light_condnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">39</span>&nbsp; <span class="chapter-title">Hyperparameter Tuning with <code>spotpython</code> and <code>PyTorch</code> Lightning Using a CondNet Model</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_01_intro_to_notebooks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_02_git_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Git Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_03_python_intro_en.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Python Introduction</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_04_spot_doc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">D</span>&nbsp; <span class="chapter-title">Documentation of the Sequential Parameter Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_05_datasets.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">E</span>&nbsp; <span class="chapter-title">Datasets</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_06_slurm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">F</span>&nbsp; <span class="chapter-title">Using Slurm</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_07_package.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">G</span>&nbsp; <span class="chapter-title">Python Package Building</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./a_99_solutions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">H</span>&nbsp; <span class="chapter-title">Solutions to Selected Exercises</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">G.1</span> Introduction</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./a_01_intro_to_notebooks.html">Appendices</a></li><li class="breadcrumb-item"><a href="./a_07_package.html"><span class="chapter-number">G</span>&nbsp; <span class="chapter-title">Python Package Building</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Appendix G — Python Package Building</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2" data-number="G.1">
+<h2 data-number="G.1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">G.1</span> Introduction</h2>
+<p>This Notebook will guide you through the process of creating a Python package.</p>
+<p>Example data can be found in the <code>userPackage</code> directory, see: <a href="./userPackage/userpackage/">userPackage</a></p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./a_06_slurm.html" class="pagination-link" aria-label="Using Slurm">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">F</span>&nbsp; <span class="chapter-title">Using Slurm</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./a_99_solutions.html" class="pagination-link" aria-label="Solutions to Selected Exercises">
+        <span class="nav-page-text"><span class="chapter-number">H</span>&nbsp; <span class="chapter-title">Solutions to Selected Exercises</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>Copyright 2024, T. Bartz-Beielstein</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://sequential-parameter-optimization.github.io/Hyperparameter-Tuning-Cookbook/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://x.com/bartzbeielstein">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
