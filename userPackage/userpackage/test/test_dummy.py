@@ -1,5 +1,5 @@
 import pytest
-from parksim.utils.dummy import dummy_prog
+from userpackage.utils.dummy import dummy_prog
 
 def test_dummy_output(capsys):
     # Test for printing numbers from 1 to 8

@@ -7,4 +7,4 @@
 
 * Installation can be done with `pip`:
 
-`pip install parksim`
+`pip install userpackage`
