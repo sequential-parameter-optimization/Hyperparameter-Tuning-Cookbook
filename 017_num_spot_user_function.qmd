@@ -1,0 +1,151 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+  keep-ipynb: true
+---
+
+# User-Specified Functions: Extending the Analytical Class {#sec-user-function}
+
+
+This chapter illustrates how user-specified functions can be optimized and analyzed with the `spotpython` package by extending the `Analytical` class.
+
+
+```{python}
+import numpy as np
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.utils.init import fun_control_init, surrogate_control_init
+from spotpython.spot import spot
+```
+
+### The Objective Function: User Specified
+
+We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+$$
+f(x) = \sum_i^k x_i^4.
+$$ 
+   
+
+This function is continuous, convex and unimodal.
+The global minimum is 
+$$
+f(x) = 0, \text{at } x = (0,0, \ldots, 0).
+$$
+
+* The `Analytical` class can be extended as follows:
+
+```{python}
+from typing import Optional, Dict
+
+class UserAnalytical(Analytical):
+    def fun_user_function(self, X: np.ndarray, fun_control: Optional[Dict] = None) -> np.ndarray:
+        """
+        Custom new function: f(x) = x^4
+        
+        Args:
+            X (np.ndarray): Input data as a 2D array.
+            fun_control (Optional[Dict]): Control parameters for the function.
+        
+        Returns:
+            np.ndarray: Computed values with optional noise.
+        
+        Examples:
+            >>> import numpy as np
+            >>> X = np.array([[1, 2, 3], [4, 5, 6]])
+            >>> fun = UserAnalytical()
+            >>> fun.fun_user_function(X)
+        """
+        X = self._prepare_input_data(X, fun_control)
+     
+        offset = np.ones(X.shape[1]) * self.offset
+        y = np.sum((X - offset) **4, axis=1) 
+
+        # Add noise if specified in fun_control
+        return self._add_noise(y)
+```
+
+```{python}
+user_fun = UserAnalytical()
+X = np.array([[0, 0, 0], [1, 1, 1]])
+results = user_fun.fun_user_function(X)
+print(results)
+```
+
+```{python}
+user_fun = UserAnalytical(offset=1.0)
+X = np.array([[0, 0, 0], [1, 1, 1]])
+results = user_fun.fun_user_function(X)
+print(results)
+```
+
+```{python}
+user_fun = UserAnalytical(sigma=1.0)
+X = np.array([[0, 0, 0], [1, 1, 1]])
+results = user_fun.fun_user_function(X)
+print(results)
+```
+
+
+```{python}
+#| label: 017-spot-run
+user_fun = UserAnalytical().fun_user_function
+fun_control = fun_control_init(
+              PREFIX="USER",              
+              lower = -1.0*np.ones(2),
+              upper = np.ones(2),
+              var_name=["User Pressure", "User Temp"],
+              TENSORBOARD_CLEAN=True,
+              tensorboard_log=True)
+spot_user = spot.Spot(fun=user_fun,
+                  fun_control=fun_control)
+spot_user.run()
+```
+
+### Results
+
+```{python}
+_ = spot_user.print_results()
+```
+
+```{python}
+spot_user.plot_progress()
+```
+
+### A Contour Plot
+
+We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.
+
+::: {.callout-note}
+#### Note: 
+
+We have specified identical `min_z` and `max_z` values to generate comparable plots.
+
+:::
+
+
+```{python}
+spot_user.plot_contour(i=0, j=1, min_z=0, max_z=2.25)
+```
+
+
+
+* The variable importance:
+
+```{python}
+_ = spot_user.print_importance()
+```
+
+
+```{python}
+spot_user.plot_importance()
+```
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/017_num_spot_user_function.ipynb)
+
+:::
