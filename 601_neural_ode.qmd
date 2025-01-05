@@ -7,7 +7,7 @@ execute:
 jupyter: python3
 ---
 
-# Hyperparameter Tuning with PyTorch Lightning: Neural ODEs {#sec-light-neural-ode-601}
+# Neural ODEs {#sec-light-neural-ode-601}
 
 
 Neural ODEs are related to Residual Neural Networks (ResNets).
@@ -34,12 +34,10 @@ where
 
 :::
 
-Some notes:
+@def-dynamical-system is a very general definition that includes all sort of dynamical systems. We deal with ODEs where $\Phi$ plays the role of the *general solution*: indeed a 1-parameter family of transformations of the state space. $\mathcal{T}=\mathbb{R}_{+}$ is the time, and usually, $\mathcal{S}=\mathbb{R}^{n}$ is the state space. The evolution takes a point in space (initial value), a point in time, and returns the a point in space.
+A general solution to an ODE is a function $y: I \times \mathbb{R}^{n} ⟶ \mathbb{R}^{n}$: a 1-parameter (usually time is the parameter) family of transformations of the state space. A 1-parameter family of transformations is often called a *flow*. 
 
-* This is a very general definition that includes all sort of dynamical systems that you might encounter.
-* We deal with ODEs where $\Phi$ plays the role of the *general solution*: indeed a 1-parameter family of transformations of the state space. $\mathcal{T}=\mathbb{R}_{+}$ is the time, and usually, $\mathcal{S}=\mathbb{R}^{n}$ is the state space. The evolution takes a point in space (initial value), a point in time, and returns the a point in space. This is the concept of a *flow*. 
-
-Next, we consider first-order Ordinary Differential Equations (ODEs).
+First-order Ordinary Differential Equations (ODEs) can be defined as follows:
 
 ::: {#def-ode}
 
@@ -65,10 +63,9 @@ $$ {#eq-ivp}
 :::
 
 
-A general solution to an ODE is a function $y: I \times \mathbb{R}^{n} ⟶ \mathbb{R}^{n}$: a 1-parameter (usually time is the parameter) family of transformations of the state space. A 1-parameter family of transformations is often called a *flow*. The existence and uniqueness of solutions to an IVP is ensured by the Picard-Lindel&ouml;f theorem, provided the RHS of the ODE is *Lipschitz continuous*. Lipschitz continuity is a property that pops up quite often in ODE-related results in ML.
+The existence and uniqueness of solutions to an IVP is ensured by the Picard-Lindel&ouml;f theorem, provided the RHS of the ODE is *Lipschitz continuous*. Lipschitz continuity is a property that pops up quite often in ODE-related results in ML.
 
 ::: {#def-lipschitz}
-
 ### Lipschitz Continuity
 
 A function $f: X \subset \mathbb{R}^{n} ⟶ \mathbb{R}^{n}$ is called *Lipschitz continuous* (with constant $\lambda$) if
@@ -78,7 +75,7 @@ $$
 $$
 
 ::: 
-Note that this is a stronger condition than just continuity.
+Note that Lipschitz continuity is a stronger condition than just continuity.
 
 Numerical solvers  can be used  to perform the forward pass and solve the IVP. If we use, for example, Euler's method, we have the following update rule:
 
@@ -113,17 +110,18 @@ These updates can be seen as Euler discretizations of continuous transformations
 \mathbf{y}_{n+1} &= \mathbf{y}_n + h f(\mathbf{y}_n, t_n, \theta)
 \end{align}
 
-Circling back to the continuous realm again, what happens in a residual network (with step sizes $h$) if we consider the continuous limit of each discrete layer in the network? In other words, what happens as we add more layers and take smaller steps? The answer seems rather astounding: instead of having a discrete number of layers between the input and output domains, we allow the evolution of the hidden states to become continuous.
+What happens in a residual network (with step sizes $h$) if we consider the continuous limit of each discrete layer in the network?
+What happens as we add more layers and take smaller steps?
+The answer seems rather astounding: instead of having a discrete number of layers between the input and output domains, we allow the evolution of the hidden states to become continuous.
 
 ![A residual network defines a discrete sequence of finite transformations. Circles represent evaluation locations. Figure credit @chen18b.](./figures_static/resnet_0_viz.png){width=50% #fig-neural-ode}
 
 ![An ODE network defines a vector field, which continuously transforms the state. Circles represent evaluation locations. Figure credit @chen18b.](./figures_static/odenet_0_viz.png){width=50% #fig-resnet-ode}
 
-
 The main technical difficulty in training continuous-depth networks is performing backpropagation through the ODE solver.
 Differentiating through the operations of the forward pass is straightforward, but incurs a high memory cost and introduces additional numerical error.
 
-We treat the ODE solver as a black box, and compute gradients using the adjoint sensitivity method [@pont87a].
+@pont87a treated the ODE solver as a black box, and computed gradients using the adjoint sensitivity method.
 This approach computes gradients by solving a second, augmented ODE backwards in time, and is applicable to all ODE solvers. It scales linearly with problem size, has low memory cost, and explicitly controls numerical error.
 
 Consider optimizing a scalar-valued loss function $L()$, whose input is the result of an ODE solver:
@@ -135,7 +133,6 @@ $$ {#eq-ode-loss}
 To optimize $L$, we require gradients with respect to $\theta$. 
 
 Similar to standard neural networks, we start with determining how the gradient of the loss depends on the hidden state $y(t)$ at each instant.
-
 This quantity is called the adjoint $a(t) = \frac{\partial{L}}{\partial y(t)}$.
 It satisfies the following IVP:
 
@@ -144,8 +141,6 @@ $$
 \theta)}{\partial \mathbf{x}}, \quad \mathbf{a}(t_1) = \frac{\partial L}{\partial \mathbf{x}(t_1)}.
 $$
 
-
-
 Its dynamics are given by another ODE, which can be thought of as the instantaneous analog of the chain rule:
 $$
 \frac{d a(t)}{d t} = - a(t)^{T} \frac{\partial f(y(t), t, \theta)}{\partial y}.
@@ -153,16 +148,13 @@ $$
 
 Thus, starting from the initial (remember we are running backwards) value $\mathbf{a}(t_1) = \frac{\partial L}{\partial \mathbf{x}(t_1)}$, we can compute $\mathbf{a}(t_0) = \frac{\partial L}{\partial \mathbf{x}(t_0)}$ by another call to an ODE solver.
 
-Finally, computing the gradients with respect to the parameters $\theta$ requires evaluating a third integral,
-which depends on both $\mathbf{x}(t)$ and $\mathbf{a}(t)$:
+Finally, computing the gradients with respect to the parameters $\theta$ requires evaluating a third integral, which depends on both $\mathbf{x}(t)$ and $\mathbf{a}(t)$:
 
 $$
 \frac{\mathrm{d}L}{\mathrm{d}\theta} = -\int_{t_1}^{t_0} \mathbf{a}(t)^{\top}\frac{\partial f}{\partial \theta} \mathrm{d}t,
 $$
 
-So this method trades off computation for memory – in fact the memory requirement for this gradient calculation is $\mathcal{O}(1)$ with respect to the number of layers!
-
-
+So this method trades off computation for memory---in fact the memory requirement for this gradient calculation is only $\mathcal{O}(1)$ with respect to the number of layers.
 The corresponding algorithm is described in @chen18b, see also @fig-adjoint.
 
 ![Reverse-mode differentiation of an ODE solution. The adjoint sensitivity method solves an augmented ODE backwards in time. The augmented system contains both the original state and the sensitivity of the loss with respect to the state.	If the loss depends directly on the state at multiple observation times, the adjoint state must be updated in the direction of the partial derivative of the loss with respect to each observation. Figure credit @chen18b.](./figures_static/AdjointFig_w_L.png){width=90% #fig-adjoint}
@@ -172,29 +164,27 @@ The corresponding algorithm is described in @chen18b, see also @fig-adjoint.
 
 ## Regression Example
 
-### Introduction
-
-Similar to a residual network, a neural ODE (or ODE-Net) takes a simple layer as a building block, and chains many copies of it together to bulid a bigger model.
-In particular, our "base layer" is going to specify the dynamics of an ODE, and we're going to chain the output of these base layers together according to the logic on an ODE solver.
+To illustrate this concept, we will consider a simple regression example.
+This example is based on the Neural-ODEs tutorial from [Neural Ordinary Differential Equations](https://github.com/manncodes/neural-ODEs/blob/main/chapters/Chapter%203/Neural_Ordinary_Differential_Equations.ipynb), which is provided by @chen18b.
 We will use the ODE solvers from [Torchdiffeq](https://github.com/rtqichen/torchdiffeq).
+
+
+
+Neural ODEs, or ODE-Nets, build complex models by chaining together simple building blocks, similar to residual networks. Here, our base layer will define the dynamics of an ODE, which will be interconnected using an ODE solver to form the complete neural network model.
 
 
 ### Specifying the Dynamics Layer
 
-What kind of layer do we need to specify the dynamics of an ODE?
-Recall that an ODE initial value problem has the form:
+The dynamics of an ODE can be captured by the equation:
 
 $$
 \dot y(t) = f(y(t), t,  \theta), \qquad y(0) = y_0,
 $$
 where the initial value $y_0 \in \mathbb{R}^n$.
+The $\theta$ parameters were added to the dynamics, so the dynamics function has the dimensions $f : \mathbb{R}^{n} \times \mathbb{R} \times \mathbb{R}^{|\theta|} \to \mathbb{R}^n$, where $|\theta|$ is the number of parameters we've added to $f$.
 
-We've added parameters $\theta$ to the dynamics, so the dynamics function has the dimensions $f : \mathbb{R}^{n} \times \mathbb{R} \times \mathbb{R}^{|\theta|} \to \mathbb{R}^n$, where $|\theta|$ is the number of parameters we've added to $f$.
-
-In plain English, we need the dynamics function to take in the current state $y(t)$ of the ODE, the current time $t$, and some parameters $\theta$, and output $\frac{\partial y(t)}{\partial t}$, which has the same shape as $y(t)$.
-
-We can easily build such a function by simply concatenating the state and current time, and sending that as the input to `mlp`.
-The remaining part of our model that we need to specify is how to combine evaluations of this dynamics layer.  We could use any solver. The `odeint` function implements the standard adapative-step Dormand-Price solver.
+We need the dynamics function to take in the current state $y(t)$ of the ODE, the current time $t$, and some parameters $\theta$, and output $\frac{\partial y(t)}{\partial t}$, which has the same shape as $y(t)$.
+They are passed as input to a multi-layer perceptron (MLP). Multiple evaluations of this dynamics layer can be combined using any suitable ODE solver, such as the adaptive-step Dormand-Price solver implemented in the `torchdiffeq` library's `odeint` function.
 
 ```{python}
 import torch
@@ -204,6 +194,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchdiffeq
 ```
+
+Let's start by defining an MLP class to serve as the building block of our models.
 
 ```{python}
 class MLP(nn.Module):
@@ -220,6 +212,8 @@ class MLP(nn.Module):
         return self.network(x)
 ```
 
+Next, we'll define a ResNet class that uses the MLP as its inner component.
+
 ```{python}
 class ResNet(nn.Module):
     def __init__(self, layer_sizes, depth):
@@ -232,6 +226,10 @@ class ResNet(nn.Module):
             x = self.mlp(x) + x
         return x
 ```
+
+
+* `ODEFunc` defines how the system evolves over time using the MLP to approximate derivatives $\dot{y}(t)$. 
+* `ODEBlock` specifies the network structure. It uses `torchdiffeq.odeint` to integrate these dynamics over time.
 
 ```{python}
 class ODEFunc(nn.Module):
@@ -263,8 +261,9 @@ inputs = torch.linspace(-2.0, 2.0, 10).reshape(10, 1)
 targets = inputs**3 +  0.1 * inputs
 ```
 
+We specify the hyperparameters for the ResNet and ODE-Net.
+
 ```{python}
-# Hyperparameters.
 layer_sizes = [1, 25, 1]
 param_scale = 1.0
 step_size = 0.01
@@ -272,8 +271,9 @@ train_iters = 1000
 resnet_depth = 3
 ```
 
+Initialize and train the ResNet.
+
 ```{python}
-# Initialize and train ResNet.
 resnet = ResNet(layer_sizes, resnet_depth)
 criterion = nn.MSELoss()
 optimizer = optim.SGD(resnet.parameters(), lr=step_size)
@@ -304,6 +304,7 @@ for _ in range(train_iters):
     optimizer.step()
 ```
 
+Finally, plot the predictions of both models.
 
 ```{python}
 fine_inputs = np.linspace(-3.0, 3.0, 100).reshape(-1, 1)
@@ -321,15 +322,15 @@ plt.show()
 
 ## Further Reading
 
-Neural ODEs is an exciting topic that has received a lot of attention in the past few years, ever since their introduction in Neurips 2018. Some of many many work in this field include:
+Neural ODEs have received a lot of attention in the past few years, ever since their introduction in Neurips 2018. Some of many many work in this field include:
 
-- Neural Stochastic Differential Equations (Neural SDEs)
-- Neural Controlled Differential Equations (Neural CDEs)
-- Graph ODEs
-- Hamiltonial Neural Networks
-- Lagrangian Neural Networks
+* Neural Stochastic Differential Equations (Neural SDEs),
+* Neural Controlled Differential Equations (Neural CDEs),
+* Graph ODEs,
+* Hamiltonial Neural Networks, and
+* Lagrangian Neural Networks.
 
-If you want to see a quick overview of different works in the field, [Michael Poli](https://zymrael.github.io/) maintains the excellent [Awesome Neural ODE](https://github.com/Zymrael/awesome-neural-ode),
+[Michael Poli](https://zymrael.github.io/) maintains the excellent [Awesome Neural ODE](https://github.com/Zymrael/awesome-neural-ode),
 a collection of resources regarding the interplay between neural differential equations, dynamical systems, deep learning, control, numerical methods and scientific machine learning.
 
 [Torchdyn](https://github.com/DiffEqML/torchdyn) is an excellent library for Neural Differential Equations.
@@ -337,6 +338,6 @@ a collection of resources regarding the interplay between neural differential eq
 [Implicit Layers](https://implicit-layers-tutorial.org/) is a list of tutorials 
 on implicit functions and automatic differentiation, Neural ODEs, and Deep Equilibrium Models.
 
-[Here](https://jontysinai.github.io/jekyll/update/2019/01/18/understanding-neural-odes.html) is an excellent blogpost on ODEs and Neural ODEs.
+[Understanding Neural ODE's](https://jontysinai.github.io/jekyll/update/2019/01/18/understanding-neural-odes.html) is an excellent blogpost on ODEs and Neural ODEs.
 
-[Patrick Kidger](https://kidger.site/)'s doctoral dissertation is an excellent textbook on [Neural Differential Equations](https://arxiv.org/abs/2202.02435).
+[Patrick Kidger](https://kidger.site/)'s doctoral dissertation is an excellent textbook on Neural Differential Equations, see @kidg22a.
