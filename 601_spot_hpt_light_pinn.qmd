@@ -1,0 +1,854 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# Hyperparameter Tuning with PyTorch Lightning: Physics Informed Neural Networks {#sec-light-pinn-601}
+
+
+Physics-Informed Neural Networks (PINNs) are related to Residual Neural Networks (ResNets).
+We consider ResNets in @sec-resnets.
+
+
+## Residual Neural Networks {#sec-resnets}
+
+@he15a introduced Residual Neural Networks (ResNets).
+
+```{python}
+#| eval: true
+#| echo: false
+#| label: import-libraries
+import os
+import numpy as np 
+import random
+from PIL import Image
+from types import SimpleNamespace
+import matplotlib.pyplot as plt
+%matplotlib inline 
+from IPython.display import set_matplotlib_formats
+set_matplotlib_formats('png', 'svg', 'pdf')
+import matplotlib
+matplotlib.rcParams['lines.linewidth'] = 2.0
+import seaborn as sns
+sns.reset_orig()
+
+## PyTorch
+import torch
+import torch.nn as nn
+import torch.utils.data as data
+import torch.optim as optim
+# Torchvision
+import torchvision
+from torchvision.datasets import CIFAR10
+from torchvision import transforms
+```
+
+### Residual Connections
+
+Residual connections are a key component of ResNets. They are used to stabilize the training of very deep networks. The idea is to learn a residual mapping instead of the full mapping. The residual mapping is defined as:
+
+::: {#def-residual-connection}
+
+### Residual Connection
+
+Instead of modeling $x_{l+1}=F(x_{l})$, residual connections model $x_{l+1}=x_{l}+F(x_{l})$ where $F$ is a non-linear mapping (usually a sequence of NN modules likes convolutions, activation functions, and normalizations).
+This is illustrated in @fig-block.
+
+![Residual Connection. Figure credit @he15a](./figures_static/block.png){width=70% #fig-block}
+
+ 
+ Applying backpropagation to the residual mapping results in the following gradient calculation:
+
+$$
+\frac{\partial x_{l+1}}{\partial x_{l}} = \mathbf{I} + \frac{\partial F(x_{l})}{\partial x_{l}}
+$$ {#eq-residual-grad}
+
+where $\mathbf{I}$ is the identity matrix. The identity matrix is added to the gradient, which helps to stabilize the training of very deep networks. The identity matrix ensures that the gradient is not too small, which can happen if the gradient of $F$ is close to zero. This is especially important for very deep networks, where the gradient can vanish quickly.
+
+:::
+
+
+The bias towards the identity matrix guarantees a stable gradient propagation being less effected by $F$ itself.
+
+There have been many variants of ResNet proposed, which mostly concern the function $F$, or operations applied on the sum. @fig-resnet-block shows two different ResNet blocks:
+
+* the original ResNet block, which applies a non-linear activation function, usually ReLU, after the skip connection. and 
+* the pre-activation ResNet block, which applies the non-linearity at the beginning of $F$.
+
+
+![ResNet Block. Left: original Residual block in @he15a. Right: pre-activation block. BN  describes batch-normalization. Figure credit @he16a](./figures_static/resnet_block.svg){width=50% #fig-resnet-block}
+
+For very deep network the pre-activation ResNet has shown to perform better as the gradient flow is guaranteed to have the identity matrix as shown in @eq-residual-grad, and is not harmed by any non-linear activation applied to it. 
+
+
+### Implementation of the Original ResNet Block
+
+One special case we have to handle is when we want to reduce the image dimensions in terms of width and height. The basic ResNet block requires $F(x_{l})$ to be of the same shape as $x_{l}$. Thus, we need to change the dimensionality of $x_{l}$ as well before adding to $F(x_{l})$. The original implementation used an identity mapping with stride 2 and padded additional feature dimensions with 0. However, the more common implementation is to use a 1x1 convolution with stride 2 as it allows us to change the feature dimensionality while being efficient in parameter and computation cost. The code for the ResNet block is relatively simple, and shown below:
+
+```{python}
+#| eval: true
+import torch
+import torch.nn as nn
+
+class ResNetBlock(nn.Module):
+    def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
+        """
+        Inputs:
+            c_in - Number of input features
+            act_fn - Activation class constructor (e.g. nn.ReLU)
+            subsample - If True, we need to apply a transformation inside the block to change the feature dimensionality
+            c_out - Number of output features. Note that this is only relevant if subsample is True, as otherwise, c_out = c_in
+        """
+        super().__init__()
+        if not subsample:
+            c_out = c_in
+
+        # Network representing F
+        self.net = nn.Sequential(
+            nn.Linear(c_in, c_out, bias=False),  # Linear layer for feature transformation
+            nn.BatchNorm1d(c_out),               # Batch normalization for stable learning
+            act_fn(),                            # Activation function
+            nn.Linear(c_out, c_out, bias=False), # Second linear layer
+            nn.BatchNorm1d(c_out)                # Batch normalization
+        )
+        
+        # If subsampling, adjust the input feature dimensionality using a linear layer
+        self.downsample = nn.Linear(c_in, c_out) if subsample else None
+        self.act_fn = act_fn()
+
+    def forward(self, x):
+        z = self.net(x)  # Apply the main network
+        if self.downsample is not None:
+            x = self.downsample(x)  # Adjust dimensionality if necessary
+        out = z + x  # Residual connection
+        out = self.act_fn(out)  # Apply activation function
+        return out
+
+class ResNetRegression(nn.Module):
+    def __init__(self, input_dim, output_dim, block, num_blocks=1, hidden_dim=64, act_fn=nn.ReLU):
+        super().__init__()
+        self.input_layer = nn.Linear(input_dim, hidden_dim)  # Input layer transformation
+        self.blocks = nn.ModuleList([block(hidden_dim, act_fn) for _ in range(num_blocks)])  # List of ResNet blocks
+        self.output_layer = nn.Linear(hidden_dim, output_dim)  # Output layer for regression
+        
+    def forward(self, x):
+        x = self.input_layer(x)  # Apply input layer
+        for block in self.blocks:
+            x = block(x)  # Apply each block
+        x = self.output_layer(x)  # Get final output
+        return x
+```
+
+```{python}
+input_dim = 10
+output_dim = 1
+hidden_dim = 64
+model = ResNetRegression(input_dim, output_dim, ResNetBlock, num_blocks=2, hidden_dim=hidden_dim, act_fn=nn.ReLU)
+model
+```
+
+
+```{python}
+#| eval: true
+# Create a sample input tensor with a batch size of 2
+from torchviz import make_dot
+sample_input = torch.randn(2, input_dim)
+
+# Generate the visualization
+output = model(sample_input)
+dot = make_dot(output, params=dict(model.named_parameters()))
+
+# Save and render the visualization
+dot.format = 'png'
+dot.render('./figures_static/resnet_regression')
+```
+
+![ResNet Regression](./figures_static/resnet_regression.png){width=100%}
+
+
+
+### Implementation of the Pre-Activation ResNet Block
+
+
+The second block we implement is the pre-activation ResNet block. For this, we have to change the order of layer in `self.net`, and do not apply an activation function on the output. Additionally, the downsampling operation has to apply a non-linearity as well as the input, $x_l$, has not been processed by a non-linearity yet. Hence, the block looks as follows:
+
+```{python}
+#| eval: true
+import torch
+import torch.nn as nn
+
+class PreActResNetBlock(nn.Module):
+    def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
+        super().__init__()
+        if not subsample:
+            c_out = c_in
+        self.net = nn.Sequential(
+            nn.LayerNorm(c_in),  # Replacing BatchNorm1d with LayerNorm
+            act_fn(),
+            nn.Linear(c_in, c_out, bias=False),
+            nn.LayerNorm(c_out),
+            act_fn(),
+            nn.Linear(c_out, c_out, bias=False)
+        )
+        self.downsample = nn.Sequential(
+            nn.LayerNorm(c_in),
+            act_fn(),
+            nn.Linear(c_in, c_out, bias=False)
+        ) if subsample else None
+
+    def forward(self, x):
+        z = self.net(x)
+        if self.downsample is not None:
+            x = self.downsample(x)
+        out = z + x
+        return out
+
+class PreActResNetRegression(nn.Module):
+    def __init__(self, input_dim, output_dim, block, num_blocks=1, hidden_dim=64, act_fn=nn.ReLU):
+        super().__init__()
+        self.input_layer = nn.Linear(input_dim, hidden_dim)
+        self.blocks = nn.ModuleList([block(hidden_dim, act_fn) for _ in range(num_blocks)])
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+        
+    def forward(self, x):
+        x = self.input_layer(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.output_layer(x)
+        return x
+```
+
+
+```{python}
+#| eval: true
+input_dim = 10
+output_dim = 1
+hidden_dim = 64
+model = PreActResNetRegression(input_dim, output_dim, PreActResNetBlock, num_blocks=2, hidden_dim=hidden_dim, act_fn=nn.ReLU)
+model
+```
+
+```{python}
+from torchviz import make_dot
+# Create a sample input tensor
+sample_input = torch.randn(1, input_dim)
+
+# Generate the visualization
+output = model(sample_input)
+dot = make_dot(output, params=dict(model.named_parameters()))
+
+# Save and render the visualization
+dot.format = 'png'
+dot.render('./figures_static/preact_resnet_regression')
+```
+
+
+![Pre-Activation ResNet Regression](./figures_static/preact_resnet_regression.png){width=100%}
+
+### The Overall ResNet Architecture
+
+The overall ResNet architecture for regression consists of stacking multiple ResNet blocks, of which some are downsampling the input. When discussing ResNet blocks within the entire network, they are usually grouped by output shape. If we describe the ResNet as having `[3,3,3]` blocks, it means there are three groups of ResNet blocks, each containing three blocks, with downsampling occurring in the first block of the second and third groups. The final layer produces continuous outputs suitable for regression tasks.
+
+![ResNet Notation. Figure credit @lipp22a](./figures_static/resnet_notation.svg){width=100%}
+
+The `output_dim` parameter is used to determine the number of outputs for regression. This is set to 1 for a single regression target by default, but can be adjusted for multiple targets. Note, a final layer without a softmax or similar classification layer has to be added for regression tasks.
+A similar notation is used by many other implementations such as in the [torchvision library](https://pytorch.org/docs/stable/_modules/torchvision/models/resnet.html#resnet18) from PyTorch.
+
+
+::: {#exm-example-resnet}
+
+### Example ResNet Model
+
+```{python}
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.datasets import make_regression
+from types import SimpleNamespace
+
+def get_resnet_blocks_by_name():
+    return {"ResNetBlock": ResNetBlock}
+
+def get_act_fn_by_name():
+    return {"relu": nn.ReLU}
+
+# Define a simple ResNetBlock for fully connected layers
+class ResNetBlock(nn.Module):
+    def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
+        super().__init__()
+        if not subsample:
+            c_out = c_in
+
+        self.net = nn.Sequential(
+            nn.Linear(c_in, c_out, bias=False),
+            nn.BatchNorm1d(c_out),
+            act_fn(),
+            nn.Linear(c_out, c_out, bias=False),
+            nn.BatchNorm1d(c_out)
+        )
+        
+        self.downsample = nn.Linear(c_in, c_out) if subsample else None
+        self.act_fn = act_fn()
+
+    def forward(self, x):
+        z = self.net(x)
+        if self.downsample is not None:
+            x = self.downsample(x)
+        out = z + x
+        out = self.act_fn(out)
+        return out
+
+# Generate a simple random dataset for regression
+num_samples = 100
+num_features = 20  # Number of features, typical in a regression dataset
+X, y = make_regression(n_samples=num_samples, n_features=num_features, noise=0.1)
+
+# Convert to PyTorch tensors
+X_tensor = torch.tensor(X, dtype=torch.float32)
+y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1)  # Add a dimension for compatibility
+
+# Define the ResNet model for regression
+class ResNet(nn.Module):
+    def __init__(self, input_dim, output_dim, num_blocks=[3, 3, 3], c_hidden=[64, 64, 64], act_fn_name="relu", block_name="ResNetBlock", **kwargs):
+        super().__init__()
+        resnet_blocks_by_name = get_resnet_blocks_by_name()
+        act_fn_by_name = get_act_fn_by_name()
+        assert block_name in resnet_blocks_by_name
+        self.hparams = SimpleNamespace(output_dim=output_dim, 
+                                       c_hidden=c_hidden, 
+                                       num_blocks=num_blocks, 
+                                       act_fn_name=act_fn_name,
+                                       act_fn=act_fn_by_name[act_fn_name],
+                                       block_class=resnet_blocks_by_name[block_name])
+        self._create_network(input_dim)
+        self._init_params()
+
+    def _create_network(self, input_dim):
+        c_hidden = self.hparams.c_hidden
+        self.input_net = nn.Sequential(
+            nn.Linear(input_dim, c_hidden[0]),
+            self.hparams.act_fn()
+        )
+
+        blocks = []
+        for block_idx, block_count in enumerate(self.hparams.num_blocks):
+            for bc in range(block_count):
+                subsample = (bc == 0 and block_idx > 0)
+                blocks.append(
+                    self.hparams.block_class(c_in=c_hidden[block_idx if not subsample else block_idx-1],
+                                             act_fn=self.hparams.act_fn,
+                                             subsample=subsample,
+                                             c_out=c_hidden[block_idx])
+                )
+        self.blocks = nn.Sequential(*blocks)
+
+        self.output_net = nn.Linear(c_hidden[-1], self.hparams.output_dim)
+
+    def _init_params(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x = self.input_net(x)
+        x = self.blocks(x)
+        x = self.output_net(x)
+        return x
+
+# Instantiate the model
+model = ResNet(input_dim=num_features, output_dim=1)
+
+# Define a loss function and optimizer
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+# Example training loop
+num_epochs = 10
+for epoch in range(num_epochs):
+    model.train()
+    optimizer.zero_grad()
+    
+    # Forward pass
+    output = model(X_tensor)
+    
+    # Compute loss
+    loss = criterion(output, y_tensor)
+    
+    # Backward pass and optimization
+    loss.backward()
+    optimizer.step()
+    
+    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}')
+```
+
+::: 
+
+## PINNs
+
+
+```{python}
+#| echo: false
+#| label: 601_user_model_first_imports
+import numpy as np
+import os
+from math import inf
+import pandas as pd
+import warnings
+if not os.path.exists('./figures'):
+    os.makedirs('./figures')
+warnings.filterwarnings("ignore")
+```
+
+In this section, we will show how to set up PINN hyperparameter tuner from scratch based on the `spotpython` programs from @sec-light-user-model-601.
+
+## The Ground Truth Model
+
+Definition of the (unknown) differential equation:
+
+```{python}
+import torch
+import numpy as np
+import torch.nn as nn
+import torch.optim as optim
+import torch.utils.data as thdat
+import functools
+import matplotlib.pyplot as plt
+import seaborn as sns
+# boundaries for the frequency range
+a = 0
+b = 500
+
+def ode(frequency, loc, sigma, R):
+    """Computes the amplitude. Defining equation, used
+    to generate data and train models.
+    The equation itself is not known to the model.
+
+    Args:
+        frequency: (N,) array-like
+        loc: float
+        sigma: float
+        R: float
+    
+    Returns:
+        (N,) array-like
+    
+    Examples:
+        >>> ode(0, 25, 100, 0.005)
+        100.0
+    """
+    A = np.exp(-R * (frequency - loc)**2/sigma**2)
+    return A
+```
+
+Setting the parameters for the ode
+
+```{python}
+np.random.seed(10)
+loc = 250
+sigma = 100
+R = 0.5
+```
+
+* Generating the data
+
+```{python}
+frequencies = np.linspace(a, b, 1000)
+eq = functools.partial(ode, loc=loc, sigma=sigma, R=R)
+amplitudes = eq(frequencies)
+```
+
+
+* Now we have the ground truth for the full frequency range and can take a look at the first 10 values:
+
+```{python}
+df = pd.DataFrame({'Frequency': frequencies[:10], 'Amplitude': amplitudes[:10]})
+print(df)
+```
+
+* We generate the training data as a subset of the full frequency range and add some noise:
+
+```{python}
+# Make training data
+t = np.linspace(a, 2*b/3, 10)
+A = eq(t) +  0.2 * np.random.randn(10)
+```
+
+* Plot of the training data and the ground truth:
+
+```{python}
+plt.plot(frequencies, amplitudes)
+plt.plot(t, A, 'o')
+plt.legend(['Equation (ground truth)', 'Training data'])
+plt.ylabel('Amplitude')
+plt.xlabel('Frequency')
+```
+
+## Required Files
+
+We use the files from the `/userModel` directory as templates. They are renamed as follows:
+
+* `my_regressor.py` $\Rightarrow$ `pinn_regressor.py`, see @sec-pinn-regressor
+* `my_hyperdict.json` $\Rightarrow$ `pinn_hyperdict.py`, see @sec-pinn-hyper-dict-json
+* `my_hyperdict.py` $\Rightarrow$ `pinn_hyperdict.py`, see @sec-pinn-hyperdict.
+
+### The New `pinn_hyperdict.py` File {#sec-pinn-hyperdict}
+
+Modifying the `pin_hyperdict.py` file is very easy. We simply have to change the classname ` MyHyperDict` to ` PINNHyperDict` and the `filename` from `"my_hyper_dict.json"` to `"pinn_hyper_dict.json"`. The file is shown below.
+
+```{python}
+import json
+from spotpython.data import base
+import pathlib
+
+class PINNHyperDict(base.FileConfig):
+    def __init__(
+        self,
+        filename: str = "pinn_hyper_dict.json",
+        directory: None = None,
+    ) -> None:
+        super().__init__(filename=filename, directory=directory)
+        self.filename = filename
+        self.directory = directory
+        self.hyper_dict = self.load()
+
+    @property
+    def path(self):
+        if self.directory:
+            return pathlib.Path(self.directory).joinpath(self.filename)
+        return pathlib.Path(__file__).parent.joinpath(self.filename)
+
+    def load(self) -> dict:
+        with open(self.path, "r") as f:
+            d = json.load(f)
+        return d
+```
+
+### The New `pinn_regressor.py` File {#sec-pinn-regressor}
+
+::: {.callout-warning}
+### Warning
+
+The document is not complete. The code below is a template and needs to be modified to work with the PINN model.
+
+:::
+
+
+```{python}
+#| label: 601_pinn_regressor
+#| eval: false
+import lightning as L
+import torch
+from torch import nn
+from spotpython.hyperparameters.optimizer import optimizer_handler
+import torchmetrics.functional.regression
+
+class PINNRegressor(L.LightningModule):
+    """
+    A LightningModule class for a regression neural network model.
+
+    Attributes:
+        l1 (int):
+            The number of neurons in the first hidden layer.
+        epochs (int):
+            The number of epochs to train the model for.
+        batch_size (int):
+            The batch size to use during training.
+        initialization (str):
+            The initialization method to use for the weights.
+        act_fn (nn.Module):
+            The activation function to use in the hidden layers.
+        optimizer (str):
+            The optimizer to use during training.
+        dropout_prob (float):
+            The probability of dropping out a neuron during training.
+        lr_mult (float):
+            The learning rate multiplier for the optimizer.
+        patience (int):
+            The number of epochs to wait before early stopping.
+        _L_in (int):
+            The number of input features.
+        _L_out (int):
+            The number of output classes.
+        _torchmetric (str):
+            The metric to use for the loss function. If `None`,
+            then "mean_squared_error" is used.
+        layers (nn.Sequential):
+            The neural network model.
+
+    """
+
+    def __init__(
+        self,
+        l1: int,
+        epochs: int,
+        batch_size: int,
+        initialization: str,
+        act_fn: nn.Module,
+        optimizer: str,
+        dropout_prob: float,
+        lr_mult: float,
+        patience: int,
+        _L_in: int,
+        _L_out: int,
+        _torchmetric: str,
+    ):
+        """
+        Initializes the MyRegressor object.
+
+        Args:
+            l1 (int):
+                The number of neurons in the first hidden layer.
+            epochs (int):
+                The number of epochs to train the model for.
+            batch_size (int):
+                The batch size to use during training.
+            initialization (str):
+                The initialization method to use for the weights.
+            act_fn (nn.Module):
+                The activation function to use in the hidden layers.
+            optimizer (str):
+                The optimizer to use during training.
+            dropout_prob (float):
+                The probability of dropping out a neuron during training.
+            lr_mult (float):
+                The learning rate multiplier for the optimizer.
+            patience (int):
+                The number of epochs to wait before early stopping.
+            _L_in (int):
+                The number of input features. Not a hyperparameter, but needed to create the network.
+            _L_out (int):
+                The number of output classes. Not a hyperparameter, but needed to create the network.
+            _torchmetric (str):
+                The metric to use for the loss function. If `None`,
+                then "mean_squared_error" is used.
+
+        Returns:
+            (NoneType): None
+
+        Raises:
+            ValueError: If l1 is less than 4.
+
+        """
+        super().__init__()
+        # Attribute 'act_fn' is an instance of `nn.Module` and is already saved during
+        # checkpointing. It is recommended to ignore them
+        # using `self.save_hyperparameters(ignore=['act_fn'])`
+        # self.save_hyperparameters(ignore=["act_fn"])
+        #
+        self._L_in = _L_in
+        self._L_out = _L_out
+        if _torchmetric is None:
+            _torchmetric = "mean_squared_error"
+        self._torchmetric = _torchmetric
+        self.metric = getattr(torchmetrics.functional.regression, _torchmetric)
+        # _L_in and _L_out are not hyperparameters, but are needed to create the network
+        # _torchmetric is not a hyperparameter, but is needed to calculate the loss
+        self.save_hyperparameters(ignore=["_L_in", "_L_out", "_torchmetric"])
+        # set dummy input array for Tensorboard Graphs
+        # set log_graph=True in Trainer to see the graph (in traintest.py)
+        self.example_input_array = torch.zeros((batch_size, self._L_in))
+        if self.hparams.l1 < 4:
+            raise ValueError("l1 must be at least 4")
+        hidden_sizes = self._get_hidden_sizes()
+        # Create the network based on the specified hidden sizes
+        layers = []
+        layer_sizes = [self._L_in] + hidden_sizes
+        layer_size_last = layer_sizes[0]
+        for layer_size in layer_sizes[1:]:
+            layers += [
+                nn.Linear(layer_size_last, layer_size),
+                self.hparams.act_fn,
+                nn.Dropout(self.hparams.dropout_prob),
+            ]
+            layer_size_last = layer_size
+        layers += [nn.Linear(layer_sizes[-1], self._L_out)]
+        # nn.Sequential summarizes a list of modules into a single module, applying them in sequence
+        self.layers = nn.Sequential(*layers)
+
+    def _generate_div2_list(self, n, n_min) -> list:
+        """
+        Generate a list of numbers from n to n_min (inclusive) by dividing n by 2
+        until the result is less than n_min.
+        This function starts with n and keeps dividing it by 2 until n_min is reached.
+        The number of times each value is added to the list is determined by n // current.
+        No more than 4 repeats of the same value (`max_repeats` below) are added to the list.
+
+        Args:
+            n (int): The number to start with.
+            n_min (int): The minimum number to stop at.
+
+        Returns:
+            list: A list of numbers from n to n_min (inclusive).
+
+        Examples:
+            _generate_div2_list(10, 1)
+            [10, 5, 5, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            _ generate_div2_list(10, 2)
+            [10, 5, 5, 2, 2, 2, 2, 2]
+        """
+        result = []
+        current = n
+        repeats = 1
+        max_repeats = 4
+        while current >= n_min:
+            result.extend([current] * min(repeats, max_repeats))
+            current = current // 2
+            repeats = repeats + 1
+        return result
+
+    def _get_hidden_sizes(self):
+        """
+        Generate the hidden layer sizes for the network.
+
+        Returns:
+            list: A list of hidden layer sizes.
+
+        """
+        n_low = self._L_in // 4
+        n_high = max(self.hparams.l1, 2 * n_low)
+        hidden_sizes = self._generate_div2_list(n_high, n_low)
+        return hidden_sizes
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Performs a forward pass through the model.
+
+        Args:
+            x (torch.Tensor): A tensor containing a batch of input data.
+
+        Returns:
+            torch.Tensor: A tensor containing the output of the model.
+
+        """
+        x = self.layers(x)
+        return x
+
+    def _calculate_loss(self, batch):
+        """
+        Calculate the loss for the given batch.
+
+        Args:
+            batch (tuple): A tuple containing a batch of input data and labels.
+
+        Returns:
+            torch.Tensor: A tensor containing the loss for this batch.
+
+        """
+        x, y = batch
+        y = y.view(len(y), 1)
+        y_hat = self(x)
+        loss = self.metric(y_hat, y)
+        return loss
+
+    def training_step(self, batch: tuple) -> torch.Tensor:
+        """
+        Performs a single training step.
+
+        Args:
+            batch (tuple): A tuple containing a batch of input data and labels.
+
+        Returns:
+            torch.Tensor: A tensor containing the loss for this batch.
+
+        """
+        val_loss = self._calculate_loss(batch)
+        # self.log("train_loss", val_loss, on_step=True, on_epoch=True, prog_bar=True)
+        # self.log("train_mae_loss", mae_loss, on_step=True, on_epoch=True, prog_bar=True)
+        return val_loss
+
+    def validation_step(self, batch: tuple, batch_idx: int, prog_bar: bool = False) -> torch.Tensor:
+        """
+        Performs a single validation step.
+
+        Args:
+            batch (tuple): A tuple containing a batch of input data and labels.
+            batch_idx (int): The index of the current batch.
+            prog_bar (bool, optional): Whether to display the progress bar. Defaults to False.
+
+        Returns:
+            torch.Tensor: A tensor containing the loss for this batch.
+
+        """
+        val_loss = self._calculate_loss(batch)
+        # self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar=prog_bar)
+        self.log("val_loss", val_loss, prog_bar=prog_bar)
+        self.log("hp_metric", val_loss, prog_bar=prog_bar)
+        return val_loss
+
+    def test_step(self, batch: tuple, batch_idx: int, prog_bar: bool = False) -> torch.Tensor:
+        """
+        Performs a single test step.
+
+        Args:
+            batch (tuple): A tuple containing a batch of input data and labels.
+            batch_idx (int): The index of the current batch.
+            prog_bar (bool, optional): Whether to display the progress bar. Defaults to False.
+
+        Returns:
+            torch.Tensor: A tensor containing the loss for this batch.
+        """
+        val_loss = self._calculate_loss(batch)
+        self.log("val_loss", val_loss, prog_bar=prog_bar)
+        self.log("hp_metric", val_loss, prog_bar=prog_bar)
+        return val_loss
+
+    def predict_step(self, batch: tuple, batch_idx: int, prog_bar: bool = False) -> torch.Tensor:
+        """
+        Performs a single prediction step.
+
+        Args:
+            batch (tuple): A tuple containing a batch of input data and labels.
+            batch_idx (int): The index of the current batch.
+            prog_bar (bool, optional): Whether to display the progress bar. Defaults to False.
+
+        Returns:
+            A tuple containing the input data, the true labels, and the predicted values.
+        """
+        x, y = batch
+        yhat = self(x)
+        y = y.view(len(y), 1)
+        yhat = yhat.view(len(yhat), 1)
+        print(f"Predict step x: {x}")
+        print(f"Predict step y: {y}")
+        print(f"Predict step y_hat: {yhat}")
+        # pred_loss = F.mse_loss(y_hat, y)
+        # pred loss not registered
+        # self.log("pred_loss", pred_loss, prog_bar=prog_bar)
+        # self.log("hp_metric", pred_loss, prog_bar=prog_bar)
+        # MisconfigurationException: You are trying to `self.log()`
+        # but the loop's result collection is not registered yet.
+        # This is most likely because you are trying to log in a `predict` hook, but it doesn't support logging.
+        # If you want to manually log, please consider using `self.log_dict({'pred_loss': pred_loss})` instead.
+        return (x, y, yhat)
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        """
+        Configures the optimizer for the model.
+
+        Notes:
+            The default Lightning way is to define an optimizer as
+            `optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)`.
+            spotpython uses an optimizer handler to create the optimizer, which
+            adapts the learning rate according to the lr_mult hyperparameter as
+            well as other hyperparameters. See `spotpython.hyperparameters.optimizer.py` for details.
+
+        Returns:
+            torch.optim.Optimizer: The optimizer to use during training.
+
+        """
+        # optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = optimizer_handler(
+            optimizer_name=self.hparams.optimizer, params=self.parameters(), lr_mult=self.hparams.lr_mult
+        )
+        return optimizer
+```
+
+
+### The New `pinn_hyperdict.json` File {#sec-pinn-hyper-dict-json}
