@@ -47,7 +47,7 @@ from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
 from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
 from spotpython.utils.eda import gen_design_table
-from spotpython.spot import spot
+from spotpython.spot import Spot
 from spotpython.utils.file import get_experiment_filename
 
 PREFIX="601"
@@ -56,7 +56,6 @@ data_set = Diabetes()
 
 fun_control = fun_control_init(
     PREFIX=PREFIX,
-    save_experiment=True,
     fun_evals=inf,
     max_time=1,
     data_set = data_set,
@@ -90,8 +89,8 @@ Calling the method `run()` starts the hyperparameter tuning process.
 
 ```{python}
 #| label: 601_run
-spot_tuner = spot.Spot(fun=fun,fun_control=fun_control, design_control=design_control)
-res = spot_tuner.run()
+S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+S.run()
 ```
 
 ## Looking at the Results
@@ -102,7 +101,7 @@ After the hyperparameter tuning run is finished, the progress of the hyperparame
 
 ```{python}
 #| label: 601_plot_progress_1
-spot_tuner.plot_progress()
+S.plot_progress()
 ```
 
 ### Tuned Hyperparameters and Their Importance
@@ -111,17 +110,17 @@ Results can be printed in tabular form.
 
 ```{python}
 from spotpython.utils.eda import gen_design_table
-print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
+print(gen_design_table(fun_control=fun_control, spot=S))
 ```
 
 A histogram can be used to visualize the most important hyperparameters.
 
 ```{python}
-spot_tuner.plot_importance(threshold=1.0)
+S.plot_importance(threshold=1.0)
 ```
 
 ```{python}
-spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+S.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
 ### Get the Tuned Architecture {#sec-get-spot-results-601}
@@ -129,7 +128,7 @@ spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```{python}
 import pprint
 from spotpython.hyperparameters.values import get_tuned_architecture
-config = get_tuned_architecture(spot_tuner, fun_control)
+config = get_tuned_architecture(S)
 pprint.pprint(config)
 ```
 
@@ -227,8 +226,8 @@ To get the tuned hyperparameters as a dictionary, the `get_tuned_architecture` f
 
 ```{python}
 from spotpython.utils.file import load_result
-spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_result(PREFIX=PREFIX)
-config = get_tuned_architecture(spot_tuner, fun_control)
+spot_tuner = load_result(PREFIX=PREFIX)
+config = get_tuned_architecture(spot_tuner)
 config
 ```
 
