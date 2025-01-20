@@ -76,7 +76,7 @@ import pickle
 from spotpython.utils.file import load_and_run_spot_python_experiment
 
 def main(pickle_file):
-    spot_tuner = load_and_run_spot_python_experiment(pickle_file)
+    spot_tuner = load_and_run_spot_python_experiment(filename=pickle_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process a pickle file.')
@@ -106,7 +106,7 @@ from spotpython.fun.hyperlight import HyperLight
 from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
 from spotpython.utils.eda import gen_design_table
 from spotpython.spot import Spot
-from spotpython.utils.file import get_experiment_filename
+from spotpython.utils.file import get_experiment_filename, get_tuned_architecture
 from spotpython.hyperparameters.values import set_hyperparameter
 from math import inf
 import torch
@@ -118,7 +118,7 @@ X = torch.randn(num_samples, input_dim)  # random data for example
 Y = torch.randn(num_samples, 1)  # random target for example
 data_set = TensorDataset(X, Y)
 
-PREFIX="0123456789"
+PREFIX="42"
 
 
 fun_control = fun_control_init(
@@ -149,11 +149,10 @@ set_hyperparameter(fun_control, "patience", [2,9])
 
 design_control = design_control_init(init_size=10)
 
-spot_tuner = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
-spot_tuner.save_experiment(overwrite=True)
+S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 ```
 
-The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `spot_0123456789_experiment.pickle`.
+The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `42_exp.pkl`.
 
 
 ## Copy the Configuration to the Remote Machine
@@ -162,7 +161,7 @@ You can copy the configuration to the remote machine using the `scp` command. Th
 ```{python}
 #| label: copy-config-to-remote
 #| eval: false
-scp spot_0123456789_experiment.pickle user@144.33.22.1:
+scp 42_exp.pkl user@144.33.22.1:
 ```
 
 ## Run the `spotpython` Code on the Remote Machine
@@ -173,31 +172,39 @@ Login on the remote machine and run the following command to start the `spotpyth
 #| label: run-spotpython-on-remote
 #| eval: false
 ssh user@144.33.22.1
-srun --cpus-per-task=20 --time=6:00:00 --gpus 1 --pty bash -i
 # change this to your conda environment!
 conda activate spot312 
-sh -x ./startSlurm.sh spot_0123456789_experiment.pickle
+sbatch sh -x ./startSlurm.sh 42_exp.pkl
 ```
 
 ## Copy the Results to the Local Machine
 
-After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command. The following command copies the results to the local machine:
+After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command.
+The following command copies the results to the local machine:
 ```{python}
 #| label: copy-results-to-local
 #| eval: false
-scp user@144.33.22.1:spot_0123456789_experiment.pickle .
+scp user@144.33.22.1:42_res.pkl .
 ```
+
+::: {.callout-note}
+### Experiment and Result Files
+* `spotpython` generates two files: 
+  * `PREFIX_exp.pkl` (experiment file), which stores the information about running the experiment, and
+  * `PREFIX_res.pkl` (result file), which stores the results of the experiment.
+:::
+
 
 ## Analyze the Results on the Local Machine
 
-The file `spot_0123456789_experiment.pickle` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.
+The file `42_res.pkl` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code.
 
 
 ```{python}
 #| label: spotgui
 #| eval: false
 from spotpython.utils.file import load_experiment
-spot_tuner, fun_control, design_control, surrogate_control, optimizer_control = load_experiment("spot_0123456789_experiment.pickle")
+spot_tuner = load_experiment(PREFIX)
 ```
 
 ### Visualizing the Tuning Progress
@@ -226,7 +233,11 @@ print(gen_design_table(fun_control=fun_control, spot=spot_tuner))
 spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
-::: {.callout-note}
-### spotgui
-The `spotgui` can be used to analyze the results interactively.
-:::
+### The Tuned Hyperparameters
+
+```{python}
+#| label: get_tuned_hyperparameters
+#| eval: false
+config = get_tuned_architecture(spot_tuner)
+pprint.pprint(config)
+```
