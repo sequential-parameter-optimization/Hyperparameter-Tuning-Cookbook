@@ -919,7 +919,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.hyperlight <span class="im">import</span> HyperLight</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, surrogate_control_init, design_control_init)</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> spot</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> Spot</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"606-user-resnet"</span></span>
@@ -937,14 +937,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In a second step, we can add the user specified ResNet model to the <code>fun_control</code> dictionary:</p>
-<div id="c508b813" class="cell" data-execution_count="4">
+<div id="4b3053aa" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> add_core_model_to_fun_control</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>add_core_model_to_fun_control(fun_control<span class="op">=</span>fun_control,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                              core_model<span class="op">=</span>my_resnet.MyResNet,</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                              hyper_dict<span class="op">=</span>my_hyper_dict.MyHyperDict)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The method <code>set_hyperparameter</code> allows the user to modify default hyperparameter settings. Here we modify some hyperparameters to keep the model small and to decrease the tuning time.</p>
-<div id="8abdc116" class="cell" data-execution_count="5">
+<div id="9b4807f0" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [ <span class="st">"Adadelta"</span>, <span class="st">"Adam"</span>, <span class="st">"Adamax"</span>])</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"l1"</span>, [<span class="dv">3</span>,<span class="dv">4</span>])</span>
@@ -973,426 +973,72 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Finally, a <code>Spot</code> object is created. Calling the method <code>run()</code> starts the hyperparameter tuning process.</p>
 <div id="user-user-run" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> spot.Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> spot_tuner.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Experiment saved to 606-user-resnet_exp.pkl
-
-In fun(): config:
-{'act_fn': Tanh(),
- 'batch_size': 128,
- 'dropout_prob': np.float64(0.0004697637333605659),
- 'epochs': 64,
- 'initialization': 'kaiming_normal',
- 'l1': 8,
- 'lr_mult': np.float64(12.192543453926158),
- 'optimizer': 'Adamax',
- 'patience': 4}
 Milestones: [16, 32, 48]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23449.109375, 'hp_metric': 23449.109375}
-
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 128,
- 'dropout_prob': np.float64(0.010646332369413225),
- 'epochs': 8,
- 'initialization': 'kaiming_normal',
- 'l1': 16,
- 'lr_mult': np.float64(4.816418992866534),
- 'optimizer': 'Adam',
- 'patience': 8}
+<pre><code>train_model result: {'val_loss': 23404.1953125, 'hp_metric': 23404.1953125}
 Milestones: [2, 4, 6]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 24580.740234375, 'hp_metric': 24580.740234375}
-
-In fun(): config:
-{'act_fn': ELU(),
- 'batch_size': 512,
- 'dropout_prob': np.float64(0.018543188398461703),
- 'epochs': 64,
- 'initialization': 'xavier_uniform',
- 'l1': 16,
- 'lr_mult': np.float64(1.7231674050173253),
- 'optimizer': 'Adam',
- 'patience': 4}
+<pre><code>train_model result: {'val_loss': 22284.63671875, 'hp_metric': 22284.63671875}
 Milestones: [16, 32, 48]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23586.8203125, 'hp_metric': 23586.8203125}
-
-In fun(): config:
-{'act_fn': Sigmoid(),
- 'batch_size': 16,
- 'dropout_prob': np.float64(0.01445464281687503),
- 'epochs': 8,
- 'initialization': 'Default',
- 'l1': 16,
- 'lr_mult': np.float64(18.276406412830898),
- 'optimizer': 'Adam',
- 'patience': 4}
+<pre><code>train_model result: {'val_loss': 23765.34375, 'hp_metric': 23765.34375}
 Milestones: [2, 4, 6]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23440.49609375, 'hp_metric': 23440.49609375}
-
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 1024,
- 'dropout_prob': np.float64(0.006041903974622355),
- 'epochs': 128,
- 'initialization': 'xavier_uniform',
- 'l1': 16,
- 'lr_mult': np.float64(11.56656626473706),
- 'optimizer': 'Adam',
- 'patience': 8}
+<pre><code>train_model result: {'val_loss': 23489.228515625, 'hp_metric': 23489.228515625}
 Milestones: [32, 64, 96]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 20961.548828125, 'hp_metric': 20961.548828125}
-
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.017180774192768807),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(17.497450615230047),
- 'optimizer': 'Adadelta',
- 'patience': 8}
+<pre><code>train_model result: {'val_loss': 22797.18359375, 'hp_metric': 22797.18359375}
 Milestones: [32, 64, 96]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 5092.25537109375, 'hp_metric': 5092.25537109375}
-
-In fun(): config:
-{'act_fn': Tanh(),
- 'batch_size': 256,
- 'dropout_prob': np.float64(0.020472444721704793),
- 'epochs': 16,
- 'initialization': 'xavier_normal',
- 'l1': 8,
- 'lr_mult': np.float64(9.056021366896996),
- 'optimizer': 'Adam',
- 'patience': 4}
+<pre><code>train_model result: {'val_loss': 6766.41552734375, 'hp_metric': 6766.41552734375}
 Milestones: [4, 8, 12]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 24025.134765625, 'hp_metric': 24025.134765625}
-
-In fun(): config:
-{'act_fn': Swish(),
- 'batch_size': 512,
- 'dropout_prob': np.float64(0.022634716447473148),
- 'epochs': 16,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(3.2137011004706815),
- 'optimizer': 'Adadelta',
- 'patience': 4}
+<pre><code>train_model result: {'val_loss': 24115.458984375, 'hp_metric': 24115.458984375}
 Milestones: [4, 8, 12]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23713.13671875, 'hp_metric': 23713.13671875}
-
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 32,
- 'dropout_prob': np.float64(0.0031403022317008592),
- 'epochs': 32,
- 'initialization': 'xavier_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(15.164637662335846),
- 'optimizer': 'Adam',
- 'patience': 8}
+<pre><code>train_model result: {'val_loss': 23931.376953125, 'hp_metric': 23931.376953125}
 Milestones: [8, 16, 24]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 20932.109375, 'hp_metric': 20932.109375}
-
-In fun(): config:
-{'act_fn': ELU(),
- 'batch_size': 64,
- 'dropout_prob': np.float64(0.007623810344374791),
- 'epochs': 32,
- 'initialization': 'kaiming_normal',
- 'l1': 16,
- 'lr_mult': np.float64(7.425439588318577),
- 'optimizer': 'Adamax',
- 'patience': 8}
-Milestones: [8, 16, 24]</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23815.71484375, 'hp_metric': 23815.71484375}</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.00745924694102517),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 4031.15673828125, 'hp_metric': 4031.15673828125}
-spotpython tuning: 4031.15673828125 [#---------] 5.06% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.018962616898387116),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 3233.1591796875, 'hp_metric': 3233.1591796875}
-spotpython tuning: 3233.1591796875 [#---------] 10.06% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.025),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 5016.44775390625, 'hp_metric': 5016.44775390625}
-spotpython tuning: 3233.1591796875 [#---------] 14.70% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.0),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 4382.63671875, 'hp_metric': 4382.63671875}
-spotpython tuning: 3233.1591796875 [##--------] 20.56% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 512,
- 'dropout_prob': np.float64(0.011325409778081188),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 22665.10546875, 'hp_metric': 22665.10546875}
-spotpython tuning: 3233.1591796875 [##--------] 23.41% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': Tanh(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.011630729724103794),
- 'epochs': 32,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 4}
-Milestones: [8, 16, 24]</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 22913.11328125, 'hp_metric': 22913.11328125}
-spotpython tuning: 3233.1591796875 [###-------] 28.70% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.011632880080657472),
- 'epochs': 32,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
+<pre><code>train_model result: {'val_loss': 21796.736328125, 'hp_metric': 21796.736328125}
 Milestones: [8, 16, 24]
-train_model result: {'val_loss': 18766.177734375, 'hp_metric': 18766.177734375}
-spotpython tuning: 3233.1591796875 [###-------] 33.12% </code></pre>
+train_model result: {'val_loss': 23608.984375, 'hp_metric': 23608.984375}</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.011648153881489792),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 5391.529296875, 'hp_metric': 5391.529296875}
-spotpython tuning: 3233.1591796875 [####------] 40.11% </code></pre>
+<pre><code>Milestones: [32, 64, 96]
+train_model result: {'val_loss': 4165.15234375, 'hp_metric': 4165.15234375}
+spotpython tuning: 4165.15234375 [#---------] 5.44% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': Sigmoid(),
- 'batch_size': 16,
- 'dropout_prob': np.float64(0.02322019098579051),
- 'epochs': 8,
- 'initialization': 'Default',
- 'l1': 8,
- 'lr_mult': np.float64(0.1),
- 'optimizer': 'Adam',
- 'patience': 4}
-Milestones: [2, 4, 6]
-train_model result: {'val_loss': 23793.37109375, 'hp_metric': 23793.37109375}
-spotpython tuning: 3233.1591796875 [####------] 44.83% </code></pre>
+<pre><code>Milestones: [32, 64, 96]
+train_model result: {'val_loss': 21898.88671875, 'hp_metric': 21898.88671875}
+spotpython tuning: 4165.15234375 [##--------] 24.32% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': Sigmoid(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.01946870218205928),
- 'epochs': 128,
- 'initialization': 'Default',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adamax',
- 'patience': 8}
-Milestones: [32, 64, 96]</code></pre>
+<pre><code>Milestones: [32, 64, 96]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 22862.75, 'hp_metric': 22862.75}
-spotpython tuning: 3233.1591796875 [######----] 59.51% </code></pre>
+<pre><code>train_model result: {'val_loss': 23360.689453125, 'hp_metric': 23360.689453125}
+spotpython tuning: 4165.15234375 [####------] 43.84% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 16,
- 'dropout_prob': np.float64(2.9357128795634568e-08),
- 'epochs': 8,
- 'initialization': 'kaiming_normal',
- 'l1': 16,
- 'lr_mult': np.float64(8.817503587242907),
- 'optimizer': 'Adam',
- 'patience': 4}
-Milestones: [2, 4, 6]</code></pre>
+<pre><code>Milestones: [32, 64, 96]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 23729.966796875, 'hp_metric': 23729.966796875}
-spotpython tuning: 3233.1591796875 [#######---] 66.79% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.0),
- 'epochs': 128,
- 'initialization': 'kaiming_normal',
- 'l1': 8,
- 'lr_mult': np.float64(0.1),
- 'optimizer': 'Adamax',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 23562.6328125, 'hp_metric': 23562.6328125}
-spotpython tuning: 3233.1591796875 [#######---] 70.01% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': ELU(),
- 'batch_size': 16,
- 'dropout_prob': np.float64(0.024996957884314917),
- 'epochs': 8,
- 'initialization': 'kaiming_normal',
- 'l1': 16,
- 'lr_mult': np.float64(10.520296893480412),
- 'optimizer': 'Adamax',
- 'patience': 8}
-Milestones: [2, 4, 6]</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 22417.15234375, 'hp_metric': 22417.15234375}
-spotpython tuning: 3233.1591796875 [########--] 76.84% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.019499365422953347),
- 'epochs': 128,
- 'initialization': 'kaiming_normal',
- 'l1': 8,
- 'lr_mult': np.float64(19.999991760142258),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 4006.775146484375, 'hp_metric': 4006.775146484375}
-spotpython tuning: 3233.1591796875 [########--] 84.19% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': LeakyReLU(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(0.01921893727367223),
- 'epochs': 128,
- 'initialization': 'kaiming_uniform',
- 'l1': 8,
- 'lr_mult': np.float64(20.0),
- 'optimizer': 'Adam',
- 'patience': 8}
-Milestones: [32, 64, 96]
-train_model result: {'val_loss': 21909.5078125, 'hp_metric': 21909.5078125}
-spotpython tuning: 3233.1591796875 [#########-] 91.25% </code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-In fun(): config:
-{'act_fn': Tanh(),
- 'batch_size': 2048,
- 'dropout_prob': np.float64(1.0371457610407983e-07),
- 'epochs': 128,
- 'initialization': 'xavier_normal',
- 'l1': 8,
- 'lr_mult': np.float64(11.354693109055674),
- 'optimizer': 'Adadelta',
- 'patience': 8}
-Milestones: [32, 64, 96]</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>train_model result: {'val_loss': 21161.146484375, 'hp_metric': 21161.146484375}
-spotpython tuning: 3233.1591796875 [##########] 100.00% Done...
+<pre><code>train_model result: {'val_loss': 20871.68359375, 'hp_metric': 20871.68359375}
+spotpython tuning: 4165.15234375 [##########] 100.00% Done...
 
 Experiment saved to 606-user-resnet_res.pkl</code></pre>
 </div>
@@ -1402,12 +1048,12 @@ Experiment saved to 606-user-resnet_res.pkl</code></pre>
 <section id="tuning-progress" class="level3" data-number="44.1.1">
 <h3 data-number="44.1.1" class="anchored" data-anchor-id="tuning-progress"><span class="header-section-number">44.1.1</span> Tuning Progress</h3>
 <p>After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with <code>spotpython</code>’s method <code>plot_progress</code>. The black points represent the performace values (score or metric) of hyperparameter configurations from the initial design, whereas the red points represents the hyperparameter configurations found by the surrogate model based optimization.</p>
-<div id="0bacb505" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="949e33f7" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-8-output-1.png" width="740" height="261" class="figure-img"></p>
+<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-8-output-1.png" width="740" height="265" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -1416,26 +1062,26 @@ Experiment saved to 606-user-resnet_res.pkl</code></pre>
 <section id="tuned-hyperparameters-and-their-importance" class="level3" data-number="44.1.2">
 <h3 data-number="44.1.2" class="anchored" data-anchor-id="tuned-hyperparameters-and-their-importance"><span class="header-section-number">44.1.2</span> Tuned Hyperparameters and Their Importance</h3>
 <p>Results can be printed in tabular form.</p>
-<div id="ac6a3e87" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control<span class="op">=</span>fun_control, spot<span class="op">=</span>spot_tuner))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="c088e3de" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(gen_design_table(fun_control<span class="op">=</span>fun_control, spot<span class="op">=</span>spot_tuner))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>| name           | type   | default   |   lower |   upper | tuned                | transform             |   importance | stars   |
-|----------------|--------|-----------|---------|---------|----------------------|-----------------------|--------------|---------|
-| l1             | int    | 3         |     3.0 |     4.0 | 3.0                  | transform_power_2_int |         0.00 |         |
-| epochs         | int    | 4         |     3.0 |     7.0 | 7.0                  | transform_power_2_int |         0.00 |         |
-| batch_size     | int    | 4         |     4.0 |    11.0 | 11.0                 | transform_power_2_int |         0.00 |         |
-| act_fn         | factor | ReLU      |     0.0 |     5.0 | ReLU                 | None                  |         0.00 |         |
-| optimizer      | factor | SGD       |     0.0 |     2.0 | Adadelta             | None                  |         0.00 |         |
-| dropout_prob   | float  | 0.01      |     0.0 |   0.025 | 0.018962616898387116 | None                  |       100.00 | ***     |
-| lr_mult        | float  | 1.0       |     0.1 |    20.0 | 20.0                 | None                  |         0.00 |         |
-| patience       | int    | 2         |     2.0 |     3.0 | 3.0                  | transform_power_2_int |         0.00 |         |
-| initialization | factor | Default   |     0.0 |     4.0 | kaiming_uniform      | None                  |         0.00 |         |</code></pre>
+<pre><code>| name           | type   | default   |   lower |   upper | tuned               | transform             |   importance | stars   |
+|----------------|--------|-----------|---------|---------|---------------------|-----------------------|--------------|---------|
+| l1             | int    | 3         |     3.0 |     4.0 | 3.0                 | transform_power_2_int |         0.01 |         |
+| epochs         | int    | 4         |     3.0 |     7.0 | 7.0                 | transform_power_2_int |         0.00 |         |
+| batch_size     | int    | 4         |     4.0 |    11.0 | 11.0                | transform_power_2_int |         0.03 |         |
+| act_fn         | factor | ReLU      |     0.0 |     5.0 | ReLU                | None                  |         0.08 |         |
+| optimizer      | factor | SGD       |     0.0 |     2.0 | Adadelta            | None                  |         0.00 |         |
+| dropout_prob   | float  | 0.01      |     0.0 |   0.025 | 0.01552995414446641 | None                  |       100.00 | ***     |
+| lr_mult        | float  | 1.0       |     0.1 |    20.0 | 20.0                | None                  |         0.00 |         |
+| patience       | int    | 2         |     2.0 |     3.0 | 3.0                 | transform_power_2_int |         0.00 |         |
+| initialization | factor | Default   |     0.0 |     4.0 | kaiming_uniform     | None                  |         0.00 |         |</code></pre>
 </div>
 </div>
 <p>A histogram can be used to visualize the most important hyperparameters.</p>
-<div id="5992a10e" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_importance(threshold<span class="op">=</span><span class="fl">1.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="33762bb7" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_importance(threshold<span class="op">=</span><span class="fl">1.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1444,14 +1090,14 @@ Experiment saved to 606-user-resnet_res.pkl</code></pre>
 </div>
 </div>
 </div>
-<div id="ac1e35b3" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(max_imp<span class="op">=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="e39a2731" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(max_imp<span class="op">=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>l1:  0.001
+<pre><code>l1:  0.01062745364702381
 epochs:  0.001
-batch_size:  0.0017271286940201962
-act_fn:  0.001
-optimizer:  0.0017425845430214866
+batch_size:  0.02978691665200304
+act_fn:  0.07734913702242881
+optimizer:  0.001
 dropout_prob:  100.0
 lr_mult:  0.001
 patience:  0.001
@@ -1460,21 +1106,21 @@ initialization:  0.001</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-2.png" width="913" height="266" class="figure-img"></p>
+<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-2.png" width="917" height="266" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-3.png" width="913" height="266" class="figure-img"></p>
+<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-3.png" width="917" height="266" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-4.png" width="895" height="266" class="figure-img"></p>
+<p><img src="606_spot_hpt_light_diabetes_user_resnet_files/figure-html/cell-11-output-4.png" width="887" height="266" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -1482,19 +1128,19 @@ initialization:  0.001</code></pre>
 </section>
 <section id="sec-get-spot-results-605" class="level3" data-number="44.1.3">
 <h3 data-number="44.1.3" class="anchored" data-anchor-id="sec-get-spot-results-605"><span class="header-section-number">44.1.3</span> Get the Tuned Architecture</h3>
-<div id="c6df5d8a" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> get_tuned_architecture</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner, fun_control)</span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>pprint.pprint(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="b679c935" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pprint</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> get_tuned_architecture</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>pprint.pprint(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>{'act_fn': ReLU(),
  'batch_size': 2048,
- 'dropout_prob': np.float64(0.018962616898387116),
+ 'dropout_prob': 0.01552995414446641,
  'epochs': 128,
  'initialization': 'kaiming_uniform',
  'l1': 8,
- 'lr_mult': np.float64(20.0),
+ 'lr_mult': 20.0,
  'optimizer': 'Adadelta',
  'patience': 8}</code></pre>
 </div>
@@ -1511,342 +1157,342 @@ initialization:  0.001</code></pre>
 </ul>
 <section id="my_resnet.py" class="level3" data-number="44.2.1">
 <h3 data-number="44.2.1" class="anchored" data-anchor-id="my_resnet.py"><span class="header-section-number">44.2.1</span> <code>my_resnet.py</code></h3>
-<div class="sourceCode" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> lightning <span class="im">as</span> L</span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.optimizer <span class="im">import</span> optimizer_handler</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchmetrics.functional.regression</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
-<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResidualBlock(nn.Module):</span>
-<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, input_dim, output_dim, act_fn, dropout_prob):</span>
-<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>(ResidualBlock, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
-<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.fc1 <span class="op">=</span> nn.Linear(input_dim, output_dim)</span>
-<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bn1 <span class="op">=</span> nn.BatchNorm1d(output_dim)</span>
-<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ln1 <span class="op">=</span> nn.LayerNorm(output_dim)  </span>
-<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.fc2 <span class="op">=</span> nn.Linear(output_dim, output_dim)</span>
-<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bn2 <span class="op">=</span> nn.BatchNorm1d(output_dim)</span>
-<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ln2 <span class="op">=</span> nn.LayerNorm(output_dim)</span>
-<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.act_fn <span class="op">=</span> act_fn</span>
-<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout_prob)</span>
-<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.shortcut <span class="op">=</span> nn.Sequential()</span>
-<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> input_dim <span class="op">!=</span> output_dim:</span>
-<span id="cb47-22"><a href="#cb47-22" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.shortcut <span class="op">=</span> nn.Sequential(</span>
-<span id="cb47-23"><a href="#cb47-23" aria-hidden="true" tabindex="-1"></a>                nn.Linear(input_dim, output_dim),</span>
-<span id="cb47-24"><a href="#cb47-24" aria-hidden="true" tabindex="-1"></a>                nn.BatchNorm1d(output_dim)</span>
-<span id="cb47-25"><a href="#cb47-25" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb47-26"><a href="#cb47-26" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb47-27"><a href="#cb47-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
-<span id="cb47-28"><a href="#cb47-28" aria-hidden="true" tabindex="-1"></a>        identity <span class="op">=</span> <span class="va">self</span>.shortcut(x)</span>
-<span id="cb47-29"><a href="#cb47-29" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb47-30"><a href="#cb47-30" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.fc1(x)</span>
-<span id="cb47-31"><a href="#cb47-31" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.bn1(out)</span>
-<span id="cb47-32"><a href="#cb47-32" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.ln1(out)</span>
-<span id="cb47-33"><a href="#cb47-33" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.act_fn(out)</span>
-<span id="cb47-34"><a href="#cb47-34" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.dropout(out)</span>
-<span id="cb47-35"><a href="#cb47-35" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.fc2(out)</span>
-<span id="cb47-36"><a href="#cb47-36" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.bn2(out)</span>
-<span id="cb47-37"><a href="#cb47-37" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.ln2(out)</span>
-<span id="cb47-38"><a href="#cb47-38" aria-hidden="true" tabindex="-1"></a>        out <span class="op">+=</span> identity  <span class="co"># Residual connection</span></span>
-<span id="cb47-39"><a href="#cb47-39" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.act_fn(out)</span>
-<span id="cb47-40"><a href="#cb47-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> out</span>
-<span id="cb47-41"><a href="#cb47-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-42"><a href="#cb47-42" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyResNet(L.LightningModule):</span>
-<span id="cb47-43"><a href="#cb47-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(</span>
-<span id="cb47-44"><a href="#cb47-44" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
-<span id="cb47-45"><a href="#cb47-45" aria-hidden="true" tabindex="-1"></a>        l1: <span class="bu">int</span>,</span>
-<span id="cb47-46"><a href="#cb47-46" aria-hidden="true" tabindex="-1"></a>        epochs: <span class="bu">int</span>,</span>
-<span id="cb47-47"><a href="#cb47-47" aria-hidden="true" tabindex="-1"></a>        batch_size: <span class="bu">int</span>,</span>
-<span id="cb47-48"><a href="#cb47-48" aria-hidden="true" tabindex="-1"></a>        initialization: <span class="bu">str</span>,</span>
-<span id="cb47-49"><a href="#cb47-49" aria-hidden="true" tabindex="-1"></a>        act_fn: nn.Module,</span>
-<span id="cb47-50"><a href="#cb47-50" aria-hidden="true" tabindex="-1"></a>        optimizer: <span class="bu">str</span>,</span>
-<span id="cb47-51"><a href="#cb47-51" aria-hidden="true" tabindex="-1"></a>        dropout_prob: <span class="bu">float</span>,</span>
-<span id="cb47-52"><a href="#cb47-52" aria-hidden="true" tabindex="-1"></a>        lr_mult: <span class="bu">float</span>,</span>
-<span id="cb47-53"><a href="#cb47-53" aria-hidden="true" tabindex="-1"></a>        patience: <span class="bu">int</span>,</span>
-<span id="cb47-54"><a href="#cb47-54" aria-hidden="true" tabindex="-1"></a>        _L_in: <span class="bu">int</span>,</span>
-<span id="cb47-55"><a href="#cb47-55" aria-hidden="true" tabindex="-1"></a>        _L_out: <span class="bu">int</span>,</span>
-<span id="cb47-56"><a href="#cb47-56" aria-hidden="true" tabindex="-1"></a>        _torchmetric: <span class="bu">str</span>,</span>
-<span id="cb47-57"><a href="#cb47-57" aria-hidden="true" tabindex="-1"></a>    ):</span>
-<span id="cb47-58"><a href="#cb47-58" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
-<span id="cb47-59"><a href="#cb47-59" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._L_in <span class="op">=</span> _L_in</span>
-<span id="cb47-60"><a href="#cb47-60" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._L_out <span class="op">=</span> _L_out</span>
-<span id="cb47-61"><a href="#cb47-61" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> _torchmetric <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb47-62"><a href="#cb47-62" aria-hidden="true" tabindex="-1"></a>            _torchmetric <span class="op">=</span> <span class="st">"mean_squared_error"</span></span>
-<span id="cb47-63"><a href="#cb47-63" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._torchmetric <span class="op">=</span> _torchmetric</span>
-<span id="cb47-64"><a href="#cb47-64" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.metric <span class="op">=</span> <span class="bu">getattr</span>(torchmetrics.functional.regression, _torchmetric)</span>
-<span id="cb47-65"><a href="#cb47-65" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.save_hyperparameters(ignore<span class="op">=</span>[<span class="st">"_L_in"</span>, <span class="st">"_L_out"</span>, <span class="st">"_torchmetric"</span>])</span>
-<span id="cb47-66"><a href="#cb47-66" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.example_input_array <span class="op">=</span> torch.zeros((batch_size, <span class="va">self</span>._L_in))</span>
-<span id="cb47-67"><a href="#cb47-67" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb47-68"><a href="#cb47-68" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.hparams.l1 <span class="op">&lt;</span> <span class="dv">4</span>:</span>
-<span id="cb47-69"><a href="#cb47-69" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"l1 must be at least 4"</span>)</span>
-<span id="cb47-70"><a href="#cb47-70" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb47-71"><a href="#cb47-71" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get hidden sizes</span></span>
-<span id="cb47-72"><a href="#cb47-72" aria-hidden="true" tabindex="-1"></a>        hidden_sizes <span class="op">=</span> <span class="va">self</span>._get_hidden_sizes()</span>
-<span id="cb47-73"><a href="#cb47-73" aria-hidden="true" tabindex="-1"></a>        layer_sizes <span class="op">=</span> [<span class="va">self</span>._L_in] <span class="op">+</span> hidden_sizes</span>
-<span id="cb47-74"><a href="#cb47-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-75"><a href="#cb47-75" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Construct the layers with Residual Blocks and Linear Layer at the end</span></span>
-<span id="cb47-76"><a href="#cb47-76" aria-hidden="true" tabindex="-1"></a>        layers <span class="op">=</span> []</span>
-<span id="cb47-77"><a href="#cb47-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(layer_sizes) <span class="op">-</span> <span class="dv">1</span>):</span>
-<span id="cb47-78"><a href="#cb47-78" aria-hidden="true" tabindex="-1"></a>            layers.append(</span>
-<span id="cb47-79"><a href="#cb47-79" aria-hidden="true" tabindex="-1"></a>                ResidualBlock(</span>
-<span id="cb47-80"><a href="#cb47-80" aria-hidden="true" tabindex="-1"></a>                    layer_sizes[i], </span>
-<span id="cb47-81"><a href="#cb47-81" aria-hidden="true" tabindex="-1"></a>                    layer_sizes[i <span class="op">+</span> <span class="dv">1</span>], </span>
-<span id="cb47-82"><a href="#cb47-82" aria-hidden="true" tabindex="-1"></a>                    <span class="va">self</span>.hparams.act_fn, </span>
-<span id="cb47-83"><a href="#cb47-83" aria-hidden="true" tabindex="-1"></a>                    <span class="va">self</span>.hparams.dropout_prob</span>
-<span id="cb47-84"><a href="#cb47-84" aria-hidden="true" tabindex="-1"></a>                )</span>
-<span id="cb47-85"><a href="#cb47-85" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb47-86"><a href="#cb47-86" aria-hidden="true" tabindex="-1"></a>        layers.append(nn.Linear(layer_sizes[<span class="op">-</span><span class="dv">1</span>], <span class="va">self</span>._L_out))</span>
-<span id="cb47-87"><a href="#cb47-87" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb47-88"><a href="#cb47-88" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.layers <span class="op">=</span> nn.Sequential(<span class="op">*</span>layers)</span>
-<span id="cb47-89"><a href="#cb47-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-90"><a href="#cb47-90" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Initialization (Xavier, Kaiming, or Default)</span></span>
-<span id="cb47-91"><a href="#cb47-91" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.<span class="bu">apply</span>(<span class="va">self</span>._init_weights)</span>
-<span id="cb47-92"><a href="#cb47-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-93"><a href="#cb47-93" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _init_weights(<span class="va">self</span>, module):        </span>
-<span id="cb47-94"><a href="#cb47-94" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(module, nn.Linear):</span>
-<span id="cb47-95"><a href="#cb47-95" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"xavier_uniform"</span>:</span>
-<span id="cb47-96"><a href="#cb47-96" aria-hidden="true" tabindex="-1"></a>                nn.init.xavier_uniform_(module.weight)</span>
-<span id="cb47-97"><a href="#cb47-97" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"xavier_normal"</span>:</span>
-<span id="cb47-98"><a href="#cb47-98" aria-hidden="true" tabindex="-1"></a>                nn.init.xavier_normal_(module.weight)</span>
-<span id="cb47-99"><a href="#cb47-99" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"kaiming_uniform"</span>:</span>
-<span id="cb47-100"><a href="#cb47-100" aria-hidden="true" tabindex="-1"></a>                nn.init.kaiming_uniform_(module.weight)</span>
-<span id="cb47-101"><a href="#cb47-101" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"kaiming_normal"</span>:</span>
-<span id="cb47-102"><a href="#cb47-102" aria-hidden="true" tabindex="-1"></a>                nn.init.kaiming_normal_(module.weight)</span>
-<span id="cb47-103"><a href="#cb47-103" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>: <span class="co"># "Default"</span></span>
-<span id="cb47-104"><a href="#cb47-104" aria-hidden="true" tabindex="-1"></a>                nn.init.uniform_(module.weight)</span>
-<span id="cb47-105"><a href="#cb47-105" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> module.bias <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb47-106"><a href="#cb47-106" aria-hidden="true" tabindex="-1"></a>                nn.init.zeros_(module.bias)</span>
-<span id="cb47-107"><a href="#cb47-107" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb47-108"><a href="#cb47-108" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _generate_div2_list(<span class="va">self</span>, n, n_min) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
-<span id="cb47-109"><a href="#cb47-109" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> []</span>
-<span id="cb47-110"><a href="#cb47-110" aria-hidden="true" tabindex="-1"></a>        current <span class="op">=</span> n</span>
-<span id="cb47-111"><a href="#cb47-111" aria-hidden="true" tabindex="-1"></a>        repeats <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb47-112"><a href="#cb47-112" aria-hidden="true" tabindex="-1"></a>        max_repeats <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb47-113"><a href="#cb47-113" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> current <span class="op">&gt;=</span> n_min:</span>
-<span id="cb47-114"><a href="#cb47-114" aria-hidden="true" tabindex="-1"></a>            result.extend([current] <span class="op">*</span> <span class="bu">min</span>(repeats, max_repeats))</span>
-<span id="cb47-115"><a href="#cb47-115" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> current <span class="op">//</span> <span class="dv">2</span></span>
-<span id="cb47-116"><a href="#cb47-116" aria-hidden="true" tabindex="-1"></a>            repeats <span class="op">=</span> repeats <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb47-117"><a href="#cb47-117" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> result</span>
-<span id="cb47-118"><a href="#cb47-118" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-119"><a href="#cb47-119" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _get_hidden_sizes(<span class="va">self</span>):</span>
-<span id="cb47-120"><a href="#cb47-120" aria-hidden="true" tabindex="-1"></a>        n_low <span class="op">=</span> <span class="bu">max</span>(<span class="dv">2</span>, <span class="bu">int</span>(<span class="va">self</span>._L_in <span class="op">/</span> <span class="dv">4</span>))  <span class="co"># Ensure minimum reasonable size</span></span>
-<span id="cb47-121"><a href="#cb47-121" aria-hidden="true" tabindex="-1"></a>        n_high <span class="op">=</span> <span class="bu">max</span>(<span class="va">self</span>.hparams.l1, <span class="dv">2</span> <span class="op">*</span> n_low)</span>
-<span id="cb47-122"><a href="#cb47-122" aria-hidden="true" tabindex="-1"></a>        hidden_sizes <span class="op">=</span> <span class="va">self</span>._generate_div2_list(n_high, n_low)</span>
-<span id="cb47-123"><a href="#cb47-123" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> hidden_sizes</span>
-<span id="cb47-124"><a href="#cb47-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-125"><a href="#cb47-125" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb47-126"><a href="#cb47-126" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.layers(x)</span>
-<span id="cb47-127"><a href="#cb47-127" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
-<span id="cb47-128"><a href="#cb47-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-129"><a href="#cb47-129" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _calculate_loss(<span class="va">self</span>, batch):</span>
-<span id="cb47-130"><a href="#cb47-130" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> batch</span>
-<span id="cb47-131"><a href="#cb47-131" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> y.view(<span class="bu">len</span>(y), <span class="dv">1</span>)</span>
-<span id="cb47-132"><a href="#cb47-132" aria-hidden="true" tabindex="-1"></a>        y_hat <span class="op">=</span> <span class="va">self</span>(x)</span>
-<span id="cb47-133"><a href="#cb47-133" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> <span class="va">self</span>.metric(y_hat, y)</span>
-<span id="cb47-134"><a href="#cb47-134" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss</span>
-<span id="cb47-135"><a href="#cb47-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-136"><a href="#cb47-136" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> training_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb47-137"><a href="#cb47-137" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
-<span id="cb47-138"><a href="#cb47-138" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
-<span id="cb47-139"><a href="#cb47-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-140"><a href="#cb47-140" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> validation_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb47-141"><a href="#cb47-141" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
-<span id="cb47-142"><a href="#cb47-142" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"val_loss"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
-<span id="cb47-143"><a href="#cb47-143" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"hp_metric"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
-<span id="cb47-144"><a href="#cb47-144" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
-<span id="cb47-145"><a href="#cb47-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-146"><a href="#cb47-146" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> test_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb47-147"><a href="#cb47-147" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
-<span id="cb47-148"><a href="#cb47-148" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"val_loss"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
-<span id="cb47-149"><a href="#cb47-149" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"hp_metric"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
-<span id="cb47-150"><a href="#cb47-150" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
-<span id="cb47-151"><a href="#cb47-151" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-152"><a href="#cb47-152" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb47-153"><a href="#cb47-153" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> batch</span>
-<span id="cb47-154"><a href="#cb47-154" aria-hidden="true" tabindex="-1"></a>        yhat <span class="op">=</span> <span class="va">self</span>(x)</span>
-<span id="cb47-155"><a href="#cb47-155" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> y.view(<span class="bu">len</span>(y), <span class="dv">1</span>)</span>
-<span id="cb47-156"><a href="#cb47-156" aria-hidden="true" tabindex="-1"></a>        yhat <span class="op">=</span> yhat.view(<span class="bu">len</span>(yhat), <span class="dv">1</span>)</span>
-<span id="cb47-157"><a href="#cb47-157" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (x, y, yhat)</span>
-<span id="cb47-158"><a href="#cb47-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-159"><a href="#cb47-159" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> configure_optimizers(<span class="va">self</span>):</span>
-<span id="cb47-160"><a href="#cb47-160" aria-hidden="true" tabindex="-1"></a>        optimizer <span class="op">=</span> optimizer_handler(</span>
-<span id="cb47-161"><a href="#cb47-161" aria-hidden="true" tabindex="-1"></a>            optimizer_name<span class="op">=</span><span class="va">self</span>.hparams.optimizer,</span>
-<span id="cb47-162"><a href="#cb47-162" aria-hidden="true" tabindex="-1"></a>            params<span class="op">=</span><span class="va">self</span>.parameters(),</span>
-<span id="cb47-163"><a href="#cb47-163" aria-hidden="true" tabindex="-1"></a>            lr_mult<span class="op">=</span><span class="va">self</span>.hparams.lr_mult</span>
-<span id="cb47-164"><a href="#cb47-164" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb47-165"><a href="#cb47-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-166"><a href="#cb47-166" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Dynamic creation of milestones based on the number of epochs.</span></span>
-<span id="cb47-167"><a href="#cb47-167" aria-hidden="true" tabindex="-1"></a>        num_milestones <span class="op">=</span> <span class="dv">3</span>  <span class="co"># Number of milestones to divide the epochs</span></span>
-<span id="cb47-168"><a href="#cb47-168" aria-hidden="true" tabindex="-1"></a>        milestones <span class="op">=</span> [<span class="bu">int</span>(<span class="va">self</span>.hparams.epochs <span class="op">/</span> (num_milestones <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> (i <span class="op">+</span> <span class="dv">1</span>)) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(num_milestones)]</span>
-<span id="cb47-169"><a href="#cb47-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-170"><a href="#cb47-170" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Print milestones for debug purposes</span></span>
-<span id="cb47-171"><a href="#cb47-171" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Milestones: </span><span class="sc">{</span>milestones<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb47-172"><a href="#cb47-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-173"><a href="#cb47-173" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Create MultiStepLR scheduler with dynamic milestones and learning rate multiplier.</span></span>
-<span id="cb47-174"><a href="#cb47-174" aria-hidden="true" tabindex="-1"></a>        scheduler <span class="op">=</span> optim.lr_scheduler.MultiStepLR(</span>
-<span id="cb47-175"><a href="#cb47-175" aria-hidden="true" tabindex="-1"></a>            optimizer, </span>
-<span id="cb47-176"><a href="#cb47-176" aria-hidden="true" tabindex="-1"></a>            milestones<span class="op">=</span>milestones, </span>
-<span id="cb47-177"><a href="#cb47-177" aria-hidden="true" tabindex="-1"></a>            gamma<span class="op">=</span><span class="fl">0.1</span>  <span class="co"># Decay factor</span></span>
-<span id="cb47-178"><a href="#cb47-178" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb47-179"><a href="#cb47-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-180"><a href="#cb47-180" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Learning rate scheduler configuration</span></span>
-<span id="cb47-181"><a href="#cb47-181" aria-hidden="true" tabindex="-1"></a>        lr_scheduler_config <span class="op">=</span> {</span>
-<span id="cb47-182"><a href="#cb47-182" aria-hidden="true" tabindex="-1"></a>            <span class="st">"scheduler"</span>: scheduler,</span>
-<span id="cb47-183"><a href="#cb47-183" aria-hidden="true" tabindex="-1"></a>            <span class="st">"interval"</span>: <span class="st">"epoch"</span>,  <span class="co"># Adjust learning rate per epoch</span></span>
-<span id="cb47-184"><a href="#cb47-184" aria-hidden="true" tabindex="-1"></a>            <span class="st">"frequency"</span>: <span class="dv">1</span>,      <span class="co"># Apply the scheduler at every epoch</span></span>
-<span id="cb47-185"><a href="#cb47-185" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb47-186"><a href="#cb47-186" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb47-187"><a href="#cb47-187" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> {<span class="st">"optimizer"</span>: optimizer, <span class="st">"lr_scheduler"</span>: lr_scheduler_config}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> lightning <span class="im">as</span> L</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.optimizer <span class="im">import</span> optimizer_handler</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchmetrics.functional.regression</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResidualBlock(nn.Module):</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, input_dim, output_dim, act_fn, dropout_prob):</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>(ResidualBlock, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.fc1 <span class="op">=</span> nn.Linear(input_dim, output_dim)</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bn1 <span class="op">=</span> nn.BatchNorm1d(output_dim)</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ln1 <span class="op">=</span> nn.LayerNorm(output_dim)  </span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.fc2 <span class="op">=</span> nn.Linear(output_dim, output_dim)</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bn2 <span class="op">=</span> nn.BatchNorm1d(output_dim)</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ln2 <span class="op">=</span> nn.LayerNorm(output_dim)</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.act_fn <span class="op">=</span> act_fn</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropout <span class="op">=</span> nn.Dropout(dropout_prob)</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.shortcut <span class="op">=</span> nn.Sequential()</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> input_dim <span class="op">!=</span> output_dim:</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.shortcut <span class="op">=</span> nn.Sequential(</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>                nn.Linear(input_dim, output_dim),</span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a>                nn.BatchNorm1d(output_dim)</span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>        identity <span class="op">=</span> <span class="va">self</span>.shortcut(x)</span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.fc1(x)</span>
+<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.bn1(out)</span>
+<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.ln1(out)</span>
+<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.act_fn(out)</span>
+<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.dropout(out)</span>
+<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.fc2(out)</span>
+<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.bn2(out)</span>
+<span id="cb31-37"><a href="#cb31-37" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.ln2(out)</span>
+<span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a>        out <span class="op">+=</span> identity  <span class="co"># Residual connection</span></span>
+<span id="cb31-39"><a href="#cb31-39" aria-hidden="true" tabindex="-1"></a>        out <span class="op">=</span> <span class="va">self</span>.act_fn(out)</span>
+<span id="cb31-40"><a href="#cb31-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> out</span>
+<span id="cb31-41"><a href="#cb31-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-42"><a href="#cb31-42" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyResNet(L.LightningModule):</span>
+<span id="cb31-43"><a href="#cb31-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(</span>
+<span id="cb31-44"><a href="#cb31-44" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb31-45"><a href="#cb31-45" aria-hidden="true" tabindex="-1"></a>        l1: <span class="bu">int</span>,</span>
+<span id="cb31-46"><a href="#cb31-46" aria-hidden="true" tabindex="-1"></a>        epochs: <span class="bu">int</span>,</span>
+<span id="cb31-47"><a href="#cb31-47" aria-hidden="true" tabindex="-1"></a>        batch_size: <span class="bu">int</span>,</span>
+<span id="cb31-48"><a href="#cb31-48" aria-hidden="true" tabindex="-1"></a>        initialization: <span class="bu">str</span>,</span>
+<span id="cb31-49"><a href="#cb31-49" aria-hidden="true" tabindex="-1"></a>        act_fn: nn.Module,</span>
+<span id="cb31-50"><a href="#cb31-50" aria-hidden="true" tabindex="-1"></a>        optimizer: <span class="bu">str</span>,</span>
+<span id="cb31-51"><a href="#cb31-51" aria-hidden="true" tabindex="-1"></a>        dropout_prob: <span class="bu">float</span>,</span>
+<span id="cb31-52"><a href="#cb31-52" aria-hidden="true" tabindex="-1"></a>        lr_mult: <span class="bu">float</span>,</span>
+<span id="cb31-53"><a href="#cb31-53" aria-hidden="true" tabindex="-1"></a>        patience: <span class="bu">int</span>,</span>
+<span id="cb31-54"><a href="#cb31-54" aria-hidden="true" tabindex="-1"></a>        _L_in: <span class="bu">int</span>,</span>
+<span id="cb31-55"><a href="#cb31-55" aria-hidden="true" tabindex="-1"></a>        _L_out: <span class="bu">int</span>,</span>
+<span id="cb31-56"><a href="#cb31-56" aria-hidden="true" tabindex="-1"></a>        _torchmetric: <span class="bu">str</span>,</span>
+<span id="cb31-57"><a href="#cb31-57" aria-hidden="true" tabindex="-1"></a>    ):</span>
+<span id="cb31-58"><a href="#cb31-58" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb31-59"><a href="#cb31-59" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._L_in <span class="op">=</span> _L_in</span>
+<span id="cb31-60"><a href="#cb31-60" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._L_out <span class="op">=</span> _L_out</span>
+<span id="cb31-61"><a href="#cb31-61" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> _torchmetric <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb31-62"><a href="#cb31-62" aria-hidden="true" tabindex="-1"></a>            _torchmetric <span class="op">=</span> <span class="st">"mean_squared_error"</span></span>
+<span id="cb31-63"><a href="#cb31-63" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._torchmetric <span class="op">=</span> _torchmetric</span>
+<span id="cb31-64"><a href="#cb31-64" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.metric <span class="op">=</span> <span class="bu">getattr</span>(torchmetrics.functional.regression, _torchmetric)</span>
+<span id="cb31-65"><a href="#cb31-65" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.save_hyperparameters(ignore<span class="op">=</span>[<span class="st">"_L_in"</span>, <span class="st">"_L_out"</span>, <span class="st">"_torchmetric"</span>])</span>
+<span id="cb31-66"><a href="#cb31-66" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.example_input_array <span class="op">=</span> torch.zeros((batch_size, <span class="va">self</span>._L_in))</span>
+<span id="cb31-67"><a href="#cb31-67" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb31-68"><a href="#cb31-68" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.hparams.l1 <span class="op">&lt;</span> <span class="dv">4</span>:</span>
+<span id="cb31-69"><a href="#cb31-69" aria-hidden="true" tabindex="-1"></a>            <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"l1 must be at least 4"</span>)</span>
+<span id="cb31-70"><a href="#cb31-70" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb31-71"><a href="#cb31-71" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get hidden sizes</span></span>
+<span id="cb31-72"><a href="#cb31-72" aria-hidden="true" tabindex="-1"></a>        hidden_sizes <span class="op">=</span> <span class="va">self</span>._get_hidden_sizes()</span>
+<span id="cb31-73"><a href="#cb31-73" aria-hidden="true" tabindex="-1"></a>        layer_sizes <span class="op">=</span> [<span class="va">self</span>._L_in] <span class="op">+</span> hidden_sizes</span>
+<span id="cb31-74"><a href="#cb31-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-75"><a href="#cb31-75" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Construct the layers with Residual Blocks and Linear Layer at the end</span></span>
+<span id="cb31-76"><a href="#cb31-76" aria-hidden="true" tabindex="-1"></a>        layers <span class="op">=</span> []</span>
+<span id="cb31-77"><a href="#cb31-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(layer_sizes) <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb31-78"><a href="#cb31-78" aria-hidden="true" tabindex="-1"></a>            layers.append(</span>
+<span id="cb31-79"><a href="#cb31-79" aria-hidden="true" tabindex="-1"></a>                ResidualBlock(</span>
+<span id="cb31-80"><a href="#cb31-80" aria-hidden="true" tabindex="-1"></a>                    layer_sizes[i], </span>
+<span id="cb31-81"><a href="#cb31-81" aria-hidden="true" tabindex="-1"></a>                    layer_sizes[i <span class="op">+</span> <span class="dv">1</span>], </span>
+<span id="cb31-82"><a href="#cb31-82" aria-hidden="true" tabindex="-1"></a>                    <span class="va">self</span>.hparams.act_fn, </span>
+<span id="cb31-83"><a href="#cb31-83" aria-hidden="true" tabindex="-1"></a>                    <span class="va">self</span>.hparams.dropout_prob</span>
+<span id="cb31-84"><a href="#cb31-84" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb31-85"><a href="#cb31-85" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb31-86"><a href="#cb31-86" aria-hidden="true" tabindex="-1"></a>        layers.append(nn.Linear(layer_sizes[<span class="op">-</span><span class="dv">1</span>], <span class="va">self</span>._L_out))</span>
+<span id="cb31-87"><a href="#cb31-87" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb31-88"><a href="#cb31-88" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.layers <span class="op">=</span> nn.Sequential(<span class="op">*</span>layers)</span>
+<span id="cb31-89"><a href="#cb31-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-90"><a href="#cb31-90" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Initialization (Xavier, Kaiming, or Default)</span></span>
+<span id="cb31-91"><a href="#cb31-91" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.<span class="bu">apply</span>(<span class="va">self</span>._init_weights)</span>
+<span id="cb31-92"><a href="#cb31-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-93"><a href="#cb31-93" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _init_weights(<span class="va">self</span>, module):        </span>
+<span id="cb31-94"><a href="#cb31-94" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(module, nn.Linear):</span>
+<span id="cb31-95"><a href="#cb31-95" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"xavier_uniform"</span>:</span>
+<span id="cb31-96"><a href="#cb31-96" aria-hidden="true" tabindex="-1"></a>                nn.init.xavier_uniform_(module.weight)</span>
+<span id="cb31-97"><a href="#cb31-97" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"xavier_normal"</span>:</span>
+<span id="cb31-98"><a href="#cb31-98" aria-hidden="true" tabindex="-1"></a>                nn.init.xavier_normal_(module.weight)</span>
+<span id="cb31-99"><a href="#cb31-99" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"kaiming_uniform"</span>:</span>
+<span id="cb31-100"><a href="#cb31-100" aria-hidden="true" tabindex="-1"></a>                nn.init.kaiming_uniform_(module.weight)</span>
+<span id="cb31-101"><a href="#cb31-101" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="va">self</span>.hparams.initialization <span class="op">==</span> <span class="st">"kaiming_normal"</span>:</span>
+<span id="cb31-102"><a href="#cb31-102" aria-hidden="true" tabindex="-1"></a>                nn.init.kaiming_normal_(module.weight)</span>
+<span id="cb31-103"><a href="#cb31-103" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>: <span class="co"># "Default"</span></span>
+<span id="cb31-104"><a href="#cb31-104" aria-hidden="true" tabindex="-1"></a>                nn.init.uniform_(module.weight)</span>
+<span id="cb31-105"><a href="#cb31-105" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> module.bias <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb31-106"><a href="#cb31-106" aria-hidden="true" tabindex="-1"></a>                nn.init.zeros_(module.bias)</span>
+<span id="cb31-107"><a href="#cb31-107" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb31-108"><a href="#cb31-108" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _generate_div2_list(<span class="va">self</span>, n, n_min) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb31-109"><a href="#cb31-109" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> []</span>
+<span id="cb31-110"><a href="#cb31-110" aria-hidden="true" tabindex="-1"></a>        current <span class="op">=</span> n</span>
+<span id="cb31-111"><a href="#cb31-111" aria-hidden="true" tabindex="-1"></a>        repeats <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb31-112"><a href="#cb31-112" aria-hidden="true" tabindex="-1"></a>        max_repeats <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb31-113"><a href="#cb31-113" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> current <span class="op">&gt;=</span> n_min:</span>
+<span id="cb31-114"><a href="#cb31-114" aria-hidden="true" tabindex="-1"></a>            result.extend([current] <span class="op">*</span> <span class="bu">min</span>(repeats, max_repeats))</span>
+<span id="cb31-115"><a href="#cb31-115" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> current <span class="op">//</span> <span class="dv">2</span></span>
+<span id="cb31-116"><a href="#cb31-116" aria-hidden="true" tabindex="-1"></a>            repeats <span class="op">=</span> repeats <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb31-117"><a href="#cb31-117" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> result</span>
+<span id="cb31-118"><a href="#cb31-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-119"><a href="#cb31-119" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _get_hidden_sizes(<span class="va">self</span>):</span>
+<span id="cb31-120"><a href="#cb31-120" aria-hidden="true" tabindex="-1"></a>        n_low <span class="op">=</span> <span class="bu">max</span>(<span class="dv">2</span>, <span class="bu">int</span>(<span class="va">self</span>._L_in <span class="op">/</span> <span class="dv">4</span>))  <span class="co"># Ensure minimum reasonable size</span></span>
+<span id="cb31-121"><a href="#cb31-121" aria-hidden="true" tabindex="-1"></a>        n_high <span class="op">=</span> <span class="bu">max</span>(<span class="va">self</span>.hparams.l1, <span class="dv">2</span> <span class="op">*</span> n_low)</span>
+<span id="cb31-122"><a href="#cb31-122" aria-hidden="true" tabindex="-1"></a>        hidden_sizes <span class="op">=</span> <span class="va">self</span>._generate_div2_list(n_high, n_low)</span>
+<span id="cb31-123"><a href="#cb31-123" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> hidden_sizes</span>
+<span id="cb31-124"><a href="#cb31-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-125"><a href="#cb31-125" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb31-126"><a href="#cb31-126" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> <span class="va">self</span>.layers(x)</span>
+<span id="cb31-127"><a href="#cb31-127" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
+<span id="cb31-128"><a href="#cb31-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-129"><a href="#cb31-129" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _calculate_loss(<span class="va">self</span>, batch):</span>
+<span id="cb31-130"><a href="#cb31-130" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> batch</span>
+<span id="cb31-131"><a href="#cb31-131" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> y.view(<span class="bu">len</span>(y), <span class="dv">1</span>)</span>
+<span id="cb31-132"><a href="#cb31-132" aria-hidden="true" tabindex="-1"></a>        y_hat <span class="op">=</span> <span class="va">self</span>(x)</span>
+<span id="cb31-133"><a href="#cb31-133" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> <span class="va">self</span>.metric(y_hat, y)</span>
+<span id="cb31-134"><a href="#cb31-134" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss</span>
+<span id="cb31-135"><a href="#cb31-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-136"><a href="#cb31-136" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> training_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb31-137"><a href="#cb31-137" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
+<span id="cb31-138"><a href="#cb31-138" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
+<span id="cb31-139"><a href="#cb31-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-140"><a href="#cb31-140" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> validation_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb31-141"><a href="#cb31-141" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
+<span id="cb31-142"><a href="#cb31-142" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"val_loss"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
+<span id="cb31-143"><a href="#cb31-143" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"hp_metric"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
+<span id="cb31-144"><a href="#cb31-144" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
+<span id="cb31-145"><a href="#cb31-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-146"><a href="#cb31-146" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> test_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb31-147"><a href="#cb31-147" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> <span class="va">self</span>._calculate_loss(batch)</span>
+<span id="cb31-148"><a href="#cb31-148" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"val_loss"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
+<span id="cb31-149"><a href="#cb31-149" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">"hp_metric"</span>, val_loss, prog_bar<span class="op">=</span>prog_bar)</span>
+<span id="cb31-150"><a href="#cb31-150" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> val_loss</span>
+<span id="cb31-151"><a href="#cb31-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-152"><a href="#cb31-152" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict_step(<span class="va">self</span>, batch: <span class="bu">tuple</span>, batch_idx: <span class="bu">int</span>, prog_bar: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb31-153"><a href="#cb31-153" aria-hidden="true" tabindex="-1"></a>        x, y <span class="op">=</span> batch</span>
+<span id="cb31-154"><a href="#cb31-154" aria-hidden="true" tabindex="-1"></a>        yhat <span class="op">=</span> <span class="va">self</span>(x)</span>
+<span id="cb31-155"><a href="#cb31-155" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> y.view(<span class="bu">len</span>(y), <span class="dv">1</span>)</span>
+<span id="cb31-156"><a href="#cb31-156" aria-hidden="true" tabindex="-1"></a>        yhat <span class="op">=</span> yhat.view(<span class="bu">len</span>(yhat), <span class="dv">1</span>)</span>
+<span id="cb31-157"><a href="#cb31-157" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (x, y, yhat)</span>
+<span id="cb31-158"><a href="#cb31-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-159"><a href="#cb31-159" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> configure_optimizers(<span class="va">self</span>):</span>
+<span id="cb31-160"><a href="#cb31-160" aria-hidden="true" tabindex="-1"></a>        optimizer <span class="op">=</span> optimizer_handler(</span>
+<span id="cb31-161"><a href="#cb31-161" aria-hidden="true" tabindex="-1"></a>            optimizer_name<span class="op">=</span><span class="va">self</span>.hparams.optimizer,</span>
+<span id="cb31-162"><a href="#cb31-162" aria-hidden="true" tabindex="-1"></a>            params<span class="op">=</span><span class="va">self</span>.parameters(),</span>
+<span id="cb31-163"><a href="#cb31-163" aria-hidden="true" tabindex="-1"></a>            lr_mult<span class="op">=</span><span class="va">self</span>.hparams.lr_mult</span>
+<span id="cb31-164"><a href="#cb31-164" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb31-165"><a href="#cb31-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-166"><a href="#cb31-166" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Dynamic creation of milestones based on the number of epochs.</span></span>
+<span id="cb31-167"><a href="#cb31-167" aria-hidden="true" tabindex="-1"></a>        num_milestones <span class="op">=</span> <span class="dv">3</span>  <span class="co"># Number of milestones to divide the epochs</span></span>
+<span id="cb31-168"><a href="#cb31-168" aria-hidden="true" tabindex="-1"></a>        milestones <span class="op">=</span> [<span class="bu">int</span>(<span class="va">self</span>.hparams.epochs <span class="op">/</span> (num_milestones <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> (i <span class="op">+</span> <span class="dv">1</span>)) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(num_milestones)]</span>
+<span id="cb31-169"><a href="#cb31-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-170"><a href="#cb31-170" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Print milestones for debug purposes</span></span>
+<span id="cb31-171"><a href="#cb31-171" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Milestones: </span><span class="sc">{</span>milestones<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb31-172"><a href="#cb31-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-173"><a href="#cb31-173" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Create MultiStepLR scheduler with dynamic milestones and learning rate multiplier.</span></span>
+<span id="cb31-174"><a href="#cb31-174" aria-hidden="true" tabindex="-1"></a>        scheduler <span class="op">=</span> optim.lr_scheduler.MultiStepLR(</span>
+<span id="cb31-175"><a href="#cb31-175" aria-hidden="true" tabindex="-1"></a>            optimizer, </span>
+<span id="cb31-176"><a href="#cb31-176" aria-hidden="true" tabindex="-1"></a>            milestones<span class="op">=</span>milestones, </span>
+<span id="cb31-177"><a href="#cb31-177" aria-hidden="true" tabindex="-1"></a>            gamma<span class="op">=</span><span class="fl">0.1</span>  <span class="co"># Decay factor</span></span>
+<span id="cb31-178"><a href="#cb31-178" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb31-179"><a href="#cb31-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-180"><a href="#cb31-180" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Learning rate scheduler configuration</span></span>
+<span id="cb31-181"><a href="#cb31-181" aria-hidden="true" tabindex="-1"></a>        lr_scheduler_config <span class="op">=</span> {</span>
+<span id="cb31-182"><a href="#cb31-182" aria-hidden="true" tabindex="-1"></a>            <span class="st">"scheduler"</span>: scheduler,</span>
+<span id="cb31-183"><a href="#cb31-183" aria-hidden="true" tabindex="-1"></a>            <span class="st">"interval"</span>: <span class="st">"epoch"</span>,  <span class="co"># Adjust learning rate per epoch</span></span>
+<span id="cb31-184"><a href="#cb31-184" aria-hidden="true" tabindex="-1"></a>            <span class="st">"frequency"</span>: <span class="dv">1</span>,      <span class="co"># Apply the scheduler at every epoch</span></span>
+<span id="cb31-185"><a href="#cb31-185" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb31-186"><a href="#cb31-186" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb31-187"><a href="#cb31-187" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> {<span class="st">"optimizer"</span>: optimizer, <span class="st">"lr_scheduler"</span>: lr_scheduler_config}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="my_hyperdict.py" class="level3" data-number="44.2.2">
 <h3 data-number="44.2.2" class="anchored" data-anchor-id="my_hyperdict.py"><span class="header-section-number">44.2.2</span> <code>my_hyperdict.py</code></h3>
-<div class="sourceCode" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data <span class="im">import</span> base</span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pathlib</span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyHyperDict(base.FileConfig):</span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""User specified hyperparameter dictionary.</span></span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="co">    This class extends the FileConfig class to provide a dictionary for storing hyperparameters.</span></span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a><span class="co">    Attributes:</span></span>
-<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a><span class="co">        filename (str):</span></span>
-<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a><span class="co">            The name of the file where the hyperparameters are stored.</span></span>
-<span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-16"><a href="#cb48-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(</span>
-<span id="cb48-17"><a href="#cb48-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
-<span id="cb48-18"><a href="#cb48-18" aria-hidden="true" tabindex="-1"></a>        filename: <span class="bu">str</span> <span class="op">=</span> <span class="st">"my_hyper_dict.json"</span>,</span>
-<span id="cb48-19"><a href="#cb48-19" aria-hidden="true" tabindex="-1"></a>        directory: <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb48-20"><a href="#cb48-20" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb48-21"><a href="#cb48-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>(filename<span class="op">=</span>filename, directory<span class="op">=</span>directory)</span>
-<span id="cb48-22"><a href="#cb48-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.filename <span class="op">=</span> filename</span>
-<span id="cb48-23"><a href="#cb48-23" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.directory <span class="op">=</span> directory</span>
-<span id="cb48-24"><a href="#cb48-24" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.hyper_dict <span class="op">=</span> <span class="va">self</span>.load()</span>
-<span id="cb48-25"><a href="#cb48-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-26"><a href="#cb48-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
-<span id="cb48-27"><a href="#cb48-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> path(<span class="va">self</span>):</span>
-<span id="cb48-28"><a href="#cb48-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.directory:</span>
-<span id="cb48-29"><a href="#cb48-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> pathlib.Path(<span class="va">self</span>.directory).joinpath(<span class="va">self</span>.filename)</span>
-<span id="cb48-30"><a href="#cb48-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> pathlib.Path(<span class="va">__file__</span>).parent.joinpath(<span class="va">self</span>.filename)</span>
-<span id="cb48-31"><a href="#cb48-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-32"><a href="#cb48-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
-<span id="cb48-33"><a href="#cb48-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Load the hyperparameters from the file.</span></span>
-<span id="cb48-34"><a href="#cb48-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-35"><a href="#cb48-35" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
-<span id="cb48-36"><a href="#cb48-36" aria-hidden="true" tabindex="-1"></a><span class="co">            dict: A dictionary containing the hyperparameters.</span></span>
-<span id="cb48-37"><a href="#cb48-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-38"><a href="#cb48-38" aria-hidden="true" tabindex="-1"></a><span class="co">        Examples:</span></span>
-<span id="cb48-39"><a href="#cb48-39" aria-hidden="true" tabindex="-1"></a><span class="co">            # Assume the user specified file `my_hyper_dict.json` is in the `./hyperdict/` directory.</span></span>
-<span id="cb48-40"><a href="#cb48-40" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; user_lhd = MyHyperDict(filename='my_hyper_dict.json', directory='./hyperdict/')</span></span>
-<span id="cb48-41"><a href="#cb48-41" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb48-42"><a href="#cb48-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">with</span> <span class="bu">open</span>(<span class="va">self</span>.path, <span class="st">"r"</span>) <span class="im">as</span> f:</span>
-<span id="cb48-43"><a href="#cb48-43" aria-hidden="true" tabindex="-1"></a>            d <span class="op">=</span> json.load(f)</span>
-<span id="cb48-44"><a href="#cb48-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> d</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data <span class="im">import</span> base</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pathlib</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyHyperDict(base.FileConfig):</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""User specified hyperparameter dictionary.</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="co">    This class extends the FileConfig class to provide a dictionary for storing hyperparameters.</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="co">    Attributes:</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="co">        filename (str):</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="co">            The name of the file where the hyperparameters are stored.</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>        filename: <span class="bu">str</span> <span class="op">=</span> <span class="st">"my_hyper_dict.json"</span>,</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>        directory: <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>(filename<span class="op">=</span>filename, directory<span class="op">=</span>directory)</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.filename <span class="op">=</span> filename</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.directory <span class="op">=</span> directory</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.hyper_dict <span class="op">=</span> <span class="va">self</span>.load()</span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> path(<span class="va">self</span>):</span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.directory:</span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> pathlib.Path(<span class="va">self</span>.directory).joinpath(<span class="va">self</span>.filename)</span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> pathlib.Path(<span class="va">__file__</span>).parent.joinpath(<span class="va">self</span>.filename)</span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Load the hyperparameters from the file.</span></span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a><span class="co">            dict: A dictionary containing the hyperparameters.</span></span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a><span class="co">        Examples:</span></span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a><span class="co">            # Assume the user specified file `my_hyper_dict.json` is in the `./hyperdict/` directory.</span></span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; user_lhd = MyHyperDict(filename='my_hyper_dict.json', directory='./hyperdict/')</span></span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">with</span> <span class="bu">open</span>(<span class="va">self</span>.path, <span class="st">"r"</span>) <span class="im">as</span> f:</span>
+<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a>            d <span class="op">=</span> json.load(f)</span>
+<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> d</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="my_hyperdict.json" class="level3" data-number="44.2.3">
 <h3 data-number="44.2.3" class="anchored" data-anchor-id="my_hyperdict.json"><span class="header-section-number">44.2.3</span> <code>my_hyperdict.json</code></h3>
-<div class="sourceCode" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a> <span class="co">"MyResNet"</span>: {</span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"l1"</span>: {</span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">3</span>,</span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">3</span>,</span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">10</span></span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"epochs"</span>: {</span>
-<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
-<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">4</span>,</span>
-<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
-<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">4</span>,</span>
-<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">9</span></span>
-<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"batch_size"</span>: {</span>
-<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
-<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">4</span>,</span>
-<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
-<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">1</span>,</span>
-<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">6</span></span>
-<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-23"><a href="#cb49-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"act_fn"</span>: {</span>
-<span id="cb49-24"><a href="#cb49-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
-<span id="cb49-25"><a href="#cb49-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Sigmoid"</span>,</span>
-<span id="cb49-26"><a href="#cb49-26" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Tanh"</span>,</span>
-<span id="cb49-27"><a href="#cb49-27" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ReLU"</span>,</span>
-<span id="cb49-28"><a href="#cb49-28" aria-hidden="true" tabindex="-1"></a>                <span class="st">"LeakyReLU"</span>,</span>
-<span id="cb49-29"><a href="#cb49-29" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ELU"</span>,</span>
-<span id="cb49-30"><a href="#cb49-30" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Swish"</span></span>
-<span id="cb49-31"><a href="#cb49-31" aria-hidden="true" tabindex="-1"></a>            ],</span>
-<span id="cb49-32"><a href="#cb49-32" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
-<span id="cb49-33"><a href="#cb49-33" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"ReLU"</span>,</span>
-<span id="cb49-34"><a href="#cb49-34" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
-<span id="cb49-35"><a href="#cb49-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">"class_name"</span>: <span class="st">"spotpython.torch.activation"</span>,</span>
-<span id="cb49-36"><a href="#cb49-36" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"instance()"</span>,</span>
-<span id="cb49-37"><a href="#cb49-37" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
-<span id="cb49-38"><a href="#cb49-38" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">5</span></span>
-<span id="cb49-39"><a href="#cb49-39" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-40"><a href="#cb49-40" aria-hidden="true" tabindex="-1"></a>        <span class="st">"optimizer"</span>: {</span>
-<span id="cb49-41"><a href="#cb49-41" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
-<span id="cb49-42"><a href="#cb49-42" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
-<span id="cb49-43"><a href="#cb49-43" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
-<span id="cb49-44"><a href="#cb49-44" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
-<span id="cb49-45"><a href="#cb49-45" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
-<span id="cb49-46"><a href="#cb49-46" aria-hidden="true" tabindex="-1"></a>                <span class="st">"SparseAdam"</span>,</span>
-<span id="cb49-47"><a href="#cb49-47" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,</span>
-<span id="cb49-48"><a href="#cb49-48" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ASGD"</span>,</span>
-<span id="cb49-49"><a href="#cb49-49" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NAdam"</span>,</span>
-<span id="cb49-50"><a href="#cb49-50" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RAdam"</span>,</span>
-<span id="cb49-51"><a href="#cb49-51" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RMSprop"</span>,</span>
-<span id="cb49-52"><a href="#cb49-52" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Rprop"</span>,</span>
-<span id="cb49-53"><a href="#cb49-53" aria-hidden="true" tabindex="-1"></a>                <span class="st">"SGD"</span></span>
-<span id="cb49-54"><a href="#cb49-54" aria-hidden="true" tabindex="-1"></a>            ],</span>
-<span id="cb49-55"><a href="#cb49-55" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
-<span id="cb49-56"><a href="#cb49-56" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"SGD"</span>,</span>
-<span id="cb49-57"><a href="#cb49-57" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
-<span id="cb49-58"><a href="#cb49-58" aria-hidden="true" tabindex="-1"></a>            <span class="st">"class_name"</span>: <span class="st">"torch.optim"</span>,</span>
-<span id="cb49-59"><a href="#cb49-59" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"str"</span>,</span>
-<span id="cb49-60"><a href="#cb49-60" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
-<span id="cb49-61"><a href="#cb49-61" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">11</span></span>
-<span id="cb49-62"><a href="#cb49-62" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-63"><a href="#cb49-63" aria-hidden="true" tabindex="-1"></a>        <span class="st">"dropout_prob"</span>: {</span>
-<span id="cb49-64"><a href="#cb49-64" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"float"</span>,</span>
-<span id="cb49-65"><a href="#cb49-65" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="fl">0.01</span>,</span>
-<span id="cb49-66"><a href="#cb49-66" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
-<span id="cb49-67"><a href="#cb49-67" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="fl">0.0</span>,</span>
-<span id="cb49-68"><a href="#cb49-68" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="fl">0.25</span></span>
-<span id="cb49-69"><a href="#cb49-69" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-70"><a href="#cb49-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">"lr_mult"</span>: {</span>
-<span id="cb49-71"><a href="#cb49-71" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"float"</span>,</span>
-<span id="cb49-72"><a href="#cb49-72" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="fl">1.0</span>,</span>
-<span id="cb49-73"><a href="#cb49-73" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
-<span id="cb49-74"><a href="#cb49-74" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="fl">0.1</span>,</span>
-<span id="cb49-75"><a href="#cb49-75" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="fl">10.0</span></span>
-<span id="cb49-76"><a href="#cb49-76" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-77"><a href="#cb49-77" aria-hidden="true" tabindex="-1"></a>        <span class="st">"patience"</span>: {</span>
-<span id="cb49-78"><a href="#cb49-78" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
-<span id="cb49-79"><a href="#cb49-79" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">2</span>,</span>
-<span id="cb49-80"><a href="#cb49-80" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
-<span id="cb49-81"><a href="#cb49-81" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">2</span>,</span>
-<span id="cb49-82"><a href="#cb49-82" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">6</span></span>
-<span id="cb49-83"><a href="#cb49-83" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb49-84"><a href="#cb49-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">"initialization"</span>: {</span>
-<span id="cb49-85"><a href="#cb49-85" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
-<span id="cb49-86"><a href="#cb49-86" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Default"</span>,</span>
-<span id="cb49-87"><a href="#cb49-87" aria-hidden="true" tabindex="-1"></a>                <span class="st">"kaiming_uniform"</span>,</span>
-<span id="cb49-88"><a href="#cb49-88" aria-hidden="true" tabindex="-1"></a>                <span class="st">"kaiming_normal"</span>,</span>
-<span id="cb49-89"><a href="#cb49-89" aria-hidden="true" tabindex="-1"></a>                <span class="st">"xavier_uniform"</span>,</span>
-<span id="cb49-90"><a href="#cb49-90" aria-hidden="true" tabindex="-1"></a>                <span class="st">"xavier_normal"</span></span>
-<span id="cb49-91"><a href="#cb49-91" aria-hidden="true" tabindex="-1"></a>            ],</span>
-<span id="cb49-92"><a href="#cb49-92" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
-<span id="cb49-93"><a href="#cb49-93" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"Default"</span>,</span>
-<span id="cb49-94"><a href="#cb49-94" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
-<span id="cb49-95"><a href="#cb49-95" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"str"</span>,</span>
-<span id="cb49-96"><a href="#cb49-96" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
-<span id="cb49-97"><a href="#cb49-97" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">4</span></span>
-<span id="cb49-98"><a href="#cb49-98" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb49-99"><a href="#cb49-99" aria-hidden="true" tabindex="-1"></a>    }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a> <span class="co">"MyResNet"</span>: {</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"l1"</span>: {</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">3</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">3</span>,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">10</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"epochs"</span>: {</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">4</span>,</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">4</span>,</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">9</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"batch_size"</span>: {</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">4</span>,</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">1</span>,</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">6</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"act_fn"</span>: {</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Sigmoid"</span>,</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Tanh"</span>,</span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ReLU"</span>,</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>                <span class="st">"LeakyReLU"</span>,</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ELU"</span>,</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Swish"</span></span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>            ],</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"ReLU"</span>,</span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">"class_name"</span>: <span class="st">"spotpython.torch.activation"</span>,</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"instance()"</span>,</span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">5</span></span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>        <span class="st">"optimizer"</span>: {</span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>                <span class="st">"SparseAdam"</span>,</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ASGD"</span>,</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NAdam"</span>,</span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RAdam"</span>,</span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>                <span class="st">"RMSprop"</span>,</span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Rprop"</span>,</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>                <span class="st">"SGD"</span></span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>            ],</span>
+<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
+<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"SGD"</span>,</span>
+<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
+<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a>            <span class="st">"class_name"</span>: <span class="st">"torch.optim"</span>,</span>
+<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"str"</span>,</span>
+<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
+<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">11</span></span>
+<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>        <span class="st">"dropout_prob"</span>: {</span>
+<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"float"</span>,</span>
+<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="fl">0.01</span>,</span>
+<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
+<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="fl">0.0</span>,</span>
+<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="fl">0.25</span></span>
+<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">"lr_mult"</span>: {</span>
+<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"float"</span>,</span>
+<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="fl">1.0</span>,</span>
+<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
+<span id="cb33-74"><a href="#cb33-74" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="fl">0.1</span>,</span>
+<span id="cb33-75"><a href="#cb33-75" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="fl">10.0</span></span>
+<span id="cb33-76"><a href="#cb33-76" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-77"><a href="#cb33-77" aria-hidden="true" tabindex="-1"></a>        <span class="st">"patience"</span>: {</span>
+<span id="cb33-78"><a href="#cb33-78" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"int"</span>,</span>
+<span id="cb33-79"><a href="#cb33-79" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="dv">2</span>,</span>
+<span id="cb33-80"><a href="#cb33-80" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"transform_power_2_int"</span>,</span>
+<span id="cb33-81"><a href="#cb33-81" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">2</span>,</span>
+<span id="cb33-82"><a href="#cb33-82" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">6</span></span>
+<span id="cb33-83"><a href="#cb33-83" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb33-84"><a href="#cb33-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">"initialization"</span>: {</span>
+<span id="cb33-85"><a href="#cb33-85" aria-hidden="true" tabindex="-1"></a>            <span class="st">"levels"</span>: [</span>
+<span id="cb33-86"><a href="#cb33-86" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Default"</span>,</span>
+<span id="cb33-87"><a href="#cb33-87" aria-hidden="true" tabindex="-1"></a>                <span class="st">"kaiming_uniform"</span>,</span>
+<span id="cb33-88"><a href="#cb33-88" aria-hidden="true" tabindex="-1"></a>                <span class="st">"kaiming_normal"</span>,</span>
+<span id="cb33-89"><a href="#cb33-89" aria-hidden="true" tabindex="-1"></a>                <span class="st">"xavier_uniform"</span>,</span>
+<span id="cb33-90"><a href="#cb33-90" aria-hidden="true" tabindex="-1"></a>                <span class="st">"xavier_normal"</span></span>
+<span id="cb33-91"><a href="#cb33-91" aria-hidden="true" tabindex="-1"></a>            ],</span>
+<span id="cb33-92"><a href="#cb33-92" aria-hidden="true" tabindex="-1"></a>            <span class="st">"type"</span>: <span class="st">"factor"</span>,</span>
+<span id="cb33-93"><a href="#cb33-93" aria-hidden="true" tabindex="-1"></a>            <span class="st">"default"</span>: <span class="st">"Default"</span>,</span>
+<span id="cb33-94"><a href="#cb33-94" aria-hidden="true" tabindex="-1"></a>            <span class="st">"transform"</span>: <span class="st">"None"</span>,</span>
+<span id="cb33-95"><a href="#cb33-95" aria-hidden="true" tabindex="-1"></a>            <span class="st">"core_model_parameter_type"</span>: <span class="st">"str"</span>,</span>
+<span id="cb33-96"><a href="#cb33-96" aria-hidden="true" tabindex="-1"></a>            <span class="st">"lower"</span>: <span class="dv">0</span>,</span>
+<span id="cb33-97"><a href="#cb33-97" aria-hidden="true" tabindex="-1"></a>            <span class="st">"upper"</span>: <span class="dv">4</span></span>
+<span id="cb33-98"><a href="#cb33-98" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb33-99"><a href="#cb33-99" aria-hidden="true" tabindex="-1"></a>    }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 </section>
 <section id="summary" class="level2" data-number="44.3">
