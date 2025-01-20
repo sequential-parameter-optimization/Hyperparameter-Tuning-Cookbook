@@ -62,16 +62,7 @@ S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 
 ```{python}
 #| label: run_experiment
-from spotpython.utils.file import load_result
-
-if os.path.exists(filename) and not overwrite:
-    (S, fun_control, design_control,
-    surrogate_control, optimizer_control) = load_result(PREFIX)
-else:
-    print("File does not exist or overwrite is True. Starting new experiment.")
-    res = S.run()
-# only needed for spotpython version < 0.16.0
-fun_control.update({"_L_cond": None})
+S.run()
 ```
 
 ## Results from the Hyperparameter Tuning Experiment
@@ -82,7 +73,7 @@ fun_control.update({"_L_cond": None})
 
 ```{python}
 #| label: print_results
-res = S.print_results(print_screen=True)
+S.print_results(print_screen=True)
 ```
 
 ```{python}
@@ -98,7 +89,7 @@ S.plot_progress()
 #| label: get_tuned_architecture
 from spotpython.hyperparameters.values import get_tuned_architecture
 import pprint
-config = get_tuned_architecture(S, fun_control)
+config = get_tuned_architecture(S)
 pprint.pprint(config)
 ```
 
@@ -107,7 +98,7 @@ pprint.pprint(config)
 ```{python}
 #| label: get_tuned_architecture_force_minX
 from spotpython.hyperparameters.values import get_tuned_architecture
-config = get_tuned_architecture(S, fun_control, force_minX=True)
+config = get_tuned_architecture(S, force_minX=True)
 pprint.pprint(config)
 ```
 
@@ -122,10 +113,6 @@ pprint.pprint(config)
 #| label: test_model
 from spotpython.light.testmodel import test_model
 from spotpython.light.loadmodel import load_light_from_checkpoint
-import os
-# if the directory "./runs" exists, delete it
-if os.path.exists("./runs"):
-    os.system("rm -r ./runs")
 fun_control.update({"tensorboard_log": True})
 test_model(config, fun_control)
 ```
