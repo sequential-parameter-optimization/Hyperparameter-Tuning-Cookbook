@@ -865,6 +865,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#visualizing-the-tuning-progress" id="toc-visualizing-the-tuning-progress" class="nav-link" data-scroll-target="#visualizing-the-tuning-progress"><span class="header-section-number">F.7.1</span> Visualizing the Tuning Progress</a></li>
   <li><a href="#design-table-with-default-and-tuned-hyperparameters" id="toc-design-table-with-default-and-tuned-hyperparameters" class="nav-link" data-scroll-target="#design-table-with-default-and-tuned-hyperparameters"><span class="header-section-number">F.7.2</span> Design Table with Default and Tuned Hyperparameters</a></li>
   <li><a href="#plotting-important-hyperparameters" id="toc-plotting-important-hyperparameters" class="nav-link" data-scroll-target="#plotting-important-hyperparameters"><span class="header-section-number">F.7.3</span> Plotting Important Hyperparameters</a></li>
+  <li><a href="#the-tuned-hyperparameters" id="toc-the-tuned-hyperparameters" class="nav-link" data-scroll-target="#the-tuned-hyperparameters"><span class="header-section-number">F.7.4</span> The Tuned Hyperparameters</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -945,7 +946,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_and_run_spot_python_experiment</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main(pickle_file):</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    spot_tuner <span class="op">=</span> load_and_run_spot_python_experiment(pickle_file)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    spot_tuner <span class="op">=</span> load_and_run_spot_python_experiment(filename<span class="op">=</span>pickle_file)</span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">"__main__"</span>:</span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    parser <span class="op">=</span> argparse.ArgumentParser(description<span class="op">=</span><span class="st">'Process a pickle file.'</span>)</span>
@@ -969,7 +970,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, surrogate_control_init, design_control_init)</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.eda <span class="im">import</span> gen_design_table</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> Spot</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> get_experiment_filename, get_tuned_architecture</span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
@@ -981,7 +982,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> torch.randn(num_samples, <span class="dv">1</span>)  <span class="co"># random target for example</span></span>
 <span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>data_set <span class="op">=</span> TensorDataset(X, Y)</span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"0123456789"</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>PREFIX<span class="op">=</span><span class="st">"42"</span></span>
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
@@ -1012,16 +1013,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>spot_tuner.save_experiment(overwrite<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The configuration is saved as a pickle-file that contains the full information. In our example, the filename is <code>spot_0123456789_experiment.pickle</code>.</p>
+<p>The configuration is saved as a pickle-file that contains the full information. In our example, the filename is <code>42_exp.pkl</code>.</p>
 </section>
 <section id="copy-the-configuration-to-the-remote-machine" class="level2" data-number="F.4">
 <h2 data-number="F.4" class="anchored" data-anchor-id="copy-the-configuration-to-the-remote-machine"><span class="header-section-number">F.4</span> Copy the Configuration to the Remote Machine</h2>
 <p>You can copy the configuration to the remote machine using the <code>scp</code> command. The following command copies the configuration to the remote machine <code>144.33.22.1</code>:</p>
 <div id="copy-config-to-remote" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>scp spot_0123456789_experiment.pickle user<span class="op">@</span><span class="fl">144.33.22.1</span>:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>scp <span class="dv">42</span><span class="er">_exp</span>.pkl user<span class="op">@</span><span class="fl">144.33.22.1</span>:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="run-the-spotpython-code-on-the-remote-machine" class="level2" data-number="F.5">
@@ -1029,25 +1029,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Login on the remote machine and run the following command to start the <code>spotpython</code> code:</p>
 <div id="run-spotpython-on-remote" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ssh user<span class="op">@</span><span class="fl">144.33.22.1</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>srun <span class="op">--</span>cpus<span class="op">-</span>per<span class="op">-</span>task<span class="op">=</span><span class="dv">20</span> <span class="op">--</span>time<span class="op">=</span><span class="dv">6</span>:<span class="dv">00</span>:<span class="dv">00</span> <span class="op">--</span>gpus <span class="dv">1</span> <span class="op">--</span>pty bash <span class="op">-</span>i</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># change this to your conda environment!</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>conda activate spot312 </span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>sh <span class="op">-</span>x .<span class="op">/</span>startSlurm.sh spot_0123456789_experiment.pickle</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># change this to your conda environment!</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>conda activate spot312 </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>sbatch sh <span class="op">-</span>x .<span class="op">/</span>startSlurm.sh <span class="dv">42</span><span class="er">_exp</span>.pkl</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="copy-the-results-to-the-local-machine" class="level2" data-number="F.6">
 <h2 data-number="F.6" class="anchored" data-anchor-id="copy-the-results-to-the-local-machine"><span class="header-section-number">F.6</span> Copy the Results to the Local Machine</h2>
 <p>After the <code>spotpython</code> code has finished, you can copy the results back to the local machine using the <code>scp</code> command. The following command copies the results to the local machine:</p>
 <div id="copy-results-to-local" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>scp user<span class="op">@</span><span class="fl">144.33.22.1</span>:spot_0123456789_experiment.pickle .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>scp user<span class="op">@</span><span class="fl">144.33.22.1</span>:<span class="dv">42</span><span class="er">_res</span>.pkl .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Experiment and Result Files
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>spotpython</code> generates two files:
+<ul>
+<li><code>PREFIX_exp.pkl</code> (experiment file), which stores the information about running the experiment, and</li>
+<li><code>PREFIX_res.pkl</code> (result file), which stores the results of the experiment.</li>
+</ul></li>
+</ul>
+</div>
 </div>
 </section>
 <section id="analyze-the-results-on-the-local-machine" class="level2" data-number="F.7">
 <h2 data-number="F.7" class="anchored" data-anchor-id="analyze-the-results-on-the-local-machine"><span class="header-section-number">F.7</span> Analyze the Results on the Local Machine</h2>
-<p>The file <code>spot_0123456789_experiment.pickle</code> contains the results of the <code>spotpython</code> code. You can analyze the results on the local machine using the following code.</p>
+<p>The file <code>42_res.pkl</code> contains the results of the <code>spotpython</code> code. You can analyze the results on the local machine using the following code.</p>
 <div id="spotgui" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.<span class="bu">file</span> <span class="im">import</span> load_experiment</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>spot_tuner, fun_control, design_control, surrogate_control, optimizer_control <span class="op">=</span> load_experiment(<span class="st">"spot_0123456789_experiment.pickle"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> load_experiment(PREFIX)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="visualizing-the-tuning-progress" class="level3" data-number="F.7.1">
 <h3 data-number="F.7.1" class="anchored" data-anchor-id="visualizing-the-tuning-progress"><span class="header-section-number">F.7.1</span> Visualizing the Tuning Progress</h3>
@@ -1068,18 +1086,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="analyze-results-plot-imp-hyperparam" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>spot_tuner.plot_important_hyperparameter_contour(max_imp<span class="op">=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-spotgui
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The <code>spotgui</code> can be used to analyze the results interactively.</p>
-</div>
+</section>
+<section id="the-tuned-hyperparameters" class="level3" data-number="F.7.4">
+<h3 data-number="F.7.4" class="anchored" data-anchor-id="the-tuned-hyperparameters"><span class="header-section-number">F.7.4</span> The Tuned Hyperparameters</h3>
+<div id="get_tuned_hyperparameters" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_tuned_architecture(spot_tuner)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>pprint.pprint(config)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
 
