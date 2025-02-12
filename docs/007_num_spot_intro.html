@@ -54,7 +54,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -388,6 +408,8 @@ window.Quarto = {
 <meta name="citation_reference" content="citation_title=Neural Ordinary Differential Equations;,citation_author=Ricky T. Q. Chen;,citation_author=Yulia Rubanova;,citation_author=Jesse Bettencourt;,citation_author=David Duvenaud;,citation_publication_date=2018-06;,citation_cover_date=2018-06;,citation_year=2018;,citation_journal_title=arXiv e-prints;">
 <meta name="citation_reference" content="citation_title=Mathematical theory of optimal processes;,citation_author=undefined Pontryagin;,citation_publication_date=1987;,citation_cover_date=1987;,citation_year=1987;">
 <meta name="citation_reference" content="citation_title=On Neural Differential Equations;,citation_author=Patrick Kidger;,citation_publication_date=2022-02;,citation_cover_date=2022-02;,citation_year=2022;,citation_journal_title=arXiv e-prints;">
+<meta name="citation_reference" content="citation_title=Stochastic simulation optimization: an optimal computing budget allocation;,citation_author=Chun Hung Chen;,citation_publication_date=2010;,citation_cover_date=2010;,citation_year=2010;">
+<meta name="citation_reference" content="citation_title=Sequential Parameter Optimization and Optimal Computational Budget Allocation for Noisy Optimization Problems;,citation_author=Thomas Bartz-Beielstein;,citation_author=Martina Friese;,citation_publication_date=2011-01;,citation_cover_date=2011-01;,citation_year=2011;">
 </head>
 
 <body class="nav-sidebar docked">
@@ -957,24 +979,31 @@ window.Quarto = {
 <section id="advantages-of-the-spotpython-approach" class="level2" data-number="7.1">
 <h2 data-number="7.1" class="anchored" data-anchor-id="advantages-of-the-spotpython-approach"><span class="header-section-number">7.1</span> Advantages of the spotpython approach</h2>
 <ul>
-<li>Neural networks and many ML algorithms are non-deterministic, so results are noisy (i.e., depend on the the initialization of the weights). Enhanced noise handling strategies, OCBA (description from HPT-book).</li>
-<li>Surrogate-based optimization: Better than grid search and random search (Reference to HPT-book)</li>
-<li>Visualization</li>
-<li>Importance based on the Kriging model</li>
-<li>Sensitivity analysis. Exploratory fitness landscape analysis. Provides XAI methods (feature importance, integrated gradients, etc.)</li>
-<li>Uncertainty quantification</li>
-<li>Flexible, modular meta-modeling handling. spotpython come with a Kriging model, which can be replaced by any model implemented in <code>scikit-learn</code>.</li>
-<li>Enhanced metric handling, especially for categorical hyperparameters (any sklearn metric can be used). Default is..</li>
-<li>Integration with TensorBoard: Visualization of the hyperparameter tuning process, of the traing steps, the model graph. Parallel coordinates plot, scatter plot matrix, and more.</li>
-<li>Reproducibility. Results are stored as pickle files. The results can be loaded and visualized at any time and be transferred between different machines and operating systems.</li>
-<li>Handles scikit-learn models and pytorch models out-of-the-box. The user has to add a simple wrapper for passing the hyperparemeters to use a pytorch model in spotpython.</li>
-<li>Compatible with Lightning.</li>
-<li>User can add own models as plain python code.</li>
-<li>User can add own data sets in various formats.</li>
-<li>Flexible data handling and data preprocessing.</li>
-<li>Many examples online (hyperparameter-tuning-cookbook).</li>
-<li>spotpython uses a robust optimizer that can even deal with hyperparameter-settings that cause crashes of the algorithms to be tuned.</li>
-<li>even if the optimum is not found, HPT with spotpython prevents the user from choosing bad hyperparameters in a systematic way (design of experiments).</li>
+<li><p>Neural networks and many ML algorithms are non-deterministic, so results are noisy (i.e., depend on the the initialization of the weights). Enhanced noise handling strategies, OCBA (description from HPT-book).</p></li>
+<li><p>Optimal Computational Budget Allocation (OCBA) is a very efficient solution to solve the “general ranking and selection problem” if the objective function is noisy. It allocates function evaluations in an uneven manner to identify the best solutions and to reduce the total optimization costs. [Chen10a, Bart11b] Given a total number of optimization samples <span class="math inline">\(N\)</span> to be allocated to <span class="math inline">\(k\)</span> competing solutions whose performance is depicted by random variables with means <span class="math inline">\(\bar{y}_i\)</span> (<span class="math inline">\(i=1, 2, \ldots, k\)</span>), and finite variances <span class="math inline">\(\sigma_i^2\)</span>, respectively, as <span class="math inline">\(N \to \infty\)</span>, the can be asymptotically maximized when <span class="math display">\[\begin{align}
+\frac{N_i}{N_j} &amp; = \left( \frac{ \sigma_i / \delta_{b,i}}{\sigma_j/ \delta_{b,j}} \right)^2, i,j \in \{ 1, 2, \ldots, k\}, \text{ and }
+i \neq j \neq b,\\
+N_b &amp;= \sigma_b \sqrt{
+\sum_{i=1, i\neq b}^k \frac{N_i^2}{\sigma_i^2}
+},
+\end{align}\]</span> where <span class="math inline">\(N_i\)</span> is the number of replications allocated to solution <span class="math inline">\(i\)</span>, <span class="math inline">\(\delta_{b,i} = \bar{y}_b - \bar{y}_i\)</span>, and <span class="math inline">\(\bar{y}_b \leq \min_{i\neq b} \bar{y}_i\)</span> <span class="citation" data-cites="Chen10a">Bartz-Beielstein and Friese (<a href="references.html#ref-Bart11a" role="doc-biblioref">2011</a>)</span>.</p></li>
+<li><p>Surrogate-based optimization: Better than grid search and random search (Reference to HPT-book)</p></li>
+<li><p>Visualization</p></li>
+<li><p>Importance based on the Kriging model</p></li>
+<li><p>Sensitivity analysis. Exploratory fitness landscape analysis. Provides XAI methods (feature importance, integrated gradients, etc.)</p></li>
+<li><p>Uncertainty quantification</p></li>
+<li><p>Flexible, modular meta-modeling handling. spotpython come with a Kriging model, which can be replaced by any model implemented in <code>scikit-learn</code>.</p></li>
+<li><p>Enhanced metric handling, especially for categorical hyperparameters (any sklearn metric can be used). Default is..</p></li>
+<li><p>Integration with TensorBoard: Visualization of the hyperparameter tuning process, of the training steps, the model graph. Parallel coordinates plot, scatter plot matrix, and more.</p></li>
+<li><p>Reproducibility. Results are stored as pickle files. The results can be loaded and visualized at any time and be transferred between different machines and operating systems.</p></li>
+<li><p>Handles scikit-learn models and pytorch models out-of-the-box. The user has to add a simple wrapper for passing the hyperparemeters to use a pytorch model in spotpython.</p></li>
+<li><p>Compatible with Lightning.</p></li>
+<li><p>User can add own models as plain python code.</p></li>
+<li><p>User can add own data sets in various formats.</p></li>
+<li><p>Flexible data handling and data preprocessing.</p></li>
+<li><p>Many examples online (hyperparameter-tuning-cookbook).</p></li>
+<li><p>spotpython uses a robust optimizer that can even deal with hyperparameter-settings that cause crashes of the algorithms to be tuned.</p></li>
+<li><p>even if the optimum is not found, HPT with spotpython prevents the user from choosing bad hyperparameters in a systematic way (design of experiments).</p></li>
 </ul>
 </section>
 <section id="disadvantages-of-the-spotpython-approach" class="level2" data-number="7.2">
@@ -988,7 +1017,7 @@ window.Quarto = {
 </section>
 <section id="example-spot-and-the-sphere-function" class="level2" data-number="7.3">
 <h2 data-number="7.3" class="anchored" data-anchor-id="example-spot-and-the-sphere-function"><span class="header-section-number">7.3</span> Example: <code>Spot</code> and the Sphere Function</h2>
-<div id="fed31304" class="cell" data-execution_count="1">
+<div id="3a77198d" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.objectivefunctions <span class="im">import</span> Analytical</span>
@@ -1002,11 +1031,11 @@ window.Quarto = {
 <p>The <code>spotpython</code> package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: <span class="math display">\[
 f(x) = x^2
 \]</span></p>
-<div id="97625dbb" class="cell" data-execution_count="2">
+<div id="2ed4be9e" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> Analytical().fun_sphere</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We can apply the function <code>fun</code> to input values and plot the result:</p>
-<div id="1e59ee01" class="cell" data-execution_count="3">
+<div id="0840e3b6" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> fun(x)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>plt.figure()</span>
@@ -1024,7 +1053,7 @@ f(x) = x^2
 <section id="the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model" class="level3" data-number="7.3.2">
 <h3 data-number="7.3.2" class="anchored" data-anchor-id="the-spot-method-as-an-optimization-algorithm-using-a-surrogate-model"><span class="header-section-number">7.3.2</span> The <code>Spot</code> Method as an Optimization Algorithm Using a Surrogate Model</h3>
 <p>We initialize the <code>fun_control</code> dictionary. The <code>fun_control</code> dictionary contains the parameters for the objective function. The <code>fun_control</code> dictionary is passed to the <code>Spot</code> method.</p>
-<div id="0e5f8090" class="cell" data-execution_count="4">
+<div id="357da6e7" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fun_control<span class="op">=</span>fun_control_init(lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                     upper <span class="op">=</span> np.array([<span class="dv">1</span>]))</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>spot_0 <span class="op">=</span> Spot(fun<span class="op">=</span>fun,</span>
@@ -1040,11 +1069,11 @@ spotpython tuning: 1.866838525968143e-10 [##########] 100.00% Done...
 Experiment saved to 000_res.pkl</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>&lt;spotpython.spot.spot.Spot at 0x16832ae70&gt;</code></pre>
+<pre><code>&lt;spotpython.spot.spot.Spot at 0x10e317ef0&gt;</code></pre>
 </div>
 </div>
 <p>The method <code>print_results()</code> prints the results, i.e., the best objective function value (“min y”) and the corresponding input value (“x0”).</p>
-<div id="bbb4d743" class="cell" data-execution_count="5">
+<div id="72b7fc9a" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>spot_0.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 1.866838525968143e-10
@@ -1097,7 +1126,7 @@ Figure&nbsp;7.2: Visualization of the model and the underlying objective functio
 <li>The size of the initial design (<code>init_size</code>) in the <code>design_control</code> dictionary.</li>
 </ol>
 <p>The full list of the <code>Spot</code> parameters is shown in code reference on GitHub, see <a href="https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/spot/spot/#spotpython.Spot">Spot</a>.</p>
-<div id="ba2cc07b" class="cell" data-execution_count="8">
+<div id="f5650342" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fun_control<span class="op">=</span>fun_control_init(lower <span class="op">=</span> np.array([<span class="op">-</span><span class="dv">1</span>]),</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                     upper <span class="op">=</span> np.array([<span class="dv">1</span>]),</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                     fun_evals <span class="op">=</span> <span class="dv">10</span>,</span>
@@ -1130,7 +1159,7 @@ Experiment saved to 000_res.pkl</code></pre>
 </section>
 <section id="print-the-results" class="level2" data-number="7.5">
 <h2 data-number="7.5" class="anchored" data-anchor-id="print-the-results"><span class="header-section-number">7.5</span> Print the Results</h2>
-<div id="fe1af3aa" class="cell" data-execution_count="9">
+<div id="814fdc94" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>spot_1.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 9.632846333472212e-09
@@ -1143,7 +1172,7 @@ x0: -9.814706482351988e-05</code></pre>
 </section>
 <section id="show-the-progress" class="level2" data-number="7.6">
 <h2 data-number="7.6" class="anchored" data-anchor-id="show-the-progress"><span class="header-section-number">7.6</span> Show the Progress</h2>
-<div id="62525b86" class="cell" data-execution_count="10">
+<div id="486daa68" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>spot_1.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
@@ -1168,12 +1197,12 @@ x0: -9.814706482351988e-05</code></pre>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    tensorboard_log<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_01_30_23_42_29_0
-Created spot_tensorboard_path: runs/spot_logs/01_p040025_2025-01-30_23-42-29 for SummaryWriter()</code></pre>
+<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_02_12_21_56_50_0
+Created spot_tensorboard_path: runs/spot_logs/01_p040025_2025-02-12_21-56-50 for SummaryWriter()</code></pre>
 </div>
 </div>
 <p>Since the <code>tensorboard_log</code> is <code>True</code>, <code>spotpython</code> will log the optimization process in the TensorBoard files. The argument <code>TENSORBOARD_CLEAN=True</code> will move the TensorBoard files from the previous run to a backup folder, so that TensorBoard files from previous runs are not overwritten and a clean start in the <code>runs</code> folder is guaranteed.</p>
-<div id="26c367f9" class="cell" data-execution_count="12">
+<div id="1c58df55" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun,                   </span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                   fun_control<span class="op">=</span>fun_control,</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                   design_control<span class="op">=</span>design_control)</span>
@@ -1318,6 +1347,14 @@ Note
 </div>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-Bart11a" class="csl-entry" role="listitem">
+Bartz-Beielstein, Thomas, and Martina Friese. 2011. <span>“<span class="nocase">Sequential Parameter Optimization and Optimal Computational Budget Allocation for Noisy Optimization Problems</span>.”</span> Cologne University of Applied Science, Faculty of Computer Science; Engineering Science.
+</div>
+<div id="ref-Chen10a" class="csl-entry" role="listitem">
+Chen, Chun Hung. 2010. <em><span class="nocase">Stochastic simulation optimization: an optimal computing budget allocation</span></em>. World Scientific.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1754,7 +1791,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>Copyright 2024, T. Bartz-Beielstein</p>
+<p>Copyright 2025, T. Bartz-Beielstein</p>
 </div>   
     <div class="nav-footer-center">
       &nbsp;
