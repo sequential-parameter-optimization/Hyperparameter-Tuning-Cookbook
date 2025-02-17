@@ -1535,6 +1535,111 @@ The semipartial correlation statistic is similar to the partial correlation stat
 
 ## Multiple Regression
 
+## Assessing Confounding Effects in Multiple Regression
+
+Confounding is a bias introduced by the imbalanced distribution of extraneous risk
+factors among comparison groups [@wang07a]. 
+`spotpython` provides tools for assessing confounding effects in multiple regression models.
+
+::: {#exm-confounding}
+### Assessing Confounding Effects in Multiple Regression with `spotpython`
+Consider the following data generation function `generate_data` and the `fit_ols_model` function to fit an ordinary least squares (OLS) regression model.
+
+```{python}
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+def generate_data(n_samples=100, b0=0, b1=-1, b2=0, b3=10, b12=0, b13=0, b23=0, b123=0, noise_std=1) -> pd.DataFrame:
+    """
+    Generate data for the linear formula y ~ b0 + b1*x1 + b2*x2 + b3*x3 + b12*x1*x2 + b13*x1*x3 + b23*x2*x3 + b123*x1*x2*x3.
+
+    Args:
+        n_samples (int): Number of samples to generate.
+        b0 (float): Coefficient for the intercept.
+        b1 (float): Coefficient for x1.
+        b2 (float): Coefficient for x2.
+        b3 (float): Coefficient for x3.
+        b12 (float): Coefficient for the interaction term x1*x2.
+        b13 (float): Coefficient for the interaction term x1*x3.
+        b23 (float): Coefficient for the interaction term x2*x3.
+        b123 (float): Coefficient for the interaction term x1*x2*x3.
+        noise_std (float): Standard deviation of the Gaussian noise added to y.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the generated data with columns ['x1', 'x2', 'x3', 'y'].
+    """
+    np.random.seed(42)  # For reproducibility
+    x1 = np.random.uniform(0, 1, n_samples)
+    x2 = np.random.uniform(0, 1, n_samples)
+    x3 = np.random.uniform(0, 1, n_samples)
+    
+    y = (b0 + b1*x1 + b2*x2 + b3*x3 + b12*x1*x2 + b13*x1*x3 + b23*x2*x3 + b123*x1*x2*x3 +
+         np.random.normal(0, noise_std, n_samples))
+    
+    data = pd.DataFrame({'y': y, 'x1': x1, 'x2': x2, 'x3': x3})
+    return data
+
+def fit_ols_model(formula, data) -> dict:
+    """
+    Fit an OLS model using the given formula and data, and print the results.
+
+    Args:
+        formula (str): The formula for the OLS model.
+        data (pd.DataFrame): The data frame containing the variables.
+
+    Returns:
+        dict: A dictionary containing the p-values, estimates, confidence intervals, and AIC value.
+    """
+    mod_0 = smf.ols(formula=formula, data=data).fit()
+    p = mod_0.pvalues.iloc[1]
+    estimate = mod_0.params.iloc[1]
+    conf_int = mod_0.conf_int().iloc[1]
+    aic_value = mod_0.aic
+
+    print(f"p-values: {p}")
+    print(f"estimate: {estimate}")
+    print(f"conf_int: {conf_int}")
+    print(f"aic: {aic_value}")
+```
+
+These functions can be used to generate data and fit an OLS model. Here we use the model
+$$
+y = f(x_1, x_2, x_3) + \epsilon =  x_1 + 10 x_3 + \epsilon.
+$$
+We set up the basic model $y_0 = f_0(x_1)$ and analyze how the model fit changes when adding $x_2$ and $x_3$ to the model. 
+If the $p$-values are decreasing by adding a variable, this indicates that the variable is relevant for the model.
+Similiarly, if the $p$-values are increasing by removing a variable, this indicates that the variable is not relevant for the model.
+
+```{python}
+#| label: data_generation
+data = generate_data(b0=0, b1=1, b2=0, b3=10, b12=0, b13=0, b23=0, b123=0, noise_std=1)
+fit_ols_model("y ~ x1", data)
+fit_ols_model("y ~ x1 + x2", data)
+fit_ols_model("y ~ x1 + x3", data)
+fit_ols_model("y ~ x1 + x2 + x3", data)
+```
+The function `fit_all_lm()` simplifies this procedure.
+It can be used to fit all possible linear models with the given data and print the results in a systematic way for various combinations of variables.
+```{python}
+#| label: fit_all_lm_example
+from spotpython.utils.stats import fit_all_lm, plot_coeff_vs_pvals, plot_coeff_vs_pvals_by_included
+res = fit_all_lm("y ~ x1", ["x2", "x3"], data)
+print(res["estimate"])
+```
+Interpreting the results, we can see that the $p$-values decrease when adding $x_3$ (as well as both $x_2$ and $x_3) to the model, indicating that $x_3$ is relevant for the model. Adding only $x_2$ does not significantly improve the model fit. 
+
+In addition to the textural output, the function `plot_coeff_vs_pvals_by_included()` can be used to visualize the coefficients and p-values of the fitted models.
+```{python}
+#| label: fig-plot-coeff-vs-pvals
+#| fig-cap: "Coefficients vs. p-values for different models. The right plot indicates that x3 should be included in the model, whereas the left plot shows that x2 is not relevant."
+plot_coeff_vs_pvals_by_included(res)
+```
+@fig-plot-coeff-vs-pvals shows the coefficients and p-values for different models. Because $y$ depends on $x1$ and $x3$, the p-value much smaller if $x3$ is included in the model as can be seen in the right plot in @fig-plot-coeff-vs-pvals. The left plot shows that including $x2$ in the model does not significantly improve the model fit.
+:::
+
+
+
 
 ## Supervised Learning
 
