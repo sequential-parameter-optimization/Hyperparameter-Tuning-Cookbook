@@ -1,0 +1,747 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# Basic Statistics and Data Analysis
+
+This chapter covers basic statistical concepts, namely descriptive statistics, probability distributions, and hypothesis testing. These concepts are fundamental to understanding data and making informed decisions based on data analysis. The chapter also introduces the concept of exploratory data analysis (EDA), data preprocessing (Principal Component Analysis), and data visualization techniques.
+
+
+## Exploratory Data Analysis
+
+### Histograms
+
+Creating a histogram and calculating the probabilities from a dataset can be approached with scientific precision
+
+1. Data Collection: Obtain the dataset you wish to analyze. This dataset could represent any quantitative measure, such to examine its distribution.
+
+2. Decide on the Number of Bins: The number of bins influences the histogram's granularity. There are several statistical rules to determine an optimal number of bins:
+   * Square-root rule: suggests using the square root of the number of data points as the number of bins.
+   * Sturges' formula: $k = 1 + 3.322 \log_{10}(n)$, where $n$ is the number of data points and $k$ is the suggested number of bins.
+   * Freedman-Diaconis rule: uses the interquartile range (IQR) and the cube root of the number of data points $n$ to calculate bin width as $2 \dfrac{IQR}{n^{1/3}}$.
+
+3. Determine Range and Bin Width: Calculate the range of data by subtracting the minimum data point value from the maximum. Divide this range by the number of bins to determine the width of each bin.
+
+4. Allocate Data Points to Bins: Iterate through the data, sorting each data point into the appropriate bin based on its value.
+
+5. Draw the Histogram: Use a histogram to visualize the frequency or relative frequency (probability) of data points within each bin.
+
+6. Calculate Probabilities: The relative frequency of data within each bin represents the probability of a randomly selected data point falling within that bin's range.
+
+Below is a Python script that demonstrates how to generate a histogram and compute probabilities using the `matplotlib` library for visualization and `numpy` for data manipulation.
+
+```{python}
+#| label: fig-histogram
+#| fig-cap: "Histogram with Probability Density"
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Sample data: Randomly generated for demonstration
+data = np.random.normal(0, 1, 1000)  # 1000 data points with a normal distribution
+
+# Step 2: Decide on the number of bins
+num_bins = int(np.ceil(1 + 3.322 * np.log10(len(data))))  # Sturges' formula
+
+# Step 3: Determine range and bin width -- handled internally by matplotlib
+
+# Steps 4 & 5: Sort data into bins and draw the histogram
+fig, ax = plt.subplots()
+n, bins, patches = ax.hist(data, bins=num_bins, density=True, alpha=0.75, edgecolor='black')
+
+# Calculate probabilities (relative frequencies) manually, if needed
+bin_width = np.diff(bins)  # np.diff finds the difference between adjacent bin boundaries
+probabilities = n * bin_width  # n is already normalized to form a probability density if `density=True`
+
+# Adding labels and title for clarity
+ax.set_xlabel('Data Value')
+ax.set_ylabel('Probability Density')
+ax.set_title('Histogram with Probability Density')
+
+```
+
+```{python}
+for i, prob in enumerate(probabilities):
+    print(f"Bin {i+1} Probability: {prob:.4f}")
+
+# Ensure probabilities sum to 1 (or very close, due to floating-point arithmetic)
+print(f"Sum of probabilities: {np.sum(probabilities)}")
+```
+
+This code segment goes through the necessary steps to generate a histogram and calculate probabilities for a synthetic dataset. It demonstrates important scientific and computational practices including binning, visualization, and probability calculation in Python.
+
+Key Points:
+
+* The histogram represents the distribution of data, with the histogram's bins outlining the data's spread and density.
+* The option `density=True` in `ax.hist()` normalizes the histogram so that the total area under the histogram sums to 1, thereby converting frequencies to probability densities.
+* The choice of bin number and width has a significant influence on the histogram's shape and the insights that can be drawn from it, highlighting the importance of selecting appropriate binning strategies based on the dataset's characteristics and the analysis objectives.
+
+* Video: [Histograms, Clearly Explained](https://youtu.be/qBigTkBLU6g)
+
+### Boxplots
+
+* Video: [Boxplots are Awesome](https://youtu.be/fHLhBnmwUM0?si=QB5ccKIxL1FaIc0M)
+
+## Probability Distributions
+
+What happens when we use smaller bins in a histogram? The histogram becomes more detailed, revealing the distribution of data points with greater precision. However, as the bin size decreases, the number of data points within each bin may decrease, leading to sparse or empty bins. This sparsity can make it challenging to estimate probabilities accurately, especially for data points that fall within these empty bins.
+
+Advantages, when using a probability distribution, include:
+
+* Blanks can be filled
+* Probabilities can be calculated
+* Parameters are sufficient to describe the distribution, e.g., mean and variance for the normal distribution
+
+Probability distributions offer a powerful solution to the challenges posed by limited data in estimating probabilities. When data is scarce, constructing a histogram to determine the probability of certain outcomes can lead to inaccurate or unreliable results due to the lack of detail in the dataset. However, collecting vast amounts of data to populate a histogram for more precise estimates can often be impractical, time-consuming, and expensive.
+
+A probability distribution is a mathematical function that provides the probabilities of occurrence of different possible outcomes for an experiment. It is a more efficient approach to understanding the likelihood of various outcomes than relying solely on extensive data collection. For continuous data, this is often represented graphically by a smooth curve.
+
+
+* Video: [The Main Ideas behind Probability Distributions](https://youtu.be/oI3hZJqXJuc)
+
+### Sampling from a Distribution
+
+* Video: [Sampling from a Distribution, Clearly Explained!!!](https://youtu.be/XLCWeSVzHUU)
+
+
+
+## Discrete Distributions
+
+Discrete probability distributions are essential tools in statistics, providing a mathematical foundation to model and analyze situations with discrete outcomes. 
+Histograms, which can be seen as discrete distributions with data organized into bins, offer a way to visualize and estimate probabilities based on the collected data. However, they come with limitations, especially when data is scarce or when we encounter gaps in the data (blank spaces in histograms). These gaps can make it challenging to accurately estimate probabilities.
+
+A more efficient approach, especially for discrete data, is to use mathematical equations---particularly those defining discrete probability distributions---to calculate probabilities directly, thus bypassing the intricacies of data collection and histogram interpretation.
+
+### Bernoulli Distribution
+
+The Bernoulli distribution, named after Swiss scientist Jacob Bernoulli, is a discrete probability distribution, which takes value $1$ with success probability $p$ and value $0$ with failure probability $q = 1-p$. So if $X$ is a random variable with this distribution, we have:
+$$
+P(X=1) = 1-P(X=0) = p = 1-q.
+$$
+
+### Binomial Distribution
+
+The Binomial Distribution is a prime example of a discrete probability distribution that is particularly useful for binary outcomes (e.g., success/failure, yes/no, pumpkin pie/blueberry pie). It leverages simple mathematical principles to calculate the probability of observing a specific number of successes (preferred outcomes) in a fixed number of trials, given the probability of success in each trial.
+
+::: {#exm-binom}
+#### Pie Preference
+
+Consider a scenario from "StatLand" where 70% of people prefer pumpkin pie over blueberry pie. The question is: What is the probability that, out of three people asked, the first two prefer pumpkin pie and the third prefers blueberry pie?
+
+Using the concept of the Binomial Distribution, the probability of such an outcome can be calculated without the need to layout every possible combination by hand. This process not only simplifies calculations but also provides a clear and precise method to determine probabilities in scenarios involving discrete choices.
+We will use Python to calculate the probability of observing exactly two out of three people prefer pumpkin pie, given the 70% preference rate:
+
+```{python}
+from scipy.stats import binom
+n = 3  # Number of trials (people asked)
+p = 0.7  # Probability of success (preferring pumpkin pie)
+x = 2  # Number of successes (people preferring pumpkin pie)
+# Probability calculation using Binomial Distribution
+prob = binom.pmf(x, n, p)
+print(f"The probability that exactly 2 out of 3 people prefer pumpkin pie is: {prob:.3f}")
+```
+
+This code uses the `binom.pmf()` function from `scipy.stats` to calculate the probability mass function (PMF) of observing exactly `x` successes in `n` trials, where each trial has a success probability of `p`.
+:::
+
+A Binomial random variable is the sum of $n$ independent, identically distributed Bernoulli random variables, each with probability $p$ of success. 
+We may indicate a random variable $X$ with Bernoulli distribution using the notation $X \sim \mathrm{Bi}(1,\theta)$. Then, the notation for the Binomial is
+$X \sim \mathrm{Bi}(n,\theta)$. Its probability and distribution functions are, respectively,
+$$
+p_X(x) = {n\choose x}\theta^x(1-\theta)^{n-x}, \qquad F_X(x) = \Pr\{X \le x\} = \sum_{i=0}^{x} {n\choose i}\theta^i(1-\theta)^{n-i}.
+$$
+
+The mean of the binomial distribution is $\text{E}[X] = n\theta$. 
+The variance of the distribution is $\text{Var}[X] = n\theta(1-\theta)$ (see next section).
+
+A process consists of a sequence of $n$ independent trials, i.e., the outcome of each trial does not depend on the outcome of previous trials.
+The outcome of each trial is either a success or a failure. The probability of success is denoted as $p$, and $p$ is constant for
+each trial. Coin tossing is a classical example for this setting.
+
+The binomial distribution is a statistical distribution giving the probability of obtaining a specified number of successes in a binomial experiment;
+written Binomial(n, p), where $n$ is the number of trials, and $p$ the probability of success in each.
+
+::: {#def-binom}
+#### Binomial Distribution
+
+The binomial distribution with parameters $n$ and $p$,
+where $n$ is the number of trials, and $p$ the probability of success in each, is
+\begin{equation}
+p(x) = { n \choose k } p^x(1-p)^{n-x} \qquad x = 0,1, \ldots, n.
+\end{equation}
+The mean $\mu$ and the variance $\sigma^2$ of the binomial distribution are
+\begin{equation}
+\mu = np
+\end{equation}
+and
+\begin{equation}
+\sigma^2 = np(1-p).
+\end{equation}
+
+:::
+
+Note, the Bernoulli distribution is simply Binomial(1,p).
+
+
+##  Continuous Distributions
+Our considerations regarding probability distributions, expectations, and standard deviations will be extended from discrete distributions to  continuous distributions. One simple example of a continuous distribution is the uniform distribution. Continuous distributions are defined by probability
+ density functions.
+
+### Distribution functions: PDFs and CDFs
+
+The density for a continuous distribution is a measure of the relative probability of "getting a value close to $x$." 
+Probability density functions $f$ and cumulative distribution function $F$  are related as follows.
+\begin{equation}
+f(x) = \frac{d}{dx} F(x)
+\end{equation}
+
+
+
+## Expectation (Continuous)
+
+::: {#def-expectation}
+
+#### Expectation (Continuous)
+
+\begin{equation}
+  \text{E}(X) = \int_{-\infty}^\infty x f(x) \, dx
+  \end{equation}
+:::
+
+## Variance and Standard Deviation (Continuous)
+
+
+::: {#def-variance}
+
+### Variance (Continuous)
+
+Variance can be calculated with $\text{E}(X)$ and
+\begin{equation}
+  \text{E}(X^2) = \int_{-\infty}^\infty x^2 f(x) \, dx
+\end{equation}
+  as
+\begin{equation*}
+  \text{Var}(X) = \text{E}(X^2) - [ E(X)]^2.
+  \end{equation*}
+  \hfill $\Box$
+:::
+
+::: {#def-standard-deviation}
+
+### Standard Deviation (Continuous)
+
+Standard deviation can be calculated 
+  as
+  \begin{equation*}
+  \text{sd}(X) = \sqrt{\text{Var}(X)}.
+  \end{equation*}
+  \hfill $\Box$
+:::
+
+* Video: [Population and Estimated Parameters, Clearly Explained](https://youtu.be/vikkiwjQqfU)
+* Video: [Calculating the Mean, Variance, and Standard Deviation](https://youtu.be/SzZ6GpcfoQY)
+
+## The Uniform Distribution
+
+This variable is defined in the interval $[a,b]$. We write it as $X \sim U[a,b]$. Its
+density and cumulative distribution functions are, respectively,
+$$
+f_X(x) = \frac{I_{[a,b]}(x)}{b-a}, 	\quad\quad F_X(x) = \frac{1}{b-a}\int\limits_{-\infty}\limits^x I_{[a,b]}(t) \mathrm{d}t = \frac{x-a}{b-a},
+$$
+where $I_{[a,b]}(\cdot)$ is the indicator function of the interval
+$[a,b]$. 
+Note that, if we set $a=0$ and $b=1$,
+we obtain $F_X(x) = x$, $x$ $\in$ $[0,1]$.
+
+A typical example is the following: the cdf of a continuous r.v. is uniformly distributed in
+$[0,1]$. The proof of this statement is as follows: For $u$ $\in$
+$[0,1]$, we have
+\begin{eqnarray*}
+\Pr\{F_X(X) \leq u\} &=& \Pr\{F_X^{-1}(F_X(X)) \leq F_X^{-1}(u)\} = \Pr\{X \leq F_X^{-1}(u)\} \\
+	                  &=& F_X(F_X^{-1}(u)) = u.		
+\end{eqnarray*}
+This means that, when $X$ is continuous, there is a one-to-one relationship (given by the cdf) between $x$ $\in$ $D_X$ and $u$ $\in$ $[0,1]$.
+
+The \emph{uniform distribution} has a constant density over a specified interval, say $[a,b]$.
+ The uniform $U(a,b)$ distribution has density
+ \begin{equation}
+ f(x) = 
+ \left\{
+  \begin{array}{ll}
+  1/(b-a) & \textrm{ if } a < x < b,\\
+  0 & \textrm{ otherwise}
+  \end{array}
+  \right.
+  \end{equation}
+
+## The Normal Distribution
+
+
+A commonly encountered probability distribution is the normal distribution, known for its characteristic bell-shaped curve. This curve represents how the values of a variable are distributed: most of the observations cluster around the mean (or center) of the distribution, with frequencies gradually decreasing as values move away from the mean.
+
+The normal distribution is particularly useful because of its defined mathematical properties. It is determined entirely by its mean (mu, $\mu$) and its standard deviation (sigma, $\sigma$). The area under the curve represents probability, making it possible to calculate the likelihood of a random variable falling within a specific range.
+
+
+* Video: [The Normal Distribution, Clearly Explained!!!](https://youtu.be/rzFX5NWojp0)
+
+
+
+::: {#exm-estimat-prob} 
+
+#### Normal Distribution: Estimating Probabilities
+
+Consider we are interested in the heights of adults in a population. Instead of measuring the height of every adult (which would be impractical), we can use the normal distribution to estimate the probability of adults' heights falling within certain intervals, assuming we know the mean and standard deviation of the heights.
+
+```{python}
+#| label: fig-normal-distribution
+#| fig-cap: "Normal Distribution Curve with Highlighted Probability Area. 95 percent of the data falls within two standard deviations of the mean."
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+mu = 170  # e.g., mu height of adults in cm
+sd = 10  # e.g., standard deviation of heights in cm
+heights = np.linspace(mu - 3*sd, mu + 3*sd, 1000)
+# Calculate the probability density function for the normal distribution
+pdf = norm.pdf(heights, mu, sd)
+# Plot the normal distribution curve
+plt.plot(heights, pdf, color='blue', linewidth=2)
+plt.fill_between(heights, pdf, where=(heights >= mu - 2 * sd) & (heights <= mu + 2*sd), color='grey', alpha=0.5)
+plt.xlabel('Height (cm)')
+plt.ylabel('Probability Density')
+plt.show()
+```
+
+This Python code snippet generates a plot of the normal distribution for adult heights, with a mean of 170 cm and a standard deviation of 10 cm. It visually approximates a histogram with a blue bell-shaped curve, and highlights (in grey) the area under the curve between $\mu \pm 2 \times \sigma$.
+This area corresponds to the probability of randomly selecting an individual whose height falls within this range. 
+
+By using the area under the curve, we can efficiently estimate probabilities without needing to collect and analyze a vast amount of data. This method not only saves time and resources but also provides a clear and intuitive way to understand and communicate statistical probabilities.
+
+:::
+
+
+  
+::: {#def-normal}
+#### Normal Distribution
+
+This variable is defined on the support $D_X = \mathbb{R}$ and its density
+function is given by
+$$
+f_X(x) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left \{-\frac{1}{2\sigma^2}(x-\mu)^2 \right \}.
+$$
+The density function is identified by the pair of parameters
+$(\mu,\sigma^2)$, where $\mu$ $\in$ $\mathbb{R}$ is the mean (or location
+parameter) and $\sigma^2 > 0$ is the variance (or dispersion parameter)
+of $X$. 
+\hfill $\Box$
+:::
+
+The density function is symmetric around $\mu$. The normal distribution belongs to the location-scale family
+distributions. This means that, if $Z \sim N(0,1)$ (read, $Z$ has a standard normal distribution; i.e., with $\mu=0$ and $\sigma^2=1$), and we 
+consider the linear transformation $X = \mu + \sigma Z$, then $X \sim N(\mu,\sigma^2)$ (read, $X$ has a normal distribution with mean
+$\mu$ and variance $\sigma^2$). This means that one can obtain the probability of any interval $(-\infty,x]$, $x$ $\in$ $R$ for any normal distribution (i.e., for any pair of the parameters $\mu$ and $\sigma$) once the quantiles of the standard normal distribution are known. Indeed
+\begin{eqnarray*}
+F_X(x) &=& \Pr\left\{X \leq x \right\} = \Pr\left\{\frac{X-\mu}{\sigma} \leq \frac{x-\mu}{\sigma} \right\} \\
+           &=& \Pr\left\{Z \leq \frac{x-\mu}{\sigma}\right\}  = F_Z\left(\frac{x-\mu}{\sigma}\right)	\qquad x \in \mathbb{R}.
+\end{eqnarray*}
+The quantiles of the standard normal
+distribution are available in any statistical program. The density and
+cumulative distribution function of the standard normal r.v.~at point
+$x$ are usually denoted by the symbols $\phi(x)$ and $\Phi(x)$.
+
+The standard normal distribution is based on the 
+\emph{standard normal density function}
+$$
+ \varphi(z) = \frac{1}{\sqrt{2\pi}} \exp \left(- \frac{z^2}{2} \right).
+$$ {#eq-standardization}
+
+An important application of the standardization introduced in @eq-standardization reads as follows.
+In case the distribution of $X$ is approximately normal, the distribution of X^{*} is approximately standard normal.
+That is
+\begin{equation*}
+  P(X\leq b) = P( \frac{X-\mu}{\sigma} \leq \frac{b-\mu}{\sigma}) = P(X^{*} \leq \frac{b-\mu}{\sigma})
+\end{equation*}
+The probability $P(X\leq b)$ can be approximated by $\Phi(\frac{b-\mu}{\sigma})$,
+where $\Phi$ is the standard normal cumulative distribution function. 
+  
+If $X$ is a normal random variable with mean $\mu$ and variance $\sigma^2$,
+  i.e., $X \sim \cal{N} (\mu, \sigma^2)$, then
+  \begin{equation}
+  X = \mu + \sigma Z \textrm{ where } Z \sim \cal{N}(0,1).
+  \end{equation}
+  
+  
+If $Z \sim \cal{N}(0,1)$ and $X\sim \cal{N}(\mu, \sigma^2)$, then 
+  \begin{equation*}
+  X = \mu + \sigma Z. 
+\end{equation*}
+  
+ The probability of getting a value in a particular interval is the area
+ under the corresponding part of the curve.
+ Consider the density function of the normal distribution. It can 
+ be plotted using the following commands.
+ The result is shown in @fig-normal-density.
+
+
+```{python}
+#| label: fig-normal-density
+#| fig-cap: "Normal Distribution Density Function"
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+x = np.arange(-4, 4, 0.1)
+# Calculating the normal distribution's density function values for each point in x
+y = norm.pdf(x, 0, 1)
+plt.plot(x, y, linestyle='-', linewidth=2)
+plt.title('Normal Distribution')
+plt.xlabel('X')
+plt.ylabel('Density')
+plt.grid(True)
+plt.show()
+```
+
+The \emph{cumulative distribution function} (CDF) describes the probability
+of "hitting" $x$ or less in a given distribution.
+We consider the CDF function of the normal distribution. It can be plotted using the following commands.
+The result is shown in @fig-normal-cdf.
+
+```{python}
+#| label: fig-normal-cdf
+#| fig-cap: "Normal Distribution Cumulative Distribution Function"
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+# Generating a sequence of numbers from -4 to 4 with 0.1 intervals
+x = np.arange(-4, 4, 0.1)
+
+# Calculating the cumulative distribution function value of the normal distribution for each point in x
+y = norm.cdf(x, 0, 1)  # mean=0, stddev=1
+
+# Plotting the results. The equivalent of 'type="l"' in R (line plot) becomes the default plot type in matplotlib.
+plt.plot(x, y, linestyle='-', linewidth=2)
+plt.title('Normal Distribution CDF')
+plt.xlabel('X')
+plt.ylabel('Cumulative Probability')
+plt.grid(True)
+plt.show()
+```
+
+
+## The Exponential Distribution
+
+The exponential distribution is a continuous probability distribution that describes the time between events in a Poisson process, where events occur continuously and independently at a constant average rate. It is characterized by a single parameter, the rate parameter $\lambda$, which represents the average number of events per unit time.
+
+
+## Covariance and Correlation
+
+
+### Pearson's Correlation
+
+* Video: [Pearson's Correlation, Clearly Explained]
+
+### Interpreting the Correlation: Correlation Squared
+
+@rumm76a describes how to interpret correlations as follows:
+
+Seldom, indeed, will a correlation be zero or perfect. Usually, the covariation between things will be something like $.56$ or $-.16$. 
+Clearly $.56$ is positive, indicating positive covariation; $-.16$ is negative, indicating some negative covariation. 
+Moreover, we can say that the positive correlation is greater than the negative. But, we require more than. If we have a correlation of $.56$ between two variables, for example, what precisely can we say other than the correlation is positive and $.56$?
+The squared correlation describes the proportion of variance in common between the two variables. If we multiply this by 100 we then get the percent of variance in common between two variables. That is:
+
+$$
+r^2_{XY} \times  100 = \text{percent of variance in common between} X \text{ and } Y.
+$$
+
+For example, we found that the correlation between a nation's power and its defense budget was $.66$.
+This correlation squared is $.45$, which means that across the fourteen nations constituting the sample $45$ percent of their variance on the two variables is in common (or $55$ percent is not in common).
+In thus squaring correlations and transforming covariance to percentage terms we have an easy to understand meaning of correlation. And we are then in a position to evaluate a particular correlation.
+As a matter of routine it is the squared correlations that should be interpreted. This is because the correlation coefficient is misleading in suggesting the existence of more covariation than exists, and this problem gets worse as the correlation approaches zero. 
+
+
+::: {#exm-explain-cov}
+#### The relationship between study time and test scores
+
+Imagine we are examining the relationship between the number of hours students study for a subject (Variable $A$) and their scores on a test (Variable $B$). After analyzing the data, we calculate a correlation of 0.8 between study time and test scores.
+When we square this correlation coefficient ($0.8^2$ = 0.64), we get 0.64 or 64%. This means that 64% of the variability in test scores can be accounted for by the variability in study hours.
+This indicates that a substantial part of why students score differently on the test can be explained by how much they studied. However, there remains 36% of the variability in test scores that needs to be explained by other factors, such as individual abilities, the difficulty of the test, or other external influences.
+:::
+
+
+### Partial Correlation
+
+
+Often, a correlation between two variables $X$ and $Y$ can be found only because both variables are correlated with a third variable $Z$. The correlation between $X$ and $Y$ is then a spurious correlation. Therefore, it is often of interest to determine the correlation between $X$ and $Y$ while partializing a variable $Z$, i.e., the correlation between $X$ and $Y$ that exists without the influence of $Z$. Such a correlation $\rho_{(X,Y)/Z}$ is called the partial correlation of $X$ and $Y$ while holding $Z$ constant. It is given by
+\begin{equation}
+\rho_{(X,Y)/Z} = \frac{\rho_{XY} - \rho_{XZ}\rho_{YZ}}{\sqrt{(1-\rho_{XZ}^2)(1-\rho_{YZ}^2)}}, 
+\end{equation} 
+where $\rho_{XY}$ is the correlation between $X$ and $Y$, $\rho_{XZ}$ is the correlation between $X$ and $Z$, and $\rho_{YZ}$ is the correlation between $Y$ and $Z$ [@Hart95a].
+
+If the variables $X$, $Y$ and $Z$ are jointly normally distributed in the population of interest, one can estimate $\rho_{(X,Y)/Z}$ based on $n$ realizations $x_1, \ldots, x_n$, $y_1, \ldots, y_n$ and $z_1, \ldots, z_n$ of the random variables $X$, $Y$ and $Z$ by replacing the simple correlations $\rho_{XY}$, $\rho_{XZ}$ and $\rho_{YZ}$ with the empirical correlations $\hat{\rho}_{XY}$, $\hat{\rho}_{XZ}$ and $\hat{\rho}_{YZ}$. The partial correlation coefficient $\hat{\rho}_{(X,Y)/Z}$ is then estimated using
+\begin{equation}
+r_{(X,Y)/Z} = \frac{r_{XY} - r_{XZ}r_{YZ}}{\sqrt{(1-r_{XZ}^2)(1-r_{YZ}^2)}}.
+\end{equation}
+Based on this estimated value for the partial correlation, a test at the $\alpha$ level for partial uncorrelatedness or independence of $X$ and $Y$ under $Z$ can also be carried out.
+The hypothesis
+
+\begin{equation}
+H_0: \rho_{(X,Y)/Z} = 0
+\end{equation}
+is tested against the alternative
+\begin{equation}
+H_1: \rho_{(X,Y)/Z} \neq 0
+\end{equation}
+at the level $\alpha$ is discarded if
+$$
+\left| 
+\frac{r_{(X,Y)/Z} \sqrt{n-3}}{\sqrt{1-r_{(X,Y)/Z}^2}} 
+\right| > t_{n-3, 1-\alpha/2}
+$$
+applies. Here $t_{n-3, 1-\alpha/2}$ is the ($1-\alpha/2$)-quantile of the $t$-distribution with $n-3$ degrees of freedom.
+
+::: {#exm-partial-corr1}
+For example, given economic data on the consumption $X$, income $Y$, and wealth $Z$ of various individuals, consider the relationship between consumption and income. Failing to control for wealth when computing a correlation coefficient between consumption and income would give a misleading result, since income might be numerically related to wealth which in turn might be numerically related to consumption; a measured correlation between consumption and income might actually be contaminated by these other correlations. The use of a partial correlation avoids this problem [@wiki25a].
+:::
+
+
+::: {#exm-partial-correlation}
+### Partial Correlation. Numerical Example
+
+Given the following data, calculate the partial correlation between $A$ and $B$, controlling for $C$.
+$$
+A = \begin{pmatrix}
+2\\
+4\\
+15\\
+20
+\end{pmatrix}, \quad B = \begin{pmatrix}
+1\\
+2\\
+3\\
+4
+\end{pmatrix}, \quad C = \begin{pmatrix}
+0\\
+0\\
+1\\
+1
+\end{pmatrix}
+$$
+
+```{python}
+from spotpython.utils.stats import partial_correlation
+import numpy as np
+import pandas as pd
+data = pd.DataFrame({
+    'A': [2, 4, 15, 20],
+    'B': [1, 2, 3, 4],
+    'C': [0, 0, 1, 1]
+})
+print(f"Correlation between A and B: {data['A'].corr(data['B'])}")
+pc = partial_correlation(data, method='pearson')
+print(f"Partial Correlation between A and B: {pc["estimate"][0, 1]}")
+```
+:::
+
+Instead of considering only one variable $Z$, multiple variables $Z_i$ can be considered. The formal definiton of partial correlation reads as follows:
+
+
+::: {#def-partial-correlation}
+
+#### Partial Correlation
+
+Formally, the partial correlation between $X$ and $Y$ given a set of $n$ controlling variables $\mathbf{Z} = \{Z_1, Z_2, \ldots, Z_n\}$, written $\rho_{XY \cdot \mathbf{Z}}$, is the correlation between the residuals $e_X$ and $e_Y$ resulting from the linear regression of $X$ with $\mathbf{Z}$ and of $Y$ with $\mathbf{Z}$, respectively. The first-order partial correlation (i.e., when $n = 1$) is the difference between a correlation and the product of the removable correlations divided by the product of the coefficients of alienation of the removable correlations [@wiki25a].
+:::
+
+
+
+Like the correlation coefficient, the partial correlation coefficient takes on a value in the range from -1 to 1. The value -1 conveys a perfect negative correlation controlling for some variables (that is, an exact linear relationship in which higher values of one variable are associated with lower values of the other); the value 1 conveys a perfect positive linear relationship, and the value 0 conveys that there is no linear relationship [@wiki25a].
+
+
+::: {#lem-matrix-part-corr}
+### Matrix Representation of the Partial Correlation
+
+The partial correlation can also be written in terms of the joint precision matrix [@wiki25a]. Consider a set of random variables, $\mathbf{V} = \{X_1,\dots, X_n\}$ of cardinality $n$. We want the partial correlation between two variables $X_i$ and $X_j$ given all others, i.e., $\mathbf{V} \setminus \{X_i, X_j\}$. Suppose the (joint/full) covariance matrix $\Sigma = (\sigma_{ij})$ is positive definite and therefore invertible. If the precision matrix is defined as $\Omega = (p_{ij}) = \Sigma^{-1}$, then
+\begin{equation}
+\rho_{X_i X_j \cdot \mathbf{V} \setminus \{X_i,X_j\}} = - \frac{p_{ij}}{\sqrt{p_{ii}p_{jj}}}
+\end{equation}
+::: 
+
+
+The semipartial correlation statistic is similar to the partial correlation statistic; both compare variations of two variables after certain factors are controlled for. However, to calculate the semipartial correlation, one holds the third variable constant for either X or Y but not both; whereas for the partial correlation, one holds the third variable constant for both [@wiki25a].
+
+
+
+
+
+## Hypothesis Testing and the Null-Hypothesis
+
+
+### Alternative Hypotheses, Main Ideas
+
+### p-values: What they are and how to interpret them
+
+
+#### How to calculate p-values
+
+
+#### p-hacking: What it is and how to avoid it
+
+
+
+## Statistical Power
+
+* Video: [Statistical Power, Clearly Explained](https://youtu.be/Rsc5znwR5FA?si=Ca4e-EopumAtgl8Q)
+
+
+#### Power Analysis
+
+* Video: [Power Analysis, Clearly Explained!!!](https://youtu.be/VX_M3tIyiYk?si=Vb6Fr1aJWQU5Ujjp)
+
+
+
+## The Central Limit Theorem
+
+* Video: [The Central Limit Theorem, Clearly Explained!!!](https://youtu.be/YAlJCEDH2uY?si=NRYvP7Y0Mow32jV2)
+
+
+## Maximum Likelihood
+
+Maximum likelihood estimation is a method used to estimate the parameters of a statistical model. It is based on the principle of choosing the parameter values that maximize the likelihood of the observed data.
+The likelihood function represents the probability of observing the data given the model parameters. By maximizing this likelihood, we can find the parameter values that best explain the observed data.
+
+
+::: {#exm-MaxLike1Bern}
+#### Maximum Likelihood Estimation: Bernoulli Experiment
+\index{Maximum Likelihood Estimation}
+Bernoulli experiment for the event $A$, repeated $n$ times, with the probability of success $p$. Result given as $n$ tuple with entries $A$ and $\overline{A}$.
+$A$ appears $k$ times. The probability of this event is given by
+\begin{equation}
+L(p) = p^k (1-p)^{n-k}
+\end{equation} \label{eq:mle-bernoulli}
+Applying maximum likelihood estimation, we find the maximum of the likelihood function $L(p)$, i.e., we are trying to find the value of $p$ that maximizes the probability of observing the data.
+This value will be denoted as $\hat{p}$.
+
+Differentiating the likelihood function with respect to $p$ and setting the derivative to zero, we find the maximum likelihood estimate $\hat{p}$.
+We get
+\begin{align}
+\frac{d}{dp} L(p) & = k p^{k-1} (1-p)^{n-k} - p^k (n-k) (1-p)^{n-k-1}\\
+                  & = p^{k-1} (1-p)^{n-k-1} \left(k(1-p) - p(n-k)\right) = 0
+\end{align}
+
+Because 
+$$
+p \neq 0 \text{ and } (1-p) p \neq 0,
+$$
+we can divide by $p^{k-1} (1-p)^{n-k-1}$ and get
+\begin{equation}
+k(1-p) - p(n-k) = 0.
+\end{equation}
+Solving for $p$ gives
+\begin{equation}
+\hat{p} = \frac{k}{n}
+\end{equation}
+
+Therefore, the maximum likelihood estimate for the probability of success in a Bernoulli experiment is the ratio of the number of successes to the total number of trials.
+
+\hfill $\Box$
+
+:::
+
+
+::: {#exm-MaxLikeNormal}
+
+### Maximum Likelihood Estimation: Normal Distribution
+
+Random variable $X \sim \mathcal{N}(\mu, \sigma^2)$ with $n$ observations $x_1, x_2, \ldots, x_n$. The likelihood function is given by
+\begin{equation}
+L(x_1, x_2, \ldots, x_n, \mu, \sigma^2) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi \sigma^2}} \exp\left(-\frac{(x_i - \mu)^2}{2\sigma^2}\right)
+\end{equation}
+
+Taking the logarithm of the likelihood function, we get
+\begin{equation}
+\log L(x_1, x_2, \ldots, x_n, \mu, \sigma^2) = -\frac{n}{2} \log(2\pi) - \frac{n}{2} \log(\sigma^2) - \frac{1}{2\sigma^2} \sum_{i=1}^n (x_i - \mu)^2
+\end{equation}
+
+Partial derivative with respect to $\mu$  is
+\begin{align}
+\frac{\partial}{\partial \mu} \log L(x_1, x_2, \ldots, x_n, \mu, \sigma^2) & = \frac{1}{\sigma^2} \sum_{i=1}^n (x_i - \mu) = 0
+\end{align}
+We obtain the maximum likelihood estimate for $\mu$ as
+\begin{equation}
+\hat{\mu} = \frac{1}{n} \sum_{i=1}^n x_i
+\end{equation}
+
+The partial derivative with respect to $\sigma^2$ is
+\begin{align}
+\frac{\partial}{\partial \sigma^2} \log L(x_1, x_2, \ldots, x_n, \mu, \sigma^2) & = -\frac{n}{2\sigma^2} + \frac{1}{2(\sigma^2)^2} \sum_{i=1}^n (x_i - \mu)^2 = 0
+\end{align}
+This can be simplified to
+\begin{align}
+-n + \frac{1}{\sigma^2} \sum_{i=1}^n (x_i - \mu)^2 = 0\\
+\Rightarrow n \sigma^2 = \sum_{i=1}^n (x_i - \mu)^2
+\end{align}
+Using the maximum likelihood estimate for $\mu$, we get
+\begin{equation}
+\hat{\sigma}^2 = \frac{1}{n} \sum_{i=1}^n (x_i - \hat{\mu})^2
+\end{equation}
+\begin{equation}
+= \frac{n-1}{n} \frac{\sum_{i=1}^n (x_i - \hat{\mu})^2{n-1}} = \frac{n-1}{n} s^2,
+\end{equation}
+where 
+\begin{equation}
+s = \sqrt{\frac{\sum_{i=1}^n (x_i- \overline{x})}{n-1}}
+\end{equation}
+is the sample standard deviation.
+\index{sample variance}
+\index{sample standard deviation}
+We obtain the maximum likelihood estimate for $\sigma^2$ as
+\begin{equation}
+\hat{\sigma}^2 = \frac{n-1}{n} s^2
+\end{equation}
+
+:::
+
+* Video: [Maximum Likelihood, clearly explained!!!](https://youtu.be/XepXtl9YKwc?si=ADMYC10DscaxSTvk)
+
+
+* Video: [Probability is not Likelihood. Find out why!!!](https://youtu.be/pYxNSUDSFH4?si=eEan9lAUp1NNGEjY)
+
+
+
+
+## Cross-Validation
+
+* Video: [Machine Learning Fundamentals: Cross Validation](https://youtu.be/fSytzGwwBVw?si=a8U5yCIEhwAw4AyU)
+
+
+
+#### Bias and Variance
+
+* Video: [Machine Learning Fundamentals: Bias and Variance](https://youtu.be/EuBBz3bI-aA?si=7MVv_J1HbzMSQS4K)
+
+
+## Mutual Information
+
+* Video: [Mutual Information, Clearly Explained](https://youtu.be/eJIp_mgVLwE?si=KaeiRN0st1gqkj4c)
+
+
+
+## Principal Component Analysis (PCA)
+
+* Video: [Principal Component Analysis (PCA), Step-by-Step](https://youtu.be/FgakZw6K1QQ?si=lmXhc-bpOqb7RmDP)
+
+
+* Vidoe: [PCA - Practical Tips](https://youtu.be/oRvgq966yZg?si=TIUsxNItfyYOjTLt)
+
+
+* Video: [PCA in Python](https://youtu.be/Lsue2gEM9D0?si=_fV_RzK8j1jwcb-e)
+
+
+## t-SNE
+
+* Video: [t-SNE, Clearly Explained](https://youtu.be/NEaUSP4YerM?si=f8-6ewwv5TMD7gdL)
+
