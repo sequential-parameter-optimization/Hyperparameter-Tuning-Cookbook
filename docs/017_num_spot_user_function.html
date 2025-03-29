@@ -54,7 +54,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -135,7 +155,7 @@ window.Quarto = {
 
 <meta name="twitter:title" content="17&nbsp; User-Specified Functions: Extending the Analytical Class – Hyperparameter Tuning Cookbook">
 <meta name="twitter:description" content="">
-<meta name="twitter:image" content="017_num_spot_user_function_files/figure-html/cell-9-output-1.png">
+<meta name="twitter:image" content="017_num_spot_user_function_files/figure-html/cell-7-output-2.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="citation_title" content="[[17]{.chapter-number}&nbsp; [User-Specified Functions: Extending the Analytical Class]{.chapter-title}]{#sec-user-function .quarto-section-identifier}">
 <meta name="citation_fulltext_html_url" content="https://arxiv.org/abs/2307.10262">
@@ -394,6 +414,8 @@ window.Quarto = {
 <meta name="citation_reference" content="citation_title=Partial correlation — Wikipedia, The Free Encyclopedia;,citation_author=Wikipedia contributors;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_fulltext_html_url=https://en.wikipedia.org/w/index.php?title=Partial_correlation&amp;amp;amp;oldid=1253637419;">
 <meta name="citation_reference" content="citation_title=Understanding Correlation;,citation_author=R. J. Rummel;,citation_publication_date=1976;,citation_cover_date=1976;,citation_year=1976;,citation_fulltext_html_url=https://www.hawaii.edu/powerkills/UC.HTM;">
 <meta name="citation_reference" content="citation_title=Two Postestimation Commands for Assessing Confounding Effects in Epidemiological Studies;,citation_author=Zhiqiang Wang;,citation_publication_date=2007;,citation_cover_date=2007;,citation_year=2007;,citation_issue=2;,citation_volume=7;,citation_journal_title=The Stata Journal;">
+<meta name="citation_reference" content="citation_title=Response surface methodology: process and product optimization using designed experiments;,citation_author=Raymond H Myers;,citation_author=Douglas C Montgomery;,citation_author=Christine M Anderson-Cook;,citation_publication_date=2016;,citation_cover_date=2016;,citation_year=2016;">
+<meta name="citation_reference" content="citation_title=desirability: Function Optimization and Ranking via Desirability Functions;,citation_author=Max Kuhn;,citation_publication_date=2016-09;,citation_cover_date=2016-09;,citation_year=2016;">
 </head>
 
 <body class="nav-sidebar docked">
@@ -914,10 +936,16 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#the-objective-function-user-specified" id="toc-the-objective-function-user-specified" class="nav-link active" data-scroll-target="#the-objective-function-user-specified"><span class="header-section-number">17.1</span> The Objective Function: User Specified</a></li>
-  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">17.2</span> Results</a></li>
-  <li><a href="#a-contour-plot" id="toc-a-contour-plot" class="nav-link" data-scroll-target="#a-contour-plot"><span class="header-section-number">17.3</span> A Contour Plot</a></li>
-  <li><a href="#jupyter-notebook" id="toc-jupyter-notebook" class="nav-link" data-scroll-target="#jupyter-notebook"><span class="header-section-number">17.4</span> Jupyter Notebook</a></li>
+  <li><a href="#software-requirements" id="toc-software-requirements" class="nav-link active" data-scroll-target="#software-requirements"><span class="header-section-number">17.1</span> Software Requirements</a></li>
+  <li><a href="#sec-single-objective" id="toc-sec-single-objective" class="nav-link" data-scroll-target="#sec-single-objective"><span class="header-section-number">17.2</span> The Single-Objective Function: User Specified</a></li>
+  <li><a href="#the-objective-function-extending-the-analytical-class" id="toc-the-objective-function-extending-the-analytical-class" class="nav-link" data-scroll-target="#the-objective-function-extending-the-analytical-class"><span class="header-section-number">17.3</span> The Objective Function: Extending the Analytical Class</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results"><span class="header-section-number">17.4</span> Results</a></li>
+  <li><a href="#a-contour-plot" id="toc-a-contour-plot" class="nav-link" data-scroll-target="#a-contour-plot"><span class="header-section-number">17.5</span> A Contour Plot</a></li>
+  <li><a href="#sec-multi-objective" id="toc-sec-multi-objective" class="nav-link" data-scroll-target="#sec-multi-objective"><span class="header-section-number">17.6</span> Multi-Objective Functions</a>
+  <ul class="collapse">
+  <li><a href="#response-surface-experiment" id="toc-response-surface-experiment" class="nav-link" data-scroll-target="#response-surface-experiment"><span class="header-section-number">17.6.1</span> Response Surface Experiment</a></li>
+  </ul></li>
+  <li><a href="#jupyter-notebook" id="toc-jupyter-notebook" class="nav-link" data-scroll-target="#jupyter-notebook"><span class="header-section-number">17.7</span> Jupyter Notebook</a></li>
   </ul>
 </nav>
     </div>
@@ -943,95 +971,223 @@ window.Quarto = {
 </header>
 
 
-<p>This chapter illustrates how user-specified functions can be optimized and analyzed with the <code>spotpython</code> package by extending the <code>Analytical</code> class.</p>
-<div id="d81589a8" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.objectivefunctions <span class="im">import</span> Analytical</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> fun_control_init, surrogate_control_init</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> Spot</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This chapter illustrates how user-specified functions can be optimized and analyzed. It covers singe-objective function in <a href="#sec-single-objective" class="quarto-xref"><span>Section 17.2</span></a> and multi-objective functions in <a href="#sec-multi-objective" class="quarto-xref"><span>Section 17.6</span></a>, and how to use the <code>spotpython</code> package to optimize them. It shows a simple approach to define a user-specified function, both for single- and multi-objective optimization, and how to extend the <code>Analytical</code> class to create a custom function.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
 </div>
-<section id="the-objective-function-user-specified" class="level2" data-number="17.1">
-<h2 data-number="17.1" class="anchored" data-anchor-id="the-objective-function-user-specified"><span class="header-section-number">17.1</span> The Objective Function: User Specified</h2>
+<div class="callout-title-container flex-fill">
+Citation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>If this document has been useful to you and you wish to cite it in a scientific publication, please refer to the following paper, which can be found on arXiv: <a href="https://arxiv.org/abs/2307.10262">https://arxiv.org/abs/2307.10262</a>.</li>
+</ul>
+<pre class="{bibtex}"><code>@ARTICLE{bart23iArXiv,
+      author = {{Bartz-Beielstein}, Thomas},
+      title = "{Hyperparameter Tuning Cookbook:
+          A guide for scikit-learn, PyTorch, river, and spotpython}",
+     journal = {arXiv e-prints},
+    keywords = {Computer Science - Machine Learning,
+      Computer Science - Artificial Intelligence, 90C26, I.2.6, G.1.6},
+         year = 2023,
+        month = jul,
+          eid = {arXiv:2307.10262},
+          doi = {10.48550/arXiv.2307.10262},
+archivePrefix = {arXiv},
+       eprint = {2307.10262},
+ primaryClass = {cs.LG}
+}</code></pre>
+</div>
+</div>
+<section id="software-requirements" class="level2" data-number="17.1">
+<h2 data-number="17.1" class="anchored" data-anchor-id="software-requirements"><span class="header-section-number">17.1</span> Software Requirements</h2>
+<ul>
+<li>The code examples in this chapter require the <code>spotpython</code> package, which can be installed via <code>pip</code>.</li>
+<li>Furthermore, the following Python packages are required:</li>
+</ul>
+<div id="0c0917ae" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.fun.objectivefunctions <span class="im">import</span> Analytical</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> fun_control_init, surrogate_control_init</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> Spot</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="sec-single-objective" class="level2" data-number="17.2">
+<h2 data-number="17.2" class="anchored" data-anchor-id="sec-single-objective"><span class="header-section-number">17.2</span> The Single-Objective Function: User Specified</h2>
 <p>We will use an analytical objective function, i.e., a function that can be described by a (closed) formula: <span class="math display">\[
 f(x) = \sum_i^k x_i^4.
 \]</span></p>
-<p>This function is continuous, convex and unimodal. The global minimum is <span class="math display">\[
+<p>This function is continuous, convex and unimodal. Since it returns one value for each input vector, it is a single-objective function. Multiple-objective functions can also be handled by <code>spotpython</code>. They are covered in <a href="#sec-multi-objective" class="quarto-xref"><span>Section 17.6</span></a>.</p>
+<p>The global minimum of the single-objective function is <span class="math display">\[
 f(x) = 0, \text{at } x = (0,0, \ldots, 0).
 \]</span></p>
+<p>It can be implemented in Python as follows:</p>
+<div id="10d37582" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> user_fun(X):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(np.<span class="bu">sum</span>((X) <span class="op">**</span><span class="dv">4</span>, axis<span class="op">=</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>For example, if we have <span class="math inline">\(X = (1, 2, 3)\)</span>, then <span class="math display">\[
+f(x) = 1^4 + 2^4 + 3^4 = 1 + 16 + 81 = 98,
+\]</span> and if we have <span class="math inline">\(X = (4, 5, 6)\)</span>, then <span class="math display">\[
+f(x) = 4^4 + 5^4 + 6^4 = 256 + 625 + 1296 = 2177.
+\]</span></p>
+<p>We can pass a 2D array to the function, and it will return a 1D array with the results for each row:</p>
+<div id="478ddcab" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>user_fun(np.array([[<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>], [<span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>]]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="192">
+<pre><code>array([  98, 2177])</code></pre>
+</div>
+</div>
+<p>To make <code>user_fun</code> compatible with the <code>spotpython</code> package, we need to extend its argument list, so that it can handle the <code>fun_control</code> dictionary.</p>
+<div id="85fb4bed" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> user_fun(X, fun_control<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(np.<span class="bu">sum</span>((X) <span class="op">**</span><span class="dv">4</span>, axis<span class="op">=</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Alternatively, you can add the <code>**kwargs</code> argument to the function, which will allow you to pass any additional keyword arguments:</p>
+<div id="37e30872" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> user_fun(X, <span class="op">**</span>kwargs):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(np.<span class="bu">sum</span>((X) <span class="op">**</span><span class="dv">4</span>, axis<span class="op">=</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="c3954fa2" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> np.array( [<span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>]),</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">1</span>]),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Spot(fun<span class="op">=</span>user_fun,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>                 fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>S.run()</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>S.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>spotpython tuning: 3.715394917589437e-05 [#######---] 73.33% 
+spotpython tuning: 3.715394917589437e-05 [########--] 80.00% 
+spotpython tuning: 3.715394917589437e-05 [#########-] 86.67% 
+spotpython tuning: 3.715394917589437e-05 [#########-] 93.33% 
+spotpython tuning: 1.3840535984457729e-05 [##########] 100.00% Done...
+
+Experiment saved to 000_res.pkl</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="017_num_spot_user_function_files/figure-html/cell-7-output-2.png" width="719" height="261" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Summary: Using <code>spotpython</code> with Single-Objective User-Specified Functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
 <ul>
+<li><code>spotpython</code> accepts user-specified functions that can be defined in Python.</li>
+<li>The function should accept a 2D array as input and return a 1D array as output.</li>
+<li>The function can be defined with an additional argument <code>fun_control</code> to handle control parameters.</li>
+<li>The <code>fun_control</code> dictionary can be initialized with the <code>fun_control_init</code> function, which allows you to specify the bounds of the input variables.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="the-objective-function-extending-the-analytical-class" class="level2" data-number="17.3">
+<h2 data-number="17.3" class="anchored" data-anchor-id="the-objective-function-extending-the-analytical-class"><span class="header-section-number">17.3</span> The Objective Function: Extending the Analytical Class</h2>
+<ul>
+<li>The <code>Analytical</code> class is a base class for analytical functions in the <code>spotpython</code> package.</li>
+<li>It provides a framework for defining and evaluating analytical functions, including the ability to add noise to the output.</li>
 <li>The <code>Analytical</code> class can be extended as follows:</li>
 </ul>
-<div id="5e83af8a" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional, Dict</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> UserAnalytical(Analytical):</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> fun_user_function(<span class="va">self</span>, X: np.ndarray, fun_control: Optional[Dict] <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> np.ndarray:</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">        Custom new function: f(x) = x^4</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">            X (np.ndarray): Input data as a 2D array.</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">            fun_control (Optional[Dict]): Control parameters for the function.</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">            np.ndarray: Computed values with optional noise.</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">        Examples:</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; import numpy as np</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; X = np.array([[1, 2, 3], [4, 5, 6]])</span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; fun = UserAnalytical()</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; fun.fun_user_function(X)</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        X <span class="op">=</span> <span class="va">self</span>._prepare_input_data(X, fun_control)</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>     </span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        offset <span class="op">=</span> np.ones(X.shape[<span class="dv">1</span>]) <span class="op">*</span> <span class="va">self</span>.offset</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> np.<span class="bu">sum</span>((X <span class="op">-</span> offset) <span class="op">**</span><span class="dv">4</span>, axis<span class="op">=</span><span class="dv">1</span>) </span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Add noise if specified in fun_control</span></span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>._add_noise(y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="876b42f0" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional, Dict</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> UserAnalytical(Analytical):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> fun_user_function(<span class="va">self</span>, X: np.ndarray, fun_control: Optional[Dict] <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">        Custom new function: f(x) = x^4</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">            X (np.ndarray): Input data as a 2D array.</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">            fun_control (Optional[Dict]): Control parameters for the function.</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">            np.ndarray: Computed values with optional noise.</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">        Examples:</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; import numpy as np</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; X = np.array([[1, 2, 3], [4, 5, 6]])</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; fun = UserAnalytical()</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">            &gt;&gt;&gt; fun.fun_user_function(X)</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        X <span class="op">=</span> <span class="va">self</span>._prepare_input_data(X, fun_control)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>     </span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        offset <span class="op">=</span> np.ones(X.shape[<span class="dv">1</span>]) <span class="op">*</span> <span class="va">self</span>.offset</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> np.<span class="bu">sum</span>((X <span class="op">-</span> offset) <span class="op">**</span><span class="dv">4</span>, axis<span class="op">=</span><span class="dv">1</span>) </span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Add noise if specified in fun_control</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>._add_noise(y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a5522421" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical()</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>In comparison to the <code>user_fun</code> function, the <code>UserAnalytical</code> class provides additional functionality, such as adding noise to the output and preparing the input data.</li>
+<li>First, we use the <code>user_fun</code> function as above.</li>
+</ul>
+<div id="bff40eb9" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[0. 3.]</code></pre>
 </div>
 </div>
-<div id="66a3ff27" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical(offset<span class="op">=</span><span class="fl">1.0</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>Then we can add an offset to the function, which will shift the function by a constant value. This is useful for testing the optimization algorithm’s ability to find the global minimum.</li>
+</ul>
+<div id="5db1b237" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical(offset<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[3. 0.]</code></pre>
 </div>
 </div>
-<div id="0f9d9a23" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical(sigma<span class="op">=</span><span class="fl">1.0</span>)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>And, we can add noise to the function, which will add a random value to the output. This is useful for testing the optimization algorithm’s ability to find the global minimum in the presence of noise.</li>
+</ul>
+<div id="7577dfdd" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical(sigma<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]])</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> user_fun.fun_user_function(X)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[0.06691138 3.11495313]</code></pre>
 </div>
 </div>
-<div id="cell-017-spot-run" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical().fun_user_function</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>              PREFIX<span class="op">=</span><span class="st">"USER"</span>,              </span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> <span class="op">-</span><span class="fl">1.0</span><span class="op">*</span>np.ones(<span class="dv">2</span>),</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> np.ones(<span class="dv">2</span>),</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>              var_name<span class="op">=</span>[<span class="st">"User Pressure"</span>, <span class="st">"User Temp"</span>],</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>              TENSORBOARD_CLEAN<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>              tensorboard_log<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>spot_user <span class="op">=</span> Spot(fun<span class="op">=</span>user_fun,</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                  fun_control<span class="op">=</span>fun_control)</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>spot_user.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>Here is an example of how to use the <code>UserAnalytical</code> class with the <code>spotpython</code> package:</li>
+</ul>
+<div id="cell-017-spot-run" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>user_fun <span class="op">=</span> UserAnalytical().fun_user_function</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>              PREFIX<span class="op">=</span><span class="st">"USER"</span>,              </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> <span class="op">-</span><span class="fl">1.0</span><span class="op">*</span>np.ones(<span class="dv">2</span>),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> np.ones(<span class="dv">2</span>),</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>              var_name<span class="op">=</span>[<span class="st">"User Pressure"</span>, <span class="st">"User Temp"</span>],</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>              TENSORBOARD_CLEAN<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>              tensorboard_log<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>spot_user <span class="op">=</span> Spot(fun<span class="op">=</span>user_fun,</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>                  fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>spot_user.run()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_03_28_01_02_54_0
-Created spot_tensorboard_path: runs/spot_logs/USER_maans08_2025-03-28_01-02-54 for SummaryWriter()
+<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_03_29_09_34_33_0
+Created spot_tensorboard_path: runs/spot_logs/USER_bartz11_2025-03-29_09-34-33 for SummaryWriter()
 spotpython tuning: 3.715394917589437e-05 [#######---] 73.33% 
 spotpython tuning: 3.715394917589437e-05 [########--] 80.00% 
 spotpython tuning: 3.715394917589437e-05 [#########-] 86.67% 
@@ -1040,34 +1196,34 @@ spotpython tuning: 1.3840535984457729e-05 [##########] 100.00% Done...
 
 Experiment saved to USER_res.pkl</code></pre>
 </div>
-<div id="spot-run" class="cell-output cell-output-display" data-execution_count="6">
-<pre><code>&lt;spotpython.spot.spot.Spot at 0x1098d6960&gt;</code></pre>
+<div id="spot-run" class="cell-output cell-output-display" data-execution_count="200">
+<pre><code>&lt;spotpython.spot.spot.Spot at 0x176fbea20&gt;</code></pre>
 </div>
 </div>
 </section>
-<section id="results" class="level2" data-number="17.2">
-<h2 data-number="17.2" class="anchored" data-anchor-id="results"><span class="header-section-number">17.2</span> Results</h2>
-<div id="82d0c9c1" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_user.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="results" class="level2" data-number="17.4">
+<h2 data-number="17.4" class="anchored" data-anchor-id="results"><span class="header-section-number">17.4</span> Results</h2>
+<div id="cb84be7d" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_user.print_results()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>min y: 1.3840535984457729e-05
 User Pressure: 0.060781734267030006
 User Temp: 0.020927320560756916</code></pre>
 </div>
 </div>
-<div id="99bd3684" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="5ccf148e" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="017_num_spot_user_function_files/figure-html/cell-9-output-1.png" width="719" height="261" class="figure-img"></p>
+<p><img src="017_num_spot_user_function_files/figure-html/cell-14-output-1.png" width="719" height="261" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
 </section>
-<section id="a-contour-plot" class="level2" data-number="17.3">
-<h2 data-number="17.3" class="anchored" data-anchor-id="a-contour-plot"><span class="header-section-number">17.3</span> A Contour Plot</h2>
+<section id="a-contour-plot" class="level2" data-number="17.5">
+<h2 data-number="17.5" class="anchored" data-anchor-id="a-contour-plot"><span class="header-section-number">17.5</span> A Contour Plot</h2>
 <p>We can select two dimensions, say <span class="math inline">\(i=0\)</span> and <span class="math inline">\(j=1\)</span>, and generate a contour plot as follows.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1082,12 +1238,12 @@ Note:
 <p>We have specified identical <code>min_z</code> and <code>max_z</code> values to generate comparable plots.</p>
 </div>
 </div>
-<div id="bed59238" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_contour(i<span class="op">=</span><span class="dv">0</span>, j<span class="op">=</span><span class="dv">1</span>, min_z<span class="op">=</span><span class="dv">0</span>, max_z<span class="op">=</span><span class="fl">2.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="3d2e4e19" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_contour(i<span class="op">=</span><span class="dv">0</span>, j<span class="op">=</span><span class="dv">1</span>, min_z<span class="op">=</span><span class="dv">0</span>, max_z<span class="op">=</span><span class="fl">2.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="017_num_spot_user_function_files/figure-html/cell-10-output-1.png" width="901" height="266" class="figure-img"></p>
+<p><img src="017_num_spot_user_function_files/figure-html/cell-15-output-1.png" width="901" height="266" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -1095,26 +1251,209 @@ Note:
 <ul>
 <li>The variable importance:</li>
 </ul>
-<div id="66333627" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_user.print_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="a80c6856" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>_ <span class="op">=</span> spot_user.print_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>User Pressure:  77.95830652608618
 User Temp:  100.0</code></pre>
 </div>
 </div>
-<div id="e2bf2379" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="691d36e6" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>spot_user.plot_importance()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="017_num_spot_user_function_files/figure-html/cell-12-output-1.png" width="575" height="411" class="figure-img"></p>
+<p><img src="017_num_spot_user_function_files/figure-html/cell-17-output-1.png" width="575" height="411" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
 </section>
-<section id="jupyter-notebook" class="level2" data-number="17.4">
-<h2 data-number="17.4" class="anchored" data-anchor-id="jupyter-notebook"><span class="header-section-number">17.4</span> Jupyter Notebook</h2>
+<section id="sec-multi-objective" class="level2" data-number="17.6">
+<h2 data-number="17.6" class="anchored" data-anchor-id="sec-multi-objective"><span class="header-section-number">17.6</span> Multi-Objective Functions</h2>
+<ul>
+<li>The <code>spotpython</code> package can also handle multi-objective functions, which are functions that return multiple values for each input vector.</li>
+<li>As noted in <a href="#sec-single-objective" class="quarto-xref"><span>Section 17.2</span></a>, in the single-objective case, the function returns one value for each input vector and <code>spotpython</code> expects a 1D array as output.</li>
+<li>If the function returns a 2D array as output, <code>spotpython</code> will treat it as a multi-objective function result.</li>
+</ul>
+<section id="response-surface-experiment" class="level3" data-number="17.6.1">
+<h3 data-number="17.6.1" class="anchored" data-anchor-id="response-surface-experiment"><span class="header-section-number">17.6.1</span> Response Surface Experiment</h3>
+<p><span class="citation" data-cites="Myers2016">Myers, Montgomery, and Anderson-Cook (<a href="references.html#ref-Myers2016" role="doc-biblioref">2016</a>)</span> describe a response surface experiment where three factors (reaction time, reaction temperature, and percent catalyst) were used to model two characteristics of the chemical reaction: percent conversion and thermal activity.</p>
+<section id="defining-the-multi-objective-function-myer16a" class="level4" data-number="17.6.1.1">
+<h4 data-number="17.6.1.1" class="anchored" data-anchor-id="defining-the-multi-objective-function-myer16a"><span class="header-section-number">17.6.1.1</span> Defining the Multi-Objective Function <code>myer16a</code></h4>
+<ul>
+<li>The multi-objective function <code>myer16a</code> combines the results of two single-objective functions: conversion and activity.</li>
+<li>It is implemented in <code>spotpython</code> as follows:</li>
+</ul>
+<div id="251e956e" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> conversion_pred(X):</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Compute conversion predictions for each row in the input array.</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co">        X (np.ndarray): 2D array where each row is a configuration.</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="co">        np.ndarray: 1D array of conversion predictions.</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>        <span class="fl">81.09</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">1.0284</span> <span class="op">*</span> X[:, <span class="dv">0</span>]</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">4.043</span> <span class="op">*</span> X[:, <span class="dv">1</span>]</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">6.2037</span> <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> <span class="fl">1.8366</span> <span class="op">*</span> X[:, <span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">2.9382</span> <span class="op">*</span> X[:, <span class="dv">1</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> <span class="fl">5.1915</span> <span class="op">*</span> X[:, <span class="dv">2</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">2.2150</span> <span class="op">*</span> X[:, <span class="dv">0</span>] <span class="op">*</span> X[:, <span class="dv">1</span>]</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">11.375</span> <span class="op">*</span> X[:, <span class="dv">0</span>] <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> <span class="fl">3.875</span> <span class="op">*</span> X[:, <span class="dv">1</span>] <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> activity_pred(X):</span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a><span class="co">    Compute activity predictions for each row in the input array.</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a><span class="co">        X (np.ndarray): 2D array where each row is a configuration.</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a><span class="co">        np.ndarray: 1D array of activity predictions.</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>        <span class="fl">59.85</span></span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">3.583</span> <span class="op">*</span> X[:, <span class="dv">0</span>]</span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">0.2546</span> <span class="op">*</span> X[:, <span class="dv">1</span>]</span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">2.2298</span> <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">0.83479</span> <span class="op">*</span> X[:, <span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">0.07484</span> <span class="op">*</span> X[:, <span class="dv">1</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">0.05716</span> <span class="op">*</span> X[:, <span class="dv">2</span>]<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> <span class="fl">0.3875</span> <span class="op">*</span> X[:, <span class="dv">0</span>] <span class="op">*</span> X[:, <span class="dv">1</span>]</span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> <span class="fl">0.375</span> <span class="op">*</span> X[:, <span class="dv">0</span>] <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="fl">0.3125</span> <span class="op">*</span> X[:, <span class="dv">1</span>] <span class="op">*</span> X[:, <span class="dv">2</span>]</span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun_myer16a(X, fun_control<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a><span class="co">    Compute both conversion and activity predictions for each row in the input array.</span></span>
+<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a><span class="co">        X (np.ndarray): 2D array where each row is a configuration.</span></span>
+<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a><span class="co">        fun_control (dict, optional): Additional control parameters (not used here).</span></span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a><span class="co">        np.ndarray: 2D array where each row contains [conversion_pred, activity_pred].</span></span>
+<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.column_stack((conversion_pred(X), activity_pred(X)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now the function returns a 2D array with two columns, one for each objective function. The first column corresponds to the conversion prediction, and the second column corresponds to the activity prediction.</p>
+<div id="9486b9d6" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>], [<span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>]])</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> fun_myer16a(X)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[ 87.3132   72.25519]
+ [200.8662   98.7442 ]]</code></pre>
+</div>
+</div>
+</section>
+<section id="using-a-weighted-sum" class="level4" data-number="17.6.1.2">
+<h4 data-number="17.6.1.2" class="anchored" data-anchor-id="using-a-weighted-sum"><span class="header-section-number">17.6.1.2</span> Using a Weighted Sum</h4>
+<ul>
+<li>The <code>spotpython</code> package can also handle multi-objective functions, which are functions that return multiple values for each input vector.</li>
+<li>In this case, we can use a weighted sum to combine the two objectives into a single objective function.</li>
+<li>The function <code>aggergate</code> takes the two objectives and combines them into a single objective function by applying weights to each objective.</li>
+<li>The weights can be adjusted to give more importance to one objective over the other.</li>
+<li>For example, if we want to give more importance to the conversion prediction, we can set the weight for the conversion prediction to 2 and the weight for the activity prediction to 0.1.</li>
+</ul>
+<div id="93be295f" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weight first objective with 2, second with 1/10</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> aggregate(y):</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">sum</span>(y<span class="op">*</span>np.array([<span class="dv">2</span>, <span class="fl">0.1</span>]), axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The <code>aggregate</code> function object is passed to the <code>fun_control</code> dictionary aas the <code>fun_mo2so</code> argument.</p>
+<div id="6cd8480f" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>              lower <span class="op">=</span> np.array( [<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>]),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>              upper <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]),</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>              fun_mo2so<span class="op">=</span>aggregate)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> Spot(fun<span class="op">=</span>fun_myer16a,</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>        fun_control<span class="op">=</span>fun_control)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>S.run()</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>S.plot_progress()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>spotpython tuning: 171.80857385373776 [#######---] 73.33% 
+spotpython tuning: 168.16500000000002 [########--] 80.00% 
+spotpython tuning: 168.16500000000002 [#########-] 86.67% 
+spotpython tuning: 166.99037900000002 [#########-] 93.33% 
+spotpython tuning: 166.99037900000002 [##########] 100.00% Done...
+
+Experiment saved to 000_res.pkl</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="017_num_spot_user_function_files/figure-html/cell-21-output-2.png" width="724" height="261" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If no <code>fun_mo2so</code> function is specified, the <code>spotpython</code> package will use the first return value of the multi-objective function as the single objective function.</p>
+<p><code>spotpython</code> allows access to the complete history of multi-objective return values. They are stored in the <code>y_mo</code> attribute of the <code>Spot</code> object. The <code>y_mo</code> attribute is a 2D array where each row corresponds to a configuration and each column corresponds to an objective function. These values can be visualized as shown in <a href="#fig-017-spot-single-multi-objective" class="quarto-xref">Figure&nbsp;<span>17.1</span></a>.</p>
+<div id="cell-fig-017-spot-single-multi-objective" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>y_mo <span class="op">=</span> S.y_mo</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> S.y</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>plt.xlim(<span class="dv">0</span>, <span class="bu">len</span>(y_mo))</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="fl">0.9</span> <span class="op">*</span> np.<span class="bu">min</span>(y_mo), <span class="fl">1.1</span><span class="op">*</span> np.<span class="bu">max</span>(y))</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="bu">range</span>(<span class="bu">len</span>(y_mo)), y_mo[:, <span class="dv">0</span>], label<span class="op">=</span><span class="st">'Conversion'</span>, marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="bu">range</span>(<span class="bu">len</span>(y_mo)), y_mo[:, <span class="dv">1</span>], label<span class="op">=</span><span class="st">'Activity'</span>, marker<span class="op">=</span><span class="st">'x'</span>)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>plt.plot(np.minimum.accumulate(y_mo[:, <span class="dv">0</span>]), label<span class="op">=</span><span class="st">'Cum. Min Conversion'</span>)</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>plt.plot(np.minimum.accumulate(y_mo[:, <span class="dv">1</span>]), label<span class="op">=</span><span class="st">'Cum. Min Activity'</span>)</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="bu">range</span>(<span class="bu">len</span>(y)), y, label<span class="op">=</span><span class="st">'Agg. Result'</span>, marker<span class="op">=</span><span class="st">'D'</span>, color<span class="op">=</span><span class="st">'red'</span>)</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>plt.plot(np.minimum.accumulate(y), label<span class="op">=</span><span class="st">'Cum. Min Agg. Res.'</span>, color<span class="op">=</span><span class="st">'red'</span>)</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Iteration'</span>)</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Objective Function Value'</span>)</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Single- and Multi-Obj. Function Values'</span>)</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>plt.legend(loc<span class="op">=</span><span class="st">'upper left'</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div id="fig-017-spot-single-multi-objective" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-017-spot-single-multi-objective-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="017_num_spot_user_function_files/figure-html/fig-017-spot-single-multi-objective-output-1.png" width="661" height="470" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-017-spot-single-multi-objective-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17.1: Single- and Multi-Objective Function Values. The red line shows the optimization progress based on the aggregated objective function. The blue lines show the progress of the conversion objective, the orange line the progress of the activity objective. Points denote individual evaluations, lines the cumulative minimum of the respective objective function.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Summary: Using <code>spotpython</code> with Multi-Objective User-Specified Functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>spotpython</code> accepts user-specified multi-objective functions that can be defined in Python.</li>
+<li>The function should accept a 2D array as input and return a 2D array as output.</li>
+<li>An <code>aggregate</code> function can be used to combine multiple objectives into a single objective function.</li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="jupyter-notebook" class="level2" data-number="17.7">
+<h2 data-number="17.7" class="anchored" data-anchor-id="jupyter-notebook"><span class="header-section-number">17.7</span> Jupyter Notebook</h2>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1132,6 +1471,11 @@ Note
 </div>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-Myers2016" class="csl-entry" role="listitem">
+Myers, Raymond H, Douglas C Montgomery, and Christine M Anderson-Cook. 2016. <em>Response Surface Methodology: Process and Product Optimization Using Designed Experiments</em>. John Wiley &amp; Sons.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
