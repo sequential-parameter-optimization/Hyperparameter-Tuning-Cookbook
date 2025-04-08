@@ -6,11 +6,11 @@ execute:
   warning: false
 ---
 
-# Optimal Computational Budget Allocation in `Spot` {#sec-ocba}
+# Optimal Computational Budget Allocation in spotpython {#sec-ocba}
 
-This chapter demonstrates how noisy functions can be handled with Optimal Computational Budget Allocation (OCBA) by `Spot`.
+This chapter demonstrates how noisy functions can be handled with Optimal Computational Budget Allocation (OCBA) by `spotpython`.
 
-## Example: `Spot`, OCBA,  and the Noisy Sphere Function
+## Example: `spotpython`, OCBA,  and the Noisy Sphere Function
 
 ```{python}
 import numpy as np
@@ -21,11 +21,11 @@ import matplotlib.pyplot as plt
 from spotpython.utils.init import fun_control_init, get_spot_tensorboard_path
 from spotpython.utils.init import fun_control_init, design_control_init, surrogate_control_init
 
-PREFIX = "09"
+PREFIX = "14"
 
 ```
 
-### The Objective Function: Noisy Sphere
+### The Objective Function: Noisy Sphere {#sec-noisy-sphere}
 
 The `spotpython` package provides several classes of objective functions. We will use an analytical objective function with noise, i.e., a function that can be described by a (closed) formula:
    $$f(x) = x^2 + \epsilon$$
@@ -39,9 +39,11 @@ fun_control = fun_control_init(
     sigma=0.1)
 ```
 
-A plot illustrates the noise:
+A plot (@fig-noisy-sphere-14) illustrates the noise:
 
 ```{python}
+#| label: fig-noisy-sphere-14
+#| fig-cap: "The noisy sphere function with noise."
 x = np.linspace(-1,1,100).reshape(-1,1)
 y = fun(x, fun_control=fun_control)
 plt.figure()
@@ -49,11 +51,51 @@ plt.plot(x,y, "k")
 plt.show()
 ```
 
-`Spot` is adopted as follows to cope with noisy functions:
+::: {.callout-note}
 
-  1. `fun_repeats` is set to a value larger than 1 (here: 2)
-  2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix
-  3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 2)
+#### Noise Handling in `spotpython`
+
+`spotpython` has several options to cope with noisy functions:
+
+  1. `fun_repeats` is set to a value larger than 1, e.g., 2, which means every function evaluation during the search on the surrogate is repeated twice. The mean of the two evaluations is used as the function value.
+  2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix.
+  3. `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 2).
+  4. `ocba_delta` is set to a value larger than 1 (here: 2). This means that the OCBA algorithm is used to allocate the computational budget optimally. An example is given in @sec-ocba.
+  5. Using a nugget term in the surrogate model. This is done by setting `method="regression"` in the `surrogate_control` dictionary. An example is given in @sec-nugget.
+
+::: 
+
+## Using Optimal Computational Budget Allocation (OCBA) {#sec-ocba}
+
+The [Optimal Computational Budget Allocation](https://en.wikipedia.org/wiki/Optimal_computing_budget_allocation)  (OCBA) algorithm is a powerful tool for efficiently distributing computational resources [@Chen10a]. It is specifically designed to maximize the Probability of Correct Selection (PCS) while minimizing computational costs. By strategically allocating more simulation effort to design alternatives that are either more challenging to evaluate or more likely to yield optimal results, OCBA ensures an efficient use of resources. This approach enables researchers and decision-makers to achieve accurate outcomes more quickly and with fewer computational demands, making it an invaluable method for simulation optimization.
+
+
+The OCBA algorithm is implemented in `spotpython` and can be used by setting `ocba_delta` to a value larger than `0`. The source code is available in the `spotpython` package, see [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/budget/ocba/).
+See also @Bart11b.
+
+::: {#exm-ocba}
+To reproduce the example from p.49 in @Chen10a, the following `spotpython` code can be used:
+```{python}
+import numpy as np
+from spotpython.budget.ocba import get_ocba
+mean_y = np.array([1,2,3,4,5])
+var_y = np.array([1,1,9,9,4])
+get_ocba(mean_y, var_y, 50)
+```
+::: 
+
+
+### The Noisy Sphere
+
+We will demonstrate the OCBA algorithm on the noisy sphere function defined in @sec-noisy-sphere. The OCBA algorithm is used to allocate the computational budget optimally. This means that the function evaluations are repeated several times, and the best function value is used for the next iteration.
+
+::: {.callout-note}
+#### Visualizing the Search of the OCBA Algorithm
+
+* The `show_models` parameter in the `fun_control` dictionary is set to `True`. This means that the surrogate model is shown during the search.
+* To keep the visualization simple, only the ground truth and the surrogate model are shown. The surrogate model is shown in blue, and the ground truth is shown in orange. The noisy function was shown in @fig-noisy-sphere-14.
+
+::: 
 
 ```{python}
 spot_1_noisy = Spot(fun=fun,
@@ -61,13 +103,12 @@ spot_1_noisy = Spot(fun=fun,
                    lower = np.array([-1]),
                    upper = np.array([1]),
                    fun_evals = 20,
-                   fun_repeats = 2,
-                   infill_criterion="ei",
+                   fun_repeats = 1,
                    noise = True,
                    tolerance_x=0.0,
-                   ocba_delta = 1,                   
+                   ocba_delta = 2,                   
                    show_models=True),
-                   design_control=design_control_init(init_size=3, repeats=2),
+                   design_control=design_control_init(init_size=5, repeats=2),
                    surrogate_control=surrogate_control_init(method="regression"))
 ```
 
@@ -75,17 +116,20 @@ spot_1_noisy = Spot(fun=fun,
 spot_1_noisy.run()
 ```
 
-## Print the Results
+### Print the Results
 
 ```{python}
 spot_1_noisy.print_results()
 ```
 
 ```{python}
-spot_1_noisy.plot_progress(log_y=False)
+spot_1_noisy.plot_progress(log_y=True)
 ```
 
-## Noise and Surrogates: The Nugget Effect
+## Noise and Surrogates: The Nugget Effect {#sec-nugget}
+
+In the previous example, we have seen that the `fun_repeats` parameter can be used to repeat function evaluations. This is useful when the function is noisy. However, it is not always possible to repeat function evaluations, e.g., when the function is expensive to evaluate.
+In this case, we can use a surrogate model with a nugget term. The nugget term is a small value that is added to the diagonal of the covariance matrix. This allows the surrogate model to fit the data better, even if the data is noisy. The nugget term is added, if `method="regression"` is set in the `surrogate_control` dictionary.
 
 ### The Noisy Sphere
 
@@ -163,7 +207,7 @@ S.Lambda
 ```
 
 ```{python}
-S_nug.Lambda
+10**S_nug.Lambda
 ```
 
 We see:
