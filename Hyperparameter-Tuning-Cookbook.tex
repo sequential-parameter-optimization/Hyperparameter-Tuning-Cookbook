@@ -277,11 +277,11 @@
 \newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
 \usepackage{amsthm}
 \theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\theoremstyle{definition}
 \newtheorem{exercise}{Exercise}[chapter]
 \theoremstyle{definition}
 \newtheorem{example}{Example}[chapter]
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}[chapter]
 \theoremstyle{plain}
 \newtheorem{lemma}{Lemma}[chapter]
 \theoremstyle{remark}
@@ -318,7 +318,7 @@
 \makeatother
 \subtitle{A guide for scikit-learn, PyTorch, river, and spotpython}
 \author{Thomas Bartz-Beielstein}
-\date{Apr 7, 2025}
+\date{Apr 8, 2025}
 
 \begin{document}
 \frontmatter
@@ -357,7 +357,7 @@ Lightning, spotpython, spotriver, and River. This publication is under
 development, with updates available on the corresponding webpage.
 \end{quote}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Important: This book is still under development.}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-important-color!10!white, rightrule=.15mm, colframe=quarto-callout-important-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-important-color-frame, breakable, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Important: This book is still under development.}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-important-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The most recent version of this book is available at
 \url{https://sequential-parameter-optimization.github.io/Hyperparameter-Tuning-Cookbook/}
@@ -373,7 +373,7 @@ This document is structured in three parts. The first part presents an
 introduction to optimization. The second part describes numerical
 methods, and the third part presents hyperparameter tuning.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Hyperparameter Tuning Reference}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Hyperparameter Tuning Reference}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -385,7 +385,7 @@ methods, and the third part presents hyperparameter tuning.
 
 \end{tcolorbox}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{.ipynb} notebook (Bartz-Beielstein 2023) is updated
 regularly and reflects updates and changes in the \texttt{spotpython}
@@ -1068,39 +1068,47 @@ Here is the corresponding code:
 \ImportTok{import}\NormalTok{ numpy }\ImportTok{as}\NormalTok{ np}
 \ImportTok{import}\NormalTok{ pandas }\ImportTok{as}\NormalTok{ pd}
 
-\KeywordTok{def}\NormalTok{ randorient(k, p, xi):}
+\KeywordTok{def}\NormalTok{ randorient(k, p, xi, seed}\OperatorTok{=}\VariableTok{None}\NormalTok{):}
+    \CommentTok{\# Initialize random number generator with the provided seed}
+    \ControlFlowTok{if}\NormalTok{ seed }\KeywordTok{is} \KeywordTok{not} \VariableTok{None}\NormalTok{:}
+\NormalTok{        rng }\OperatorTok{=}\NormalTok{ np.random.default\_rng(seed)}
+    \ControlFlowTok{else}\NormalTok{:}
+\NormalTok{        rng }\OperatorTok{=}\NormalTok{ np.random.default\_rng()}
+
     \CommentTok{\# Step length}
 \NormalTok{    Delta }\OperatorTok{=}\NormalTok{ xi }\OperatorTok{/}\NormalTok{ (p }\OperatorTok{{-}} \DecValTok{1}\NormalTok{)}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"Delta: }\SpecialCharTok{\{}\NormalTok{Delta}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
+
 \NormalTok{    m }\OperatorTok{=}\NormalTok{ k }\OperatorTok{+} \DecValTok{1}
+
     \CommentTok{\# A truncated p{-}level grid in one dimension}
-\NormalTok{    xs }\OperatorTok{=}\NormalTok{ np.arange(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, Delta)}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"xs: }\SpecialCharTok{\{}\NormalTok{xs}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
+\NormalTok{    xs }\OperatorTok{=}\NormalTok{ np.arange(}\DecValTok{0}\NormalTok{, }\DecValTok{1} \OperatorTok{{-}}\NormalTok{ Delta, }\DecValTok{1} \OperatorTok{/}\NormalTok{ (p }\OperatorTok{{-}} \DecValTok{1}\NormalTok{))}
 \NormalTok{    xsl }\OperatorTok{=} \BuiltInTok{len}\NormalTok{(xs)}
+    \ControlFlowTok{if}\NormalTok{ xsl }\OperatorTok{\textless{}} \DecValTok{1}\NormalTok{:}
+        \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"xi = }\SpecialCharTok{\{}\NormalTok{xi}\SpecialCharTok{\}}\SpecialStringTok{."}\NormalTok{)}
+        \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"p = }\SpecialCharTok{\{}\NormalTok{p}\SpecialCharTok{\}}\SpecialStringTok{."}\NormalTok{)}
+        \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"Delta = }\SpecialCharTok{\{}\NormalTok{Delta}\SpecialCharTok{\}}\SpecialStringTok{."}\NormalTok{)}
+        \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"p {-} 1 = }\SpecialCharTok{\{}\NormalTok{p }\OperatorTok{{-}} \DecValTok{1}\SpecialCharTok{\}}\SpecialStringTok{."}\NormalTok{)}
+        \ControlFlowTok{raise} \PreprocessorTok{ValueError}\NormalTok{(}\SpecialStringTok{f"The number of levels xsl is }\SpecialCharTok{\{}\NormalTok{xsl}\SpecialCharTok{\}}\SpecialStringTok{, but it must be greater than 0."}\NormalTok{)}
 
     \CommentTok{\# Basic sampling matrix}
 \NormalTok{    B }\OperatorTok{=}\NormalTok{ np.vstack((np.zeros((}\DecValTok{1}\NormalTok{, k)), np.tril(np.ones((k, k)))))}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"B: }\SpecialCharTok{\{}\NormalTok{B}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
 
     \CommentTok{\# Randomization}
+
     \CommentTok{\# Matrix with +1s and {-}1s on the diagonal with equal probability}
-\NormalTok{    Dstar }\OperatorTok{=}\NormalTok{ np.diag(}\DecValTok{2} \OperatorTok{*}\NormalTok{ np.}\BuiltInTok{round}\NormalTok{(np.random.rand(k)) }\OperatorTok{{-}} \DecValTok{1}\NormalTok{)}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"Dstar: }\SpecialCharTok{\{}\NormalTok{Dstar}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
+\NormalTok{    Dstar }\OperatorTok{=}\NormalTok{ np.diag(}\DecValTok{2} \OperatorTok{*}\NormalTok{ rng.integers(}\DecValTok{0}\NormalTok{, }\DecValTok{2}\NormalTok{, size}\OperatorTok{=}\NormalTok{k) }\OperatorTok{{-}} \DecValTok{1}\NormalTok{)}
 
     \CommentTok{\# Random base value}
-\NormalTok{    xstar }\OperatorTok{=}\NormalTok{ xs[(np.random.rand(k) }\OperatorTok{*}\NormalTok{ xsl).astype(}\BuiltInTok{int}\NormalTok{)]}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"xstar: }\SpecialCharTok{\{}\NormalTok{xstar}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
+\NormalTok{    xstar }\OperatorTok{=}\NormalTok{ xs[rng.integers(}\DecValTok{0}\NormalTok{, xsl, size}\OperatorTok{=}\NormalTok{k)]}
 
     \CommentTok{\# Permutation matrix}
 \NormalTok{    Pstar }\OperatorTok{=}\NormalTok{ np.zeros((k, k))}
-\NormalTok{    rp }\OperatorTok{=}\NormalTok{ np.random.permutation(k)}
+\NormalTok{    rp }\OperatorTok{=}\NormalTok{ rng.permutation(k)}
     \ControlFlowTok{for}\NormalTok{ i }\KeywordTok{in} \BuiltInTok{range}\NormalTok{(k):}
 \NormalTok{        Pstar[i, rp[i]] }\OperatorTok{=} \DecValTok{1}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"Pstar: }\SpecialCharTok{\{}\NormalTok{Pstar}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
 
     \CommentTok{\# A random orientation of the sampling matrix}
 \NormalTok{    Bstar }\OperatorTok{=}\NormalTok{ (np.ones((m, }\DecValTok{1}\NormalTok{)) }\OperatorTok{@}\NormalTok{ xstar.reshape(}\DecValTok{1}\NormalTok{, }\OperatorTok{{-}}\DecValTok{1}\NormalTok{) }\OperatorTok{+}\NormalTok{ (Delta }\OperatorTok{/} \DecValTok{2}\NormalTok{) }\OperatorTok{*}\NormalTok{ ((}\DecValTok{2} \OperatorTok{*}\NormalTok{ B }\OperatorTok{{-}}\NormalTok{ np.ones((m, k))) }\OperatorTok{@}\NormalTok{ Dstar }\OperatorTok{+}\NormalTok{ np.ones((m, k)))) }\OperatorTok{@}\NormalTok{ Pstar}
-    \BuiltInTok{print}\NormalTok{(}\SpecialStringTok{f"Bstar: }\SpecialCharTok{\{}\NormalTok{Bstar}\SpecialCharTok{\}}\SpecialStringTok{"}\NormalTok{)}
 
     \ControlFlowTok{return}\NormalTok{ Bstar}
 \end{Highlighting}
@@ -1169,28 +1177,11 @@ variable.
 \end{Shaded}
 
 \begin{verbatim}
-Delta: 0.5
-xs: [0.  0.5]
-B: [[0. 0. 0.]
- [1. 0. 0.]
- [1. 1. 0.]
- [1. 1. 1.]]
-Dstar: [[ 1.  0.  0.]
- [ 0. -1.  0.]
- [ 0.  0. -1.]]
-xstar: [0.5 0.5 0.5]
-Pstar: [[1. 0. 0.]
- [0. 0. 1.]
- [0. 1. 0.]]
-Bstar: [[0.5 1.  1. ]
- [1.  1.  1. ]
- [1.  1.  0.5]
- [1.  0.5 0.5]]
 Random orientation of the sampling matrix:
-[[0.5 1.  1. ]
- [1.  1.  1. ]
- [1.  1.  0.5]
- [1.  0.5 0.5]]
+[[0.5 0.  0.5]
+ [0.5 0.  0. ]
+ [0.5 0.5 0. ]
+ [0.  0.5 0. ]]
 \end{verbatim}
 
 To obtain \(r\) elementary effects for each variable, the screening plan
@@ -1272,6 +1263,51 @@ The results (sample means and standard deviations) are plotted on a
 chart for comparison. This helps identify which variables have the most
 significant impact on the objective function and whether their effects
 are linear or involve interactions.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ImportTok{import}\NormalTok{ numpy }\ImportTok{as}\NormalTok{ np}
+\ImportTok{from}\NormalTok{ spotpython.utils.effects }\ImportTok{import}\NormalTok{ screening\_plot, screeningplan}
+\ImportTok{from}\NormalTok{ spotpython.fun.objectivefunctions }\ImportTok{import}\NormalTok{ Analytical}
+\NormalTok{fun }\OperatorTok{=}\NormalTok{ Analytical()}
+\NormalTok{k }\OperatorTok{=} \DecValTok{10}
+\NormalTok{p }\OperatorTok{=} \DecValTok{10}
+\NormalTok{xi }\OperatorTok{=} \DecValTok{1}
+\NormalTok{r }\OperatorTok{=} \DecValTok{25}
+\NormalTok{X }\OperatorTok{=}\NormalTok{ screeningplan(k}\OperatorTok{=}\NormalTok{k, p}\OperatorTok{=}\NormalTok{p, xi}\OperatorTok{=}\NormalTok{xi, r}\OperatorTok{=}\NormalTok{r)  }\CommentTok{\# shape (r x (k+1), k)}
+\NormalTok{value\_range }\OperatorTok{=}\NormalTok{ np.array([}
+\NormalTok{    [}\DecValTok{150}\NormalTok{, }\DecValTok{220}\NormalTok{,   }\DecValTok{6}\NormalTok{, }\OperatorTok{{-}}\DecValTok{10}\NormalTok{, }\DecValTok{16}\NormalTok{, }\FloatTok{0.5}\NormalTok{, }\FloatTok{0.08}\NormalTok{, }\FloatTok{2.5}\NormalTok{, }\DecValTok{1700}\NormalTok{, }\FloatTok{0.025}\NormalTok{],}
+\NormalTok{    [}\DecValTok{200}\NormalTok{, }\DecValTok{300}\NormalTok{,  }\DecValTok{10}\NormalTok{,  }\DecValTok{10}\NormalTok{, }\DecValTok{45}\NormalTok{, }\FloatTok{1.0}\NormalTok{, }\FloatTok{0.18}\NormalTok{, }\FloatTok{6.0}\NormalTok{, }\DecValTok{2500}\NormalTok{, }\FloatTok{0.08}\NormalTok{ ],}
+\NormalTok{])}
+\NormalTok{labels }\OperatorTok{=}\NormalTok{ [}
+    \StringTok{"S\_W"}\NormalTok{, }\StringTok{"W\_fw"}\NormalTok{, }\StringTok{"A"}\NormalTok{, }\StringTok{"Lambda"}\NormalTok{,}
+    \StringTok{"q"}\NormalTok{,   }\StringTok{"lambda"}\NormalTok{, }\StringTok{"tc"}\NormalTok{, }\StringTok{"N\_z"}\NormalTok{,}
+    \StringTok{"W\_dg"}\NormalTok{, }\StringTok{"W\_p"}
+\NormalTok{]}
+\NormalTok{screening\_plot(}
+\NormalTok{    X}\OperatorTok{=}\NormalTok{X,}
+\NormalTok{    fun}\OperatorTok{=}\NormalTok{fun.fun\_wingwt,}
+\NormalTok{    bounds}\OperatorTok{=}\NormalTok{value\_range,}
+\NormalTok{    xi}\OperatorTok{=}\NormalTok{xi,}
+\NormalTok{    p}\OperatorTok{=}\NormalTok{p,}
+\NormalTok{    labels}\OperatorTok{=}\NormalTok{labels,}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{001_optimization_surrogate_files/figure-pdf/fig-forre08a-1-2-output-1.pdf}}
+
+}
+
+\caption{\label{fig-forre08a-1-2}Estimated means and standard deviations
+of the elementary effects for the 10 design variables of the wing weight
+function. Example based on Forrester, Sóbester, and Keane (2008).}
+
+\end{figure}%
 
 \section{Designing a Sampling Plan}\label{designing-a-sampling-plan}
 
@@ -1523,11 +1559,11 @@ projections. Here is the code:
 \end{Shaded}
 
 \begin{verbatim}
-[[0.1 0.3]
- [0.7 0.1]
- [0.3 0.7]
- [0.5 0.9]
- [0.9 0.5]]
+[[0.7 0.1]
+ [0.9 0.5]
+ [0.1 0.7]
+ [0.3 0.9]
+ [0.5 0.3]]
 \end{verbatim}
 
 \begin{Shaded}
@@ -1541,11 +1577,11 @@ projections. Here is the code:
 \end{Shaded}
 
 \begin{verbatim}
-[[1.   0.75]
- [0.   0.25]
- [0.75 1.  ]
- [0.5  0.5 ]
- [0.25 0.  ]]
+[[0.   0.5 ]
+ [0.5  1.  ]
+ [0.75 0.75]
+ [1.   0.  ]
+ [0.25 0.25]]
 \end{verbatim}
 
 \begin{Shaded}
@@ -1571,9 +1607,9 @@ projections. Here is the code:
 \end{Highlighting}
 \end{Shaded}
 
-\pandocbounded{\includegraphics[keepaspectratio]{001_optimization_surrogate_files/figure-pdf/cell-11-output-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{001_optimization_surrogate_files/figure-pdf/cell-12-output-1.pdf}}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Goals}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-important-color!10!white, rightrule=.15mm, colframe=quarto-callout-important-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-important-color-frame, breakable, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Goals}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-important-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -1587,7 +1623,7 @@ projections. Here is the code:
 
 \section{Jupyter Notebook}\label{jupyter-notebook}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -2179,7 +2215,7 @@ Experiments}\label{summary-of-the-first-experiments}
 
 \section{Jupyter Notebook}\label{jupyter-notebook-1}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -2213,7 +2249,7 @@ In this notebook, we will learn how to use the \texttt{scipy.optimize}
 module to solve optimization problems. See:
 \url{https://docs.scipy.org/doc/scipy/tutorial/optimize.html}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -3108,11 +3144,11 @@ compare different optimization results later.
  message: ['Maximum number of iteration reached']
  success: True
   status: 0
-     fun: -935.3379515605254
-       x: [ 4.395e+02  4.540e+02]
+     fun: -888.9491252672219
+       x: [ 3.473e+02  4.994e+02]
      nit: 1000
-    nfev: 4061
-    njev: 20
+    nfev: 4121
+    njev: 40
     nhev: 0
 \end{verbatim}
 
@@ -3131,17 +3167,17 @@ show the full output of the other optimizers:
 \begin{verbatim}
              message: Optimization terminated successfully.
              success: True
-                 fun: -935.3379515598035
+                 fun: -935.3379515592765
                    x: [ 4.395e+02  4.540e+02]
-                 nit: 28
-                nfev: 891
-          population: [[ 4.399e+02  4.538e+02]
-                       [ 4.391e+02  4.555e+02]
+                 nit: 16
+                nfev: 531
+          population: [[ 4.390e+02  4.538e+02]
+                       [ 4.427e+02  4.564e+02]
                        ...
-                       [ 4.422e+02  4.557e+02]
-                       [ 4.414e+02  4.553e+02]]
- population_energies: [-9.353e+02 -9.319e+02 ... -9.337e+02 -9.346e+02]
-                 jac: [ 0.000e+00  0.000e+00]
+                       [ 4.385e+02  4.530e+02]
+                       [ 4.426e+02  4.571e+02]]
+ population_energies: [-9.353e+02 -9.334e+02 ... -9.352e+02 -9.334e+02]
+                 jac: [-2.274e-05  0.000e+00]
 \end{verbatim}
 
 \texttt{shgo} has a second method, which returns all local minima rather
@@ -3219,7 +3255,7 @@ inspired by the annealing process in metallurgy. The algorithm is
 designed to find a good or optimal \textbf{global} solution to a problem
 by exploring the solution space in a controlled and adaptive manner.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Annealing in Metallurgy}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Annealing in Metallurgy}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Simulated Annealing draws inspiration from the physical process of
 annealing in metallurgy. Just as metals are gradually cooled to achieve
@@ -3447,7 +3483,7 @@ The procedure boils down to the following steps:
   \end{itemize}
 \end{enumerate}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Cross-Over Strategies in DE}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Cross-Over Strategies in DE}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -4007,7 +4043,7 @@ Evolution]\protect\hypertarget{exr-global-optimization}{}\label{exr-global-optim
 
 \section{Jupyter Notebook}\label{jupyter-notebook-2}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -4113,7 +4149,7 @@ to the \texttt{differential\_evolution} method, which has the argument
 over which the entire differential evolution population is evolved, see
 \url{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html\#scipy.optimize.differential_evolution}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Similar to the one-dimensional case, which is discussed in
 Section~\ref{sec-visualizing-tensorboard-01}, we can use TensorBoard to
@@ -4160,7 +4196,7 @@ Experiment saved to 04_DE__res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x30c459e50>
+<spotpython.spot.spot.Spot at 0x31afe2000>
 \end{verbatim}
 
 \subsection{TensorBoard}\label{tensorboard-1}
@@ -4250,7 +4286,7 @@ x1: 3.645429652665629
   Use the algorithm as an optimizer on the surrogate.
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 We can run spotpython with the \texttt{dual\_annealing} optimizer as
 follows:
@@ -4302,7 +4338,7 @@ x1: 3.646940192088105
   Use the algorithm as an optimizer on the surrogate
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 We can run spotpython with the \texttt{direct} optimizer as follows:
 
@@ -4353,7 +4389,7 @@ x1: 3.4327846364883405
   Use the algorithm as an optimizer on the surrogate
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 We can run spotpython with the \texttt{direct} optimizer as follows:
 
@@ -4404,7 +4440,7 @@ x1: 3.6469433701030436
   Use the algorithm as an optimizer on the surrogate
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: Selecting the Optimizer for the Surrogate}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 We can run spotpython with the \texttt{direct} optimizer as follows:
 
@@ -4489,7 +4525,7 @@ The Branin function has three global minima:
 
 \section{Jupyter Notebook}\label{jupyter-notebook-3}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -4520,7 +4556,7 @@ are used to replace the real-world problem with a simpler problem. The
 simpler problem is then solved numerically. The solution of the simpler
 problem is then used to solve the real-world problem.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Numerical methods: Goals}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-important-color!10!white, rightrule=.15mm, colframe=quarto-callout-important-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-important-color-frame, breakable, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Numerical methods: Goals}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-important-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -5665,7 +5701,7 @@ RSM}\label{historical-considerations-about-rsm}
 
 \section{Jupyter Notebook}\label{jupyter-notebook-4}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -5992,7 +6028,7 @@ True
 
 \section{Constructing a Surrogate}\label{constructing-a-surrogate}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 This section is based on chapter 2 in Forrester, Sóbester, and Keane
 (2008).
@@ -7884,7 +7920,7 @@ prior. sigma2: 0.1}
 
 \section{Jupyter Notebook}\label{jupyter-notebook-5}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -8109,7 +8145,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x16b01c7d0>
+<spotpython.spot.spot.Spot at 0x115584770>
 \end{verbatim}
 
 The method \texttt{print\_results()} prints the results, i.e., the best
@@ -8282,8 +8318,8 @@ files.
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_22_54_33_0
-Created spot_tensorboard_path: runs/spot_logs/01_p040025_2025-04-07_22-54-33 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_18_57_23_0
+Created spot_tensorboard_path: runs/spot_logs/01_p040025_2025-04-08_18-57-23 for SummaryWriter()
 \end{verbatim}
 
 Since the \texttt{tensorboard\_log} is \texttt{True},
@@ -8462,7 +8498,7 @@ optimization steps.
 
 \section{Jupyter Notebook}\label{jupyter-notebook-6}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -8561,8 +8597,8 @@ default \texttt{var\_name=None}, which would result in the labels
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_22_55_39_0
-Created spot_tensorboard_path: runs/spot_logs/03_p040025_2025-04-07_22-55-39 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_18_58_28_0
+Created spot_tensorboard_path: runs/spot_logs/03_p040025_2025-04-08_18-58-28 for SummaryWriter()
 spotpython tuning: 0.04499639370770697 [#######---] 73.33% 
 spotpython tuning: 0.02879181572787603 [########--] 80.00% 
 spotpython tuning: 0.0022744029851669532 [#########-] 86.67% 
@@ -8574,10 +8610,10 @@ Experiment saved to 03_res.pkl
 
 \phantomsection\label{spot-run}
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x1042e5f10>
+<spotpython.spot.spot.Spot at 0x31142b7a0>
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Now we can start TensorBoard in the background with the following
 command:
@@ -9002,8 +9038,8 @@ The setup can be done as follows:
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_22_55_42_0
-Created spot_tensorboard_path: runs/spot_logs/cubed_p040025_2025-04-07_22-55-42 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_18_58_31_0
+Created spot_tensorboard_path: runs/spot_logs/cubed_p040025_2025-04-08_18-58-31 for SummaryWriter()
 \end{verbatim}
 
 \begin{itemize}
@@ -9038,7 +9074,7 @@ Experiment saved to cubed_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x147cde660>
+<spotpython.spot.spot.Spot at 0x31ec4bc50>
 \end{verbatim}
 
 \begin{itemize}
@@ -9237,7 +9273,7 @@ Experiment saved to ROSEN_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x147d0f4d0>
+<spotpython.spot.spot.Spot at 0x3201c3260>
 \end{verbatim}
 
 Now we can start TensorBoard in the background with the following
@@ -9337,7 +9373,7 @@ x1:  1.413709918826025
 
 \section{Jupyter Notebook}\label{jupyter-notebook-7}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -9427,7 +9463,7 @@ Experiment saved to 003_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x16af978c0>
+<spotpython.spot.spot.Spot at 0x1184c9220>
 \end{verbatim}
 
 \subsection{Results}\label{results-2}
@@ -9491,7 +9527,7 @@ Experiment saved to 003_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x16c23a570>
+<spotpython.spot.spot.Spot at 0x17746f500>
 \end{verbatim}
 
 The search progress of the optimization with the anisotropic model can
@@ -9791,10 +9827,10 @@ Experiment saved to ROSEN_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x1776736e0>
+<spotpython.spot.spot.Spot at 0x179355940>
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Now we can start TensorBoard in the background with the following
 command:
@@ -9920,10 +9956,10 @@ Experiment saved to ROSEN_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x177d15b80>
+<spotpython.spot.spot.Spot at 0x179730830>
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Now we can start TensorBoard in the background with the following
 command:
@@ -10012,7 +10048,7 @@ TBD
 
 \section{Jupyter Notebook}\label{jupyter-notebook-8}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -10078,7 +10114,7 @@ Branin}\label{the-objective-function-branin-1}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Similar to the one-dimensional case, which was introduced in Section
 Section~\ref{sec-visualizing-tensorboard-01}, we can use TensorBoard to
@@ -10136,7 +10172,7 @@ Experiment saved to 04_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x304141700>
+<spotpython.spot.spot.Spot at 0x17c9911f0>
 \end{verbatim}
 
 \subsection{TensorBoard}\label{tensorboard-7}
@@ -10351,7 +10387,7 @@ Experiment saved to 04_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x307493500>
+<spotpython.spot.spot.Spot at 0x17f93f230>
 \end{verbatim}
 
 \begin{Shaded}
@@ -10845,7 +10881,7 @@ Experiment saved to BRANIN_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x309ca0fb0>
+<spotpython.spot.spot.Spot at 0x30f63a600>
 \end{verbatim}
 
 \begin{itemize}
@@ -10954,7 +10990,7 @@ Experiment saved to BRANIN_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x307295070>
+<spotpython.spot.spot.Spot at 0x30f21d7f0>
 \end{verbatim}
 
 \begin{itemize}
@@ -11251,7 +11287,7 @@ x0: 0.09343920754032609
 
 \section{Jupyter Notebook}\label{jupyter-notebook-9}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -11657,7 +11693,7 @@ Sphere}\label{the-objective-function-1-dim-sphere}
   function.
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TensorBoard}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Similar to the one-dimensional case, which was introduced in Section
 Section~\ref{sec-visualizing-tensorboard-01}, we can use TensorBoard to
@@ -11711,7 +11747,7 @@ Experiment saved to 07_Y_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x316aa9070>
+<spotpython.spot.spot.Spot at 0x13f2919d0>
 \end{verbatim}
 
 \subsection{Results}\label{results-6}
@@ -11795,7 +11831,7 @@ Experiment saved to 07_EI_ISO_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x3197f8ef0>
+<spotpython.spot.spot.Spot at 0x105c654c0>
 \end{verbatim}
 
 \begin{Shaded}
@@ -11882,7 +11918,7 @@ Experiment saved to 07_EI_NONISO_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x319985d90>
+<spotpython.spot.spot.Spot at 0x13fce2ea0>
 \end{verbatim}
 
 \begin{Shaded}
@@ -12007,7 +12043,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x31ec51f70>
+<spotpython.spot.spot.Spot at 0x13f51a660>
 \end{verbatim}
 
 \begin{Shaded}
@@ -12347,7 +12383,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x31ec26cc0>
+<spotpython.spot.spot.Spot at 0x14b1dc0b0>
 \end{verbatim}
 
 \begin{Shaded}
@@ -12466,7 +12502,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x31f3cae70>
+<spotpython.spot.spot.Spot at 0x14b33e030>
 \end{verbatim}
 
 \begin{Shaded}
@@ -13183,7 +13219,7 @@ or ``width'') of the distribution is used. This must be a non-negative
 value, see
 \url{https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The sphere function without noise}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The sphere function without noise}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The default setting does not use any noise.
 
@@ -13203,7 +13239,7 @@ The default setting does not use any noise.
 
 \end{tcolorbox}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The sphere function with noise}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The sphere function with noise}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Noise can be added to the sphere function as follows:
 
@@ -13244,7 +13280,7 @@ spotpython provides two mechanisms for generating random noise:
 These two different ways lead to different results as explained in the
 following tables:
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: Noise added to the sphere function}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: Noise added to the sphere function}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Since \texttt{sigma} is set to \texttt{0.02}, noise is added to the
 function:
@@ -13271,7 +13307,7 @@ is used to generate the same sequence as shown below:
 
 \end{tcolorbox}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: Noise added to the sphere function}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: Noise added to the sphere function}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Since \texttt{sigma} is set to \texttt{0.02}, noise is added to the
 function:
@@ -13300,7 +13336,7 @@ This behaviour can be accomplished by passing the same seed via the
 dictionary \texttt{fun\_control} to every call of the objective function
 \texttt{fun} as shown below:
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The same noise added to the sphere function}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Example: The same noise added to the sphere function}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Since \texttt{sigma} is set to \texttt{0.02}, noise is added to the
 function:
@@ -14103,7 +14139,7 @@ Experiment saved to 015_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x300b007d0>
+<spotpython.spot.spot.Spot at 0x16a691bb0>
 \end{verbatim}
 
 \subsection{Results}\label{results-7}
@@ -14172,7 +14208,7 @@ Experiment saved to 015_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x302a27c50>
+<spotpython.spot.spot.Spot at 0x3012d1130>
 \end{verbatim}
 
 \begin{itemize}
@@ -14283,7 +14319,7 @@ Experiment saved to 015_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x309085520>
+<spotpython.spot.spot.Spot at 0x3016ca630>
 \end{verbatim}
 
 \begin{Shaded}
@@ -14354,7 +14390,7 @@ Experiment saved to 015_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x30914ef30>
+<spotpython.spot.spot.Spot at 0x306cba0f0>
 \end{verbatim}
 
 \begin{Shaded}
@@ -14497,7 +14533,7 @@ x1: 0.0018376234294478113
 
 \section{Jupyter Notebook}\label{jupyter-notebook-10}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -14552,9 +14588,9 @@ variable, which can take the values \(0\), \(1\), or \(2\).
 
 \begin{verbatim}
 [[-2.84117593  5.97308949  1.        ]
- [-3.61017994  6.90781409  2.        ]
+ [-3.61017994  6.90781409  1.        ]
  [ 9.91204705  5.09395275  1.        ]
- [-4.4616725   1.3617128   2.        ]
+ [-4.4616725   1.3617128   0.        ]
  [-2.40987728  8.05505365  1.        ]]
 \end{verbatim}
 
@@ -14578,9 +14614,9 @@ function is not changed.
 
 \begin{verbatim}
 [[ -2.84117593   5.97308949   1.          32.09388125  42.09388125]
- [ -3.61017994   6.90781409   2.          43.965223    33.965223  ]
+ [ -3.61017994   6.90781409   1.          43.965223    53.965223  ]
  [  9.91204705   5.09395275   1.           6.25588575  16.25588575]
- [ -4.4616725    1.3617128    2.         212.41884106 202.41884106]
+ [ -4.4616725    1.3617128    0.         212.41884106 212.41884106]
  [ -2.40987728   8.05505365   1.           9.25981051  19.25981051]]
 \end{verbatim}
 
@@ -14600,7 +14636,7 @@ compare the predictions of the two models.
 \begin{verbatim}
 Kriging(eps=np.float64(1.4901161193847656e-08), method='interpolation',
         model_fun_evals=100,
-        model_optimizer=<function differential_evolution at 0x11f0244a0>,
+        model_optimizer=<function differential_evolution at 0x125518540>,
         n_theta=3, name='kriging', seed=123, var_type=['num', 'num', 'factor'])
 \end{verbatim}
 
@@ -14645,11 +14681,11 @@ is not important.
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-0 & -3.315251 & -5.662537 & -5.662549 \\
-1 & 85.865258 & 84.767465 & 84.767424 \\
-2 & 49.811774 & 49.459262 & 49.459219 \\
-3 & 8.177150 & 14.364782 & 14.364643 \\
-4 & 0.968377 & 2.466758 & 2.466811 \\
+0 & -3.315251 & 3.792052 & 3.791931 \\
+1 & 85.865258 & 87.362907 & 87.363082 \\
+2 & 49.811774 & 48.265687 & 48.265644 \\
+3 & 18.177150 & 17.099013 & 17.099007 \\
+4 & 0.968377 & -6.538048 & -6.537926 \\
 \end{longtable}
 
 \begin{Shaded}
@@ -14665,11 +14701,11 @@ is not important.
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-9995 & 73.620503 & 72.877073 & 72.877059 \\
-9996 & 86.187178 & 89.854654 & 89.854663 \\
-9997 & 39.494401 & 42.666089 & 42.666014 \\
-9998 & 35.390268 & 48.322959 & 48.322715 \\
-9999 & 26.261264 & 29.456241 & 29.456202 \\
+9995 & 93.620503 & 92.926749 & 92.926735 \\
+9996 & 76.187178 & 82.657906 & 82.657898 \\
+9997 & 29.494401 & 30.589606 & 30.589737 \\
+9998 & 25.390268 & 50.308320 & 50.306840 \\
+9999 & 36.261264 & 35.266484 & 35.266436 \\
 \end{longtable}
 
 \begin{Shaded}
@@ -14682,7 +14718,7 @@ is not important.
 \end{Shaded}
 
 \begin{verbatim}
--0.7010523003409617
+-0.5667724079248728
 \end{verbatim}
 
 \begin{Shaded}
@@ -14699,7 +14735,7 @@ is not important.
 
 \section{Jupyter Notebook}\label{jupyter-notebook-11}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -14723,7 +14759,7 @@ to define a user-specified function, both for single- and
 multi-objective optimization, and how to extend the \texttt{Analytical}
 class to create a custom function.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Citation}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Citation}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -14867,8 +14903,8 @@ Experiment saved to 000_res.pkl
 
 \pandocbounded{\includegraphics[keepaspectratio]{017_num_spot_user_function_files/figure-pdf/cell-7-output-2.pdf}}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Using \texttt{spotpython} with Single-Objective User-Specified
-Functions}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Using \texttt{spotpython} with Single-Objective User-Specified
+Functions}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -15025,8 +15061,8 @@ Class}\label{the-objective-function-extending-the-analytical-class}
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_22_59_35_0
-Created spot_tensorboard_path: runs/spot_logs/USER_p040025_2025-04-07_22-59-35 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_19_02_24_0
+Created spot_tensorboard_path: runs/spot_logs/USER_p040025_2025-04-08_19-02-24 for SummaryWriter()
 spotpython tuning: 3.715394917589437e-05 [#######---] 73.33% 
 spotpython tuning: 3.715394917589437e-05 [########--] 80.00% 
 spotpython tuning: 3.715394917589437e-05 [#########-] 86.67% 
@@ -15038,7 +15074,7 @@ Experiment saved to USER_res.pkl
 
 \phantomsection\label{spot-run}
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x14bb049b0>
+<spotpython.spot.spot.Spot at 0x3205dbfb0>
 \end{verbatim}
 
 \section{Results}\label{results-8}
@@ -15068,7 +15104,7 @@ User Temp: 0.07401195908206382
 We can select two dimensions, say \(i=0\) and \(j=1\), and generate a
 contour plot as follows.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note:}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note:}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 We have specified identical \texttt{min\_z} and \texttt{max\_z} values
 to generate comparable plots.
@@ -15389,8 +15425,8 @@ front of the multi-objective function values, see
 The Pareto front is a set of solutions that are not dominated by any
 other solution in the objective space.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Using \texttt{spotpython} with Multi-Objective User-Specified
-Functions}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Using \texttt{spotpython} with Multi-Objective User-Specified
+Functions}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -15409,7 +15445,7 @@ Functions}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, 
 
 \section{Jupyter Notebook}\label{jupyter-notebook-12}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -15551,17 +15587,17 @@ Text(0.5, 1.0, 'Histogram with Probability Density')
 \end{Shaded}
 
 \begin{verbatim}
-Bin 1 Probability: 0.0090
-Bin 2 Probability: 0.0370
-Bin 3 Probability: 0.0950
-Bin 4 Probability: 0.1590
-Bin 5 Probability: 0.2200
-Bin 6 Probability: 0.2310
-Bin 7 Probability: 0.1620
-Bin 8 Probability: 0.0590
-Bin 9 Probability: 0.0190
-Bin 10 Probability: 0.0080
-Bin 11 Probability: 0.0010
+Bin 1 Probability: 0.0070
+Bin 2 Probability: 0.0310
+Bin 3 Probability: 0.0630
+Bin 4 Probability: 0.1510
+Bin 5 Probability: 0.1930
+Bin 6 Probability: 0.2050
+Bin 7 Probability: 0.1730
+Bin 8 Probability: 0.1170
+Bin 9 Probability: 0.0470
+Bin 10 Probability: 0.0100
+Bin 11 Probability: 0.0030
 Sum of probabilities: 1.0
 \end{verbatim}
 
@@ -15965,7 +16001,7 @@ contradiction in terms to generate random numbers on a computer.
 Standard computers generate pseudo-randomnumbers, i.e., numbers that
 behave as if they were drawn randomly.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Deterministic Random Numbers}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Deterministic Random Numbers}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -16266,8 +16302,8 @@ command can be used.
 
 \phantomsection\label{gen-normal-10}
 \begin{verbatim}
-array([2.09683902, 1.96925943, 1.91913621, 1.97450634, 1.89891188,
-       1.98796597, 2.03669527, 1.9443285 , 2.03999637, 1.9381586 ])
+array([2.08122847, 2.24506916, 1.81335682, 1.97650188, 1.8405342 ,
+       2.05467069, 2.08290432, 1.94849403, 2.02807614, 2.0903258 ])
 \end{verbatim}
 
 Verify the mean:
@@ -16279,7 +16315,7 @@ Verify the mean:
 \end{Shaded}
 
 \begin{verbatim}
-np.float64(0.019420242786462483)
+np.float64(0.016116152281868246)
 \end{verbatim}
 
 Note: To verify the standard deviation, we use \texttt{ddof\ =\ 1}
@@ -16292,7 +16328,7 @@ Note: To verify the standard deviation, we use \texttt{ddof\ =\ 1}
 \end{Shaded}
 
 \begin{verbatim}
-np.float64(0.038560097610357565)
+np.float64(0.027514151010129356)
 \end{verbatim}
 
 \begin{Shaded}
@@ -17801,7 +17837,7 @@ features change, but change in exact the same way, then \(\text{MI}\) is
 if they change in the exact same or exact opposite ways; both result in
 the same \(\text{MI}\) value
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Mutual Information}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Mutual Information}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -20934,7 +20970,7 @@ epochs. So let's add an additional 1000 epochs to the training.
 \end{Shaded}
 
 \begin{verbatim}
-The new trainer will start where the last left off, and the check point data is here: /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/lightning_logs/version_550/checkpoints/epoch=1999-step=4000.ckpt
+The new trainer will start where the last left off, and the check point data is here: /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/lightning_logs/version_566/checkpoints/epoch=1999-step=4000.ckpt
 \end{verbatim}
 
 \begin{verbatim}
@@ -20981,7 +21017,7 @@ the training.
 \end{Shaded}
 
 \begin{verbatim}
-The new trainer will start where the last left off, and the check point data is here: /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/lightning_logs/version_551/checkpoints/epoch=2999-step=6000.ckpt
+The new trainer will start where the last left off, and the check point data is here: /Users/bartz/workspace/Hyperparameter-Tuning-Cookbook/lightning_logs/version_567/checkpoints/epoch=2999-step=6000.ckpt
 \end{verbatim}
 
 \begin{verbatim}
@@ -21339,8 +21375,8 @@ Before we consider the detailed experimental setup, we select the
 parameters that affect run time, initial design size and the device that
 is used.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Run time and initial design size should be increased for real
-experiments}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-caution-color!10!white, rightrule=.15mm, colframe=quarto-callout-caution-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-caution-color-frame, breakable, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Run time and initial design size should be increased for real
+experiments}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-caution-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -21387,10 +21423,10 @@ optimization process. It is initialized as follows:
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_23_05_00_0
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_19_07_41_0
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TensorBoard}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TensorBoard}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -21624,7 +21660,7 @@ below.
   'upper': 1}}
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Selection}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Selection}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following \texttt{sklearn} models are supported by default:
 
@@ -21682,7 +21718,7 @@ Section~\ref{sec-modifying-hyperparameter-levels}.
 Numeric and boolean values can be modified using the
 \texttt{modify\_hyper\_parameter\_bounds} method.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Hyperparameters}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Hyperparameters}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The hyperparameters of the \texttt{sklearn} \texttt{SVC} model are
 described in the
@@ -21771,7 +21807,7 @@ There are two metrics:
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{\texttt{metric\_sklearn}: Minimization and Maximization}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{\texttt{metric\_sklearn}: Minimization and Maximization}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -21865,7 +21901,7 @@ following parameters:
   parameters for the optimizer
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Total run time}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Total run time}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The total run time may exceed the specified \texttt{max\_time}, because
 the initial design (here: \texttt{init\_size} = INIT\_SIZE as specified
@@ -21895,34 +21931,34 @@ above) is always evaluated, even if this takes longer than
 \end{Shaded}
 
 \begin{verbatim}
-spotpython tuning: 6.436366676628063 [----------] 3.44% 
-spotpython tuning: 6.436366676628063 [#---------] 5.89% 
-spotpython tuning: 6.436366676628063 [#---------] 8.21% 
-spotpython tuning: 6.436366676628063 [#---------] 10.93% 
-spotpython tuning: 6.436366676628063 [#---------] 14.12% 
-spotpython tuning: 6.436366676628063 [##--------] 17.26% 
-spotpython tuning: 6.436366676628063 [##--------] 20.84% 
-spotpython tuning: 6.436366676628063 [##--------] 24.37% 
-spotpython tuning: 6.436366676628063 [###-------] 28.05% 
-spotpython tuning: 6.436366676628063 [###-------] 32.39% 
-spotpython tuning: 6.436366676628063 [####------] 37.23% 
-spotpython tuning: 6.436366676628063 [####------] 41.41% 
-spotpython tuning: 6.436366676628063 [#####-----] 46.15% 
-spotpython tuning: 6.436366676628063 [#####-----] 50.88% 
-spotpython tuning: 6.436366676628063 [######----] 55.91% 
-spotpython tuning: 6.436366676628063 [######----] 62.55% 
-spotpython tuning: 6.436366676628063 [#######---] 69.10% 
-spotpython tuning: 6.436366676628063 [########--] 76.45% 
-spotpython tuning: 6.436366676628063 [########--] 83.23% 
-spotpython tuning: 6.436366676628063 [#########-] 90.56% 
-spotpython tuning: 6.436366676628063 [##########] 97.52% 
+spotpython tuning: 6.436366676628063 [----------] 3.48% 
+spotpython tuning: 6.436366676628063 [#---------] 5.86% 
+spotpython tuning: 6.436366676628063 [#---------] 8.14% 
+spotpython tuning: 6.436366676628063 [#---------] 10.83% 
+spotpython tuning: 6.436366676628063 [#---------] 14.01% 
+spotpython tuning: 6.436366676628063 [##--------] 17.12% 
+spotpython tuning: 6.436366676628063 [##--------] 20.61% 
+spotpython tuning: 6.436366676628063 [##--------] 24.08% 
+spotpython tuning: 6.436366676628063 [###-------] 27.71% 
+spotpython tuning: 6.436366676628063 [###-------] 31.99% 
+spotpython tuning: 6.436366676628063 [####------] 36.80% 
+spotpython tuning: 6.436366676628063 [####------] 40.90% 
+spotpython tuning: 6.436366676628063 [#####-----] 45.57% 
+spotpython tuning: 6.436366676628063 [#####-----] 50.22% 
+spotpython tuning: 6.436366676628063 [######----] 55.21% 
+spotpython tuning: 6.436366676628063 [######----] 61.75% 
+spotpython tuning: 6.436366676628063 [#######---] 68.25% 
+spotpython tuning: 6.436366676628063 [########--] 75.54% 
+spotpython tuning: 6.436366676628063 [########--] 82.26% 
+spotpython tuning: 6.436366676628063 [#########-] 89.69% 
+spotpython tuning: 6.436366676628063 [##########] 96.58% 
 spotpython tuning: 6.436366676628063 [##########] 100.00% Done...
 
 Experiment saved to 10_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x175a6a1b0>
+<spotpython.spot.spot.Spot at 0x311b38380>
 \end{verbatim}
 
 \subsection{TensorBoard}\label{sec-tensorboard-17}
@@ -21937,7 +21973,7 @@ TensorBoard log files:
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TENSORBOARD\_PATH}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TENSORBOARD\_PATH}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The TensorBoard path can be printed with the following command:
 
@@ -22245,10 +22281,10 @@ optimization process. It is initialized as follows:
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_23_07_31_0
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_19_10_12_0
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TensorBoard}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-tip-color!10!white, rightrule=.15mm, colframe=quarto-callout-tip-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-tip-color-frame, breakable, title=\textcolor{quarto-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Tip: TensorBoard}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-tip-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -22460,7 +22496,7 @@ below.
   'upper': 400}}
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Selection}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Selection}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following \texttt{sklearn} models are supported by default:
 
@@ -22521,7 +22557,7 @@ Section~\ref{sec-modifying-hyperparameter-levels}.
 Numeric and boolean values can be modified using the
 \texttt{modify\_hyper\_parameter\_bounds} method.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Hyperparameters}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{\texttt{sklearn\ Model} Hyperparameters}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The hyperparameters of the \texttt{sklearn} \texttt{SVC} model are
 described in the
@@ -22612,7 +22648,7 @@ There are two metrics:
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{\texttt{metric\_sklearn}: Minimization and Maximization}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{\texttt{metric\_sklearn}: Minimization and Maximization}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -22706,7 +22742,7 @@ following parameters:
   parameters for the optimizer
 \end{itemize}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Total run time}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Total run time}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The total run time may exceed the specified \texttt{max\_time}, because
 the initial design (here: \texttt{init\_size} = INIT\_SIZE as specified
@@ -22738,30 +22774,30 @@ above) is always evaluated, even if this takes longer than
 \begin{verbatim}
 spotpython tuning: 0.11831336203046443 [----------] 2.49% 
 spotpython tuning: 0.11831336203046443 [----------] 3.94% 
-spotpython tuning: 0.11831336203046443 [#---------] 6.15% 
-spotpython tuning: 0.11312522934830822 [#---------] 8.69% 
-spotpython tuning: 0.11028295967958186 [#---------] 11.48% 
-spotpython tuning: 0.10549049842162794 [#---------] 14.34% 
-spotpython tuning: 0.10456925631246643 [##--------] 17.69% 
-spotpython tuning: 0.10394150275124696 [##--------] 21.42% 
-spotpython tuning: 0.10394150275124696 [###-------] 25.02% 
-spotpython tuning: 0.10331600680037849 [###-------] 28.53% 
-spotpython tuning: 0.1022579208739993 [###-------] 32.41% 
-spotpython tuning: 0.09869312300335203 [####------] 37.00% 
-spotpython tuning: 0.08706255658343272 [####------] 41.48% 
-spotpython tuning: 0.08423427702103133 [#####-----] 46.52% 
-spotpython tuning: 0.08423427702103133 [#####-----] 50.31% 
-spotpython tuning: 0.08423427702103133 [#####-----] 54.01% 
-spotpython tuning: 0.08423427702103133 [######----] 58.06% 
-spotpython tuning: 0.08423427702103133 [######----] 61.82% 
-spotpython tuning: 0.08423427702103133 [#######---] 65.66% 
-spotpython tuning: 0.08423427702103133 [#######---] 69.85% 
-spotpython tuning: 0.08423427702103133 [#######---] 74.00% 
-spotpython tuning: 0.08423427702103133 [########--] 77.99% 
-spotpython tuning: 0.08423427702103133 [########--] 82.12% 
-spotpython tuning: 0.08423427702103133 [#########-] 86.38% 
-spotpython tuning: 0.08423427702103133 [#########-] 90.20% 
-spotpython tuning: 0.08423427702103133 [#########-] 94.14% 
+spotpython tuning: 0.11831336203046443 [#---------] 6.18% 
+spotpython tuning: 0.11312522934830822 [#---------] 8.71% 
+spotpython tuning: 0.11028295967958186 [#---------] 11.50% 
+spotpython tuning: 0.10549049842162794 [#---------] 14.35% 
+spotpython tuning: 0.10456925631246643 [##--------] 17.73% 
+spotpython tuning: 0.10394150275124696 [##--------] 21.45% 
+spotpython tuning: 0.10394150275124696 [###-------] 25.01% 
+spotpython tuning: 0.10331600680037849 [###-------] 28.54% 
+spotpython tuning: 0.1022579208739993 [###-------] 32.47% 
+spotpython tuning: 0.09869312300335203 [####------] 37.07% 
+spotpython tuning: 0.08706255658343272 [####------] 41.60% 
+spotpython tuning: 0.08423427702103133 [#####-----] 46.70% 
+spotpython tuning: 0.08423427702103133 [#####-----] 50.47% 
+spotpython tuning: 0.08423427702103133 [#####-----] 54.17% 
+spotpython tuning: 0.08423427702103133 [######----] 58.18% 
+spotpython tuning: 0.08423427702103133 [######----] 61.98% 
+spotpython tuning: 0.08423427702103133 [#######---] 65.77% 
+spotpython tuning: 0.08423427702103133 [#######---] 69.89% 
+spotpython tuning: 0.08423427702103133 [#######---] 74.06% 
+spotpython tuning: 0.08423427702103133 [########--] 78.06% 
+spotpython tuning: 0.08423427702103133 [########--] 82.18% 
+spotpython tuning: 0.08423427702103133 [#########-] 86.45% 
+spotpython tuning: 0.08423427702103133 [#########-] 90.21% 
+spotpython tuning: 0.08423427702103133 [#########-] 94.17% 
 spotpython tuning: 0.08423427702103133 [##########] 98.33% 
 spotpython tuning: 0.08423427702103133 [##########] 100.00% Done...
 
@@ -22769,7 +22805,7 @@ Experiment saved to 18_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x31c86c650>
+<spotpython.spot.spot.Spot at 0x10ff52f90>
 \end{verbatim}
 
 \subsection{TensorBoard}\label{sec-tensorboard-17}
@@ -23020,7 +23056,7 @@ explainability and interpretability of OML procedures. This can result
 in a more efficient, resource-conserving algorithm, contributing to the
 concept of ``Green AI''.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Note: This document refers to \texttt{spotRiverGUI} version 0.0.26 which
 was released on Feb 18, 2024 on GitHub, see:
@@ -23308,7 +23344,7 @@ experiment duration:
 If the \texttt{MAX\_TIME} is reached or \texttt{FUN\_EVALS} OML models
 are evaluated, the experiment will be stopped.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Initial design is always evaluated}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Initial design is always evaluated}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -23388,7 +23424,7 @@ are the true target values. The \texttt{y\_pred} values are generated by
 the online machine learning model, and the \texttt{y\_true} values are
 the true target values from the data set.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Evaluation Metrics: Minimization and Maximization}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Evaluation Metrics: Minimization and Maximization}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -23417,7 +23453,7 @@ specifies that only the memory metric is considered. The weight vector
 \texttt{1,1,1} specifies that all metrics are considered. Any real
 values (also negative ones) are allowed for the weights.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The weight vector}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The weight vector}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -23448,7 +23484,7 @@ is \texttt{horizon}. For convenience, the value \texttt{horizon} is also
 selected when the user specifies the \texttt{oml\_grace\_period} value
 as \texttt{None}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The oml\_grace\_period}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The oml\_grace\_period}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -23639,7 +23675,7 @@ for the \texttt{Show\ Data} option}
 
 \end{figure}%
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Size of the Displayed Data Sets}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Size of the Displayed Data Sets}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -24012,7 +24048,7 @@ generate configurations on their local machines, which can be
 transferred to a remote machine for execution. Results from the remote
 machine can be copied back to the local machine for analysis.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Benefits of the spotRiverGUI:}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-important-color!10!white, rightrule=.15mm, colframe=quarto-callout-important-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-important-color-frame, breakable, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Benefits of the spotRiverGUI:}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-important-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -24176,7 +24212,7 @@ the usual train-test split would not work.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The Data Set}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{The Data Set}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Data sets that are available as \texttt{pandas} dataframes can easily be
 passed to the \texttt{spot} hyperparameter tuner. \texttt{spotpython}
@@ -24229,7 +24265,7 @@ experiments, these values should be increased. Note, the total run time
 may exceed the specified \texttt{max\_time}, because the initial design
 is always evaluated, even if this takes longer than \texttt{max\_time}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: General Experiment Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: General Experiment Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used to specify the general experiment
 setup:
@@ -24262,7 +24298,7 @@ the target column during the data set generation in
 Section~\ref{sec-the-friedman-drift-data-set-24}. Therefore, the
 \texttt{target\_column} is set to \texttt{y} (as above).
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Data Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Data Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used to specify the data setup:
 
@@ -24295,7 +24331,7 @@ and further to the evaluation function \texttt{eval\_oml\_horizon}
 The \texttt{metric\_river} is implemented to simulate the behaviour of
 the ``original'' \texttt{river} metrics.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Evaluation Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Evaluation Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameter are used to select the evaluation metric:
 
@@ -24343,7 +24379,7 @@ weight\_coeff == 0, all results have equal weight. Note, that the
 \texttt{weight\_coeff} is only used internally for the tuner and does
 not affect the results that are used for the evaluation or comparisons.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: River-Specific Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: River-Specific Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used:
 
@@ -24381,7 +24417,7 @@ is loaded from the \texttt{spotriver} package.
 How hyperparameter levels can be modified is described in
 Section~\ref{sec-modifying-hyperparameter-levels}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Model Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Model Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used for the model setup:
 
@@ -24405,7 +24441,7 @@ The loss function (metric) values are passed to the objective function
 which combines information about the loss, required memory and time as
 described in Section~\ref{sec-river-specific-setup-24}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Objective Function Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Objective Function Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used:
 
@@ -24528,7 +24564,7 @@ and experimental designs can be used. Thus, interfaces for the
 kriging model, the default optimizer is the differential evolution, and
 default experimental design is the Latin hypercube design.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: \texttt{Spot} Setup}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: \texttt{Spot} Setup}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The following parameters are used for the \texttt{Spot} setup. These
 were specified above:
@@ -24562,24 +24598,24 @@ were specified above:
 \end{Shaded}
 
 \begin{verbatim}
-spotpython tuning: 3.1966535628345643 [----------] 0.70% 
-spotpython tuning: 3.1966535628345643 [#---------] 8.13% 
-spotpython tuning: 3.1966535628345643 [#---------] 11.21% 
-spotpython tuning: 3.1966535628345643 [#---------] 14.14% 
-spotpython tuning: 3.1966535628345643 [##--------] 17.52% 
-spotpython tuning: 3.1966535628345643 [##--------] 20.96% 
-spotpython tuning: 3.1966535628345643 [##--------] 24.53% 
-spotpython tuning: 3.1966535628345643 [###-------] 28.41% 
-spotpython tuning: 3.1966535628345643 [####------] 35.94% 
-spotpython tuning: 3.1966535628345643 [####------] 40.49% 
-spotpython tuning: 3.1966535628345643 [#####-----] 45.08% 
-spotpython tuning: 3.1966535628345643 [######----] 56.42% 
-spotpython tuning: 3.1966535628345643 [######----] 61.82% 
-spotpython tuning: 3.1966535628345643 [#######---] 67.86% 
-spotpython tuning: 3.1966535628345643 [#######---] 73.29% 
-spotpython tuning: 3.1966535628345643 [########--] 80.83% 
-spotpython tuning: 3.1966535628345643 [#########-] 88.21% 
-spotpython tuning: 3.1966535628345643 [##########] 100.00% Done...
+spotpython tuning: 3.1966366429506743 [----------] 0.67% 
+spotpython tuning: 3.1966366429506743 [#---------] 5.59% 
+spotpython tuning: 3.1966366429506743 [#---------] 8.70% 
+spotpython tuning: 3.1966366429506743 [#---------] 13.69% 
+spotpython tuning: 3.1966366429506743 [##--------] 23.28% 
+spotpython tuning: 3.1966366429506743 [###-------] 27.10% 
+spotpython tuning: 3.1966366429506743 [###-------] 30.81% 
+spotpython tuning: 3.1966366429506743 [###-------] 34.52% 
+spotpython tuning: 3.1966366429506743 [####------] 38.59% 
+spotpython tuning: 3.1966366429506743 [####------] 43.22% 
+spotpython tuning: 3.1966366429506743 [#####-----] 48.94% 
+spotpython tuning: 3.1966366429506743 [#####-----] 54.69% 
+spotpython tuning: 3.1966366429506743 [######----] 61.38% 
+spotpython tuning: 3.1966366429506743 [#######---] 70.24% 
+spotpython tuning: 3.1966366429506743 [########--] 78.00% 
+spotpython tuning: 3.1966366429506743 [#########-] 90.05% 
+spotpython tuning: 3.1966366429506743 [##########] 99.53% 
+spotpython tuning: 3.1966366429506743 [##########] 100.00% Done...
 
 Experiment saved to 024_res.pkl
 \end{verbatim}
@@ -24636,21 +24672,21 @@ Results can be printed in tabular form.
 \begin{verbatim}
 | name                   | type   | default          |   lower |   upper | tuned                 | transform              |   importance | stars   |
 |------------------------|--------|------------------|---------|---------|-----------------------|------------------------|--------------|---------|
-| grace_period           | int    | 200              |    10.0 |  1000.0 | 159.0                 | None                   |         0.10 | .       |
-| max_depth              | int    | 20               |     2.0 |    20.0 | 10.0                  | transform_power_2_int  |         0.03 |         |
-| delta                  | float  | 1e-07            |   1e-08 |   1e-06 | 7.459571804536548e-07 | None                   |         0.63 | .       |
-| tau                    | float  | 0.05             |    0.01 |     0.1 | 0.06006303674598468   | None                   |         0.01 |         |
-| leaf_prediction        | factor | mean             |     0.0 |     2.0 | adaptive              | None                   |        75.23 | **      |
+| grace_period           | int    | 200              |    10.0 |  1000.0 | 159.0                 | None                   |         1.68 | *       |
+| max_depth              | int    | 20               |     2.0 |    20.0 | 10.0                  | transform_power_2_int  |         0.29 | .       |
+| delta                  | float  | 1e-07            |   1e-08 |   1e-06 | 7.459571804536548e-07 | None                   |         0.71 | .       |
+| tau                    | float  | 0.05             |    0.01 |     0.1 | 0.06006303674598468   | None                   |         0.12 | .       |
+| leaf_prediction        | factor | mean             |     0.0 |     2.0 | adaptive              | None                   |       100.00 | ***     |
 | leaf_model             | factor | LinearRegression |     0.0 |     2.0 | PARegressor           | None                   |         0.06 |         |
-| model_selector_decay   | float  | 0.95             |     0.9 |    0.99 | 0.9317758429064884    | None                   |         0.01 |         |
-| splitter               | factor | EBSTSplitter     |     0.0 |     2.0 | TEBSTSplitter         | None                   |        71.57 | **      |
-| min_samples_split      | int    | 5                |     2.0 |    10.0 | 9.0                   | None                   |        29.85 | *       |
-| binary_split           | factor | 0                |     0.0 |     1.0 | 1                     | None                   |        19.54 | *       |
-| max_size               | float  | 500.0            |   100.0 |  1000.0 | 326.29227372280025    | None                   |         0.01 |         |
-| memory_estimate_period | int    | 6                |     3.0 |     8.0 | 4.0                   | transform_power_10_int |         0.39 | .       |
-| stop_mem_management    | factor | 0                |     0.0 |     1.0 | 0                     | None                   |       100.00 | ***     |
-| remove_poor_attrs      | factor | 0                |     0.0 |     1.0 | 1                     | None                   |        35.33 | *       |
-| merit_preprune         | factor | 1                |     0.0 |     1.0 | 0                     | None                   |         0.62 | .       |
+| model_selector_decay   | float  | 0.95             |     0.9 |    0.99 | 0.9317758429064884    | None                   |         0.06 |         |
+| splitter               | factor | EBSTSplitter     |     0.0 |     2.0 | TEBSTSplitter         | None                   |         0.08 |         |
+| min_samples_split      | int    | 5                |     2.0 |    10.0 | 9.0                   | None                   |         0.16 | .       |
+| binary_split           | factor | 0                |     0.0 |     1.0 | 1                     | None                   |         1.38 | *       |
+| max_size               | float  | 500.0            |   100.0 |  1000.0 | 326.29227372280025    | None                   |         0.06 |         |
+| memory_estimate_period | int    | 6                |     3.0 |     8.0 | 4.0                   | transform_power_10_int |         2.30 | *       |
+| stop_mem_management    | factor | 0                |     0.0 |     1.0 | 0                     | None                   |         2.50 | *       |
+| remove_poor_attrs      | factor | 0                |     0.0 |     1.0 | 1                     | None                   |         3.92 | *       |
+| merit_preprune         | factor | 1                |     0.0 |     1.0 | 0                     | None                   |         1.52 | *       |
 \end{verbatim}
 
 A histogram can be used to visualize the most important hyperparameters.
@@ -24836,7 +24872,7 @@ In a similar way, we can obtain the hyperparameters found by
 n_samples: 10000
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Large Trees}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-caution-color!10!white, rightrule=.15mm, colframe=quarto-callout-caution-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-caution-color-frame, breakable, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Large Trees}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-caution-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -24887,7 +24923,7 @@ n_samples: 10000
 n_samples: 10000
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Large Trees}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-caution-color!10!white, rightrule=.15mm, colframe=quarto-callout-caution-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-caution-color-frame, breakable, title=\textcolor{quarto-callout-caution-color}{\faFire}\hspace{0.5em}{Caution: Large Trees}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-caution-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -24953,21 +24989,21 @@ Plots}\label{detailed-hyperparameter-plots-2}
 \end{Shaded}
 
 \begin{verbatim}
-grace_period:  0.10295932079195677
-max_depth:  0.031867751523948745
-delta:  0.6298764246600499
-tau:  0.009779351062456663
-leaf_prediction:  75.22664182778597
-leaf_model:  0.061233145242536285
-model_selector_decay:  0.00514143136223994
-splitter:  71.56921521198288
-min_samples_split:  29.84844698418568
-binary_split:  19.54448108130168
-max_size:  0.007518159217632228
-memory_estimate_period:  0.38555153290254174
-stop_mem_management:  100.0
-remove_poor_attrs:  35.33041461252674
-merit_preprune:  0.6172431572857102
+grace_period:  1.6804383161688854
+max_depth:  0.29162867823789734
+delta:  0.7139836711383395
+tau:  0.12306113950040021
+leaf_prediction:  100.0
+leaf_model:  0.055456382588141506
+model_selector_decay:  0.05545638256056422
+splitter:  0.07726366520800955
+min_samples_split:  0.15668934477580748
+binary_split:  1.377051609650259
+max_size:  0.05545638256056422
+memory_estimate_period:  2.3016556109697737
+stop_mem_management:  2.5010592253036186
+remove_poor_attrs:  3.9218763846314384
+merit_preprune:  1.5181087980471693
 \end{verbatim}
 
 \pandocbounded{\includegraphics[keepaspectratio]{502_spot_hpt_river_friedman_htr_files/figure-pdf/plot_important_hyperparameter_contour-output-2.pdf}}
@@ -25196,7 +25232,7 @@ Calling modify_hyper_parameter_bounds().
 | use_aggregation | factor |         1 |     0   |       1 | None                  |
 \end{verbatim}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Active and Inactive Hyperparameters}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Active and Inactive Hyperparameters}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Hyperparameters can be excluded from the tuning procedure by selecting
 identical values for the lower and upper bounds.
@@ -25222,9 +25258,9 @@ Optimizer}{Run the Spot Optimizer}}\label{run-the-spot-optimizer-3}
 \end{Shaded}
 
 \begin{verbatim}
-spotpython tuning: 2.789316099360817 [###-------] 34.92% 
-spotpython tuning: 2.789316099360817 [#######---] 71.15% 
-spotpython tuning: 2.789316099360817 [##########] 100.00% Done...
+spotpython tuning: 2.8065446371170752 [####------] 35.39% 
+spotpython tuning: 2.8065446371170752 [#######---] 71.64% 
+spotpython tuning: 2.7643779486097215 [##########] 100.00% Done...
 
 Experiment saved to 503_res.pkl
 \end{verbatim}
@@ -25269,11 +25305,11 @@ Results can be printed in tabular form.
 \end{Shaded}
 
 \begin{verbatim}
-| name            | type   |   default |   lower |   upper |             tuned | transform             |   importance | stars   |
-|-----------------|--------|-----------|---------|---------|-------------------|-----------------------|--------------|---------|
-| n_estimators    | int    |       3.0 |     2.0 |       7 |               5.0 | transform_power_2_int |       100.00 | ***     |
-| step            | float  |       1.0 |     0.1 |      15 | 4.920130041445287 | None                  |         5.65 | *       |
-| use_aggregation | factor |       1.0 |     0.0 |       1 |               1.0 | None                  |         0.22 | .       |
+| name            | type   |   default |   lower |   upper |           tuned | transform             |   importance | stars   |
+|-----------------|--------|-----------|---------|---------|-----------------|-----------------------|--------------|---------|
+| n_estimators    | int    |       3.0 |     2.0 |       7 |             5.0 | transform_power_2_int |       100.00 | ***     |
+| step            | float  |       1.0 |     0.1 |      15 | 5.3027586875135 | None                  |         0.06 |         |
+| use_aggregation | factor |       1.0 |     0.0 |       1 |             0.0 | None                  |         0.46 | .       |
 \end{verbatim}
 
 A histogram can be used to visualize the most important hyperparameters.
@@ -25455,8 +25491,8 @@ Plots}\label{detailed-hyperparameter-plots-3}
 
 \begin{verbatim}
 n_estimators:  100.0
-step:  5.646883999597501
-use_aggregation:  0.21888288580210705
+step:  0.0551120509042799
+use_aggregation:  0.46293413026657615
 \end{verbatim}
 
 \pandocbounded{\includegraphics[keepaspectratio]{503_spot_hpt_river_friedman_amfr_files/figure-pdf/plot_important_hyperparameter_contour-output-2.pdf}}
@@ -26317,7 +26353,7 @@ Testing: |          | 0/? [00:00<?, ?it/s]
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        Test metric        ┃       DataLoader 0        ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│      test_loss_epoch      │     3126.71728515625      │
+│      test_loss_epoch      │     2922.079345703125     │
 └───────────────────────────┴───────────────────────────┘
 \end{verbatim}
 
@@ -26387,13 +26423,13 @@ The \texttt{DataModule} can be used to train the model as follows:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃      Validate metric      ┃       DataLoader 0        ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│      val_loss_epoch       │      3092.9853515625      │
+│      val_loss_epoch       │     3178.173095703125     │
 └───────────────────────────┴───────────────────────────┘
 \end{verbatim}
 
 \phantomsection\label{lightning_starter_validate_datamodule-2}
 \begin{verbatim}
-[{'val_loss_epoch': 3092.9853515625}]
+[{'val_loss_epoch': 3178.173095703125}]
 \end{verbatim}
 
 \phantomsection\label{lightning_starter_test_datamodule}
@@ -26408,13 +26444,13 @@ The \texttt{DataModule} can be used to train the model as follows:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        Test metric        ┃       DataLoader 0        ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│      test_loss_epoch      │     2435.09326171875      │
+│      test_loss_epoch      │     2540.96435546875      │
 └───────────────────────────┴───────────────────────────┘
 \end{verbatim}
 
 \phantomsection\label{lightning_starter_test_datamodule-2}
 \begin{verbatim}
-[{'test_loss_epoch': 2435.09326171875}]
+[{'test_loss_epoch': 2540.96435546875}]
 \end{verbatim}
 
 \section{Using spotpython with Pytorch
@@ -26477,8 +26513,8 @@ Lightning}\label{using-spotpython-with-pytorch-lightning}
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_23_20_20_0
-Created spot_tensorboard_path: runs/spot_logs/700_p040025_2025-04-07_23-20-20 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_19_23_04_0
+Created spot_tensorboard_path: runs/spot_logs/700_p040025_2025-04-08_19-23-04 for SummaryWriter()
 module_name: light
 submodule_name: regression
 model_name: NNLinearRegressor
@@ -26578,7 +26614,7 @@ train_model result: {'val_loss': 4203.2431640625, 'hp_metric': 4203.2431640625}
 \begin{verbatim}
 train_model result: {'val_loss': 23258.3828125, 'hp_metric': 23258.3828125}
 train_model result: {'val_loss': 23233.951171875, 'hp_metric': 23233.951171875}
-spotpython tuning: 3110.947021484375 [#---------] 6.67% 
+spotpython tuning: 3110.947021484375 [#---------] 6.78% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26588,7 +26624,7 @@ train_model result: {'val_loss': 4282.076171875, 'hp_metric': 4282.076171875}
 \begin{verbatim}
 train_model result: {'val_loss': 3338.591796875, 'hp_metric': 3338.591796875}
 train_model result: {'val_loss': 3098.641845703125, 'hp_metric': 3098.641845703125}
-spotpython tuning: 3098.641845703125 [##--------] 15.61% 
+spotpython tuning: 3098.641845703125 [##--------] 15.86% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26598,7 +26634,7 @@ train_model result: {'val_loss': 2947.681396484375, 'hp_metric': 2947.6813964843
 \begin{verbatim}
 train_model result: {'val_loss': 3021.973876953125, 'hp_metric': 3021.973876953125}
 train_model result: {'val_loss': 3053.84521484375, 'hp_metric': 3053.84521484375}
-spotpython tuning: 2947.681396484375 [##--------] 22.73% 
+spotpython tuning: 2947.681396484375 [##--------] 23.09% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26608,7 +26644,7 @@ train_model result: {'val_loss': 3159.0849609375, 'hp_metric': 3159.0849609375}
 \begin{verbatim}
 train_model result: {'val_loss': 3236.342041015625, 'hp_metric': 3236.342041015625}
 train_model result: {'val_loss': 3322.298828125, 'hp_metric': 3322.298828125}
-spotpython tuning: 2947.681396484375 [####------] 37.87% 
+spotpython tuning: 2947.681396484375 [####------] 38.60% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26618,7 +26654,7 @@ train_model result: {'val_loss': 3144.78173828125, 'hp_metric': 3144.78173828125
 \begin{verbatim}
 train_model result: {'val_loss': 3184.89599609375, 'hp_metric': 3184.89599609375}
 train_model result: {'val_loss': 3126.11181640625, 'hp_metric': 3126.11181640625}
-spotpython tuning: 2947.681396484375 [#####-----] 50.98% 
+spotpython tuning: 2947.681396484375 [#####-----] 52.11% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26628,7 +26664,7 @@ train_model result: {'val_loss': 3123.455810546875, 'hp_metric': 3123.4558105468
 \begin{verbatim}
 train_model result: {'val_loss': 3151.12890625, 'hp_metric': 3151.12890625}
 train_model result: {'val_loss': 3390.51416015625, 'hp_metric': 3390.51416015625}
-spotpython tuning: 2947.681396484375 [#######---] 66.10% 
+spotpython tuning: 2947.681396484375 [#######---] 67.43% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26638,7 +26674,7 @@ train_model result: {'val_loss': 2867.78564453125, 'hp_metric': 2867.78564453125
 \begin{verbatim}
 train_model result: {'val_loss': 3128.100830078125, 'hp_metric': 3128.100830078125}
 train_model result: {'val_loss': 3000.109619140625, 'hp_metric': 3000.109619140625}
-spotpython tuning: 2867.78564453125 [########--] 79.20% 
+spotpython tuning: 2867.78564453125 [########--] 80.66% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -26648,7 +26684,7 @@ train_model result: {'val_loss': 3554.223388671875, 'hp_metric': 3554.2233886718
 \begin{verbatim}
 train_model result: {'val_loss': 3215.991455078125, 'hp_metric': 3215.991455078125}
 train_model result: {'val_loss': 3246.145751953125, 'hp_metric': 3246.145751953125}
-spotpython tuning: 2867.78564453125 [#########-] 90.34% 
+spotpython tuning: 2867.78564453125 [#########-] 91.96% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -28197,7 +28233,7 @@ quantitative measure of disease progression one year after baseline.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Device selection}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: Device selection}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -28832,7 +28868,7 @@ using the prediction dataset. It simply returns a DataLoader with the
 \texttt{data\_predict} set that was created in the \texttt{setup()}
 method as described in Section~\ref{sec-stage-predict-30}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{batch\_size} is set to the length of the
 \texttt{data\_predict} set.
@@ -29151,111 +29187,106 @@ train_model result: {'val_loss': 23905.603515625, 'hp_metric': 23905.603515625}
 
 \begin{verbatim}
 train_model result: {'val_loss': 22542.283203125, 'hp_metric': 22542.283203125}
-spotpython tuning: 3466.6259765625 [----------] 1.72% 
+spotpython tuning: 3466.6259765625 [----------] 1.79% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 7673.8115234375, 'hp_metric': 7673.8115234375}
-spotpython tuning: 3466.6259765625 [----------] 4.01% 
+spotpython tuning: 3466.6259765625 [----------] 4.18% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3747.302001953125, 'hp_metric': 3747.302001953125}
-spotpython tuning: 3466.6259765625 [#---------] 6.52% 
+spotpython tuning: 3466.6259765625 [#---------] 6.84% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3026.158203125, 'hp_metric': 3026.158203125}
-spotpython tuning: 3026.158203125 [#---------] 9.03% 
+spotpython tuning: 3026.158203125 [#---------] 9.49% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 10974.5947265625, 'hp_metric': 10974.5947265625}
-spotpython tuning: 3026.158203125 [#---------] 11.41% 
+spotpython tuning: 3026.158203125 [#---------] 11.97% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3401.673095703125, 'hp_metric': 3401.673095703125}
-spotpython tuning: 3026.158203125 [#---------] 14.36% 
+spotpython tuning: 3026.158203125 [##--------] 15.11% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 7168.64794921875, 'hp_metric': 7168.64794921875}
-spotpython tuning: 3026.158203125 [##--------] 17.12% 
+spotpython tuning: 3026.158203125 [##--------] 17.96% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4036.64501953125, 'hp_metric': 4036.64501953125}
-spotpython tuning: 3026.158203125 [##--------] 22.10% 
+spotpython tuning: 3026.158203125 [##--------] 23.21% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 23706.5, 'hp_metric': 23706.5}
-spotpython tuning: 3026.158203125 [###-------] 25.52% 
+spotpython tuning: 3026.158203125 [###-------] 26.80% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3863.102294921875, 'hp_metric': 3863.102294921875}
-spotpython tuning: 3026.158203125 [###-------] 30.94% 
+spotpython tuning: 3026.158203125 [###-------] 32.58% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 22534.533203125, 'hp_metric': 22534.533203125}
-spotpython tuning: 3026.158203125 [###-------] 34.71% 
+spotpython tuning: 3026.158203125 [####------] 36.47% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3321.979248046875, 'hp_metric': 3321.979248046875}
-spotpython tuning: 3026.158203125 [####------] 39.63% 
+spotpython tuning: 3026.158203125 [####------] 41.55% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3222.26904296875, 'hp_metric': 3222.26904296875}
-spotpython tuning: 3026.158203125 [####------] 43.89% 
+spotpython tuning: 3026.158203125 [#####-----] 46.01% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3259.46142578125, 'hp_metric': 3259.46142578125}
-spotpython tuning: 3026.158203125 [#####-----] 49.52% 
+spotpython tuning: 3026.158203125 [#####-----] 51.88% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3231.78515625, 'hp_metric': 3231.78515625}
-spotpython tuning: 3026.158203125 [#####-----] 54.70% 
+spotpython tuning: 3026.158203125 [######----] 57.23% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3163.12060546875, 'hp_metric': 3163.12060546875}
-spotpython tuning: 3026.158203125 [######----] 60.36% 
+spotpython tuning: 3026.158203125 [######----] 63.04% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3107.807861328125, 'hp_metric': 3107.807861328125}
-spotpython tuning: 3026.158203125 [#######---] 67.40% 
+spotpython tuning: 3026.158203125 [#######---] 70.30% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3209.750244140625, 'hp_metric': 3209.750244140625}
-spotpython tuning: 3026.158203125 [#######---] 74.69% 
+spotpython tuning: 3026.158203125 [########--] 77.69% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3026.579345703125, 'hp_metric': 3026.579345703125}
-spotpython tuning: 3026.158203125 [########--] 81.66% 
+spotpython tuning: 3026.158203125 [########--] 84.80% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3246.313720703125, 'hp_metric': 3246.313720703125}
-spotpython tuning: 3026.158203125 [#########-] 89.23% 
+spotpython tuning: 3026.158203125 [#########-] 92.63% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3045.665771484375, 'hp_metric': 3045.665771484375}
-spotpython tuning: 3026.158203125 [##########] 98.87% 
-\end{verbatim}
-
-\begin{verbatim}
-train_model result: {'val_loss': 3180.01513671875, 'hp_metric': 3180.01513671875}
 spotpython tuning: 3026.158203125 [##########] 100.00% Done...
 
 Experiment saved to 601_res.pkl
@@ -29263,7 +29294,7 @@ Experiment saved to 601_res.pkl
 
 \phantomsection\label{run}
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x3164afd70>
+<spotpython.spot.spot.Spot at 0x122e1c080>
 \end{verbatim}
 
 \section{Looking at the Results}\label{looking-at-the-results-1}
@@ -29301,9 +29332,9 @@ Results can be printed in tabular form.
 | name           | type   | default   |   lower |   upper | tuned               | transform             |   importance | stars   |
 |----------------|--------|-----------|---------|---------|---------------------|-----------------------|--------------|---------|
 | l1             | int    | 3         |     3.0 |     4.0 | 3.0                 | transform_power_2_int |         0.00 |         |
-| epochs         | int    | 4         |     3.0 |     7.0 | 5.0                 | transform_power_2_int |         1.02 | *       |
+| epochs         | int    | 4         |     3.0 |     7.0 | 5.0                 | transform_power_2_int |         0.26 | .       |
 | batch_size     | int    | 4         |     4.0 |    11.0 | 6.0                 | transform_power_2_int |         0.00 |         |
-| act_fn         | factor | ReLU      |     0.0 |     5.0 | ReLU                | None                  |         3.76 | *       |
+| act_fn         | factor | ReLU      |     0.0 |     5.0 | ReLU                | None                  |         0.99 | .       |
 | optimizer      | factor | SGD       |     0.0 |     2.0 | Adadelta            | None                  |         0.00 |         |
 | dropout_prob   | float  | 0.01      |     0.0 |   0.025 | 0.02041082167725199 | None                  |         0.00 |         |
 | lr_mult        | float  | 1.0       |     0.1 |    10.0 | 3.124815670565891   | None                  |         0.00 |         |
@@ -29329,16 +29360,16 @@ A histogram can be used to visualize the most important hyperparameters.
 \end{Shaded}
 
 \begin{verbatim}
-l1:  0.00384153998597041
-epochs:  1.0209567046362116
-batch_size:  0.00384153998597041
-act_fn:  3.763396150188677
-optimizer:  0.00384153998597041
-dropout_prob:  0.00384153998597041
-lr_mult:  0.00384153998597041
-patience:  0.00384153998597041
+l1:  0.001
+epochs:  0.2643020591267839
+batch_size:  0.001
+act_fn:  0.9949694919629875
+optimizer:  0.001
+dropout_prob:  0.001
+lr_mult:  0.001
+patience:  0.001
 batch_norm:  100.0
-initialization:  0.00384153998597041
+initialization:  0.001
 \end{verbatim}
 
 \pandocbounded{\includegraphics[keepaspectratio]{601_spot_hpt_light_diabetes_files/figure-pdf/cell-9-output-2.pdf}}
@@ -29395,13 +29426,13 @@ initialization:  0.00384153998597041
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        Test metric        ┃       DataLoader 0        ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│         hp_metric         │     3331.022216796875     │
-│         val_loss          │     3331.022216796875     │
+│         hp_metric         │     3430.70263671875      │
+│         val_loss          │     3430.70263671875      │
 └───────────────────────────┴───────────────────────────┘
 \end{verbatim}
 
 \begin{verbatim}
-test_model result: {'val_loss': 3331.022216796875, 'hp_metric': 3331.022216796875}
+test_model result: {'val_loss': 3430.70263671875, 'hp_metric': 3430.70263671875}
 \end{verbatim}
 
 \begin{verbatim}
@@ -29470,13 +29501,13 @@ k: 0
 \end{verbatim}
 
 \begin{verbatim}
-train_model result: {'val_loss': 3209.2109375, 'hp_metric': 3209.2109375}
+train_model result: {'val_loss': 3242.179931640625, 'hp_metric': 3242.179931640625}
 k: 1
-train_model result: {'val_loss': 3007.51611328125, 'hp_metric': 3007.51611328125}
+train_model result: {'val_loss': 3063.86669921875, 'hp_metric': 3063.86669921875}
 \end{verbatim}
 
 \begin{verbatim}
-3108.363525390625
+3153.0233154296875
 \end{verbatim}
 
 \section{Extending the Basic Setup}\label{extending-the-basic-setup}
@@ -30018,38 +30049,38 @@ train_model result: {'val_loss': 2893.5380859375, 'hp_metric': 2893.5380859375}
 
 \begin{verbatim}
 train_model result: {'val_loss': 2925.6025390625, 'hp_metric': 2925.6025390625}
-spotpython tuning: 2893.5380859375 [----------] 1.58% 
+spotpython tuning: 2893.5380859375 [----------] 1.68% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4444.89453125, 'hp_metric': 4444.89453125}
-spotpython tuning: 2893.5380859375 [###-------] 26.42% 
+spotpython tuning: 2893.5380859375 [###-------] 27.43% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4984.44775390625, 'hp_metric': 4984.44775390625}
-spotpython tuning: 2893.5380859375 [###-------] 28.39% 
+spotpython tuning: 2893.5380859375 [###-------] 29.47% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4903.7099609375, 'hp_metric': 4903.7099609375}
-spotpython tuning: 2893.5380859375 [###-------] 30.48% 
+spotpython tuning: 2893.5380859375 [###-------] 31.59% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4807.97900390625, 'hp_metric': 4807.97900390625}
-spotpython tuning: 2893.5380859375 [###-------] 32.27% 
+spotpython tuning: 2893.5380859375 [###-------] 33.48% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3076.665771484375, 'hp_metric': 3076.665771484375}
-spotpython tuning: 2893.5380859375 [####------] 38.66% 
+spotpython tuning: 2893.5380859375 [####------] 40.16% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model(): trainer.fit failed with exception: SparseAdam does not support dense gradients, please consider Adam instead
 train_model result: {'val_loss': 24015.21484375, 'hp_metric': 24015.21484375}
-spotpython tuning: 2893.5380859375 [####------] 39.99% 
+spotpython tuning: 2893.5380859375 [####------] 41.52% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -30058,7 +30089,7 @@ train_model result: {'val_loss': nan, 'hp_metric': nan}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3482.34423828125, 'hp_metric': 3482.34423828125}
-spotpython tuning: 2893.5380859375 [#####-----] 46.18% 
+spotpython tuning: 2893.5380859375 [#####-----] 47.98% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -30067,68 +30098,62 @@ train_model result: {'val_loss': nan, 'hp_metric': nan}
 
 \begin{verbatim}
 train_model result: {'val_loss': 7561.8232421875, 'hp_metric': 7561.8232421875}
-spotpython tuning: 2893.5380859375 [#####-----] 50.06% 
+spotpython tuning: 2893.5380859375 [#####-----] 52.06% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 6245.69384765625, 'hp_metric': 6245.69384765625}
-spotpython tuning: 2893.5380859375 [#####-----] 53.22% 
+spotpython tuning: 2893.5380859375 [######----] 55.32% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3069.99169921875, 'hp_metric': 3069.99169921875}
-spotpython tuning: 2893.5380859375 [######----] 59.66% 
+spotpython tuning: 2893.5380859375 [######----] 62.16% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 5413.94580078125, 'hp_metric': 5413.94580078125}
-spotpython tuning: 2893.5380859375 [######----] 63.16% 
+spotpython tuning: 2893.5380859375 [#######---] 65.75% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': nan, 'hp_metric': nan}
 train_model result: {'val_loss': 3141.05712890625, 'hp_metric': 3141.05712890625}
-spotpython tuning: 2893.5380859375 [#########-] 91.50% 
+spotpython tuning: 2893.5380859375 [##########] 95.50% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 2942.4833984375, 'hp_metric': 2942.4833984375}
-spotpython tuning: 2893.5380859375 [##########] 99.03% 
-\end{verbatim}
-
-\begin{verbatim}
-train_model result: {'val_loss': nan, 'hp_metric': nan}
-train_model result: {'val_loss': 2937.50048828125, 'hp_metric': 2937.50048828125}
 spotpython tuning: 2893.5380859375 [##########] 100.00% Done...
 
 Experiment saved to 601-user-model_res.pkl
 | name           | type   | default   |   lower |   upper | tuned               | transform             |   importance | stars   |
 |----------------|--------|-----------|---------|---------|---------------------|-----------------------|--------------|---------|
 | l1             | int    | 3         |     3.0 |     8.0 | 5.0                 | transform_power_2_int |         0.01 |         |
-| epochs         | int    | 4         |     4.0 |     9.0 | 4.0                 | transform_power_2_int |       100.00 | ***     |
-| batch_size     | int    | 4         |     1.0 |     4.0 | 4.0                 | transform_power_2_int |         1.35 | *       |
+| epochs         | int    | 4         |     4.0 |     9.0 | 4.0                 | transform_power_2_int |         0.01 |         |
+| batch_size     | int    | 4         |     1.0 |     4.0 | 4.0                 | transform_power_2_int |         0.01 |         |
 | act_fn         | factor | ReLU      |     0.0 |     5.0 | ReLU                | None                  |         0.01 |         |
-| optimizer      | factor | SGD       |     0.0 |    11.0 | AdamW               | None                  |         0.04 |         |
+| optimizer      | factor | SGD       |     0.0 |    11.0 | AdamW               | None                  |         0.01 |         |
 | dropout_prob   | float  | 0.01      |     0.0 |    0.25 | 0.14960635316721133 | None                  |         0.01 |         |
-| lr_mult        | float  | 1.0       |     0.1 |    10.0 | 9.293583024571447   | None                  |         0.01 |         |
-| patience       | int    | 2         |     2.0 |     6.0 | 3.0                 | transform_power_2_int |         0.01 |         |
-| initialization | factor | Default   |     0.0 |     4.0 | xavier_uniform      | None                  |         0.17 | .       |
-l1:  0.00973866796055182
-epochs:  100.0
-batch_size:  1.3516731779639097
-act_fn:  0.00973866796055182
-optimizer:  0.039171063290095294
-dropout_prob:  0.00973866796055182
-lr_mult:  0.011273433588708717
-patience:  0.00973866796055182
-initialization:  0.16624529020303
+| lr_mult        | float  | 1.0       |     0.1 |    10.0 | 9.293583024571447   | None                  |         0.82 | .       |
+| patience       | int    | 2         |     2.0 |     6.0 | 3.0                 | transform_power_2_int |       100.00 | ***     |
+| initialization | factor | Default   |     0.0 |     4.0 | xavier_uniform      | None                  |         1.61 | *       |
+l1:  0.007979960614939352
+epochs:  0.007979960614939352
+batch_size:  0.007979960614939352
+act_fn:  0.007979960614939352
+optimizer:  0.007979960614939352
+dropout_prob:  0.007979960614939352
+lr_mult:  0.820964429240984
+patience:  99.99999999999999
+initialization:  1.6085122585954656
 \end{verbatim}
+
+\pandocbounded{\includegraphics[keepaspectratio]{601_spot_hpt_light_user_model_files/figure-pdf/user_model_run-output-23.pdf}}
 
 \pandocbounded{\includegraphics[keepaspectratio]{601_spot_hpt_light_user_model_files/figure-pdf/user_model_run-output-24.pdf}}
 
 \pandocbounded{\includegraphics[keepaspectratio]{601_spot_hpt_light_user_model_files/figure-pdf/user_model_run-output-25.pdf}}
-
-\pandocbounded{\includegraphics[keepaspectratio]{601_spot_hpt_light_user_model_files/figure-pdf/user_model_run-output-26.pdf}}
 
 \section{Details}\label{details}
 
@@ -30866,7 +30891,7 @@ Section~\ref{sec-stage-fit-601}.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{train\_dataloader()} Method}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{train\_dataloader()} Method}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{train\_dataloader()} method can be used as follows:
 
@@ -30898,17 +30923,17 @@ Batch Size: 5
 Inputs Shape: torch.Size([5, 10])
 Targets Shape: torch.Size([5])
 ---------------
-Inputs: tensor([[ 0.0417, -0.0446, -0.0084, -0.0573,  0.0081, -0.0314,  0.1517, -0.0764,
-         -0.0802, -0.0176],
-        [-0.0200, -0.0446, -0.0849, -0.0263, -0.0360, -0.0342,  0.0413, -0.0517,
-         -0.0824, -0.0466],
-        [ 0.0708,  0.0507,  0.0121,  0.0563,  0.0342,  0.0494, -0.0397,  0.0343,
-          0.0274, -0.0011],
-        [-0.0455, -0.0446,  0.0391,  0.0012,  0.0163,  0.0153, -0.0287,  0.0266,
-          0.0445, -0.0259],
-        [-0.0382, -0.0446, -0.0547, -0.0780, -0.0332, -0.0865,  0.1407, -0.0764,
-         -0.0192, -0.0052]])
-Targets: tensor([ 39.,  90., 144., 220.,  60.])
+Inputs: tensor([[ 0.0417,  0.0507,  0.0617, -0.0401, -0.0140,  0.0062, -0.0287, -0.0026,
+         -0.0150,  0.0113],
+        [ 0.0453,  0.0507,  0.0606,  0.0311,  0.0287, -0.0473, -0.0544,  0.0712,
+          0.1336,  0.1356],
+        [-0.0382, -0.0446, -0.0105, -0.0367, -0.0373, -0.0195, -0.0287, -0.0026,
+         -0.0181, -0.0176],
+        [ 0.0235,  0.0507, -0.0375, -0.0470, -0.0910, -0.0755, -0.0324, -0.0395,
+         -0.0307, -0.0135],
+        [-0.0564,  0.0507, -0.0105,  0.0253,  0.0232,  0.0400, -0.0397,  0.0343,
+          0.0206,  0.0569]])
+Targets: tensor([110., 245.,  97., 129., 179.])
 \end{verbatim}
 
 \end{tcolorbox}
@@ -30928,7 +30953,7 @@ as desccribed in Section~\ref{sec-stage-fit-601}.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{val\_dataloader()} Method}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{val\_dataloader()} Method}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{val\_dataloader()} method can be used as follows:
 
@@ -30990,7 +31015,7 @@ as described in Section~\ref{sec-stage-test-30}.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{test\_dataloader()} Method}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{test\_dataloader()} Method}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{test\_dataloader()} method can be used as follows:
 
@@ -31045,7 +31070,7 @@ using the prediction dataset. It simply returns a DataLoader with the
 \texttt{data\_predict} set that was created in the \texttt{setup()}
 method as described in Section~\ref{sec-stage-predict-30}.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{batch\_size} is set to the length of the
 \texttt{data\_predict} set.
@@ -31059,7 +31084,7 @@ The \texttt{batch\_size} is set to the length of the
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{predict\_dataloader()} Method}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Using the \texttt{predict\_dataloader()} Method}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The \texttt{predict\_dataloader()} method can be used as follows:
 
@@ -31732,16 +31757,16 @@ Model]\protect\hypertarget{exm-example-resnet}{}\label{exm-example-resnet}
 \end{Shaded}
 
 \begin{verbatim}
-Epoch 1/10, Loss: 39075.65625
-Epoch 2/10, Loss: 33284.39453125
-Epoch 3/10, Loss: 30076.869140625
-Epoch 4/10, Loss: 27947.283203125
-Epoch 5/10, Loss: 26073.77734375
-Epoch 6/10, Loss: 24351.3359375
-Epoch 7/10, Loss: 22773.83203125
-Epoch 8/10, Loss: 21221.578125
-Epoch 9/10, Loss: 19738.4765625
-Epoch 10/10, Loss: 18313.70703125
+Epoch 1/10, Loss: 17638.52734375
+Epoch 2/10, Loss: 15046.5048828125
+Epoch 3/10, Loss: 13350.7470703125
+Epoch 4/10, Loss: 12049.6240234375
+Epoch 5/10, Loss: 10928.826171875
+Epoch 6/10, Loss: 9971.3701171875
+Epoch 7/10, Loss: 9045.103515625
+Epoch 8/10, Loss: 8150.63134765625
+Epoch 9/10, Loss: 7284.484375
+Epoch 10/10, Loss: 6467.33203125
 \end{verbatim}
 
 \end{example}
@@ -33815,7 +33840,7 @@ The file is shown below.
 \subsection{\texorpdfstring{The New \texttt{pinn\_regressor.py}
 File}{The New pinn\_regressor.py File}}\label{sec-pinn-regressor}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The document is not complete. The code below is a template and needs to
 be modified to work with the PINN model.
@@ -34225,32 +34250,32 @@ train_model result: {'val_loss': 4758.79541015625, 'hp_metric': 4758.79541015625
 
 \begin{verbatim}
 train_model result: {'val_loss': 5678.7119140625, 'hp_metric': 5678.7119140625}
-spotpython tuning: 3005.0224609375 [----------] 1.99% 
+spotpython tuning: 3005.0224609375 [----------] 2.04% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3058.694091796875, 'hp_metric': 3058.694091796875}
-spotpython tuning: 3005.0224609375 [----------] 3.79% 
+spotpython tuning: 3005.0224609375 [----------] 3.92% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4309.19775390625, 'hp_metric': 4309.19775390625}
-spotpython tuning: 3005.0224609375 [#---------] 14.52% 
+spotpython tuning: 3005.0224609375 [#---------] 14.61% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3136.277099609375, 'hp_metric': 3136.277099609375}
-spotpython tuning: 3005.0224609375 [##--------] 15.61% 
+spotpython tuning: 3005.0224609375 [##--------] 15.72% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 2991.519775390625, 'hp_metric': 2991.519775390625}
-spotpython tuning: 2991.519775390625 [##--------] 17.38% 
+spotpython tuning: 2991.519775390625 [##--------] 17.53% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 11920.392578125, 'hp_metric': 11920.392578125}
-spotpython tuning: 2991.519775390625 [##--------] 18.85% 
+spotpython tuning: 2991.519775390625 [##--------] 19.06% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -34262,7 +34287,7 @@ Experiment saved to 602_12_1_res.pkl
 
 \phantomsection\label{run_experiment}
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x1776ed760>
+<spotpython.spot.spot.Spot at 0x308228bf0>
 \end{verbatim}
 
 \section{Results from the Hyperparameter Tuning
@@ -36967,8 +36992,8 @@ Finally, a \texttt{Spot} object is created.
 \end{Shaded}
 
 \begin{verbatim}
-Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_07_23_39_17_0
-Created spot_tensorboard_path: runs/spot_logs/603_p040025_2025-04-07_23-39-17 for SummaryWriter()
+Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_04_08_19_42_08_0
+Created spot_tensorboard_path: runs/spot_logs/603_p040025_2025-04-08_19-42-08 for SummaryWriter()
 module_name: light
 submodule_name: regression
 model_name: NNTransformerRegressor
@@ -37040,7 +37065,7 @@ d_model: 128, dim_feedforward: 256
 
 \begin{verbatim}
 train_model result: {'val_loss': 20722.6171875, 'hp_metric': 20722.6171875}
-spotpython tuning: 20722.6171875 [##--------] 23.16% 
+spotpython tuning: 20722.6171875 [##--------] 23.32% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -37049,7 +37074,7 @@ d_model: 128, dim_feedforward: 256
 
 \begin{verbatim}
 train_model result: {'val_loss': 19918.572265625, 'hp_metric': 19918.572265625}
-spotpython tuning: 19918.572265625 [####------] 36.82% 
+spotpython tuning: 19918.572265625 [####------] 37.17% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -37058,31 +37083,31 @@ d_model: 128, dim_feedforward: 256
 
 \begin{verbatim}
 train_model result: {'val_loss': 19282.2734375, 'hp_metric': 19282.2734375}
-spotpython tuning: 19282.2734375 [#####-----] 50.72% 
+spotpython tuning: 19282.2734375 [#####-----] 51.16% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5285.18359375, 'hp_metric': 5285.18359375}
-spotpython tuning: 5285.18359375 [######----] 56.20% 
+spotpython tuning: 5285.18359375 [######----] 56.74% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5470.861328125, 'hp_metric': 5470.861328125}
-spotpython tuning: 5285.18359375 [######----] 61.25% 
+spotpython tuning: 5285.18359375 [######----] 61.82% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5555.56591796875, 'hp_metric': 5555.56591796875}
-spotpython tuning: 5285.18359375 [#######---] 66.41% 
+spotpython tuning: 5285.18359375 [#######---] 67.09% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5573.1240234375, 'hp_metric': 5573.1240234375}
-spotpython tuning: 5285.18359375 [#######---] 72.50% 
+spotpython tuning: 5285.18359375 [#######---] 73.29% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -37091,25 +37116,25 @@ d_model: 32, dim_feedforward: 64
 
 \begin{verbatim}
 train_model result: {'val_loss': 23853.962890625, 'hp_metric': 23853.962890625}
-spotpython tuning: 5285.18359375 [########--] 76.59% 
+spotpython tuning: 5285.18359375 [########--] 77.35% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5459.7333984375, 'hp_metric': 5459.7333984375}
-spotpython tuning: 5285.18359375 [########--] 82.51% 
+spotpython tuning: 5285.18359375 [########--] 83.29% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5451.3583984375, 'hp_metric': 5451.3583984375}
-spotpython tuning: 5285.18359375 [#########-] 89.70% 
+spotpython tuning: 5285.18359375 [#########-] 90.53% 
 \end{verbatim}
 
 \begin{verbatim}
 d_model: 128, dim_feedforward: 256
 train_model result: {'val_loss': 5518.9765625, 'hp_metric': 5518.9765625}
-spotpython tuning: 5285.18359375 [##########] 96.52% 
+spotpython tuning: 5285.18359375 [##########] 97.44% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -37333,7 +37358,7 @@ Interconnections:}\label{important-constraints-and-interconnections}
   \end{itemize}
 \end{enumerate}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: \texttt{d\_model} Calculation}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: \texttt{d\_model} Calculation}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Since \texttt{d\_model\ \%\ nhead\ ==\ 0} is a critical constraint to
 ensure that the multi-head attention mechanism can operate effectively,
@@ -37347,7 +37372,7 @@ multiple of \texttt{nhead} to use for \texttt{d\_model}, i.e.,
 
 \end{tcolorbox}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: \texttt{dim\_feedforward} Calculation}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note: \texttt{dim\_feedforward} Calculation}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 Since this dimension is typically larger than \texttt{d\_model} (e.g.,
 2048 for a Transformer model with \texttt{d\_model=512}),
@@ -37556,7 +37581,7 @@ function.
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Saving and Loading Optimization Experiments}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Saving and Loading Optimization Experiments}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -37777,7 +37802,7 @@ reloaded experiment.
 
 \end{figure}%
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Saving and Loading Hyperparameter-Tuning Experiments}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Summary: Saving and Loading Hyperparameter-Tuning Experiments}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -38187,57 +38212,57 @@ train_model result: {'val_loss': 23542.013671875, 'hp_metric': 23542.013671875}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4960.7275390625, 'hp_metric': 4960.7275390625}
-spotpython tuning: 4730.1328125 [#---------] 5.72% 
+spotpython tuning: 4730.1328125 [#---------] 5.82% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4661.11328125, 'hp_metric': 4661.11328125}
-spotpython tuning: 4661.11328125 [#---------] 10.48% 
+spotpython tuning: 4661.11328125 [#---------] 10.71% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3414.50732421875, 'hp_metric': 3414.50732421875}
-spotpython tuning: 3414.50732421875 [##--------] 16.25% 
+spotpython tuning: 3414.50732421875 [##--------] 16.43% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3680.140380859375, 'hp_metric': 3680.140380859375}
-spotpython tuning: 3414.50732421875 [##--------] 24.84% 
+spotpython tuning: 3414.50732421875 [###-------] 25.10% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4760.53076171875, 'hp_metric': 4760.53076171875}
-spotpython tuning: 3414.50732421875 [###-------] 31.99% 
+spotpython tuning: 3414.50732421875 [###-------] 32.27% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 18967.6953125, 'hp_metric': 18967.6953125}
-spotpython tuning: 3414.50732421875 [#####-----] 46.74% 
+spotpython tuning: 3414.50732421875 [#####-----] 47.29% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3234.412109375, 'hp_metric': 3234.412109375}
-spotpython tuning: 3234.412109375 [#####-----] 53.87% 
+spotpython tuning: 3234.412109375 [#####-----] 54.50% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4753.53125, 'hp_metric': 4753.53125}
-spotpython tuning: 3234.412109375 [######----] 61.59% 
+spotpython tuning: 3234.412109375 [######----] 62.37% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3904.1728515625, 'hp_metric': 3904.1728515625}
-spotpython tuning: 3234.412109375 [#######---] 68.47% 
+spotpython tuning: 3234.412109375 [#######---] 69.33% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4110.04541015625, 'hp_metric': 4110.04541015625}
-spotpython tuning: 3234.412109375 [########--] 78.19% 
+spotpython tuning: 3234.412109375 [########--] 79.10% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4184.22998046875, 'hp_metric': 4184.22998046875}
-spotpython tuning: 3234.412109375 [#########-] 86.03% 
+spotpython tuning: 3234.412109375 [#########-] 87.01% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -38662,67 +38687,67 @@ train_model result: {'val_loss': 23542.013671875, 'hp_metric': 23542.013671875}
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4960.7275390625, 'hp_metric': 4960.7275390625}
-spotpython tuning: 4730.1328125 [#---------] 5.88% 
+spotpython tuning: 4730.1328125 [#---------] 5.99% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4661.11328125, 'hp_metric': 4661.11328125}
-spotpython tuning: 4661.11328125 [#---------] 10.74% 
+spotpython tuning: 4661.11328125 [#---------] 10.89% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 3414.50732421875, 'hp_metric': 3414.50732421875}
-spotpython tuning: 3414.50732421875 [##--------] 16.38% 
+spotpython tuning: 3414.50732421875 [##--------] 16.60% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 3680.140380859375, 'hp_metric': 3680.140380859375}
-spotpython tuning: 3414.50732421875 [##--------] 24.98% 
+spotpython tuning: 3414.50732421875 [###-------] 25.29% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4760.53076171875, 'hp_metric': 4760.53076171875}
-spotpython tuning: 3414.50732421875 [###-------] 32.07% 
+spotpython tuning: 3414.50732421875 [###-------] 32.44% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 18967.6953125, 'hp_metric': 18967.6953125}
-spotpython tuning: 3414.50732421875 [#####-----] 46.75% 
+spotpython tuning: 3414.50732421875 [#####-----] 47.23% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 3234.412109375, 'hp_metric': 3234.412109375}
-spotpython tuning: 3234.412109375 [#####-----] 53.84% 
+spotpython tuning: 3234.412109375 [#####-----] 54.41% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4753.53125, 'hp_metric': 4753.53125}
-spotpython tuning: 3234.412109375 [######----] 61.57% 
+spotpython tuning: 3234.412109375 [######----] 62.24% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 3904.1728515625, 'hp_metric': 3904.1728515625}
-spotpython tuning: 3234.412109375 [#######---] 68.36% 
+spotpython tuning: 3234.412109375 [#######---] 69.13% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4110.04541015625, 'hp_metric': 4110.04541015625}
-spotpython tuning: 3234.412109375 [########--] 78.07% 
+spotpython tuning: 3234.412109375 [########--] 78.84% 
 \end{verbatim}
 
 \begin{verbatim}
 Milestones: [32, 64, 96]
 train_model result: {'val_loss': 4184.22998046875, 'hp_metric': 4184.22998046875}
-spotpython tuning: 3234.412109375 [#########-] 85.85% 
+spotpython tuning: 3234.412109375 [#########-] 86.69% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -39344,42 +39369,42 @@ train_model result: {'val_loss': 22662.296875, 'hp_metric': 22662.296875}
 
 \begin{verbatim}
 train_model result: {'val_loss': 4395.52978515625, 'hp_metric': 4395.52978515625}
-spotpython tuning: 3585.37548828125 [#---------] 8.58% 
+spotpython tuning: 3585.37548828125 [#---------] 8.94% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 7720.5400390625, 'hp_metric': 7720.5400390625}
-spotpython tuning: 3585.37548828125 [#---------] 12.27% 
+spotpython tuning: 3585.37548828125 [#---------] 12.83% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3914.1572265625, 'hp_metric': 3914.1572265625}
-spotpython tuning: 3585.37548828125 [##--------] 17.99% 
+spotpython tuning: 3585.37548828125 [##--------] 18.75% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 2921.1494140625, 'hp_metric': 2921.1494140625}
-spotpython tuning: 2921.1494140625 [##--------] 24.27% 
+spotpython tuning: 2921.1494140625 [###-------] 25.12% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 3689.0537109375, 'hp_metric': 3689.0537109375}
-spotpython tuning: 2921.1494140625 [###-------] 30.76% 
+spotpython tuning: 2921.1494140625 [###-------] 31.98% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 20301.73828125, 'hp_metric': 20301.73828125}
-spotpython tuning: 2921.1494140625 [######----] 59.91% 
+spotpython tuning: 2921.1494140625 [######----] 62.73% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 20522.70703125, 'hp_metric': 20522.70703125}
-spotpython tuning: 2921.1494140625 [#########-] 88.84% 
+spotpython tuning: 2921.1494140625 [#########-] 92.13% 
 \end{verbatim}
 
 \begin{verbatim}
 train_model result: {'val_loss': 8519.857421875, 'hp_metric': 8519.857421875}
-spotpython tuning: 2921.1494140625 [##########] 95.23% 
+spotpython tuning: 2921.1494140625 [##########] 98.56% 
 \end{verbatim}
 
 \begin{verbatim}
@@ -40756,7 +40781,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x31216ab40>
+<spotpython.spot.spot.Spot at 0x16295f290>
 \end{verbatim}
 
 \section{Organization}\label{organization}
@@ -40812,7 +40837,7 @@ Each of these dictionaries has an initialzaion method, e.g.,
 \texttt{fun\_control\_init()}. The initialization methods set the
 default values for the control parameters.
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Important:}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-important-color!10!white, rightrule=.15mm, colframe=quarto-callout-important-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-important-color-frame, breakable, title=\textcolor{quarto-callout-important-color}{\faExclamation}\hspace{0.5em}{Important:}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-important-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -40873,7 +40898,7 @@ Experiment saved to 000_res.pkl
 \end{verbatim}
 
 \begin{verbatim}
-<spotpython.spot.spot.Spot at 0x3127b3c50>
+<spotpython.spot.spot.Spot at 0x1631c0a70>
 \end{verbatim}
 
 \section{Print the Results}\label{print-the-results-5}
@@ -41104,7 +41129,7 @@ the TensorBoard log files:
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TENSORBOARD\_PATH}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{TENSORBOARD\_PATH}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 The TensorBoard path can be printed with the following command (after a
 \texttt{fun\_control} object has been created):
@@ -41885,7 +41910,7 @@ following command copies the results to the local machine:
 \end{Highlighting}
 \end{Shaded}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Experiment and Result Files}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-note-color!10!white, rightrule=.15mm, colframe=quarto-callout-note-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-note-color-frame, breakable, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Experiment and Result Files}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-note-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist
@@ -42041,7 +42066,7 @@ Package}\label{open-the-documentation-of-the-user-package}
 \chapter{Solutions to Selected
 Exercises}\label{solutions-to-selected-exercises}
 
-\begin{tcolorbox}[enhanced jigsaw, opacitybacktitle=0.6, bottomrule=.15mm, coltitle=black, bottomtitle=1mm, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, breakable, leftrule=.75mm, arc=.35mm, colback=white, toprule=.15mm, opacityback=0, titlerule=0mm, colbacktitle=quarto-callout-warning-color!10!white, rightrule=.15mm, colframe=quarto-callout-warning-color-frame, left=2mm, toptitle=1mm]
+\begin{tcolorbox}[enhanced jigsaw, colframe=quarto-callout-warning-color-frame, breakable, title=\textcolor{quarto-callout-warning-color}{\faExclamationTriangle}\hspace{0.5em}{Warning}, bottomrule=.15mm, toptitle=1mm, coltitle=black, colbacktitle=quarto-callout-warning-color!10!white, toprule=.15mm, opacityback=0, bottomtitle=1mm, arc=.35mm, titlerule=0mm, rightrule=.15mm, leftrule=.75mm, colback=white, opacitybacktitle=0.6, left=2mm]
 
 \begin{itemize}
 \tightlist

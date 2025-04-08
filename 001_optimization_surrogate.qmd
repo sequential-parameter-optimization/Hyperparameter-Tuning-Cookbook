@@ -286,39 +286,47 @@ Here is the corresponding code:
 import numpy as np
 import pandas as pd
 
-def randorient(k, p, xi):
+def randorient(k, p, xi, seed=None):
+    # Initialize random number generator with the provided seed
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng()
+
     # Step length
     Delta = xi / (p - 1)
-    print(f"Delta: {Delta}")
+
     m = k + 1
+
     # A truncated p-level grid in one dimension
-    xs = np.arange(0, 1, Delta)
-    print(f"xs: {xs}")
+    xs = np.arange(0, 1 - Delta, 1 / (p - 1))
     xsl = len(xs)
+    if xsl < 1:
+        print(f"xi = {xi}.")
+        print(f"p = {p}.")
+        print(f"Delta = {Delta}.")
+        print(f"p - 1 = {p - 1}.")
+        raise ValueError(f"The number of levels xsl is {xsl}, but it must be greater than 0.")
 
     # Basic sampling matrix
     B = np.vstack((np.zeros((1, k)), np.tril(np.ones((k, k)))))
-    print(f"B: {B}")
 
     # Randomization
+
     # Matrix with +1s and -1s on the diagonal with equal probability
-    Dstar = np.diag(2 * np.round(np.random.rand(k)) - 1)
-    print(f"Dstar: {Dstar}")
+    Dstar = np.diag(2 * rng.integers(0, 2, size=k) - 1)
 
     # Random base value
-    xstar = xs[(np.random.rand(k) * xsl).astype(int)]
-    print(f"xstar: {xstar}")
+    xstar = xs[rng.integers(0, xsl, size=k)]
 
     # Permutation matrix
     Pstar = np.zeros((k, k))
-    rp = np.random.permutation(k)
+    rp = rng.permutation(k)
     for i in range(k):
         Pstar[i, rp[i]] = 1
-    print(f"Pstar: {Pstar}")
 
     # A random orientation of the sampling matrix
     Bstar = (np.ones((m, 1)) @ xstar.reshape(1, -1) + (Delta / 2) * ((2 * B - np.ones((m, k))) @ Dstar + np.ones((m, k)))) @ Pstar
-    print(f"Bstar: {Bstar}")
 
     return Bstar
 ```
@@ -405,6 +413,39 @@ Results can be used for a statistical analysis.  After collecting a sample of $r
 
 The results (sample means and standard deviations) are plotted on a chart for comparison.
 This helps identify which variables have the most significant impact on the objective function and whether their effects are linear or involve interactions.
+
+```{python}
+#| label: fig-forre08a-1-2
+#| fig-cap: "Estimated means and standard deviations of the elementary effects for the 10 design variables of the wing weight function. Example based on @Forr08a."
+import numpy as np
+from spotpython.utils.effects import screening_plot, screeningplan
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical()
+k = 10
+p = 10
+xi = 1
+r = 25
+X = screeningplan(k=k, p=p, xi=xi, r=r)  # shape (r x (k+1), k)
+value_range = np.array([
+    [150, 220,   6, -10, 16, 0.5, 0.08, 2.5, 1700, 0.025],
+    [200, 300,  10,  10, 45, 1.0, 0.18, 6.0, 2500, 0.08 ],
+])
+labels = [
+    "S_W", "W_fw", "A", "Lambda",
+    "q",   "lambda", "tc", "N_z",
+    "W_dg", "W_p"
+]
+screening_plot(
+    X=X,
+    fun=fun.fun_wingwt,
+    bounds=value_range,
+    xi=xi,
+    p=p,
+    labels=labels,
+)
+```
+
+
 
 
 ## Designing a Sampling Plan
