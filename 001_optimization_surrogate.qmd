@@ -484,20 +484,6 @@ def fullfactorial(q, Edges=1) -> np.ndarray:
     Raises:
         ValueError: If any dimension in `q` is less than 2.
 
-    Notes:
-        Many thanks to the original author of this code, A Sobester, for providing the original Matlab code under the GNU Licence. Original Matlab Code: Copyright 2007 A Sobester:
-        "This program is free software: you can redistribute it and/or modify  it
-        under the terms of the GNU Lesser General Public License as published by
-        the Free Software Foundation, either version 3 of the License, or any
-        later version.
-        This program is distributed in the hope that it will be useful, but
-        WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
-        General Public License for more details.
-        You should have received a copy of the GNU General Public License and GNU
-        Lesser General Public License along with this program. If not, see
-        <http://www.gnu.org/licenses/>."
-
     Examples:
         >>> from spotpython.utils.sampling import fullfactorial
         >>> q = [3, 2]
@@ -654,6 +640,597 @@ plt.legend()
 plt.show()
 ```
 
+
+### Space-filling Latin Hypercubes
+
+
+#### Die Funktion `jd(X,p)`
+
+```{python}
+def jd(X: np.ndarray, p: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Computes and counts the distinct p-norm distances between all pairs of points in X.
+    It returns:
+    1) A list of distinct distances (sorted), and
+    2) A corresponding multiplicity array that indicates how often each distance occurs.
+
+    Args:
+        X (np.ndarray):
+            A 2D array of shape (n, d) representing n points in d-dimensional space.
+        p (float, optional):
+            The distance norm to use. p=1 uses the Manhattan (L1) norm, while p=2 uses the
+            Euclidean (L2) norm. Defaults to 1.0 (Manhattan norm).
+
+    Returns:
+        (np.ndarray, np.ndarray):
+            A tuple (J, distinct_d), where:
+            - distinct_d is a 1D float array of unique, sorted distances between points.
+            - J is a 1D integer array that provides the multiplicity (occurrence count)
+              of each distance in distinct_d.
+    """
+    n = X.shape[0]
+
+    # Allocate enough space for all pairwise distances
+    # (n*(n-1))/2 pairs for an n-point set
+    pair_count = n * (n - 1) // 2
+    d = np.zeros(pair_count, dtype=float)
+
+    # Fill the distance array
+    idx = 0
+    for i in range(n - 1):
+        for j in range(i + 1, n):
+            # Compute the p-norm distance
+            d[idx] = np.linalg.norm(X[i] - X[j], ord=p)
+            idx += 1
+
+    # Find unique distances and their multiplicities
+    distinct_d = np.unique(d)
+    J = np.zeros_like(distinct_d, dtype=int)
+    for i, val in enumerate(distinct_d):
+        J[i] = np.sum(d == val)
+
+    return J, distinct_d
+```    
+
+#### Die Funktion `mm(X1, X2,p)`
+
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import jd
+# A small 3-point set in 2D
+X = np.array([[0.0, 0.0],[1.0, 1.0],[2.0, 2.0]])
+J, distinct_d = jd(X, p=2.0)
+print("Distinct distances (d_i):", distinct_d)
+print("Occurrences (J_i):", J)
+```
+
+
+```{python}
+def mm(X1: np.ndarray, X2: np.ndarray, p: Optional[float] = 1.0) -> int:
+    """
+    Determines which of two sampling plans has better space-filling properties
+    according to the Morris-Mitchell criterion.
+
+    Args:
+        X1 (np.ndarray): A 2D array representing the first sampling plan.
+        X2 (np.ndarray): A 2D array representing the second sampling plan.
+        p (float, optional): The distance metric. p=1 uses Manhattan (L1) distance,
+            while p=2 uses Euclidean (L2). Defaults to 1.0.
+
+    Returns:
+        int:
+            - 0 if both plans are identical or equally space-filling
+            - 1 if X1 is more space-filling
+            - 2 if X2 is more space-filling
+    """
+    X1_sorted = X1[np.lexsort(np.rot90(X1))]
+    X2_sorted = X2[np.lexsort(np.rot90(X2))]
+    if np.array_equal(X1_sorted, X2_sorted):
+        return 0  # Identical sampling plans
+
+    # Compute distance multiplicities for each plan
+    J1, d1 = jd(X1, p)
+    J2, d2 = jd(X2, p)
+    m1, m2 = len(d1), len(d2)
+
+    # Construct V1 and V2: alternate distance and negative multiplicity
+    V1 = np.zeros(2 * m1)
+    V1[0::2] = d1
+    V1[1::2] = -J1
+
+    V2 = np.zeros(2 * m2)
+    V2[0::2] = d2
+    V2[1::2] = -J2
+
+    # Trim the longer vector to match the size of the shorter
+    m = min(m1, m2)
+    V1 = V1[:m]
+    V2 = V2[:m]
+
+    # Compare element-by-element:
+    # c[i] = 1 if V1[i] > V2[i], 2 if V1[i] < V2[i], 0 otherwise.
+    c = (V1 > V2).astype(int) + 2 * (V1 < V2).astype(int)
+
+    if np.sum(c) == 0:
+        # Equally space-filling
+        return 0
+    else:
+        # The first non-zero entry indicates which plan is better
+        idx = np.argmax(c != 0)
+        return c[idx]
+```
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from spotpython.utils.sampling import mm
+# Create two 3-point sampling plans in 2D
+X1 = np.array([[0.0, 0.0],[0.5, 0.5],[0.0, 1.0], [1.0, 1.0]])
+X2 = np.array([[0.1, 0.1],[0.4, 0.6],[0.1, 0.9], [0.9, 0.9]])
+# plot the two plans
+plt.scatter(X1[:, 0], X1[:, 1], color='blue', label='Plan 1')
+plt.scatter(X2[:, 0], X2[:, 1], color='red', label='Plan 2')
+plt.title('Comparison of Two Sampling Plans')
+plt.grid()
+plt.xlabel('Dimension 1')
+plt.ylabel('Dimension 2')
+plt.legend()
+plt.show()
+# Compare which plan has better space-filling (Morris-Mitchell)
+better = mm(X1, X2, p=2.0)
+print(better)
+# Prints either 0, 1, or 2 depending on which plan is more space-filling.
+```
+
+#### Die Funktion `mmphi(X,q,p)`
+
+
+```{python}
+def mmphi(X: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0) -> float:
+    """
+    Calculates the Morris-Mitchell sampling plan quality criterion.
+
+    Args:
+        X (np.ndarray):
+            A 2D array representing the sampling plan, where each row is a point in
+            d-dimensional space (shape: (n, d)).
+        q (float, optional):
+            Exponent used in the computation of the metric. Defaults to 2.0.
+        p (float, optional):
+            The distance norm to use. For example, p=1 is Manhattan (L1),
+            p=2 is Euclidean (L2). Defaults to 1.0.
+
+    Returns:
+        float:
+            The space-fillingness metric Phiq. Larger values typically indicate a more
+            space-filling plan according to the Morris-Mitchell criterion.
+    """
+    # Compute the distance multiplicities: J, and unique distances: d
+    J, d = jd(X, p)
+
+    # Summation of J[i] * d[i]^(-q), then raised to 1/q
+    # This follows the Morris-Mitchell definition.
+    Phiq = np.sum(J * (d ** (-q))) ** (1.0 / q)
+    return Phiq
+```
+
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import mmphi
+# Two simple sampling plans from above
+quality1 = mmphi(X1, q=2, p=2)
+quality2 = mmphi(X2, q=2, p=2)
+print(f"Quality of sampling plan X1:  {quality1}")
+print(f"Quality of sampling plan X2:  {quality2}")
+```        
+
+##### Die Funktion `mmsort(X3D,p)`
+
+```{python}
+def mmsort(X3D: np.ndarray, p: Optional[float] = 1.0) -> np.ndarray:
+    """
+    Ranks multiple sampling plans stored in a 3D array according to the
+    Morris-Mitchell criterion, using a simple bubble sort.
+
+    Args:
+        X3D (np.ndarray):
+            A 3D NumPy array of shape (n, d, m), where m is the number of
+            sampling plans, and each plan is an (n, d) matrix of points.
+        p (float, optional):
+            The distance metric to use. p=1 for Manhattan (L1), p=2 for
+            Euclidean (L2). Defaults to 1.0.
+
+    Returns:
+        np.ndarray:
+            A 1D integer array of length m that holds the plan indices in
+            ascending order of space-filling quality. The first index in the
+            returned array corresponds to the most space-filling plan.
+
+    Notes:
+        Many thanks to the original author of this code, A Sobester, for providing the original Matlab code under the GNU Licence. Original Matlab Code: Copyright 2007 A Sobester:
+        "This program is free software: you can redistribute it and/or modify  it
+        under the terms of the GNU Lesser General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or any
+        later version.
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+        General Public License for more details.
+        You should have received a copy of the GNU General Public License and GNU
+        Lesser General Public License along with this program. If not, see
+        <http://www.gnu.org/licenses/>."
+    """
+    # Number of plans (m)
+    m = X3D.shape[2]
+
+    # Create index array (1-based to match original MATLAB convention)
+    Index = np.arange(1, m + 1)
+
+    swap_flag = True
+    while swap_flag:
+        swap_flag = False
+        i = 0
+        while i < m - 1:
+            # Compare plan at Index[i] vs. Index[i+1] using mm()
+            # Note: subtract 1 from each index to convert to 0-based array indexing
+            if mm(X3D[:, :, Index[i] - 1], X3D[:, :, Index[i + 1] - 1], p) == 2:
+                # Swap indices if the second plan is more space-filling
+                Index[i], Index[i + 1] = Index[i + 1], Index[i]
+                swap_flag = True
+            i += 1
+
+    return Index
+```
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import mmsort
+# Suppose we have two 3-point sampling plans X1 and X1 from above
+X3D = np.stack([X1, X2], axis=2)
+# Sort them using the Morris-Mitchell criterion with p=2
+ranking = mmsort(X3D, p=2.0)
+print(ranking)
+# It prints [1, 2] indicating that X1 is more space-filling than X2.
+```        
+
+#### Die Funktion `perturb(X,PertNum=1)`
+
+```{python}
+def perturb(X: np.ndarray, PertNum: Optional[int] = 1) -> np.ndarray:
+    """
+    Performs a specified number of random element swaps on a sampling plan.
+    If the plan is a Latin hypercube, the result remains a valid Latin hypercube.
+
+    Args:
+        X (np.ndarray):
+            A 2D array (sampling plan) of shape (n, k), where each row is a point
+            and each column is a dimension.
+        PertNum (int, optional):
+            The number of element swaps (perturbations) to perform. Defaults to 1.
+
+    Returns:
+        np.ndarray:
+            The perturbed sampling plan, identical in shape to the input, with
+            one or more random column swaps executed.
+    """
+    # Get dimensions of the plan
+    n, k = X.shape
+    if n < 2 or k < 2:
+        raise ValueError("Latin hypercubes require at least 2 points and 2 dimensions")
+
+    for _ in range(PertNum):
+        # Pick a random column
+        col = int(np.floor(np.random.rand() * k))
+
+        # Pick two distinct row indices
+        el1, el2 = 0, 0
+        while el1 == el2:
+            el1 = int(np.floor(np.random.rand() * n))
+            el2 = int(np.floor(np.random.rand() * n))
+
+        # Swap the two selected elements in the chosen column
+        X[el1, col], X[el2, col] = X[el2, col], X[el1, col]
+
+    return X
+```
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import perturb
+# Create a simple 4x2 sampling plan
+X_original = np.array([[1, 3],[2, 4],[3, 1],[4, 2]])
+print("Original Sampling Plan:")
+print(X_original)
+print("Perturbed Sampling Plan:")
+X_perturbed = perturb(X_original, PertNum=1)
+print(X_perturbed)
+```            
+
+#### The function `mmlhs(X_start, population, iterations, q=2.0, plot=False)`
+
+```{python}
+def mmlhs(X_start: np.ndarray, population: int, iterations: int, q: Optional[float] = 2.0, plot=False) -> np.ndarray:
+    """
+    Performs an evolutionary search (using perturbations) to find a Morris-Mitchell
+    optimal Latin hypercube, starting from an initial plan X_start.
+
+    This function does the following:
+      1. Initializes a "best" Latin hypercube (X_best) from the provided X_start.
+      2. Iteratively perturbs X_best to create offspring.
+      3. Evaluates the space-fillingness of each offspring via the Morris-Mitchell
+         metric (using mmphi).
+      4. Updates the best plan whenever a better offspring is found.
+
+    Args:
+        X_start (np.ndarray):
+            A 2D array of shape (n, k) providing the initial Latin hypercube
+            (n points in k dimensions).
+        population (int):
+            Number of offspring to create in each generation.
+        iterations (int):
+            Total number of generations to run the evolutionary search.
+        q (float, optional):
+            The exponent used by the Morris-Mitchell space-filling criterion.
+            Defaults to 2.0.
+        plot (bool, optional):
+            If True, a simple scatter plot of the first two dimensions will be
+            displayed at each iteration. Only if k >= 2. Defaults to False.
+
+    Returns:
+        np.ndarray:
+            A 2D array representing the most space-filling Latin hypercube found
+            after all iterations, of the same shape as X_start.
+    """
+    n = X_start.shape[0]
+    if n < 2:
+        raise ValueError("Latin hypercubes require at least 2 points")
+    k = X_start.shape[1]
+    if k < 2:
+        raise ValueError("Latin hypercubes are not defined for dim k < 2")
+
+    # Initialize best plan and its metric
+    X_best = X_start.copy()
+    Phi_best = mmphi(X_best, q=q)
+
+    # After 85% of iterations, reduce the mutation rate to 1
+    leveloff = int(np.floor(0.85 * iterations))
+
+    for it in range(1, iterations + 1):
+        # Decrease number of mutations over time
+        if it < leveloff:
+            mutations = int(round(1 + (0.5 * n - 1) * (leveloff - it) / (leveloff - 1)))
+        else:
+            mutations = 1
+
+        X_improved = X_best.copy()
+        Phi_improved = Phi_best
+
+        # Create offspring, evaluate, and keep the best
+        for _ in range(population):
+            X_try = perturb(X_best.copy(), mutations)
+            Phi_try = mmphi(X_try, q=q)
+
+            if Phi_try < Phi_improved:
+                X_improved = X_try
+                Phi_improved = Phi_try
+
+        # Update the global best if we found a better plan
+        if Phi_improved < Phi_best:
+            X_best = X_improved
+            Phi_best = Phi_improved
+
+        # Simple visualization of the first two dimensions
+        if plot and (X_best.shape[1] >= 2):
+            plt.clf()
+            plt.scatter(X_best[:, 0], X_best[:, 1], marker="o")
+            plt.grid(True)
+            plt.title(f"Iteration {it} - Current Best Plan")
+            plt.pause(0.01)
+
+    return X_best
+```
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import mmlhs
+# Suppose we have an initial 4x2 plan
+X_start = np.array([[0.1, 0.3],[.1, .4],[.2, .9],[.9, .2]])
+print("Initial plan:")
+print(X_start)
+# Search for a more space-filling plan
+X_opt = mmlhs(X_start, population=10, iterations=100, q=2)
+print("Optimized plan:")
+print(X_opt)
+# Plot the initial and optimized plans
+import matplotlib.pyplot as plt
+plt.scatter(X_start[:, 0], X_start[:, 1], color='blue', label='Initial Plan')
+plt.scatter(X_opt[:, 0], X_opt[:, 1], color='red', label='Optimized Plan')
+plt.title('Comparison of Initial and Optimized Plans')
+plt.xlabel('Dimension 1')
+plt.ylabel('Dimension 2')
+plt.grid()
+# plot legend outside the plot
+plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.show()
+```        
+
+
+#### Die Funktion `bestlh()`
+
+```{python}
+def bestlh(n: int, k: int, population: int, iterations: int, p=1, plot=False, verbosity=0, edges=0, q_list=[1, 2, 5, 10, 20, 50, 100]) -> np.ndarray:
+    """
+    Generates an optimized Latin hypercube by evolving the Morris-Mitchell
+    criterion across multiple exponents (q values) and selecting the best plan.
+
+    Args:
+        n (int):
+            Number of points required in the Latin hypercube.
+        k (int):
+            Number of design variables (dimensions).
+        population (int):
+            Number of offspring in each generation of the evolutionary search.
+        iterations (int):
+            Number of generations for the evolutionary search.
+        p (int, optional):
+            The distance norm to use. p=1 for Manhattan (L1), p=2 for Euclidean (L2).
+            Defaults to 1 (faster than 2).
+        plot (bool, optional):
+            If True, a scatter plot of the optimized plan in the first two dimensions
+            will be displayed. Only if k>=2.  Defaults to False.
+        verbosity (int, optional):
+            Verbosity level. 0 is silent, 1 prints the best q value found. Defaults to 0.
+        edges (int, optional):
+            If 1, places centers of the extreme bins at the domain edges ([0,1]).
+            Otherwise, bins are fully contained within the domain, i.e. midpoints.
+            Defaults to 0.
+        q_list (list, optional):
+            A list of q values to optimize. Defaults to [1, 2, 5, 10, 20, 50, 100].
+            These values are used to evaluate the space-fillingness of the Latin
+            hypercube. The best plan is selected based on the lowest mmphi value.
+
+    Returns:
+        np.ndarray:
+            A 2D array of shape (n, k) representing an optimized Latin hypercube.
+
+    Notes:
+        Many thanks to the original author of this code, A Sobester, for providing the original Matlab code under the GNU Licence. Original Matlab Code: Copyright 2007 A Sobester:
+        "This program is free software: you can redistribute it and/or modify  it
+        under the terms of the GNU Lesser General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or any
+        later version.
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+        General Public License for more details.
+        You should have received a copy of the GNU General Public License and GNU
+        Lesser General Public License along with this program. If not, see
+        <http://www.gnu.org/licenses/>."
+    """
+    if n < 2:
+        raise ValueError("Latin hypercubes require at least 2 points")
+    if k < 2:
+        raise ValueError("Latin hypercubes are not defined for dim k < 2")
+
+    # A list of exponents (q) to optimize
+
+    # Start with a random Latin hypercube
+    X_start = rlh(n, k, edges=edges)
+
+    # Allocate a 3D array to store the results for each q
+    # (shape: (n, k, number_of_q_values))
+    X3D = np.zeros((n, k, len(q_list)))
+
+    # Evolve the plan for each q in q_list
+    for i, q_val in enumerate(q_list):
+        if verbosity > 0:
+            print(f"Now optimizing for q={q_val}...")
+        X3D[:, :, i] = mmlhs(X_start, population, iterations, q_val)
+
+    # Sort the set of evolved plans according to the Morris-Mitchell criterion
+    index_order = mmsort(X3D, p=p)
+
+    # index_order is a 1-based array of plan indices; the first element is the best
+    best_idx = index_order[0] - 1
+    if verbosity > 0:
+        print(f"Best lh found using q={q_list[best_idx]}...")
+
+    # The best plan in 3D array order
+    X = X3D[:, :, best_idx]
+
+    # Plot the first two dimensions
+    if plot and (k >= 2):
+        plt.scatter(X[:, 0], X[:, 1], c="r", marker="o")
+        plt.title(f"Morris-Mitchell optimum plan found using q={q_list[best_idx]}")
+        plt.xlabel("x_1")
+        plt.ylabel("x_2")
+        plt.grid(True)
+        plt.show()
+
+    return X
+```
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import bestlh
+Xbestlh= bestlh(n=5, k=2, population=5, iterations=10)
+# plot the bestlh
+import matplotlib.pyplot as plt
+plt.scatter(Xbestlh[:, 0], Xbestlh[:, 1], color='red', label='Best Latin Hypercube')
+plt.title('Best Latin Hypercube Sampling')
+plt.grid()
+plt.xlabel('Dimension 1')
+plt.ylabel('Dimension 2')
+# plot legend outside the plot
+plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.show()
+```            
+
+#### Die Funktion `phisort(X3D,q,p)`
+
+
+```{python}
+def phisort(X3D: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0) -> np.ndarray:
+    """
+    Ranks multiple sampling plans stored in a 3D array by the Morris-Mitchell
+    numerical quality metric (mmphi). Uses a simple bubble-sort:
+    sampling plans with smaller mmphi values are placed first in the index array.
+
+    Args:
+        X3D (np.ndarray):
+            A 3D array of shape (n, d, m), where m is the number of sampling plans.
+        q (float, optional):
+            Exponent for the mmphi metric. Defaults to 2.0.
+        p (float, optional):
+            Distance norm for mmphi. p=1 is Manhattan; p=2 is Euclidean. Defaults to 1.0.
+
+    Returns:
+        np.ndarray:
+            A 1D integer array of length m, giving the plan indices in ascending
+            order of mmphi. The first index in the returned array corresponds
+            to the numerically lowest mmphi value.
+    """
+    # Number of 2D sampling plans
+    m = X3D.shape[2]
+
+    # Create a 1-based index array
+    Index = np.arange(1, m + 1)
+
+    # Bubble-sort: plan with lower mmphi() climbs toward the front
+    swap_flag = True
+    while swap_flag:
+        swap_flag = False
+        for i in range(m - 1):
+            # Retrieve mmphi values for consecutive plans
+            val_i = mmphi(X3D[:, :, Index[i] - 1], q=q, p=p)
+            val_j = mmphi(X3D[:, :, Index[i + 1] - 1], q=q, p=p)
+
+            # Swap if the left plan's mmphi is larger (i.e. 'worse')
+            if val_i > val_j:
+                Index[i], Index[i + 1] = Index[i + 1], Index[i]
+                swap_flag = True
+
+    return Index
+```
+
+```{python}
+import numpy as np
+from spotpython.utils.sampling import phisort
+X1 = bestlh(n=5, k=2, population=5, iterations=10)
+X2 = bestlh(n=5, k=2, population=15, iterations=20)
+X3 = bestlh(n=5, k=2, population=25, iterations=30)
+# Map X1 and X2 so that X3D has the two sampling plans in X3D[:, :, 0] and X3D[:, :, 1]
+X3D = np.array([X1, X2])
+print(phisort(X3D))
+X3D = np.array([X3, X2])
+print(phisort(X3D))
+```                
 
 :::{.callout-important}
 ### Goals
