@@ -21,7 +21,7 @@ The tuning process has to consider several objectives, such as maximizing the mo
 
 This paper is structured as follows: After presenting the desirability function approach in @sec-desirability, we introduce the `Python` package `spotdesirability`, which is a `Python` implementation of the `R` package `desirability`. The introduction is based on several "hands-on" examples. @sec-related-work provides an overview of related work in the field of multi-objective optimization and hyperparameter tuning. 
 @sec-example-chemical-reaction presents an example of a chemical reaction with two objectives: conversion and activity. The example is based on a response surface experiment described by @Myers2016 and also used by @kuhn16a. It allows a direct comparison of the results obtained with the `R` package `desirability` and the `Python` package `spotdesirability`. 
-@sec-maximizing-desirability describes how to maximize the desirability function using the Nelder-Mead algorithm from the `scipy.optimize.minimize` function. This approach is common in \gls{rsm} [@Box51a; @Myers2016]. The optimization process is illustrated using the chemical reaction example from @sec-example-chemical-reaction. This example is based on the example presented in @kuhn16a, so that, similar to the comparison in @sec-example-chemical-reaction, a comparison of the results obtained with the `R` and `Python` packages is possible.
+@sec-maximizing-desirability describes how to maximize the desirability function using the Nelder-Mead algorithm from the `scipy.optimize.minimize` function. This approach is common in RSM [@Box51a; @Myers2016]. The optimization process is illustrated using the chemical reaction example from @sec-example-chemical-reaction. This example is based on the example presented in @kuhn16a, so that, similar to the comparison in @sec-example-chemical-reaction, a comparison of the results obtained with the `R` and `Python` packages is possible.
 @sec-surrogate presents an example of surrogate model-based optimization [@Gram20a; @Forr08a] using the `spotdesirability` package. Results from the RSM optimization can be compared with the results from surrogate model-based optimization. The surrogate model is based on the `spotpython` package [@bart23iArXiv]. 
 @sec-hyperparameter-tuning presents an example of hyperparameter tuning of a neural network implemented in `PyTorch` using the `spotdesirability` package. The goal of this example is to demonstrate how to use the desirability function approach for hyperparameter tuning in a machine learning context.
 The article concludes with a summary and outlook in @sec-conclusion.
@@ -93,7 +93,7 @@ warnings.filterwarnings("ignore")
 
 ### Basic Desirability Functions
 
-The desirability function approach to simultaneously optimizing multiple equations was originally proposed by @hari65a. The approach translates the functions to a common scale ($[0, 1]$), combines them using the geometric mean, and optimizes the overall metric. The equations can represent model predictions or other equations. @kuhn16a notes that desirability functions are popular in \gls{rsm} [@Box51a; @Myers2016] to simultaneously optimize a series of quadratic models. A response surface experiment may use measurements on a set of outcomes, where instead of optimizing each outcome separately, settings for the predictor variables are sought to satisfy all outcomes at once.
+The desirability function approach to simultaneously optimizing multiple equations was originally proposed by @hari65a. The approach translates the functions to a common scale ($[0, 1]$), combines them using the geometric mean, and optimizes the overall metric. The equations can represent model predictions or other equations. @kuhn16a notes that desirability functions are popular in response surface methodology (RSM) [@Box51a; @Myers2016] to simultaneously optimize a series of quadratic models. A response surface experiment may use measurements on a set of outcomes, where instead of optimizing each outcome separately, settings for the predictor variables are sought to satisfy all outcomes at once.
 
 @kuhn16a explains that originally, Harrington used exponential functions to quantify desirability. In our `Python` implementation, which is based on the `R` package `desirablity` from @kuhn16a, the simple discontinuous functions of @derr80a are adopted.
 For simultaneous optimization of equations, individual "desirability" functions are constructed for each function, and @derr80a proposed three forms of these functions corresponding to the optimization goal type. @kuhn16a describes the `R` implementation as follows: 
@@ -357,7 +357,7 @@ grouped_desirabilities.plot(non_inform=False)
 
 Multiobjective approaches are established optimization tools [@emme18a]. The weighted-sum approach is a simple and widely used method for multi-objective optimization, but probably only, because its disadvantages are unknown. Compared to the weighted-sum approach, the desirability-function approach is a better choice for multi-objective optimization. The desirability function approach also allows for more flexibility in defining the objectives and their trade-offs.
 
-@nino15a discuss the use of Experimental Designs and \gls{rsm} to optimize conflicting responses in the development of a 3D printer prototype. Specifically, they focus on an interlocking device designed to recycle polyethylene terephthalate water bottles. The optimization involves two conflicting goals: maximizing load capacity and minimizing mass. A Box Behnken Design (BBD) was used for the experimental setup, and desirability functions were applied to identify the best trade-offs. 
+@nino15a discuss the use of Experimental Designs and RSM to optimize conflicting responses in the development of a 3D printer prototype. Specifically, they focus on an interlocking device designed to recycle polyethylene terephthalate water bottles. The optimization involves two conflicting goals: maximizing load capacity and minimizing mass. A Box Behnken Design (BBD) was used for the experimental setup, and desirability functions were applied to identify the best trade-offs. 
 
 
 @karl22c describe multi-objective optimization in maschine learning.
@@ -368,17 +368,17 @@ Multiobjective approaches are established optimization tools [@emme18a]. The wei
 
 Similar to the presentation in @kuhn16a, we will use the example of a chemical reaction to illustrate the desirability function approach. The example is based on a response surface experiment described by @Myers2016. The goal is to maximize the percent conversion of a chemical reaction while keeping the thermal activity within a specified range.
 
-The \gls{ccd} is the most popular class of designs used for fitting second-order response surface models [@Mont01a]. 
-Since the location of the optimum is unknown before the \gls{rsm} starts, @box57b suggested that the design should be rotatable (it provides equal precision of estimation in all directions or stated differently, the variance of the  predicted response is the same at all points that are the same distance from the center of the design space).
-A \gls{ccd} is made rotable by using an axis distance value of $\alpha = (n_F)^{1/4}$, where $n_F$ is the number of points (here $2^3 = 8$) [@Mont01a]. 
+The central composite design (CCD) is the most popular class of designs used for fitting second-order response surface models [@Mont01a]. 
+Since the location of the optimum is unknown before the RSM starts, @box57b suggested that the design should be rotatable (it provides equal precision of estimation in all directions or stated differently, the variance of the  predicted response is the same at all points that are the same distance from the center of the design space).
+A CCD is made rotable by using an axis distance value of $\alpha = (n_F)^{1/4}$, where $n_F$ is the number of points (here $2^3 = 8$) [@Mont01a]. 
 @fig-ccd shows the design space for the chemical reaction example. The design space is defined by three variables: reaction time, reaction temperature, and percent catalyst. 
-This rotable \gls{ccd} consists of a full factorial design with three factors, each at two levels, plus a center point and six ($2\times k$) axial points. The axial points are located at a distance of $\pm \alpha$ from the center point in each direction. 
+This rotable CCD consists of a full factorial design with three factors, each at two levels, plus a center point and six ($2\times k$) axial points. The axial points are located at a distance of $\pm \alpha$ from the center point in each direction. 
 ```{python}
 #| label: fig-ccd
 #| fig-cap: "Central composite design (CCD) for the chemical reaction example."
 plotCCD(figsize=(8, 6), title=None)
 ```
-@Mont01a note that it is not important to have exact rotability. From a prediction variance point of view, the best choice is to set $\alpha = \sqrt{k}$, which results in a so-called spherical \gls{ccd}. 
+@Mont01a note that it is not important to have exact rotability. From a prediction variance point of view, the best choice is to set $\alpha = \sqrt{k}$, which results in a so-called spherical CCD. 
 
 ### The Two Objective Functions: Conversion and Activity
 
@@ -1390,7 +1390,7 @@ plot_mo(y_orig=df_z_sel, target_names=target_names, combinations=combinations, p
 
 ## Conclusion {#sec-conclusion}
 
-In this article, we have shown how to use the `spotdesitability` package to perform three different multi-objective optimization tasks using desirability functions: \gls{rsm} [@Myers2016], surrogate model based optimization [@Sant03a], and hyperparameter tuning [@bart21i]. The `spotdesirability` package is a `Python` implementation of the `R` `desirability` package [@kuhn16a].
+In this article, we have shown how to use the `spotdesitability` package to perform three different multi-objective optimization tasks using desirability functions: RSM [@Myers2016], surrogate model based optimization [@Sant03a], and hyperparameter tuning [@bart21i]. The `spotdesirability` package is a `Python` implementation of the `R` `desirability` package [@kuhn16a].
 We have demonstrated how to define desirability functions for different types of objectives, including maximization, minimization, and target objectives.
  
 Although the desirability function approach is one of the most widely used methods in industry for the optimization of multiple response processes [@nist25a], it is rarely used in hyperparameter tuning. To fill this gap, we have shown how to use the `spotdesirability` package in combination with the `spotpython` package to perform hyperparameter tuning using desirability functions. The `spotpython` package provides a convenient way to perform surrogate model based optimization, and the `spotdesirability` package allows us to define desirability functions for different types of objectives.
