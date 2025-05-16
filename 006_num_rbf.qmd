@@ -656,7 +656,44 @@ This locality property gives RBF networks a notable advantage: they offer more i
 The key insight is that while standard neural networks create complex decision boundaries through compositions of hyperplanes, RBF networks directly model functions using a set of overlapping "bumps" positioned strategically in the input space.
 :::
 
+## Radial Basis Function Models for Noisy Data
 
+When the responses $\vec{y} = {y^{(1)}, y^{(2)}, \ldots, y^{(n)}}^T$ contain measurement or simulation noise, the standard RBF interpolation approach can lead to overfitting—the model captures both the underlying function and the random noise. This compromises generalization performance on new data points. Two principal strategies address this challenge:
+
+### Ridge Regularization Approach
+
+The most straightforward solution involves introducing regularization through the parameter $\lambda$ [@pogg90a]. This is implemented by adding $\lambda$ to the diagonal elements of the Gram matrix, creating a "ridge" that improves numerical stability. Mathematically, the weights are determined by:
+
+$$
+\vec{w} = (\Phi + \lambda I)^{-1} \vec{y},
+$$
+
+where $I$ is an $n \times n$ identity matrix. This regularized solution balances two competing objectives:
+
+* fitting the training data accurately versus
+* keeping the magnitude of weights controlled to prevent overfitting.
+
+Theoretically, optimal performance is achieved when $\lambda$ equals the variance of the noise in the response data $\vec{y}$ [@kean05a]. Since this information is rarely available in practice, $\lambda$ is typically estimated through cross-validation alongside other model parameters.
+
+### Reduced Basis Approach
+
+An alternative strategy involves reducing $m$, the number of basis functions. This might result in a non-square $\Phi$ matrix. With a non-square $\Phi$ matrix, the weights are found through least squares minimization:
+
+$$
+\vec{w} = (\Phi^T\Phi)^{-1}\Phi^T\vec{y}
+$$
+
+This approach introduces an important design decision: which subset of points should serve as basis function centers? Several selection strategies exist:
+
+* Clustering methods that identify representative points
+* Greedy algorithms that sequentially select influential centers
+* Support vector regression techniques (discussed elsewhere in the literature)
+
+Additional parameters such as the width parameter $\sigma$ in Gaussian bases can be optimized through cross-validation to minimize generalization error estimates.
+
+The ridge regularization and reduced basis approaches can be combined, allowing for a flexible modeling framework, though at the cost of a more complex parameter estimation process. This hybrid approach often yields superior results for highly noisy datasets or when the underlying function has varying complexity across the input space.
+
+The broader challenge of building accurate models from noisy observations is examined comprehensively in the context of Kriging models, which provide a statistical framework for explicitly modeling both the underlying function and the noise process.
 
 
 ## Jupyter Notebook
