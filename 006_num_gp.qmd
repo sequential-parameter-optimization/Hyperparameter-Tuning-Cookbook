@@ -15,60 +15,11 @@ This section is based on chapter 2.4 in @Forr08a.
 
 <!-- bart21mSlides2022Lec-05 -->
 
-## The Kriging Idea in a Nutshell
+##  Kriging Basis Functions
 
-Kriging can be applied to planned experiments, where the design is based on a sampling plan as shown in @fig-lhs-spotpython, as well as to computer experiments, where the design is based on the computer code's input space, as shown in @fig-unknownf.
-
-
-
-```{python}
-#| label: fig-unknownf
-#| fig-cap: "Eight measurements of an unknown function. No sampling plan was used."
-#| echo: false
-import matplotlib.pyplot as plt
-import numpy as np
-n = 8
-X = np.linspace(0, 2*np.pi, n, endpoint=False).reshape(-1,1)
-y = 3.5 * np.sin(X)*np.cos(X)
-plt.plot(X, y, "bo", label="Measurements")
-plt.grid()
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
-```
-
-Kriging can be explained using the concept of radial basis functions.
-
-Radial basis functions (RBFs) are a class of functions used in various types of interpolation and approximation tasks. An RBF is a real-valued function whose value depends only on the distance from a certain point, called the center, usually in a multidimensional space. This distance is typically measured using the Euclidean distance.
-
-::: {def-rbf}
-### Radial Basis Function (RBF)
-Mathematically, a radial basis function $\phi$ can be expressed as:
-
-$$
-\phi(\mathbf{x}) = \phi(\|\mathbf{x} - \mathbf{c}\|),
-$$
-where $\mathbf{x}$ is the input vector, $\mathbf{c}$ is the center of the function, and $\|\mathbf{x} - \mathbf{c}\|$ denotes the Euclidean distance between $\mathbf{x}$ and $\mathbf{c}$.
-
-:::
-
-Common types of radial basis functions include:
-
-* Linear: $\phi(r) = r$.
-* Cubic: $\phi(r) = r^3$,
-* Gaussian: $\phi(r) = e^{-(\epsilon r)^2}$,
-
-where $r$ is the distance and $\epsilon$ is a parameter that determines the width of the Gaussian function.
-
-Radial basis functions are widely used in interpolation for scattered data points in multiple dimensions, in machine learning models such as radial basis function networks, and in numerical solutions to partial differential equations due to their smooth approximation properties.
-
-
-In general, we onsider observed data of an unknown function $f$ at $n$ points $x_1, \ldots, x_n$.
-These measurements a considered as realizations of MVN random variables $Y_1, \ldots, Y_n$ with mean $\mu$ and covariance matrix $\Sigma_n$
-as shown in @fig-mvn1-3, @fig-mvn2 or @fig-mvn5.
-
-In Kriging, a more general covariance matrix (or equivalently, a correlation matrix $\Psi$) is used, see @eq-krigingbase.
-Using a maximum likelihood approach, we can estimate the unknown parameters $\mu$ and $\Sigma_n$ from the data so that the likelihood function is maximized.
+Kriging can be explained using the concept of radial basis functions (RBFs), which were introduced in @sec-rbf.
+An RBF is a real-valued function whose value depends only on the distance from a certain point, called the center, usually in a multidimensional space.
+The basis function is a function of the distance between the point $\vec{x}$ and the center $\vec{x}^{(i)}$. Other names for basis functions are *kernel* or *covariance* functions.
 
 
 ::: {#def-kriging-basis-function}
@@ -84,8 +35,7 @@ where $\vec{x}^{(i)}$ denotes the $k$-dim vector $\vec{x}^{(i)}= (x_1^{(i)}, \ld
 :::
 
 
-
-### The Kriging Model
+### Building the Kriging Model
 
 Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
 $\vec{X}$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
@@ -182,6 +132,7 @@ def visualize_inverse_exp_squared_distance_theta(distance, point, theta_values, 
         distances = [inverse_exp_squared_distance(p, point, theta, p_val) for p in line]
         plt.plot(line, distances, label=f'theta={theta}')
     plt.legend()
+    plt.grid()
     plt.show()
 
 def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
@@ -190,6 +141,7 @@ def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
         distances = [inverse_exp_squared_distance(p, point, theta, p_val) for p in line]
         plt.plot(line, distances, label=f'p={p_val}')
     plt.legend()
+    plt.grid()
     plt.show()
 
 ```
@@ -228,7 +180,7 @@ Considering the activity parameter $\theta$ is useful in high-dimensional proble
 
 ::: {#exm-corr-matrix-detailed}
 
-#### Example: The Correlation Matrix (Detailed Computation)
+#### The Correlation Matrix (Detailed Computation)
 
 Let $n=4$ and $k=3$. The sample plan is represented by the following matrix $X$: 
 $$
