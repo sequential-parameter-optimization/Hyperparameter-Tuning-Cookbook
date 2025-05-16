@@ -8,6 +8,83 @@ execute:
 
 # Matrices
 
+
+## The Moore-Penrose Pseudoinverse {#sec-matrix-pseudoinverse}
+
+### Definitions
+
+The Moore-Penrose pseudoinverse is a generalization of the inverse matrix for non-square or singular matrices.
+It is computed as
+
+$$
+A^+ = (A^* A)^{-1} A^*,
+$$
+where $A^*$ is the conjugate transpose of $A$.
+
+It satisfies the following properties:
+
+1. $AA^+A = A$
+2. $A^+AA^+ = A^+$
+3. $(AA^+)^* = AA^+$.
+4. $(A^+A)^* = A^+A$
+5. $A^+ = (A^*)^+$
+6. $A^+ = A^T$ if $A$ is a square matrix and $A$ is invertible.
+
+The pseudoinverse can be computed using Singular Value Decomposition (SVD).
+
+### Implementation in Python
+```{python}
+import numpy as np
+from numpy.linalg import pinv
+A = np.array([[1, 2], [3, 4], [5, 6]])
+print(f"Matrix A:\n {A}")
+A_pseudo_inv = pinv(A)
+print(f"Moore-Penrose Pseudoinverse:\n {A_pseudo_inv}")
+```
+
+
+## Strictly Positive Definite Kernels {#sec-strictly-positive-definite}
+
+### Definition
+
+::: {#def-strictly-positive-definite}
+### Strictly Positive Definite Kernel
+
+A kernel function $k(x,y)$ is called strictly positive definite if for any finite collection of distinct points ${x_1, x_2, \ldots, x_n}$ in the input space and any non-zero vector of coefficients $\alpha = (\alpha_1, \alpha_2, \ldots, \alpha_n)$, the following inequality holds:
+
+$$
+\sum_{i=1}^{n} \sum_{j=1}^{n} \alpha_i \alpha_j k(x_i, x_j) > 0.
+$$ {#eq-strictly-positive-definite}
+:::
+
+In contrast, a kernel function $k(x,y)$ is called positive definite (but not strictly) if the "$>$" sign is replaced by "$\geq$" in the above inequality.
+
+
+### Connection to Positive Definite Matrices
+
+The connection between strictly positive definite kernels and positive definite matrices lies in the Gram matrix construction:
+
+* When we evaluate a kernel function $k(x,y)$ at all pairs of data points in our sample, we construct the Gram matrix $K$ where $K_{ij} = k(x_i, x_j)$.
+* If the kernel function $k$ is strictly positive definite, then for any set of distinct points, the resulting Gram matrix will be symmetric positive definite.
+
+A symmetric matrix is positive definite if and only if for any non-zero vector $\alpha$, the quadratic form $\alpha^T K \alpha > 0$, which directly corresponds to the kernel definition above.
+
+### Connection to RBF Models
+
+For RBF models, the kernel function is the radial basis function itself:
+$$
+k(x,y) = \psi(||x-y||).
+$$
+
+The Gaussian RBF kernel $\psi(r) = e^{-r^2/(2\sigma^2)}$ is strictly positive definite in $\mathbb{R}^n$ for any dimension $n$.
+The inverse multiquadric kernel $\psi(r) = (r^2 + \sigma^2)^{-1/2}$ is also strictly positive definite in any dimension.
+
+This mathematical property guarantees that the interpolation problem has a unique solution (the weight vector $\vec{w}$ is uniquely determined).
+The linear system $\Psi \vec{w} = \vec{y}$ can be solved reliably using Cholesky decomposition.
+The RBF interpolant exists and is unique for any distinct set of centers.
+
+
+
 ## Cholesky Decomposition and Positive Definite Matrices
 
 We consider the definiteness of a matrix, before discussing the Cholesky decomposition.

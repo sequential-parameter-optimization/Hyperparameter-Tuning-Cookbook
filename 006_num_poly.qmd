@@ -50,7 +50,7 @@ $$
 \vec{w} = (\Phi^T \Phi)^{-1} \Phi^T y,
 $$
 
-where $\Phi^+ = (\Phi^T \Phi)^{-1} \Phi^T$ is the Moore-Penrose pseudo-inverse of $\Phi$.
+where $\Phi^+ = (\Phi^T \Phi)^{-1} \Phi^T$ is the Moore-Penrose pseudo-inverse of $\Phi$ (see @sec-matrix-pseudoinverse).
 
 The polynomial approximation of order $m$ is essentially a truncated Taylor series expansion.
 While higher values of $m$ yield more accurate approximations, they risk overfitting the noise in the data.
@@ -277,28 +277,41 @@ This function, depicted by the dotted line in @fig-onevar, has local minima of d
 We generate the training data (depicted by circles in @fig-onevar) by adding normally distributed noise to the function.
 @fig-onevar shows a seventh-order polynomial fitted through the noisy data. This polynomial was selected as it minimizes the cross-validation metric.
 
-##  What About the $k$-Variable Case?
+## Extending to Multivariable Polynomial Models
 
-The examples above focus on the one-variable case. However, it is possible to extend the formulation to multiple variables. For $k$-variables, the polynomial approximation can be written as:
-
-$$
-f(x) = \sum_{i=1}^m w_i \phi_i(x)
-$$
-where the $\phi_i(x)$'s are basis functions selected from a catalogue of all possible terms of order not greater than $m$. For example, for $m = 3$, the catalogue might include:
+While the examples above focus on the one-variable case, real-world engineering problems typically involve multiple input variables. For $k$-variable problems, polynomial approximation becomes significantly more complex but follows the same fundamental principles.
+For a $k$-dimensional input space, the polynomial approximation can be expressed as:
 
 $$
-\{
-  1, x_1, x_2, x_3, x_1x_2, x_1x_3, x_2x_3, x_1^2, x_2^2, x_3^2, x_1^3, x_2^3, x_3^3.
-\}
+\hat{f}(\vec{x}) = \sum_{i=1}^N w_i \phi_i(\vec{x}),
 $$
+where $\phi_i(\vec{x})$ represents multivariate basis functions, and $N$ is the total number of terms in the polynomial. Unlike the univariate case, these basis functions include all possible combinations of variables up to the selected polynomial order $m$, which might result in a  "basis function explosion" as the number of variables increases.
 
-This becomes a complex parameter estimation problem, where we must determine:
+For a third-order polynomial ($m = 3$) with three variables ($k = 3$), the complete set of basis functions would include 20 terms:
 
-* The order $m$,
-* The coefficients $w$,
-* The specific terms to include from the catalogue.
+\begin{align} 
+\text{Constant term: } & {1} \\
+\text{First-order terms: } & {x_1, x_2, x_3} \\
+\text{Second-order terms: } & {x_1^2, x_2^2, x_3^2, x_1x_2, x_1x_3, x_2x_3} \\
+\text{Third-order terms: } & {x_1^3, x_2^3, x_3^3, x_1^2x_2, x_1^2x_3, x_2^2x_1, x_2^2x_3, x_3^2x_1, x_3^2x_2, x_1x_2x_3}
+\end{align} 
 
-A great deal of work has been devoted to solving this problem. For now, we turn our attention to more versatile modeling approaches discussed in subsequent sections.
+The total number of terms grows combinatorially as $N = \binom{k+m}{m}$, which quickly becomes prohibitive as dimensionality increases.
+For example, a 10-variable cubic polynomial requires $\binom{13}{3} = 286$ coefficients!
+This exponential growth creates three interrelated challenges:
+
+* Model Selection: Determining the appropriate polynomial order $m$ that balances complexity with generalization ability
+* Coefficient Estimation: Computing the potentially large number of weights $\vec{w}$ while avoiding numerical instability
+* Term Selection: Identifying which specific basis functions should be included, as many may be irrelevant to the response
+
+Several techniques have been developed to address these challenges:
+
+* Regularization methods (LASSO, ridge regression) that penalize model complexity
+* Stepwise regression algorithms that incrementally add or remove terms
+* Dimension reduction techniques that project the input space to lower dimensions
+* Orthogonal polynomials that improve numerical stability for higher-order models
+
+These limitations of polynomial models in higher dimensions motivate the exploration of more flexible surrogate modeling approaches like Radial Basis Functions and Kriging, which we'll examine in subsequent sections.
 
 ## Jupyter Notebook
 
