@@ -26,7 +26,7 @@ The basis function is a function of the distance between the point $\vec{x}$ and
 
 ### The Kriging Basis Functions
 
-Kriging uses $k$-dimensional basis functions of the form 
+Kriging (also known as Gaussian Process Regression) uses $k$-dimensional basis functions of the form 
 $$
 \psi^{(i)}(\vec{x}) = 
 \psi(\vec{x}^{(i)}, \vec{x}) = \exp \left( - \sum_{j=1}^k \theta_j | x_{j}^{(i)} - x_{j} | ^{p_j} \right),
@@ -35,11 +35,22 @@ where $\vec{x}$ and $\vec{x}^{(i)}$  denote the $k$-dim vector $\vec{x}= (x_1, \
 
 :::
 
+### From Gaussian RBF to Kriging Basis Functions
+
+Kriging  uses a specialized basis function that offers greater flexibility than standard RBFs. Examining Equation @eq-krigingbase, we can observe how Kriging builds upon and extends the Gaussian basis concept. The key enhancements of Kriging over Gaussian RBF can be summarized as follows:
+
+* Dimension-specific width parameters: While a Gaussian RBF uses a single width parameter $1/\sigma^2$, Kriging employs a vector $\vec{\theta} = (\theta_1, \theta_2, \ldots, \theta_k)^T$. This allows the model to automatically adjust its sensitivity to each input dimension, effectively performing automatic feature relevance determination.
+* Flexible smoothness control: The Gaussian RBF fixes the exponent at 2, producing uniformly smooth functions. In contrast, Kriging's dimension-specific exponents $\vec{p} = (p_1, p_2, \ldots, p_k)^T$ (typically with $p_j \in [1, 2]$) enable precise control over smoothness properties in each dimension.
+* Unifying framework: When all exponents are set to $p_j = 2$ and all width parameters are equal ($\theta_j = 1/\sigma^2$ for all $j$), the Kriging basis function reduces exactly to the Gaussian RBF. This makes Gaussian RBF a special case within the more general Kriging framework.
+
+These enhancements make Kriging particularly well-suited for engineering problems where variables may operate at different scales or exhibit varying degrees of smoothness across dimensions.
+For now, we will only consider Kriging interpolation. We will cover Kriging regression later.
+
 
 ### Building the Kriging Model
 
-Consider sample data $\vec{X}$ and $\vec{y}$ from $n$ locations that are available in matrix form:
-$\vec{X}$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
+Consider sample data $X$ and $\vec{y}$ from $n$ locations that are available in matrix form:
+$X$ is a $(n \times k)$ matrix, where $k$ denotes the problem dimension and
 $\vec{y}$ is a $(n\times 1)$ vector.
 We want to find an expression for a predicted values at a new point $\vec{x}$, denoted as $\hat{y}$.
 
@@ -48,38 +59,38 @@ The observed responses $\vec{y}$ are considered as if they are from a stochastic
 process, which will be denoted as
 $$
 \begin{pmatrix}
-\vec{Y}(\vec{x}^{(1)})\\
+Y(\vec{x}^{(1)})\\
 \vdots\\
-\vec{Y}(\vec{x}^{(n)})\\
+Y(\vec{x}^{(n)})\\
 \end{pmatrix}.
 $$ {#eq-yvec-51}
 
 The set of random vectors from @eq-yvec-51 (also referred to as a *random field*) has a mean of $\vec{1} \mu$, which is a $(n\times 1)$ vector.
 The random vectors are correlated with each other using the basis function expression from @eq-krigingbase:
 $$
-\text{cor} \left(\vec{Y}(\vec{x}^{(i)}),\vec{Y}(\vec{x}^{(l)}) \right) = \exp\left\{ - \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right\}.
+\text{cor} \left(Y(\vec{x}^{(i)}),Y(\vec{x}^{(l)}) \right) = \exp\left(- \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j^{(l)} |^{p_j}\right).
 $$ {#eq-corr-kriging-51}
-Using @eq-corr-kriging-51, we can compute the $(n \times n)$ correlation matrix $\vec{\Psi}$ of the observed sample data as shown in @eq-corr-matrix-kriging-51, 
+Using @eq-corr-kriging-51, we can compute the $(n \times n)$ correlation matrix $\Psi$ of the observed sample data as shown in @eq-corr-matrix-kriging-51, 
 
 $$
-\vec{\Psi} = \begin{pmatrix}
+\Psi = \begin{pmatrix}
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(1)}),
-\vec{Y}(\vec{x}^{(1)}) 
+Y(\vec{x}^{(1)}),
+Y(\vec{x}^{(1)}) 
 \right) & \ldots &
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(1)}),
-\vec{Y}(\vec{x}^{(n)}) 
+Y(\vec{x}^{(1)}),
+Y(\vec{x}^{(n)}) 
 \right)\\
 \vdots  & \vdots &  \vdots\\
  \text{cor}\left(
-\vec{Y}(\vec{x}^{(n)}),
-\vec{Y}(\vec{x}^{(1)}) 
+Y(\vec{x}^{(n)}),
+Y(\vec{x}^{(1)}) 
 \right)&
 \ldots &
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(n)}),
-\vec{Y}(\vec{x}^{(n)}) 
+Y(\vec{x}^{(n)}),
+Y(\vec{x}^{(n)}) 
 \right)
 \end{pmatrix},
 $$ {#eq-corr-matrix-kriging-51}
@@ -87,13 +98,13 @@ $$ {#eq-corr-matrix-kriging-51}
 and a covariance matrix as shown in @eq-cov-matrix-kriging-52,
 
 $$
-\text{Cov}(\mathbf{Y}, \mathbf{Y} ) = \sigma^2 \mathbf{\Psi}.
+\text{Cov}(Y, Y ) = \sigma^2\Psi.
 $$ {#eq-cov-matrix-kriging-52}
 
 This assumed correlation between the sample data reflects our expectation that an engineering function will behave in a certain way and it will be smoothly and continuous.
 
 We now have a set of $n$ random variables ($\mathbf{Y}$) that are correlated with each other as described in the $(n \times n)$ correlation matrix
-$\mathbf{\Psi}$,
+$\Psi$,
 see @eq-corr-matrix-kriging-51.
 The correlations depend on the absolute distances in dimension $j$ between the $i$-th and the $l$-th sample point $|x_j^{(i)} - x_j^{(l)}|$ and the 
 corresponding parameters $p_j$ and $\theta_j$ for dimension $j$.
@@ -103,7 +114,7 @@ The correlation is intuitive, because when
 * two points move far apart, then $|x_j^{(i)} - x_j| \to \infty$ and $\exp \left(-|x_j^{(i)} - x_j|^{p_j} \right) \to 0$ (these points show very low correlation).
 
 ::: {#exm-kriging-corr-1}
-### Correlations for Different $p_j$
+### Correlations for different $p_j$
 
 Three different correlations are shown in @fig-pval12: $p_j= 0.1, 1, 2$. The smoothness parameter $p_j$ affects the correlation:
 
@@ -157,7 +168,7 @@ visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_valu
 :::
 
 ::: {#exm-kriging-corr-2}
-### Correlations for Different $\theta$
+### Correlations for different $\theta$
 
 @fig-theta12 visualizes the correlation between two points $Y(\vec{x}_j^{(i)})$ and $Y(\vec{x}_j)$ for different values of $\theta$. The parameter $\theta$ can be seen as a width parameter:
 
@@ -340,7 +351,7 @@ Until now, the observed data $\vec{y}$ was not used.
 We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
 To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
 which can be expressed in terms of the sample data 
-$$L\left(\vec{Y}(\vec{x}^{(1)}), \ldots, \vec{Y}(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left\{ \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right\},$$ 
+$$L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left\{ \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right\},$$ 
 and formulated as the log-likelihood:
 $$
 \ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
@@ -393,17 +404,17 @@ We will use the Kriging correlation $\Psi$ to predict new values based on the ob
 Basic elements of the Kriging based surrogate optimization 
 such as interpolation, expected improvement, and regression are presented. The presentation follows the approach described in @Forr08a and @bart21i.
 
-Main idea for prediction is that the new $Y(\vec{x})$ should be consistent with the old sample data $X$.  For a new prediction $\hat{y}$ at $\vec{x}$, the value of $\hat{y}$ is chosen so that it maximizes the likelihood of the sample data $\vec{X}$ and the prediction, given the (optimized) correlation parameter $\vec{\theta}$ and $\vec{p}$ from above.  The observed data $\vec{y}$ is augmented with the new prediction $\hat{y}$ which results in the augmented vector $\vec{\tilde{y}} = ( \vec{y}^T, \hat{y})^T$. A vector of correlations between the observed data and the new prediction is defined as
+Main idea for prediction is that the new $Y(\vec{x})$ should be consistent with the old sample data $X$.  For a new prediction $\hat{y}$ at $\vec{x}$, the value of $\hat{y}$ is chosen so that it maximizes the likelihood of the sample data $X$ and the prediction, given the (optimized) correlation parameter $\vec{\theta}$ and $\vec{p}$ from above.  The observed data $\vec{y}$ is augmented with the new prediction $\hat{y}$ which results in the augmented vector $\vec{\tilde{y}} = ( \vec{y}^T, \hat{y})^T$. A vector of correlations between the observed data and the new prediction is defined as
 
 $$ \vec{\psi} = \begin{pmatrix}
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(1)}),
-\vec{Y}(\vec{x}) 
+Y(\vec{x}^{(1)}),
+Y(\vec{x}) 
 \right) \\
 \vdots  \\
 \text{cor}\left(
-\vec{Y}(\vec{x}^{(n)}),
-\vec{Y}(\vec{x}) 
+Y(\vec{x}^{(n)}),
+Y(\vec{x}) 
 \right)
 \end{pmatrix}
 =
