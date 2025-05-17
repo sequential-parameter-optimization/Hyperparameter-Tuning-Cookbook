@@ -19,17 +19,41 @@ Scientists and engineers frequently tackle complex functions by decomposing them
 
 While Fourier analysis—perhaps the most widely recognized example of this approach—excels at representing periodic phenomena through sine and cosine functions, the focus in  @Forr08a is broader. They aim to approximate arbitrary smooth, continuous functions using strategically positioned basis functions. Specifically, radial basis function (RBF) models employ symmetrical basis functions centered at selected points distributed throughout the design space. These basis functions have the unique property that their output depends only on the distance from their center point.
 
+First, we give a definition of the Euclidean distance, which is the most common distance measure used in RBF models.
+
+::: {#def-euclidean-distance}
+### Euclidean Distance
+The Euclidean distance between two points in a $k$-dimensional space is defined as:
+
+$$
+\|\vec{x} - \vec{c}\| = \sqrt{\sum_{i=1}^{k} (x_i - c_i)^2},
+$$ {#eq-euclidean-distance}
+
+where:
+
+* $\vec{x} = (x_1, x_2, \ldots, x_d)$ is the first point,
+* $\vec{c} = (c_1, c_2, \ldots, c_d)$ is the second point, and
+* $k$ is the number of dimensions.
+
+:::
+
+The Euclidean distance measure represents the straight-line distance between two points in Euclidean space.
+
+
+Using the Euclidean distance, we can define the radial basis function (RBF) model.
+
 ::: {#def-rbf}
 ### Radial Basis Function (RBF)
 Mathematically, a radial basis function $\psi$ can be expressed as:
 
 $$
 \psi(\vec{x}) = \psi(\|\vec{x} - \vec{c}\|),
-$$
+$$ {#eq-rbf-def}
 where $\vec{x}$ is the input vector, $\vec{c}$ is the center of the function, and $\|\vec{x} - \vec{c}\|$ denotes the Euclidean distance between $\vec{x}$ and $\vec{c}$.
 
 :::
 
+In the context of RBFs, the Euclidean distance calculation determines how much influence a particular center point $\vec{c}$ has on the prediction at point $\vec{x}$.
 
 We will first examine interpolating RBF models, which assume noise-free data and pass exactly through all training points. This approach provides an elegant mathematical foundation before we consider more practical scenarios where data contains measurement or process noise.
 
@@ -37,12 +61,19 @@ We will first examine interpolating RBF models, which assume noise-free data and
 
 Let us consider the scalar valued function $f$ observed without error, according to the sampling plan $X = {\vec{x}^{(1)}, \vec{x}^{(2)}, \ldots, \vec{x}^{(n)}}^T$, yielding the responses $\vec{y} = \{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}^T$.
 
-We seek a radial basis function approximation to $f$ of the fixed form:
+For a given set of $n_c$ centers $\vec{c}^{(i)}$, we would like to express the RBF model as a linear combination of the basis functions centered at these points. The goal is to find the weights $\vec{w}$ that minimize the error between the predicted and observed values.
+Thus, we seek a radial basis function approximation to $f$ of the fixed form:
 
 $$
 \hat{f}(\vec{x}) = \sum_{i=1}^{n_c} \vec{w}_i \psi(||\vec{x} - \vec{c}^{(i)}||),
 $$ {#eq-rbf}
-where $\vec{w}_i$ are the weights of the $n_c$ basis functions, $\vec{c}^{(i)}$ are the centres of the basis functions, and $\psi$ is a radial basis function. The notation $||\cdot||$ denotes the Euclidean distance between two points in the design space.
+where 
+
+* $\vec{w}_i$ are the weights of the $n_c$ basis functions,
+* $\vec{c}^{(i)}$ are the $n_c$ centres of the basis functions, and 
+* $\psi$ is a radial basis function.
+
+The notation $||\cdot||$ denotes the Euclidean distance between two points in the design space as defined in @eq-euclidean-distance.
 
 
 #### Selecting Basis Functions: From Fixed to Parametric Forms
@@ -60,6 +91,128 @@ While these fixed basis functions are computationally efficient, they offer limi
 * Inverse multiquadric ($\psi(r) = (r^2 + \sigma^2)^{-1/2}$): Offers sharp peaks near centers with asymptotic behavior
 
 The parameter $\sigma$ in these functions serves as a shape parameter that controls how rapidly the function's influence decays with distance. This added flexibility enables significantly better generalization, particularly when modeling complex responses, though at the cost of a more involved parameter estimation process requiring optimization of both weights and shape parameters.
+
+::: {#exm-rbf-gaussian}
+### Gaussian RBF
+
+Using the general definition of a radial basis function (@eq-rbf-def), we can express the Gaussian RBF as:
+$$
+\psi(\vec{x}) = \exp\left(-\frac{\|\vec{x} - \vec{c}\|^2}{2\sigma^2}\right)  = \exp\left(-\frac{\sum_{j=1}^{k} (x_j - c_j)^2}{2\sigma^2}\right) 
+$$ {#eq-gaussian-rbf}
+where:
+
+* $\vec{x}$ is the input vector,
+* $\vec{c}$ is the center vector,
+* $\|\vec{x} - \vec{c}\|$ is the Euclidean distance between the input and center, and
+* $\sigma$ is the width parameter that controls how quickly the function's response diminishes with distance from the center.
+
+The Gaussian RBF produces a bell-shaped response that reaches its maximum value of 1 when $\vec{x} = \vec{c}$ and asymptotically approaches zero as the distance increases. The parameter $\sigma$ determines how "localized" the response is---smaller values create a narrower peak with faster decay, while larger values produce a broader, more gradual response across the input space.
+@fig-rbf-gaussian-k1 shows the Gaussian RBF for different values of $\sigma$ in an one-dimensional space. The center of the RBF is set at 0, and the width parameter $\sigma$ varies to illustrate how it affects the shape of the function.
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define the Gaussian RBF function
+def gaussian_rbf(x, center, sigma):
+    """
+    Compute the Gaussian Radial Basis Function.
+
+    Args:
+        x (ndarray): Input points
+        center (float): Center of the RBF
+        sigma (float): Width parameter
+
+    Returns:
+        ndarray: RBF values
+    """
+    return np.exp(-((x - center)**2) / (2 * sigma**2))
+```
+
+```{python}
+#| label: fig-rbf-gaussian-k1
+#| fig-cap: "Gaussian RBF"
+# Create a grid of points
+x = np.linspace(-5, 5, 1000)
+# Set the center
+center = 0.0
+# Define different sigma values
+sigmas = [0.1, 1.0, 10.0]
+# Create the figure
+plt.figure(figsize=(6, 4))
+# Plot the Gaussian RBF for each sigma
+for sigma in sigmas:
+    y = gaussian_rbf(x, center, sigma)
+    plt.plot(x, y, label=f'σ = {sigma}')
+# Add a vertical line at the center
+plt.axvline(x=center, color='gray', linestyle='--', alpha=0.5)
+# Add labels and legend
+plt.title('Gaussian RBF with Different σ Values (k=1)')
+plt.xlabel('x')
+plt.ylabel('ψ(||x - c||)')
+plt.legend()
+plt.grid(True, alpha=0.3)
+# Show plot
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define the Gaussian RBF function
+def gaussian_rbf(x, center, sigma):
+    """
+    Compute the Gaussian Radial Basis Function.
+    
+    Args:
+        x (ndarray): Input points
+        center (float): Center of the RBF
+        sigma (float): Width parameter
+        
+    Returns:
+        ndarray: RBF values
+    """
+    return np.exp(-((x - center)**2) / (2 * sigma**2))
+
+# Create a grid of points
+x = np.linspace(-4, 6, 1000)
+
+# Set the common width parameter
+sigma = 1.0
+# Define centers for the three RBFs
+centers = [-1, 0, 2]
+# Create the figure
+plt.figure(figsize=(6, 4))
+# Plot each Gaussian RBF
+for center in centers:
+    y = gaussian_rbf(x, center, sigma)
+    plt.plot(x, y, label=f'Center = {center}')
+# Add vertical lines at the centers
+for center in centers:
+    plt.axvline(x=center, color='gray', linestyle='--', alpha=0.5)
+# Add labels and legend
+plt.title('Gaussian RBFs with σ = 1.0')
+plt.xlabel('x')
+plt.ylabel('ψ(||x - c||)')
+plt.legend()
+plt.grid(True, alpha=0.3)
+# Optional: Plot sum of the three RBFs
+y_sum = (gaussian_rbf(x, -1, sigma) + 
+         gaussian_rbf(x, 0, sigma) + 
+         gaussian_rbf(x, 2, sigma))
+plt.plot(x, y_sum, 'k--', label='Sum of RBFs')
+
+# Update legend
+plt.legend()
+
+# Show plot
+plt.tight_layout()
+plt.show()
+```
+
+:::
 
 #### The Interpolation Condition: Elegant Solutions Through Linear Systems
 
@@ -520,7 +673,74 @@ class Rbf:
         return y
 ```
 
-### The dome function
+## RBF Example: The One-Dimensional `sin` Function
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import cholesky, cho_solve
+
+# Define the data points for fitting
+x_centers = np.array([np.pi/2, np.pi, 3*np.pi/2]).reshape(-1, 1)  # Centers for RBFs
+y_values = np.sin(x_centers.flatten())  # Sine values at these points
+
+# Create and fit the RBF model
+rbf_model = Rbf(X=x_centers, y=y_values, code=4)  # Code 4 is Gaussian RBF
+rbf_model.sigma = 1.0  # Set sigma parameter directly
+rbf_model.estim_weights()  # Calculate optimal weights
+
+# Print the weights
+print("RBF model weights:", rbf_model.weights)
+
+# Create a grid for visualization
+x_grid = np.linspace(0, 2*np.pi, 1000).reshape(-1, 1)
+y_true = np.sin(x_grid.flatten())  # True sine function
+
+# Generate predictions using the RBF model
+y_pred = np.zeros(len(x_grid))
+for i in range(len(x_grid)):
+    y_pred[i] = rbf_model.predict(x_grid[i])
+
+# Calculate individual basis functions for visualization
+basis_funcs = np.zeros((len(x_grid), len(x_centers)))
+for i in range(len(x_grid)):
+    for j in range(len(x_centers)):
+        # Calculate distance
+        distance = np.linalg.norm(x_grid[i] - x_centers[j])
+        # Compute basis function value scaled by its weight
+        basis_funcs[i, j] = rbf_model.basis(distance, rbf_model.sigma) * rbf_model.weights[j]
+
+# Plot the results
+plt.figure(figsize=(6, 4))
+
+# Plot the true sine function
+plt.plot(x_grid, y_true, 'k-', label='True sine function', linewidth=2)
+
+# Plot individual basis functions
+for i in range(len(x_centers)):
+    plt.plot(x_grid, basis_funcs[:, i], '--', 
+             label=f'Basis function at x={x_centers[i][0]:.2f}')
+
+# Plot the RBF fit (sum of basis functions)
+plt.plot(x_grid, y_pred, 'r-', label='RBF fit', linewidth=2)
+
+# Plot the sample points
+plt.scatter(x_centers, y_values, color='blue', s=100, label='Sample points')
+
+# Add horizontal line at y=0
+plt.axhline(y=0, color='gray', linestyle='--', alpha=0.3)
+
+plt.title('RBF Approximation of Sine Function')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+
+## RBF Example: The Two-Diemnsional `dome` Function
 
 The `dome` function is an example of a test function that can be used to evaluate the performance of the Radial Basis Function model. It is a simple mathematical function defined over a two-dimensional space.
 
@@ -541,7 +761,7 @@ def dome(x) -> float:
   return np.sum(1 - (2*x - 1)**2) / len(x)
 ```
 
-### Example usage
+
 
 The following code demonstrates how to use the Radial Basis Function model to approximate a function. It generates a Latin Hypercube sample, computes the objective function values, estimates the model parameters, and plots the results.
 
