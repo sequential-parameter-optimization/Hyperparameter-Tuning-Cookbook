@@ -135,6 +135,10 @@ $$
 x_i \in \{0, \frac{1}{p-1}, \frac{2}{p-1}, \dots, 1\}, \quad \text{ for } i = 1, \dots, k.
 $$
 
+
+::: {#def-elementary-effect}
+#### Elementary Effect
+
 For a given baseline value $x \in D$, let $d_i(x)$ denote the elementary effect of $x_i$, where:
 
 $$
@@ -146,9 +150,8 @@ with
 $$\Delta = \frac{\xi}{p-1}, \quad \xi \in \mathbb{N}^*, \quad \text{and} \quad x \in D , \text{ such that its components } x_i \leq 1 - \Delta.
 $$
 
-
 $\Delta$ is the step size. The elementary effect $d_i(x)$ measures the sensitivity of the function $f$ to changes in the variable $x_i$ at the point $x$.
-
+:::
 
 Morris's method aims to estimate the parameters of the distribution of elementary effects associated with each variable. A large measure of central tendency indicates that a variable has a significant influence on the objective function across the design space, while a large measure of spread suggests that the variable is involved in interactions or contributes to the nonlinearity of $f$. In practice, the sample mean and standard deviation of a set of $d_i(x)$ values, calculated in different parts of the design space, are used for this estimation.
 
@@ -224,7 +227,9 @@ def randorient(k, p, xi, seed=None):
         Pstar[i, rp[i]] = 1
 
     # A random orientation of the sampling matrix
-    Bstar = (np.ones((m, 1)) @ xstar.reshape(1, -1) + (Delta / 2) * ((2 * B - np.ones((m, k))) @ Dstar + np.ones((m, k)))) @ Pstar
+    Bstar = (np.ones((m, 1)) @ xstar.reshape(1, -1) +
+        (Delta / 2) * ((2 * B - np.ones((m, k))) @ Dstar +
+        np.ones((m, k)))) @ Pstar
 
     return Bstar
 ```
@@ -253,7 +258,40 @@ Random orientation is applied to the basic sampling matrix `B` to create `Bstar`
 
 The final output is the matrix `Bstar`, which represents a random orientation of the sampling plan. Each row corresponds to a sampled point in the design space, and each column corresponds to a design variable.
 
-::: {#exm-randorient}
+
+::: {#exm-randorient-2}
+##### Random Orientation of the Sampling Matrix in 2-D
+
+```{python}
+k = 2
+p = 3
+xi = 1
+Bstar = randorient(k, p, xi, seed=123)
+print(f"Random orientation of the sampling matrix:\n{Bstar}")
+```
+
+We can visualize the random orientation of the sampling matrix in 2-D as shown in @fig-randorient-2d.
+
+```{python}
+#| label: fig-randorient-2d
+#| fig-cap: "Random orientation of the sampling matrix in 2-D. The labels indicate the row index of the points."
+plt.figure(figsize=(6, 6))
+plt.scatter(Bstar[:, 0], Bstar[:, 1], color='blue', s=50, label='Hypercube Points')
+for i in range(Bstar.shape[0]):
+    plt.text(Bstar[i, 0] + 0.01, Bstar[i, 1] + 0.01, str(i), fontsize=9)
+plt.xlim(-0.1, 1.1)
+plt.ylim(-0.1, 1.1)
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.grid()
+```
+
+:::
+
+
+
+
+::: {#exm-randorient-3}
 ##### Random Orientation of the Sampling Matrix
 
 ```{python}
@@ -485,7 +523,7 @@ When the objective function is particularly expensive to evaluate, we might recy
 ### Stratification
 
 A feature shared by all of the approximation models discussed in @Forr08a is that they are more accurate in the vicinity of the points where we have evaluated the objective function. 
-In later chapters we will delve into the laws that quantify our decaying trust in the model as we move away from a known, sampled point, but for the purposes of the present discussion we shall merely draw the intuitive conclusion that a uniform level of model accuracy throughout the design space requires a uniform spread of points. A sampling plan possessing this feature is said to be space-filling .
+In later chapters we will delve into the laws that quantify our decaying trust in the model as we move away from a known, sampled point, but for the purposes of the present discussion we shall merely draw the intuitive conclusion that a uniform level of model accuracy throughout the design space requires a uniform spread of points. A sampling plan possessing this feature is said to be space-filling.
 
 The most straightforward way of sampling a design space in a uniform fashion is by means of a rectangular grid of points. This is the full factorial sampling technique.
 
@@ -746,6 +784,8 @@ J, distinct_d = jd(X, p=2.0)
 print("Distinct distances (d_i):", distinct_d)
 print("Occurrences (J_i):", J)
 ```
+
+:::
 
 
 A computationally intensive part of this calculation is the creation of the vector containing all pairwise distances. This is particularly true for large sampling plans; for instance, a 1000-point plan requires nearly half a million distance calculations. Consequently, pre-allocating memory for the distance vector $d$ is essential. This necessitates a slightly less direct method for computing the indices of $d$, rather than appending each new element, which would involve costly dynamic memory allocation.

@@ -13,8 +13,16 @@ execute:
 
 ::: {.callout-note}
 ### Note
-This section is based on chapter 1.3 "A ten-variable weight function" in @Forr08a.
-:::
+* This section is based on chapter 1.3 "A ten-variable weight function" in @Forr08a.
+* The following Python packages are imported:
+```{python}
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.axes_grid1 import ImageGrid
+```
+
+::: 
 
 
 ## AWWE Equation
@@ -45,7 +53,7 @@ $$ \times \left( \frac{100 R_{tc}}{\cos \Lambda} \right)^{-0.3} \times (N_z W_{d
 
 The study begins with a baseline Cessna C172 Skyhawk Aircraft as its reference point. It aims to investigate the impact of wing area and fuel weight on the overall weight of the aircraft. Two crucial parameters in this analysis are the aspect ratio ($A$), defined as the ratio of the wing's length to the average chord (thickness of the airfoil), and the taper ratio ($\lambda$), which represents the ratio of the maximum to the minimum thickness of the airfoil or the maximum to minimum chord.
 
-It's important to note that the equation used in this context is not a computer simulation but will be treated as one for the purpose of illustration. This approach involves employing a true mathematical equation, even if it's considered unknown, as a useful tool for generating realistic settings to test the methodology. The functional form of this equation was derived by "calibrating" known physical relationships to curves obtained from existing aircraft data, as referenced in Raymer 2012. Essentially, it acts as a surrogate for actual measurements of aircraft weight.
+It's important to note that the equation used in this context is not a computer simulation but will be treated as one for the purpose of illustration. This approach involves employing a true mathematical equation, even if it's considered unknown, as a useful tool for generating realistic settings to test the methodology. The functional form of this equation was derived by "calibrating" known physical relationships to curves obtained from existing aircraft data, as referenced in @raym06a. Essentially, it acts as a surrogate for actual measurements of aircraft weight.
 
 Examining the mathematical properties of the AWWE (Aircraft Weight With Wing Area and Fuel Weight Equation), it is evident that the response is highly nonlinear concerning its inputs. While it's common to apply the logarithm to simplify equations with complex exponents, even when modeling the logarithm, which transforms powers into slope coefficients and products into sums, the response remains nonlinear due to the presence of trigonometric terms. Given the combination of nonlinearity and high input dimension, simple linear and quadratic response surface approximations are likely to be inadequate for this analysis.
 
@@ -59,15 +67,17 @@ The primary goals of this study revolve around understanding and optimization:
 
 The provided Python code serves as a genuine computer implementation that "solves" a mathematical model. It accepts arguments encoded in the unit cube, with defaults used to represent baseline settings, as detailed in the table labeled as @tbl-awwe. To map values from the interval $[a, b]$ to the interval $[0, 1]$, the following formula can be employed: 
 
-$$y = f(x) = \frac{x - a}{b - a}.$$
-
+$$
+y = f(x) = \frac{x - a}{b - a}.
+$$ {#eq-mapping}
 To reverse this mapping and obtain the original values, the formula 
-$$g(y) = a + (b - a) y$$ can be used.
- 
+$$
+g(y) = a + (b - a) y
+$$  {#eq-reverse}
+can be used.
+The function `wingwt()` expects inputs from the unit cube, which are then transformed back to their original scales using @eq-reverse. The function is defined as follows:
 
 ```{python}
-import numpy as np
-
 def wingwt(Sw=0.48, Wfw=0.4, A=0.38, L=0.5, q=0.62, l=0.344,  Rtc=0.4, Nz=0.37, Wdg=0.38):
     # put coded inputs back on natural scale
     Sw = Sw * (200 - 150) + 150 
@@ -94,7 +104,6 @@ To simulate time-consuming evaluations, a deliberate delay is introduced by inco
 Moving on to the AWWE visualization, plotting in two dimensions is considerably simpler than dealing with nine dimensions. To aid in creating visual representations, the code provided below establishes a grid within the unit square to facilitate the generation of sliced visuals. This involves generating a "meshgrid" as outlined in the code.
 
 ```{python}
-import numpy as np
 x = np.linspace(0, 1, 3)
 y = np.linspace(0, 1, 3)
 X, Y = np.meshgrid(x, y)
@@ -106,9 +115,7 @@ The coding used to transform inputs from natural units is largely a matter of ta
 
 ```{python}
 %matplotlib inline
-import matplotlib.pyplot as plt
 # plt.style.use('seaborn-white')
-import numpy as np
 x = np.linspace(0, 1, 100)
 y = np.linspace(0, 1, 100)
 X, Y = np.meshgrid(x, y)
@@ -180,8 +187,6 @@ pl = ["Sw", "Wfw", "A", "L", "q", "l",  "Rtc", "Nz", "Wdg"]
 ```
 
 ```{python}
-import math
-
 Z = []
 Zlab = []
 l = len(pl)
@@ -231,10 +236,6 @@ plt.colorbar()
 * Plotting the Big Picture: we can plot all 36 combinations in one figure.
 
 ```{python}
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import ImageGrid
-import numpy as np
-
 fig = plt.figure(figsize=(20., 20.))
 grid = ImageGrid(fig, 111,  # similar to subplot(111)
                  nrows_ncols=(6,6),  # creates 2x2 grid of axes
