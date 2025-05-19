@@ -46,7 +46,7 @@ where $\vec{x}$ and $\vec{x}^{(i)}$  denote the $k$-dim vector $\vec{x}= (x_1, \
 
 :::
 
-Kriging  uses a specialized basis function that offers greater flexibility than standard RBFs. Examining Equation @eq-krigingbase, we can observe how Kriging builds upon and extends the Gaussian basis concept. The key enhancements of Kriging over Gaussian RBF can be summarized as follows:
+Kriging  uses a specialized basis function that offers greater flexibility than standard RBFs. Examining @eq-krigingbase, we can observe how Kriging builds upon and extends the Gaussian basis concept. The key enhancements of Kriging over Gaussian RBF can be summarized as follows:
 
 * Dimension-specific width parameters: While a Gaussian RBF uses a single width parameter $1/\sigma^2$, Kriging employs a vector $\vec{\theta} = (\theta_1, \theta_2, \ldots, \theta_k)^T$. This allows the model to automatically adjust its sensitivity to each input dimension, effectively performing automatic feature relevance determination.
 * Flexible smoothness control: The Gaussian RBF fixes the exponent at 2, producing uniformly smooth functions. In contrast, Kriging's dimension-specific exponents $\vec{p} = (p_1, p_2, \ldots, p_k)^T$ (typically with $p_j \in [1, 2]$) enable precise control over smoothness properties in each dimension.
@@ -167,7 +167,7 @@ def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
 
 ```{python}
 #| label: fig-pval12
-#| fig-cap: "Correlations with varying $\\theta$. $\\theta$ set to 1/10, 1, and 10."
+#| fig-cap: "Correlations with varying $p$. $\\theta$ set to 1."
 #| echo: false
 visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_values=[0.1, 1, 2.0])
 ```
@@ -185,7 +185,7 @@ visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_valu
 
 ```{python}
 #| label: fig-theta12
-#| fig-cap: "Correlations with varying $\\theta$. $\\theta$ set to 1/10, 1, and 10."
+#| fig-cap: "Correlations with varying $\\theta$. $p$ set to 2."
 #| echo: false
 visualize_inverse_exp_squared_distance_theta(distance= 2.5, point=0, theta_values=[0.1, 1, 10.0])
 ```
@@ -302,7 +302,20 @@ def build_Psi(X, theta):
 Psi = build_Psi(X, theta)
 Psi
 ```
+
+
+```{python}
+#| label: fig-corr-matrix-build_Psi
+#| fig-cap: "Correlation matrix $\\Psi$."
+#| echo: false
+plt.imshow(Psi, cmap='hot', interpolation='nearest')
+plt.colorbar()
+plt.show()
+```
+
+
 :::
+
 
 ::: {#exm-corr-matrix-existing}
 ### Example: The Correlation Matrix (Using Existing Functions)
@@ -383,7 +396,8 @@ Given that $\Psi$ (our correlation matrix) is symmetric, only half of the matrix
 
 The Cholesky factorization is applicable only to positive-definite matrices, which $\Psi$ generally is. However, if $\Psi$ becomes nearly singular, such as when the $\mathbf{x}^{(i)}$'s are densely packed, the Cholesky factorization might fail. In these cases, one could employ an LU-decomposition, though the result might be unreliable. When $\Psi$ is near singular, the best course of action is to either use regression techniques or, as we do here, assign a poor likelihood value to parameters generating the near singular matrix, thus diverting the MLE search towards better-conditioned $\Psi$ matrices.
 
-Another consideration in calculating the concentrated log-likelihood is that $\det(\Psi) \rightarrow 0$ for poorly conditioned matrices, so it is advisable to use twice the sum of the logarithms of the diagonal of the Cholesky factorization when calculating $\ln(\lvert\Psi\rvert)$ in @eq-concentrated-loglikelihood.
+When working with correlation matrices, increasing the values on the main diagonal of a matrix will increase the absolute value of its determinant. A critical numerical consideration in calculating the concentrated log-likelihood is that for poorly conditioned matrices, $\det(\Psi)$ approaches zero, leading to potential numerical instability. To address this issue, it is advisable to calculate $\ln(\lvert\Psi\rvert)$ in @eq-concentrated-loglikelihood using twice the sum of the logarithms of the diagonal elements of the Cholesky factorization. This approach provides a more numerically stable method for computing the log-determinant, as the Cholesky decomposition $\Psi = L L^T$ allows us to express $\ln(\lvert\Psi\rvert) = 2\sum_{i=1}^{n} \ln(L_{ii})$, avoiding the direct computation of potentially very small determinant values.
+
 
 ## Kriging Prediction
 

@@ -1033,8 +1033,9 @@ window.Quarto = {
   <li><a href="#polynomial-fitting-in-python" id="toc-polynomial-fitting-in-python" class="nav-link" data-scroll-target="#polynomial-fitting-in-python"><span class="header-section-number">7.2</span> Polynomial Fitting in Python</a>
   <ul class="collapse">
   <li><a href="#fitting-the-polynomial" id="toc-fitting-the-polynomial" class="nav-link" data-scroll-target="#fitting-the-polynomial"><span class="header-section-number">7.2.1</span> Fitting the Polynomial</a></li>
-  <li><a href="#making-predictions" id="toc-making-predictions" class="nav-link" data-scroll-target="#making-predictions"><span class="header-section-number">7.2.2</span> Making Predictions</a></li>
-  <li><a href="#plotting-the-results" id="toc-plotting-the-results" class="nav-link" data-scroll-target="#plotting-the-results"><span class="header-section-number">7.2.3</span> Plotting the Results</a></li>
+  <li><a href="#explaining-the-k-fold-cross-validation" id="toc-explaining-the-k-fold-cross-validation" class="nav-link" data-scroll-target="#explaining-the-k-fold-cross-validation"><span class="header-section-number">7.2.2</span> Explaining the <span class="math inline">\(k\)</span>-fold Cross-Validation</a></li>
+  <li><a href="#making-predictions" id="toc-making-predictions" class="nav-link" data-scroll-target="#making-predictions"><span class="header-section-number">7.2.3</span> Making Predictions</a></li>
+  <li><a href="#plotting-the-results" id="toc-plotting-the-results" class="nav-link" data-scroll-target="#plotting-the-results"><span class="header-section-number">7.2.4</span> Plotting the Results</a></li>
   </ul></li>
   <li><a href="#example-one-aerofoil-drag" id="toc-example-one-aerofoil-drag" class="nav-link" data-scroll-target="#example-one-aerofoil-drag"><span class="header-section-number">7.3</span> Example One: Aerofoil Drag</a></li>
   <li><a href="#example-two-a-multimodal-test-case" id="toc-example-two-a-multimodal-test-case" class="nav-link" data-scroll-target="#example-two-a-multimodal-test-case"><span class="header-section-number">7.4</span> Example Two: A Multimodal Test Case</a></li>
@@ -1075,12 +1076,20 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This section is based on chapter 2.2 in <span class="citation" data-cites="Forr08a">Forrester, Sóbester, and Keane (<a href="references.html#ref-Forr08a" role="doc-biblioref">2008</a>)</span>.</p>
+<ul>
+<li>This section is based on chapter 2.2 in <span class="citation" data-cites="Forr08a">Forrester, Sóbester, and Keane (<a href="references.html#ref-Forr08a" role="doc-biblioref">2008</a>)</span>.</li>
+<li>The following Python packages are imported:</li>
+</ul>
+<div id="908ac828" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </div>
 </div>
 <section id="fitting-a-polynomial" class="level2" data-number="7.1">
 <h2 data-number="7.1" class="anchored" data-anchor-id="fitting-a-polynomial"><span class="header-section-number">7.1</span> Fitting a Polynomial</h2>
-<p>Let us consider the scalar-valued function <span class="math inline">\(f\)</span> observed according to the sampling plan <span class="math inline">\(X = \{x^{(1)}, x^{(2)} \dots, x^{(n)}\}^T\)</span>, yielding the responses <span class="math inline">\(\vec{y} = \{y^{(1)}, y^{(2)}, \dots, y^{(n)}\}^T\)</span>.</p>
+<p>We will consider one-variable cases, i.e., <span class="math inline">\(k=1\)</span>, first.</p>
+<p>Let us consider the scalar-valued function <span class="math inline">\(f: \mathbb{R} \to \mathbb{R}\)</span> observed according to the sampling plan <span class="math inline">\(X = \{x^{(1)}, x^{(2)} \dots, x^{(n)}\}^T\)</span>, yielding the responses <span class="math inline">\(\vec{y} = \{y^{(1)}, y^{(2)}, \dots, y^{(n)}\}^T\)</span>.</p>
 <p>A polynomial approximation of <span class="math inline">\(f\)</span> of order <span class="math inline">\(m\)</span> can be written as:</p>
 <p><span class="math display">\[
 \hat{f}(x, m, \vec{w}) = \sum_{i=0}^m w_i x^i.
@@ -1111,66 +1120,103 @@ Note
 <h2 data-number="7.2" class="anchored" data-anchor-id="polynomial-fitting-in-python"><span class="header-section-number">7.2</span> Polynomial Fitting in Python</h2>
 <section id="fitting-the-polynomial" class="level3" data-number="7.2.1">
 <h3 data-number="7.2.1" class="anchored" data-anchor-id="fitting-the-polynomial"><span class="header-section-number">7.2.1</span> Fitting the Polynomial</h3>
-<div id="polynomial_fit" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> KFold</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> polynomial_fit(X, Y, max_order<span class="op">=</span><span class="dv">15</span>, q<span class="op">=</span><span class="dv">5</span>):</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">    Fits a one-variable polynomial to one-dimensional data using cross-validation.</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Training data vector (independent variable).</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">        Y (array-like): Training data vector (dependent variable).</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">        max_order (int): Maximum polynomial order to consider. Default is 15.</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">        q (int): Number of cross-validation folds. Default is 5.</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">        best_order (int): The optimal polynomial order.</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">        coeff (array): Coefficients of the best-fit polynomial.</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">        mu (tuple): Normalization parameters (mean, std) for X.</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> np.array(X)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    Y <span class="op">=</span> np.array(Y)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(X)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Normalize X</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    mu <span class="op">=</span> (np.mean(X), np.std(X))</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    X_norm <span class="op">=</span> (X <span class="op">-</span> mu[<span class="dv">0</span>]) <span class="op">/</span> mu[<span class="dv">1</span>]</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Cross-validation setup</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    kf <span class="op">=</span> KFold(n_splits<span class="op">=</span>q, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    cross_val_errors <span class="op">=</span> np.zeros(max_order)</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> order <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, max_order <span class="op">+</span> <span class="dv">1</span>):</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        fold_errors <span class="op">=</span> []</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> train_idx, val_idx <span class="kw">in</span> kf.split(X_norm):</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            X_train, X_val <span class="op">=</span> X_norm[train_idx], X_norm[val_idx]</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>            Y_train, Y_val <span class="op">=</span> Y[train_idx], Y[val_idx]</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Fit polynomial</span></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            coeff <span class="op">=</span> np.polyfit(X_train, Y_train, order)</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Predict on validation set</span></span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>            Y_pred <span class="op">=</span> np.polyval(coeff, X_val)</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Compute mean squared error</span></span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>            mse <span class="op">=</span> np.mean((Y_val <span class="op">-</span> Y_pred) <span class="op">**</span> <span class="dv">2</span>)</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>            fold_errors.append(mse)</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        cross_val_errors[order <span class="op">-</span> <span class="dv">1</span>] <span class="op">=</span> np.mean(fold_errors)</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find the best order</span></span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>    best_order <span class="op">=</span> np.argmin(cross_val_errors) <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fit the best polynomial on the entire dataset</span></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>    best_coeff <span class="op">=</span> np.polyfit(X_norm, Y, best_order)</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> best_order, best_coeff, mu</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="polynomial_fit" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> KFold</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> polynomial_fit(X, Y, max_order<span class="op">=</span><span class="dv">15</span>, q<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Fits a one-variable polynomial to one-dimensional data using cross-validation.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Training data vector (independent variable).</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Y (array-like): Training data vector (dependent variable).</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">        max_order (int): Maximum polynomial order to consider. Default is 15.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">        q (int): Number of cross-validation folds. Default is 5.</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">        best_order (int): The optimal polynomial order.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">        coeff (array): Coefficients of the best-fit polynomial.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">        mnstd (tuple): Normalization parameters (mean, std) for X.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> np.array(X)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    Y <span class="op">=</span> np.array(Y)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(X)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Normalize X</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    mnstd <span class="op">=</span> (np.mean(X), np.std(X))</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    X_norm <span class="op">=</span> (X <span class="op">-</span> mnstd[<span class="dv">0</span>]) <span class="op">/</span> mnstd[<span class="dv">1</span>]</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Cross-validation setup</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    kf <span class="op">=</span> KFold(n_splits<span class="op">=</span>q, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    cross_val_errors <span class="op">=</span> np.zeros(max_order)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> order <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, max_order <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        fold_errors <span class="op">=</span> []</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> train_idx, val_idx <span class="kw">in</span> kf.split(X_norm):</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            X_train, X_val <span class="op">=</span> X_norm[train_idx], X_norm[val_idx]</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>            Y_train, Y_val <span class="op">=</span> Y[train_idx], Y[val_idx]</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Fit polynomial</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            coeff <span class="op">=</span> np.polyfit(X_train, Y_train, order)</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Predict on validation set</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            Y_pred <span class="op">=</span> np.polyval(coeff, X_val)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Compute mean squared error</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            mse <span class="op">=</span> np.mean((Y_val <span class="op">-</span> Y_pred) <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            fold_errors.append(mse)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>        cross_val_errors[order <span class="op">-</span> <span class="dv">1</span>] <span class="op">=</span> np.mean(fold_errors)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find the best order</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    best_order <span class="op">=</span> np.argmin(cross_val_errors) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fit the best polynomial on the entire dataset</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    best_coeff <span class="op">=</span> np.polyfit(X_norm, Y, best_order)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> best_order, best_coeff, mnstd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="making-predictions" class="level3" data-number="7.2.2">
-<h3 data-number="7.2.2" class="anchored" data-anchor-id="making-predictions"><span class="header-section-number">7.2.2</span> Making Predictions</h3>
+<section id="explaining-the-k-fold-cross-validation" class="level3" data-number="7.2.2">
+<h3 data-number="7.2.2" class="anchored" data-anchor-id="explaining-the-k-fold-cross-validation"><span class="header-section-number">7.2.2</span> Explaining the <span class="math inline">\(k\)</span>-fold Cross-Validation</h3>
+<p>The line</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>kf <span class="op">=</span> KFold(n_splits<span class="op">=</span>q, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>initializes a <span class="math inline">\(k\)</span>-Fold cross-validator object from the <code>sklearn.model_selection</code> library. The <code>n_splits</code> parameter specifies the number of folds. The data will be divided into <code>q</code> parts. In each iteration of the cross-validation, one part will be used as the validation set, and the remaining <code>q-1</code> parts will be used as the training set.</p>
+<p>The <code>kf.split</code> method takes the dataset <code>X_norm</code> as input and yields pairs of index arrays for each fold: * <code>train_idx</code>: In each iteration, <code>train_idx</code> is an array containing the indices of the data points that belong to the training set for that specific fold. * <code>val_idx</code>: Similarly, <code>val_idx</code> is an array containing the indices of the data points that belong to the validation (or test) set for that specific fold.</p>
+<p>The loop will run <code>q</code> times (the number of splits). In each iteration, a different fold serves as the validation set, while the other <code>q-1</code> folds form the training set.</p>
+<p>Here’s a Python example to demonstrate the values of <code>train_idx</code> and <code>val_idx</code>:</p>
+<div id="b7501daf" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample data (e.g., X_norm)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>X_norm <span class="op">=</span> np.array([<span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">0.4</span>, <span class="fl">0.5</span>, <span class="fl">0.6</span>, <span class="fl">0.7</span>, <span class="fl">0.8</span>, <span class="fl">0.9</span>, <span class="fl">1.0</span>])</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Original data indices: </span><span class="sc">{</span>np<span class="sc">.</span>arange(<span class="bu">len</span>(X_norm))<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of splits (folds)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> <span class="dv">3</span> <span class="co"># Let's use 3 folds for this example</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize KFold</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>kf <span class="op">=</span> KFold(n_splits<span class="op">=</span>q, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Iterate through the splits and print the indices</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>fold_number <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> train_idx, val_idx <span class="kw">in</span> kf.split(X_norm):</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"--- Fold </span><span class="sc">{</span>fold_number<span class="sc">}</span><span class="ss"> ---"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Train indices: </span><span class="sc">{</span>train_idx<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Validation indices: </span><span class="sc">{</span>val_idx<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Training data for this fold: </span><span class="sc">{</span>X_norm[train_idx]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Validation data for this fold: </span><span class="sc">{</span>X_norm[val_idx]<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    fold_number <span class="op">+=</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Original data indices: [0 1 2 3 4 5 6 7 8 9]
+
+--- Fold 1 ---
+Train indices: [2 3 4 6 7 9]
+Validation indices: [0 1 5 8]
+Training data for this fold: [0.3 0.4 0.5 0.7 0.8 1. ]
+Validation data for this fold: [0.1 0.2 0.6 0.9]
+
+--- Fold 2 ---
+Train indices: [0 1 3 4 5 6 8]
+Validation indices: [2 7 9]
+Training data for this fold: [0.1 0.2 0.4 0.5 0.6 0.7 0.9]
+Validation data for this fold: [0.3 0.8 1. ]
+
+--- Fold 3 ---
+Train indices: [0 1 2 5 7 8 9]
+Validation indices: [3 4 6]
+Training data for this fold: [0.1 0.2 0.3 0.6 0.8 0.9 1. ]
+Validation data for this fold: [0.4 0.5 0.7]
+</code></pre>
+</div>
+</div>
+</section>
+<section id="making-predictions" class="level3" data-number="7.2.3">
+<h3 data-number="7.2.3" class="anchored" data-anchor-id="making-predictions"><span class="header-section-number">7.2.3</span> Making Predictions</h3>
 <p>To make predictions, we can use the coefficients. The data is standardized around its mean in the polynomial function, which is why the vector <code>mnstd</code> is required. The coefficient vector is computed based on the normalized data, and this must be taken into account if further analytical calculations are performed on the fitted model.</p>
 <p>The polynomial approximation of <span class="math inline">\(C_D\)</span> is:</p>
 <p><span class="math display">\[
@@ -1180,56 +1226,56 @@ C_D(x) = w_8 x^8 + w_7 x^7 + \dots + w_1 x + w_0,
 <p><span class="math display">\[
 \bar{x} = \frac{x - \mu(X)}{\sigma(X)}
 \]</span></p>
-<div id="6a685e3f" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> predict_polynomial_fit(X, coeff, mu):</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Generates predictions for the polynomial fit.</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Original independent variable data.</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">        coeff (array): Coefficients of the best-fit polynomial.</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">        mu (tuple): Normalization parameters (mean, std) for X.</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">        tuple: De-normalized predicted X values and corresponding Y predictions.</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Normalize X</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    X_norm <span class="op">=</span> (X <span class="op">-</span> mu[<span class="dv">0</span>]) <span class="op">/</span> mu[<span class="dv">1</span>]</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Generate predictions</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    X_pred <span class="op">=</span> np.linspace(<span class="bu">min</span>(X_norm), <span class="bu">max</span>(X_norm), <span class="dv">100</span>)</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    Y_pred <span class="op">=</span> np.polyval(coeff, X_pred)</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># De-normalize X for plotting</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    X_pred_original <span class="op">=</span> X_pred <span class="op">*</span> mu[<span class="dv">1</span>] <span class="op">+</span> mu[<span class="dv">0</span>]</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> X_pred_original, Y_pred</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="3ce77531" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> predict_polynomial_fit(X, coeff, mnstd):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Generates predictions for the polynomial fit.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Original independent variable data.</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">        coeff (array): Coefficients of the best-fit polynomial.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">        mnstd (tuple): Normalization parameters (mean, std) for X.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">        tuple: De-normalized predicted X values and corresponding Y predictions.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Normalize X</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    X_norm <span class="op">=</span> (X <span class="op">-</span> mnstd[<span class="dv">0</span>]) <span class="op">/</span> mnstd[<span class="dv">1</span>]</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Generate predictions</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    X_pred <span class="op">=</span> np.linspace(<span class="bu">min</span>(X_norm), <span class="bu">max</span>(X_norm), <span class="dv">100</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    Y_pred <span class="op">=</span> np.polyval(coeff, X_pred)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># De-normalize X for plotting</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    X_pred_original <span class="op">=</span> X_pred <span class="op">*</span> mnstd[<span class="dv">1</span>] <span class="op">+</span> mnstd[<span class="dv">0</span>]</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> X_pred_original, Y_pred</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="plotting-the-results" class="level3" data-number="7.2.3">
-<h3 data-number="7.2.3" class="anchored" data-anchor-id="plotting-the-results"><span class="header-section-number">7.2.3</span> Plotting the Results</h3>
-<div id="252364ca" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_polynomial_fit(X, Y, X_pred_original, Y_pred, best_order, y_true<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Visualizes the polynomial fit.</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Original independent variable data.</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">        Y (array-like): Original dependent variable data.</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">        X_pred_original (array): De-normalized predicted X values.</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">        Y_pred (array): Predicted Y values.</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">        y_true (array): True Y values.</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">        best_order (int): The optimal polynomial order.</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    plt.scatter(X, Y, label<span class="op">=</span><span class="st">"Training Data"</span>, color<span class="op">=</span><span class="st">"grey"</span>, marker<span class="op">=</span><span class="st">"o"</span>)</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    plt.plot(X_pred_original, Y_pred, label<span class="op">=</span><span class="ss">f"Order </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ss"> Polynomial"</span>, color<span class="op">=</span><span class="st">"red"</span>)</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y_true <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        plt.plot(X, y_true, label<span class="op">=</span><span class="st">"True Function"</span>, color<span class="op">=</span><span class="st">"blue"</span>, linestyle<span class="op">=</span><span class="st">"--"</span>)</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="ss">f"Polynomial Fit (Order </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">"X"</span>)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">"Y"</span>)</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="plotting-the-results" class="level3" data-number="7.2.4">
+<h3 data-number="7.2.4" class="anchored" data-anchor-id="plotting-the-results"><span class="header-section-number">7.2.4</span> Plotting the Results</h3>
+<div id="ed3a8d99" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_polynomial_fit(X, Y, X_pred_original, Y_pred, best_order, y_true<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Visualizes the polynomial fit.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">        X (array-like): Original independent variable data.</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">        Y (array-like): Original dependent variable data.</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">        X_pred_original (array): De-normalized predicted X values.</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">        Y_pred (array): Predicted Y values.</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">        y_true (array): True Y values.</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">        best_order (int): The optimal polynomial order.</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    plt.scatter(X, Y, label<span class="op">=</span><span class="st">"Training Data"</span>, color<span class="op">=</span><span class="st">"grey"</span>, marker<span class="op">=</span><span class="st">"o"</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    plt.plot(X_pred_original, Y_pred, label<span class="op">=</span><span class="ss">f"Order </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ss"> Polynomial"</span>, color<span class="op">=</span><span class="st">"red"</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y_true <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        plt.plot(X, y_true, label<span class="op">=</span><span class="st">"True Function"</span>, color<span class="op">=</span><span class="st">"blue"</span>, linestyle<span class="op">=</span><span class="st">"--"</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="ss">f"Polynomial Fit (Order </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">"X"</span>)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">"Y"</span>)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -1245,21 +1291,21 @@ C_D = \{C_{D}^{(1)}, C_{D}^{(2)}, \dots, C_{D}^{(101)}\}
 \]</span></p>
 <p>These responses are corrupted by “noise,” which are deviations of the systematic variety caused by small changes in the computational mesh from one design to the next.</p>
 <p>The original data is measured in natural units, i.e., from <span class="math inline">\(-0.3\)</span> untion to <span class="math inline">\(0.1\)</span> unit. The data is normalized to the range of <span class="math inline">\(0\)</span> to <span class="math inline">\(1\)</span> for the computation with the <code>aerofoilcd</code> function. The data is then fitted with a polynomial of order <span class="math inline">\(m\)</span>. To obtain the best polynomial through this data, the following Python code can be used:</p>
-<div id="083460e6" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.surrogate.functions.forr08a <span class="im">import</span> aerofoilcd</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="op">-</span><span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="dv">101</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize the data so that it will be in the range of 0 to 1</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.<span class="bu">min</span>(X)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.<span class="bu">max</span>(X)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>X_cod <span class="op">=</span> (X <span class="op">-</span> a) <span class="op">/</span> (b <span class="op">-</span> a)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> aerofoilcd(X_cod)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>best_order, best_coeff, mnstd <span class="op">=</span> polynomial_fit(X, y)</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>X_pred_original, Y_pred <span class="op">=</span> predict_polynomial_fit(X, best_coeff, mnstd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="aea21616" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.surrogate.functions.forr08a <span class="im">import</span> aerofoilcd</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="op">-</span><span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="dv">101</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize the data so that it will be in the range of 0 to 1</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> np.<span class="bu">min</span>(X)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> np.<span class="bu">max</span>(X)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>X_cod <span class="op">=</span> (X <span class="op">-</span> a) <span class="op">/</span> (b <span class="op">-</span> a)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> aerofoilcd(X_cod)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>best_order, best_coeff, mnstd <span class="op">=</span> polynomial_fit(X, y)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>X_pred_original, Y_pred <span class="op">=</span> predict_polynomial_fit(X, best_coeff, mnstd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-fig-aerofoil-drag" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>plot_polynomial_fit(X, y, X_pred_original, Y_pred, best_order)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-fig-aerofoil-drag" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_polynomial_fit(X, y, X_pred_original, Y_pred, best_order)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div id="fig-aerofoil-drag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1274,10 +1320,10 @@ Figure&nbsp;7.1: Aerofoil drag data
 </div>
 </div>
 <p><a href="#fig-aerofoil-drag" class="quarto-xref">Figure&nbsp;<span>7.1</span></a> shows an eighth-order polynomial fitted through the aerofoil drag data. The order was selected via cross-validation, and the coefficients were determined through likelihood maximization. Results, i.e, the best polynomial order and coefficients, are printed in the console. The coefficients are stored in the vector <code>best_coeff</code>, which contains the coefficients of the polynomial in descending order. The first element is the coefficient of <span class="math inline">\(x^8\)</span>, and the last element is the constant term. The vector <code>mnstd</code>, containing the mean and standard deviation of <span class="math inline">\(X\)</span>, is:</p>
-<div id="aerofoil-coefficients" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Best polynomial order: </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Coefficients (starting with w0):</span><span class="ch">\n</span><span class="ss"> </span><span class="sc">{</span>best_coeff<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Normalization parameters (mean, std):</span><span class="ch">\n</span><span class="ss"> </span><span class="sc">{</span>mnstd<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="aerofoil-coefficients" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Best polynomial order: </span><span class="sc">{</span>best_order<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Coefficients (starting with w0):</span><span class="ch">\n</span><span class="ss"> </span><span class="sc">{</span>best_coeff<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Normalization parameters (mean, std):</span><span class="ch">\n</span><span class="ss"> </span><span class="sc">{</span>mnstd<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Best polynomial order: 8
 
@@ -1297,19 +1343,19 @@ Normalization parameters (mean, std):
 <p><span class="math display">\[
 f(x) = (6x - 2)^2 \sin(12x - 4).
 \]</span></p>
-<div id="d76fd6fc" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.surrogate.functions.forr08a <span class="im">import</span> onevar</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">51</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>y_true <span class="op">=</span> onevar(X)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize random seed</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> y_true <span class="op">+</span> np.random.normal(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(X))<span class="op">*</span><span class="fl">1.1</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>best_order, best_coeff, mnstd <span class="op">=</span> polynomial_fit(X, y)</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>X_pred_original, Y_pred <span class="op">=</span> predict_polynomial_fit(X, best_coeff, mnstd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cf9414a0" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.surrogate.functions.forr08a <span class="im">import</span> onevar</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">51</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>y_true <span class="op">=</span> onevar(X)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize random seed</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> y_true <span class="op">+</span> np.random.normal(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(X))<span class="op">*</span><span class="fl">1.1</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>best_order, best_coeff, mnstd <span class="op">=</span> polynomial_fit(X, y)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>X_pred_original, Y_pred <span class="op">=</span> predict_polynomial_fit(X, best_coeff, mnstd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-fig-onevar" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_polynomial_fit(X, y, X_pred_original, Y_pred, best_order, y_true<span class="op">=</span>y_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-fig-onevar" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>plot_polynomial_fit(X, y, X_pred_original, Y_pred, best_order, y_true<span class="op">=</span>y_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div id="fig-onevar" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">

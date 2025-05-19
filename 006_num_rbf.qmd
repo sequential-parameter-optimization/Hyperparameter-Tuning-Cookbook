@@ -10,12 +10,17 @@ execute:
 
 ::: {.callout-note}
 ### Note
-This section is based on chapter 2.3 in @Forr08a.
+* This section is based on chapter 2.3 in @Forr08a.
+* The following Python packages are imported:
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+```
 :::
 
 ## Radial Basis Function Models
 
-Scientists and engineers frequently tackle complex functions by decomposing them into a "vocabulary" of simpler, well-understood basic functions. These fundamental building blocks possess properties that make them easier to analyze mathematically and implement computationally. We explored this concept earlier with multivariable polynomials, where complex behaviors were modeled using combinations of polynomial terms.
+Scientists and engineers frequently tackle complex functions by decomposing them into a "vocabulary" of simpler, well-understood basic functions. These fundamental building blocks possess properties that make them easier to analyze mathematically and implement computationally. We explored this concept earlier with multivariable polynomials, where complex behaviors were modeled using combinations of polynomial terms such as $1$, $x_1$, $x_2$, $x_1^2$, and $x_1 x_2$. This approach is not limited to polynomials; it extends to various function classes, including trigonometric functions, exponential functions, and even more complex structures.
 
 While Fourier analysis—perhaps the most widely recognized example of this approach—excels at representing periodic phenomena through sine and cosine functions, the focus in  @Forr08a is broader. They aim to approximate arbitrary smooth, continuous functions using strategically positioned basis functions. Specifically, radial basis function (RBF) models employ symmetrical basis functions centered at selected points distributed throughout the design space. These basis functions have the unique property that their output depends only on the distance from their center point.
 
@@ -59,17 +64,17 @@ We will first examine interpolating RBF models, which assume noise-free data and
 
 ### Fitting Noise-Free Data
 
-Let us consider the scalar valued function $f$ observed without error, according to the sampling plan $X = {\vec{x}^{(1)}, \vec{x}^{(2)}, \ldots, \vec{x}^{(n)}}^T$, yielding the responses $\vec{y} = \{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}^T$.
+Let us consider the scalar valued function $f$ observed without error, according to the sampling plan $X = \{\vec{x}^{(1)}, \vec{x}^{(2)}, \ldots, \vec{x}^{(n)}\}^T$, yielding the responses $\vec{y} = \{y^{(1)}, y^{(2)}, \ldots, y^{(n)}\}^T$.
 
 For a given set of $n_c$ centers $\vec{c}^{(i)}$, we would like to express the RBF model as a linear combination of the basis functions centered at these points. The goal is to find the weights $\vec{w}$ that minimize the error between the predicted and observed values.
 Thus, we seek a radial basis function approximation to $f$ of the fixed form:
 
 $$
-\hat{f}(\vec{x}) = \sum_{i=1}^{n_c} \vec{w}_i \psi(||\vec{x} - \vec{c}^{(i)}||),
+\hat{f}(\vec{x}) = \sum_{i=1}^{n_c} w_i \psi(||\vec{x} - \vec{c}^{(i)}||),
 $$ {#eq-rbf}
 where 
 
-* $\vec{w}_i$ are the weights of the $n_c$ basis functions,
+* $w_i$ are the weights of the $n_c$ basis functions,
 * $\vec{c}^{(i)}$ are the $n_c$ centres of the basis functions, and 
 * $\psi$ is a radial basis function.
 
@@ -94,7 +99,6 @@ The parameter $\sigma$ in these functions serves as a shape parameter that contr
 
 ::: {#exm-rbf-gaussian}
 ### Gaussian RBF
-
 Using the general definition of a radial basis function (@eq-rbf-def), we can express the Gaussian RBF as:
 $$
 \psi(\vec{x}) = \exp\left(-\frac{\|\vec{x} - \vec{c}\|^2}{2\sigma^2}\right)  = \exp\left(-\frac{\sum_{j=1}^{k} (x_j - c_j)^2}{2\sigma^2}\right) 
@@ -110,10 +114,6 @@ The Gaussian RBF produces a bell-shaped response that reaches its maximum value 
 @fig-rbf-gaussian-k1 shows the Gaussian RBF for different values of $\sigma$ in an one-dimensional space. The center of the RBF is set at 0, and the width parameter $\sigma$ varies to illustrate how it affects the shape of the function.
 
 ```{python}
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Define the Gaussian RBF function
 def gaussian_rbf(x, center, sigma):
     """
     Compute the Gaussian Radial Basis Function.
@@ -132,6 +132,7 @@ def gaussian_rbf(x, center, sigma):
 ```{python}
 #| label: fig-rbf-gaussian-k1
 #| fig-cap: "Gaussian RBF"
+#| echo: false
 # Create a grid of points
 x = np.linspace(-5, 5, 1000)
 # Set the center
@@ -157,28 +158,14 @@ plt.tight_layout()
 plt.show()
 ```
 
+The sum of Gaussian RBFs can be visualized by summing the individual Gaussian RBFs centered at different points as shown in @fig-rbf-gaussian-k2. The following code snippet demonstrates how to create this plot showing the sum of three Gaussian RBFs with different centers and a common width parameter $\sigma$.
+
 ```{python}
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Define the Gaussian RBF function
-def gaussian_rbf(x, center, sigma):
-    """
-    Compute the Gaussian Radial Basis Function.
-    
-    Args:
-        x (ndarray): Input points
-        center (float): Center of the RBF
-        sigma (float): Width parameter
-        
-    Returns:
-        ndarray: RBF values
-    """
-    return np.exp(-((x - center)**2) / (2 * sigma**2))
-
+#| label: fig-rbf-gaussian-k2
+#| fig-cap: "Sum of Gaussian RBFs"
+#| echo: false
 # Create a grid of points
 x = np.linspace(-4, 6, 1000)
-
 # Set the common width parameter
 sigma = 1.0
 # Define centers for the three RBFs
@@ -203,11 +190,7 @@ y_sum = (gaussian_rbf(x, -1, sigma) +
          gaussian_rbf(x, 0, sigma) + 
          gaussian_rbf(x, 2, sigma))
 plt.plot(x, y_sum, 'k--', label='Sum of RBFs')
-
-# Update legend
 plt.legend()
-
-# Show plot
 plt.tight_layout()
 plt.show()
 ```
@@ -249,7 +232,7 @@ This matrix inversion step is the computational core of the RBF model fitting pr
 A significant advantage of Gaussian and inverse multiquadric basis functions lies in their mathematical guarantees. @vapn98a demonstrated that these functions always produce symmetric positive definite Gram matrices when using strictly positive definite kernels (see @sec-strictly-positive-definite), which is a critical property for numerical reliability.
 Unlike other basis functions that may lead to ill-conditioned systems, these functions ensure the existence of unique, stable solutions.
 
-This positive definiteness enables the use of Cholesky factorization, which offers substantial computational advantages over standard matrix inversion techniques. The Cholesky approach approximately halves the computational cost (reducing from $O(n^3)$ to roughly $O(n^3/3)$) while significantly improving numerical stability when handling the inevitable rounding errors in floating-point arithmetic. This robustness to numerical issues explains why Gaussian and inverse multiquadric basis functions remain the preferred choice in many practical RBF implementations.
+This positive definiteness enables the use of Cholesky factorization, which offers substantial computational advantages over standard matrix inversion techniques. The Cholesky approach reduces the computational cost (reducing from $O(n^3)$ to roughly $O(n^3/3)$) while significantly improving numerical stability when handling the inevitable rounding errors in floating-point arithmetic. This robustness to numerical issues explains why Gaussian and inverse multiquadric basis functions remain the preferred choice in many practical RBF implementations.
 
 Furthermore, the positive definiteness guarantee provides theoretical assurances about the model's interpolation properties—ensuring that the RBF interpolant exists and is unique for any distinct set of centers. This mathematical foundation gives practitioners confidence in the method's reliability, particularly for complex engineering applications where model stability is paramount.
 
@@ -286,7 +269,7 @@ weights = cho_solve((L, True), y)  # Efficient solver for (L L^T)w = y
 
 ### Ill-Conditioning
 
-An important numerical consideration in RBF modeling is that points positioned extremely close to each other in the input space $X$ can lead to severe ill-conditioning of the Gram matrix [@micc86a]. This ill-conditioning manifests as nearly linearly dependent rows and columns in $\Psi$, potentially causing the Cholesky factorization to fail due to numerically negative pivots.
+An important numerical consideration in RBF modeling is that points positioned extremely close to each other in the input space $X$ can lead to severe ill-conditioning of the Gram matrix [@micc86a]. This ill-conditioning manifests as nearly linearly dependent rows and columns in $\Psi$, potentially causing the Cholesky factorization to fail.
 
 While this problem rarely arises with initial space-filling experimental designs (such as Latin Hypercube or quasi-random sequences), it frequently emerges during sequential optimization processes that adaptively add infill points in promising regions. As these clusters of points concentrate in areas of high interest, the condition number of the Gram matrix deteriorates, jeopardizing numerical stability.
 
@@ -439,9 +422,13 @@ class Rbf:
         """Initialize the RBF model.
         
         Args:
-            X (ndarray, optional): The sampling plan.
-            y (ndarray, optional): The response vector.
-            code (int, optional): Type of basis function. Default is 3 (thin plate spline).
+            X (ndarray, optional):
+                The sampling plan.
+            y (ndarray, optional):
+                The response vector.
+            code (int, optional):
+                Type of basis function.
+                Default is 3 (thin plate spline).
         """
         self.X = X
         self.y = y
