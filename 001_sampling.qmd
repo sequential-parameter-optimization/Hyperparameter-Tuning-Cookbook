@@ -533,7 +533,7 @@ Here is the simplified version of a `Python` function that will sample the unit 
 The variable `Edges` specifies whether we want the points to be equally spaced from edge to edge (`Edges=1`)  or we want them to be in the centres of $n = q_1 \times q_2 \times \ldots \times q_k$ bins filling the unit hypercube (for any other value of `Edges`).
 
 ```{python}
-def fullfactorial(q, Edges=1) -> np.ndarray:
+def fullfactorial(q_param, Edges=1) -> np.ndarray:
     """Generates a full factorial sampling plan in the unit cube.
 
     Args:
@@ -549,36 +549,46 @@ def fullfactorial(q, Edges=1) -> np.ndarray:
     Raises:
         ValueError: If any dimension in `q` is less than 2.
     """
-    q = np.array(q)
-    if np.min(q) < 2:
+    q_levels = np.array(q_param) # Use a distinct variable for original levels
+    if np.min(q_levels) < 2:
         raise ValueError("You must have at least two points per dimension.")
-
-    # Total number of points in the sampling plan
-    n = np.prod(q)
-
-    # Number of dimensions
-    k = len(q)
-
-    # Pre-allocate memory for the sampling plan
+    
+    n = np.prod(q_levels)
+    k = len(q_levels)
     X = np.zeros((n, k))
+    
+    # q_for_prod_calc is used for calculating repetitions, includes the phantom element.
+    # This matches the logic of the user-provided snippet where 'q' was modified.
+    q_for_prod_calc = np.append(q_levels, 1)
 
-    # Additional phantom element
-    q = np.append(q, 1)
-
-    for j in range(k):
+    for j in range(k): # k is the original number of dimensions
+        # current_dim_levels is the number of levels for the current dimension j
+        # In the user's snippet, q[j] correctly refers to the original level count
+        # as j ranges from 0 to k-1, and q_for_prod_calc[j] = q_levels[j] for this range.
+        current_dim_levels = q_for_prod_calc[j] 
+        
         if Edges == 1:
-            one_d_slice = np.linspace(0, 1, q[j])
+            one_d_slice = np.linspace(0, 1, int(current_dim_levels))
         else:
-            one_d_slice = np.linspace(1 / (2 * q[j]), 1, q[j]) - 1 / (2 * q[j])
-
+            # Corrected calculation for bin centers
+            if current_dim_levels == 1: # Should not be hit if np.min(q_levels) >= 2
+                one_d_slice = np.array([0.5])
+            else:
+                one_d_slice = np.linspace(1 / (2 * current_dim_levels), 
+                                          1 - 1 / (2 * current_dim_levels), 
+                                          int(current_dim_levels))
+        
         column = np.array([])
-
+        # The product q_for_prod_calc[j + 1 : k] correctly calculates 
+        # the product of remaining original dimensions' levels.
+        num_consecutive_repeats = np.prod(q_for_prod_calc[j + 1 : k])
+        
+        # This loop structure replicates the logic from the user's snippet
         while len(column) < n:
-            for ll in range(q[j]):
-                column = np.append(column, np.ones(np.prod(q[j + 1 : k])) * one_d_slice[ll])
-
+            for ll_idx in range(int(current_dim_levels)): # Iterate through levels of current dimension
+                val_to_repeat = one_d_slice[ll_idx]
+                column = np.append(column, np.ones(int(num_consecutive_repeats)) * val_to_repeat)
         X[:, j] = column
-
     return X
 ```
 
@@ -588,10 +598,44 @@ X = fullfactorial(q, Edges=0)
 print(X)
 ```
 
+@fig-fullfactorial-2d-edges0 shows the points in the unit hypercube for the case of 3x2 points. 
+
+```{python}
+#| label: fig-fullfactorial-2d-edges0
+#| fig-cap: "2D Full Factorial Sampling (3x2 Points). Edges = 0"
+#| echo: false
+plt.figure(figsize=(6, 6))
+plt.scatter(X[:, 0], X[:, 1], color='blue', s=50, label='Hypercube Points')
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.title('2D Full Factorial Sampling (3x2 Points). Edges = 0')
+plt.xlabel('Dimension 1')
+plt.ylabel('Dimension 2')
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+```
+
+
 ```{python}
 X = fullfactorial(q, Edges=1)
 print(X)
 ```
+
+@fig-fullfactorial-2d-edges1 shows the points in the unit hypercube for the case of 3x2 points with edges.
+
+```{python}
+#| label: fig-fullfactorial-2d-edges1
+#| fig-cap: "2D Full Factorial Sampling (3x2 Points). Edges = 1"
+#| echo: false
+plt.figure(figsize=(6, 6))
+plt.scatter(X[:, 0], X[:, 1], color='blue', s=50, label='Hypercube Points')
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.title('2D Full Factorial Sampling (3x2 Points). Edges = 1')
+plt.xlabel('Dimension 1')
+plt.ylabel('Dimension 2')
+plt.xlim(-0.1, 1.1)
+plt.ylim(-0.1, 1.1)
+```
+
 
 The full factorial sampling plan method generates a uniform sampling design by creating a grid of points across all dimensions. For example, calling fullfactorial([3, 4, 5], 1) produces a three-dimensional sampling plan with 3, 4, and 5 levels along each dimension, respectively. While this approach satisfies the uniformity criterion, it has two significant limitations:
 
@@ -601,10 +645,18 @@ The full factorial sampling plan method generates a uniform sampling design by c
 
 ###  Latin Squares and Random Latin Hypercubes
 
-
 To improve the uniformity of projections for any individual variable, the range of that variable can be divided into a large number of equal-sized bins, and random subsamples of equal size can be generated within these bins. This method is called stratified random sampling. Extending this idea to all dimensions results in a stratified sampling plan, commonly implemented using Latin hypercube sampling.
 
-For two-dimensional discrete variables, a Latin square ensures uniform projections. An $(n \times n)$ Latin square is constructed by filling each row and column with a permutation of $\{1, 2, \dots, n\}$, ensuring each number appears only once per row and column. For example, for $n = 4 $, a Latin square might look like this:
+::: {#def-latin-hypercube}
+#### Latin Squares and Hypercubes
+In the context of statistical sampling, a square grid containing sample positions is a Latin square if (and only if) there is only one sample in each row and each column. A Latin hypercube is the generalisation of this concept to an arbitrary number of dimensions, whereby each sample is the only one in each axis-aligned hyperplane containing it
+:::
+
+For two-dimensional discrete variables, a Latin square ensures uniform projections. An $(n \times n)$ Latin square is constructed by filling each row and column with a permutation of $\{1, 2, \dots, n\}$, ensuring each number appears only once per row and column. 
+
+::: {#exm-latin-square}
+### Latin Square
+For $n = 4$, a Latin square might look like this:
 
 
 ```{raw}
@@ -614,13 +666,18 @@ For two-dimensional discrete variables, a Latin square ensures uniform projectio
 4	3	1	2
 ```
 
+:::
 
-Latin Hypercubes are the multidimensional extension of Latin squares. The design space is divided into equal-sized hypercubes (bins), and one point is placed in each bin. The placement ensures that moving along any axis from an occupied bin does not encounter another occupied bin. This guarantees uniform projections across all dimensions.
-To construct a Latin hypercube:
 
-Represent the sampling plan as an ( n \times k ) matrix ( X ), where ( n ) is the number of points and ( k ) is the number of dimensions.
-Fill each column of ( X ) with random permutations of ( {1, 2, \dots, n} ).
-Normalize the plan into the unit hypercube ([0, 1]^k).
+Latin Hypercubes are the multidimensional extension of Latin squares.
+The design space is divided into equal-sized hypercubes (bins), and one point is placed in each bin.
+The placement ensures that moving along any axis from an occupied bin does not encounter another occupied bin. This guarantees uniform projections across all dimensions.
+To construct a Latin hypercube, the following steps are taken:
+
+* Represent the sampling plan as an $n \times k$ matrix $X$, where $n$ is the number of points and $k$ is the number of dimensions.
+* Fill each column of $X$ with random permutations of $\{1, 2, \dots, n\}$.
+* Normalize the plan into the unit hypercube $[0, 1]^k$.
+
 This approach ensures multidimensional stratification and uniformity in projections.
 Here is the code:
 
@@ -655,7 +712,12 @@ X = rlh(n=5, k=2, edges=0)
 print(X)
 ```
 
+@fig-rlh-edges0 shows the points in the unit hypercube for the case of 5 points with `edges=0`.
+
 ```{python}
+#| label: fig-rlh-edges0
+#| fig-cap: "2D Latin Hypercube Sampling (5 Points, Edges=0)"
+#| echo: false
 plt.figure(figsize=(6, 6))
 plt.scatter(X[:, 0], X[:, 1], color='blue', s=50, label='Hypercube Points')
 plt.grid(True, linestyle='--', alpha=0.7)
@@ -681,7 +743,12 @@ X = rlh(n=5, k=2, edges=1)
 print(X)
 ```
 
+@fig-rlh-edges1 shows the points in the unit hypercube for the case of 5 points with `edges=1`.
+
 ```{python}
+#| label: fig-rlh-edges1
+#| fig-cap: "2D Latin Hypercube Sampling (5 Points, Edges=1)"
+#| echo: false
 plt.figure(figsize=(6, 6))
 plt.scatter(X[:, 0], X[:, 1], color='blue', s=50, label='Hypercube Points')
 plt.grid(True, linestyle='--', alpha=0.7)
@@ -696,7 +763,7 @@ plt.show()
 :::
 
 
-### Space-filling Latin Hypercubes
+### Space-filling Designs: Maximin Plans
 
 A widely adopted measure for assessing the uniformity, or 'space-fillingness', of a sampling plan is the maximin metric, initially proposed by @john90a. This criterion can be formally defined as follows.
 
@@ -719,13 +786,21 @@ A sampling plan $X$ is designated as the maximin plan if it sequentially optimiz
 
 To proceed, a precise definition of 'distance' within these contexts is necessary. The p-norm is the most widely adopted metric for this purpose:
 
+
+::: {#def-p-norm}
+#### p-norm
+The p-norm of a vector $\vec{x} = (x_1, x_2, \ldots, x_k)$ is defined as:
+
 $$
 d_p(\vec{x}^{(i_1)}, \vec{x}^{(i_2)}) = \left( \sum_{j=1}^k |x_j^{(i_1)} - x_j^{(i_2)}|^p \right)^{1/p}.
-$$
+$$ {#eq-p-norm}
 
-When $p = 1$, this formula defines the rectangular distance, occasionally referred to as the Manhattan norm (an allusion to a grid-like city layout). Setting $p = 2$ yields the Euclidean norm. The existing literature offers limited evidence to suggest the superiority of one norm over the other for evaluating sampling plans when no model structure assumptions are made. It is important to note, however, that the rectangular distance is considerably less computationally demanding. This advantage can be quite significant, particularly when evaluating large sampling plans.
+:::
 
-For the computational implementation of Definition 1.2, the initial step involves constructing the vectors $d_1, d_2, \ldots, d_m$ and $J_1, J_2, \ldots, J_m$. The jd function facilitates this task.
+
+When $p = 1$, @eq-p-norm defines the rectangular distance, occasionally referred to as the Manhattan norm (an allusion to a grid-like city layout). Setting $p = 2$ yields the Euclidean norm. The existing literature offers limited evidence to suggest the superiority of one norm over the other for evaluating sampling plans when no model structure assumptions are made. It is important to note, however, that the rectangular distance is considerably less computationally demanding. This advantage can be quite significant, particularly when evaluating large sampling plans.
+
+For the computational implementation of @def-maximin2, the initial step involves constructing the vectors $d_1, d_2, \ldots, d_m$ and $J_1, J_2, \ldots, J_m$. The `jd` function facilitates this task.
 
 
 #### The Function `jd`
@@ -737,17 +812,21 @@ def jd(X: np.ndarray, p: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
     """
     Args:
         X (np.ndarray):
-            A 2D array of shape (n, d) representing n points in d-dimensional space.
+            A 2D array of shape (n, d) representing n points
+            in d-dimensional space.
         p (float, optional):
-            The distance norm to use. p=1 uses the Manhattan (L1) norm, while p=2 uses the
+            The distance norm to use.
+            p=1 uses the Manhattan (L1) norm, while p=2 uses the
             Euclidean (L2) norm. Defaults to 1.0 (Manhattan norm).
 
     Returns:
         (np.ndarray, np.ndarray):
             A tuple (J, distinct_d), where:
-            - distinct_d is a 1D float array of unique, sorted distances between points.
-            - J is a 1D integer array that provides the multiplicity (occurrence count)
-              of each distance in distinct_d.
+            - distinct_d is a 1D float array of unique,
+            sorted distances between points.
+            - J is a 1D integer array that provides
+            the multiplicity (occurrence count)
+            of each distance in distinct_d.
     """
     n = X.shape[0]
 
@@ -769,17 +848,25 @@ def jd(X: np.ndarray, p: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
     J = np.zeros_like(distinct_d, dtype=int)
     for i, val in enumerate(distinct_d):
         J[i] = np.sum(d == val)
-
     return J, distinct_d
 ```
 
 ::: {#exm-jd}
 ### The Function `jd`
 
-Consider a small 3-point set in 2D space, with points located at (0,0), (1,1), and (2,2). The distinct distances and their occurrences can be computed using the `jd` function, as shown in the following code:
+Consider a small 3-point set in 2D space, with points located at (0,0), (1,1), and (2,2) as shown in @fig-jd-3points. The distinct distances and their occurrences can be computed using the `jd` function, as shown in the following code:
 
 ```{python}
+#| label: fig-jd-3points
+#| fig-cap: "3-Point Set in 2D Space"
+#| echo: false
 X = np.array([[0.0, 0.0],[1.0, 1.0],[2.0, 2.0]])
+plt.figure(figsize=(6, 6))
+plt.scatter(X[:, 0], X[:, 1], color='blue', label='Points')
+plt.title('3-Point Set in 2D Space')
+plt.grid()
+```
+```{python}
 J, distinct_d = jd(X, p=2.0)
 print("Distinct distances (d_i):", distinct_d)
 print("Occurrences (J_i):", J)
@@ -788,9 +875,21 @@ print("Occurrences (J_i):", J)
 :::
 
 
-A computationally intensive part of this calculation is the creation of the vector containing all pairwise distances. This is particularly true for large sampling plans; for instance, a 1000-point plan requires nearly half a million distance calculations. Consequently, pre-allocating memory for the distance vector $d$ is essential. This necessitates a slightly less direct method for computing the indices of $d$, rather than appending each new element, which would involve costly dynamic memory allocation.
+### Memory Management
 
-The implementation of @def-maximin2 is now required. Finding the most space-filling design involves pairwise comparisons. This problem can be approached using a 'divide and conquer' strategy, simplifying it to the task of selecting the better of two sampling plans. The function mm(X1,X2,p) is designed for this purpose. It returns an index indicating which of the two designs is more space-filling, or `0` if they are equally space-filling, based on the $p$-norm for distance computation.
+A computationally intensive part of the calculation performed with the `jd`-function is the creation of the vector $\vec{d}$ containing all pairwise distances. This is particularly true for large sampling plans; for instance, a 1000-point plan requires nearly half a million distance calculations.
+
+
+::: {#def-prealloc}
+#### Pre-allocation of Memory
+
+Pre-allocation of memory is a programming technique where a fixed amount of memory is reserved for a data structure (like an array or vector) before it is actually filled with data. This is done to avoid the computational overhead associated with dynamic memory allocation, which involves repeatedly requesting and resizing memory as new elements are added.
+
+:::
+
+Consequently, pre-allocating memory for the distance vector $\vec{d}$ is essential. This necessitates a slightly less direct method for computing the indices of $\vec{d}$, rather than appending each new element, which would involve costly dynamic memory allocation.
+
+The implementation of @def-maximin2 is now required. Finding the most space-filling design involves pairwise comparisons. This problem can be approached using a 'divide and conquer' strategy, simplifying it to the task of selecting the better of two sampling plans. The function `mm(X1,X2,p)` is designed for this purpose. It returns an index indicating which of the two designs is more space-filling, or `0` if they are equally space-filling, based on the $p$-norm for distance computation.
 
 #### The Function `mm`
 
@@ -851,13 +950,17 @@ def mm(X1: np.ndarray, X2: np.ndarray, p: Optional[float] = 1.0) -> int:
 
 :::{#exm-mm}
 ### The Function `mm`
-We can use the `mm` function to compare two sampling plans. The following code creates two 3-point sampling plans in 2D and compares them using the Morris-Mitchell criterion:
+We can use the `mm` function to compare two sampling plans. The following code creates two 3-point sampling plans in 2D (shown in @fig-mm-3points) and compares them using the Morris-Mitchell criterion:
 
 ```{python}
-# Create two 3-point sampling plans in 2D
 X1 = np.array([[0.0, 0.0],[0.5, 0.5],[0.0, 1.0], [1.0, 1.0]])
 X2 = np.array([[0.1, 0.1],[0.4, 0.6],[0.1, 0.9], [0.9, 0.9]])
-# plot the two plans
+```
+```{python}
+#| label: fig-mm-3points
+#| fig-cap: "Comparison of Two Sampling Plans"
+#| echo: false
+plt.figure(figsize=(6, 6))
 plt.scatter(X1[:, 0], X1[:, 1], color='blue', label='Plan 1')
 plt.scatter(X2[:, 0], X2[:, 1], color='red', label='Plan 2')
 plt.title('Comparison of Two Sampling Plans')
@@ -866,10 +969,13 @@ plt.xlabel('Dimension 1')
 plt.ylabel('Dimension 2')
 plt.legend()
 plt.show()
-# Compare which plan has better space-filling (Morris-Mitchell)
+```
+
+We can compare which plan has better space-filling (Morris-Mitchell).
+The output is either `0`, `1`, or `2` depending on which plan is more space-filling.
+```{python}
 better = mm(X1, X2, p=2.0)
-print(better)
-# Prints either 0, 1, or 2 depending on which plan is more space-filling.
+print(f"Plan {better} is more space-filling.")
 ```
 ::: 
 
@@ -878,10 +984,20 @@ print(better)
 
 Searching across a space of potential sampling plans can be accomplished by pairwise comparisons. An optimization algorithm could, in theory, be written with mm as the comparative objective. However, experimental evidence [@morr95a] suggests that the resulting optimization landscape can be quite deceptive, making it difficult to search reliably. This difficulty arises because the comparison process terminates upon finding the first non-zero element in the comparison array c. Consequently, the remaining values in the distance ($d_1, d_2, ..., d_m$) and multiplicity ($J_1, J_2, ..., J_m$) arrays are disregarded. These disregarded values, however, might contain potentially useful 'slope' information about the global landscape for the optimization process.
 
-To address this, @morr95a defined the following scalar-valued criterion function, which is used to rank competing sampling plans. This function, while based on the logic of @def-maximin2, incorporates the complete vectors $d_1, d_2, ..., d_m$ and $J_1, J_2, ..., J_m$:
+To address this, @morr95a defined the following scalar-valued criterion function, which is used to rank competing sampling plans. This function, while based on the logic of @def-maximin2, incorporates the complete vectors $d_1, d_2, ..., d_m$ and $J_1, J_2, ..., J_m$.
+
+::: {#def-morris-mitchell}
+#### Morris-Mitchell Criterion
+The Morris-Mitchell criterion is defined as:
 
 $$
-\Phi_q (X) = \left(\sum_{j=1}^m J_j d_j^{-q}\right)^{1/q} $$ {#eq-phiq}
+\Phi_q (X) = \left(\sum_{j=1}^m J_j d_j^{-q}\right)^{1/q},
+$$ {#eq-phiq}
+
+where $X$ is the sampling plan, $d_j$ is the distance between points, $J_j$ is the multiplicity of that distance, and $q$ is a user-defined exponent. The parameter $q$ can be adjusted to control the influence of smaller distances on the overall metric.
+
+:::
+
 
 The smaller the value of $\Phi_q$, the better the space-filling properties of $X$ will be.
 
@@ -890,16 +1006,21 @@ This can be implemented in Python as follows:
 
 
 ```{python}
-def mmphi(X: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0) -> float:
+def mmphi(X: np.ndarray,
+          q: Optional[float] = 2.0,
+          p: Optional[float] = 1.0) -> float:
     """
     Args:
         X (np.ndarray):
-            A 2D array representing the sampling plan, where each row is a point in
+            A 2D array representing the sampling plan,
+            where each row is a point in
             d-dimensional space (shape: (n, d)).
         q (float, optional):
-            Exponent used in the computation of the metric. Defaults to 2.0.
+            Exponent used in the computation of the metric.
+            Defaults to 2.0.
         p (float, optional):
-            The distance norm to use. For example, p=1 is Manhattan (L1),
+            The distance norm to use.
+            For example, p=1 is Manhattan (L1),
             p=2 is Euclidean (L2). Defaults to 1.0.
 
     Returns:
@@ -915,9 +1036,9 @@ def mmphi(X: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0) -> 
     return Phiq
 ```
 
-::: {exm-mmphi}
+::: {#exm-mmphi}
 ### The Function `mmphi`
-We can use the `mmphi` function to evaluate the space-filling quality of the two sampling plans from @exm-mm). The following code uses these two 3-point sampling plans in 2D and computes their quality using the Morris-Mitchell criterion:
+We can use the `mmphi` function to evaluate the space-filling quality of the two sampling plans from @exm-mm. The following code uses these two 3-point sampling plans in 2D and computes their quality using the Morris-Mitchell criterion:
 
 ```{python}
 # Two simple sampling plans from above
@@ -934,7 +1055,7 @@ To illustrate the relationship between @eq-phiq and the maximin criterion of @de
 
 Rankings based on both the direct maximin comparison (`mm`) and the $\Phi_q$ metric (`mmphi`), determined using a simple bubble sort algorithm, are implemented in the Python function `mmsort`.
 
-##### The Function `mmsort`
+#### The Function `mmsort`
 
 The function `mmsort` is designed to rank multiple sampling plans based on their space-filling properties using the Morris-Mitchell criterion. It takes a 3D array of sampling plans and returns the indices of the plans sorted in ascending order of their space-filling quality.
 
@@ -978,7 +1099,7 @@ def mmsort(X3D: np.ndarray, p: Optional[float] = 1.0) -> np.ndarray:
 ```
 
 
-:::{exm-mmsort}
+:::{#exm-mmsort}
 ### The Function `mmsort`
 The `mmsort` function can be used to rank multiple sampling plans based on their space-filling properties. The following code demonstrates how to use `mmsort` to compare two 3-point sampling plans in 3D space:
 
@@ -999,19 +1120,25 @@ To determine the optimal Latin hypercube for a specific application, a recommend
 `phisort` only differs from `mmsort` in having $q$ as an additional argument, as well as the comparison line being:
 
 ```python
-if mmphi(X3D[:, :, Index[i] - 1], q=q, p=p) > mmphi(X3D[:, :, Index[i + 1] - 1], q=q, p=p):
+if mmphi(X3D[:, :, Index[i] - 1], q=q, p=p) >
+    mmphi(X3D[:, :, Index[i + 1] - 1], q=q, p=p):
 ```
 
 ```{python}
-def phisort(X3D: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0) -> np.ndarray:
+def phisort(X3D: np.ndarray,
+            q: Optional[float] = 2.0,
+            p: Optional[float] = 1.0) -> np.ndarray:
     """
     Args:
         X3D (np.ndarray):
-            A 3D array of shape (n, d, m), where m is the number of sampling plans.
+            A 3D array of shape (n, d, m),
+            where m is the number of sampling plans.
         q (float, optional):
             Exponent for the mmphi metric. Defaults to 2.0.
         p (float, optional):
-            Distance norm for mmphi. p=1 is Manhattan; p=2 is Euclidean. Defaults to 1.0.
+            Distance norm for mmphi.
+            p=1 is Manhattan; p=2 is Euclidean.
+            Defaults to 1.0.
 
     Returns:
         np.ndarray:
@@ -1021,10 +1148,8 @@ def phisort(X3D: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0)
     """
     # Number of 2D sampling plans
     m = X3D.shape[2]
-
     # Create a 1-based index array
     Index = np.arange(1, m + 1)
-
     # Bubble-sort: plan with lower mmphi() climbs toward the front
     swap_flag = True
     while swap_flag:
@@ -1038,7 +1163,6 @@ def phisort(X3D: np.ndarray, q: Optional[float] = 2.0, p: Optional[float] = 1.0)
             if val_i > val_j:
                 Index[i], Index[i + 1] = Index[i + 1], Index[i]
                 swap_flag = True
-
     return Index
 ```
 
@@ -1051,7 +1175,8 @@ The `phisort` function can be used to rank multiple sampling plans based on the 
 X1 = bestlh(n=5, k=2, population=5, iterations=10)
 X2 = bestlh(n=5, k=2, population=15, iterations=20)
 X3 = bestlh(n=5, k=2, population=25, iterations=30)
-# Map X1 and X2 so that X3D has the two sampling plans in X3D[:, :, 0] and X3D[:, :, 1]
+# Map X1 and X2 so that X3D has the two sampling plans
+# in X3D[:, :, 0] and X3D[:, :, 1]
 X3D = np.array([X1, X2])
 print(phisort(X3D))
 X3D = np.array([X3, X2])
@@ -1060,7 +1185,7 @@ print(phisort(X3D))
 
 ::: 
 
-### Optimizing $\Phi_q$
+### Optimizing the Morris-Mitchell Criterion $\Phi_q$
 
 Once a criterion for assessing the quality of a Latin hypercube sampling plan has been established, a systematic method for optimizing this metric across the space of Latin hypercubes is required. This task is non-trivial; as the reader may recall from the earlier discussion on Latin squares, this search space is vast. In fact, its vastness means that for many practical applications, locating the globally optimal solution is often infeasible. Therefore, the objective becomes finding the best possible sampling plan achievable within a specific computational time budget.
 
@@ -1076,38 +1201,38 @@ A significant challenge in devising a sampling plan optimizer is ensuring that t
 The function `perturb` randomly swaps elements in a Latin hypercube sampling plan. It takes a 2D array representing the sampling plan and performs a specified number of random element swaps, ensuring that the result remains a valid Latin hypercube.
 
 ```{python}
-def perturb(X: np.ndarray, PertNum: Optional[int] = 1) -> np.ndarray:
+def perturb(X: np.ndarray,
+            PertNum: Optional[int] = 1) -> np.ndarray:
     """
     Args:
         X (np.ndarray):
-            A 2D array (sampling plan) of shape (n, k), where each row is a point
+            A 2D array (sampling plan) of shape (n, k),
+            where each row is a point
             and each column is a dimension.
         PertNum (int, optional):
-            The number of element swaps (perturbations) to perform. Defaults to 1.
+            The number of element swaps (perturbations)
+            to perform. Defaults to 1.
 
     Returns:
         np.ndarray:
-            The perturbed sampling plan, identical in shape to the input, with
+            The perturbed sampling plan,
+            identical in shape to the input, with
             one or more random column swaps executed.
     """
     # Get dimensions of the plan
     n, k = X.shape
     if n < 2 or k < 2:
         raise ValueError("Latin hypercubes require at least 2 points and 2 dimensions")
-
     for _ in range(PertNum):
         # Pick a random column
         col = int(np.floor(np.random.rand() * k))
-
         # Pick two distinct row indices
         el1, el2 = 0, 0
         while el1 == el2:
             el1 = int(np.floor(np.random.rand() * n))
             el2 = int(np.floor(np.random.rand() * n))
-
         # Swap the two selected elements in the chosen column
         X[el1, col], X[el2, col] = X[el2, col], X[el1, col]
-
     return X
 ```
 
@@ -1130,7 +1255,7 @@ print(X_perturbed)
 
 ### Evolutionary Operation
 
-As introduced by @Box57a`, evolutionary operation was designed to optimize chemical processes. The current parameters of the reaction would be recorded in a box at the centre of a board, with a series of 'offspring' boxes along the edges containing values of the parameters slightly altered with respect to the central, 'parent' values. Once the reaction was completed for all of these sets of variable values and the corresponding yields recorded, the contents of the central box would be replaced with that of the setup with the highest yield and this would then become the parent of a new set of peripheral boxes.
+As introduced by @Box57a, evolutionary operation was designed to optimize chemical processes. The current parameters of the reaction would be recorded in a box at the centre of a board, with a series of 'offspring' boxes along the edges containing values of the parameters slightly altered with respect to the central, 'parent' values. Once the reaction was completed for all of these sets of variable values and the corresponding yields recorded, the contents of the central box would be replaced with that of the setup with the highest yield and this would then become the parent of a new set of peripheral boxes.
 
 This is generally viewed as a local search procedure, though this depends on the mutation step sizes, that is on the differences between the parent box and its offspring. The longer these steps, the more global is the scope of the search.
 
@@ -1140,7 +1265,7 @@ In each generation the parent is mutated (randomly, using the `perturb` function
 
 The EVOP based search for space-filling Latin hypercubes is thus a truly evolutionary process: the optimized sampling plan results from the nonrandom survival of random variations.
 
-### Putting it all together
+### Putting it all Together
 
 All the pieces of the optimum Latin hypercube sampling process puzzle are now in place: the random hypercube generator as a starting point for the optimization process, the 'spacefillingness' metric that needs to be optimized, the optimization engine that performs this task and the comparison function that selects the best of the optima found for the various $q$'s. These pieces just need to be put into a sequence. Here is the Python embodiment of the completed puzzle. It results in a function `bestlh` that uses the function `mmlhs` to find the best Latin hypercube sampling plan for a given set of parameters.
 
@@ -1150,14 +1275,18 @@ Performs an evolutionary search (using perturbations) to find a Morris-Mitchell 
 
 This function does the following:
 
-1. Initializes a "best" Latin hypercube (X_best) from the provided X_start.
-2. Iteratively perturbs X_best to create offspring.
+1. Initializes a "best" Latin hypercube (`X_best`) from the provided `X_start`.
+2. Iteratively perturbs `X_best` to create offspring.
 3. Evaluates the space-fillingness of each offspring via the Morris-Mitchell
-    metric (using mmphi).
+    metric (using `mmphi`).
 4. Updates the best plan whenever a better offspring is found.
 
 ```{python}
-def mmlhs(X_start: np.ndarray, population: int, iterations: int, q: Optional[float] = 2.0, plot=False) -> np.ndarray:
+def mmlhs(X_start: np.ndarray,
+          population: int,
+          iterations: int,
+          q: Optional[float] = 2.0,
+          plot=False) -> np.ndarray:
     """
     Args:
         X_start (np.ndarray):
@@ -1185,24 +1314,19 @@ def mmlhs(X_start: np.ndarray, population: int, iterations: int, q: Optional[flo
     k = X_start.shape[1]
     if k < 2:
         raise ValueError("Latin hypercubes are not defined for dim k < 2")
-
     # Initialize best plan and its metric
     X_best = X_start.copy()
     Phi_best = mmphi(X_best, q=q)
-
     # After 85% of iterations, reduce the mutation rate to 1
     leveloff = int(np.floor(0.85 * iterations))
-
     for it in range(1, iterations + 1):
         # Decrease number of mutations over time
         if it < leveloff:
             mutations = int(round(1 + (0.5 * n - 1) * (leveloff - it) / (leveloff - 1)))
         else:
             mutations = 1
-
         X_improved = X_best.copy()
         Phi_improved = Phi_best
-
         # Create offspring, evaluate, and keep the best
         for _ in range(population):
             X_try = perturb(X_best.copy(), mutations)
@@ -1211,12 +1335,10 @@ def mmlhs(X_start: np.ndarray, population: int, iterations: int, q: Optional[flo
             if Phi_try < Phi_improved:
                 X_improved = X_try
                 Phi_improved = Phi_try
-
         # Update the global best if we found a better plan
         if Phi_improved < Phi_best:
             X_best = X_improved
             Phi_best = Phi_improved
-
         # Simple visualization of the first two dimensions
         if plot and (X_best.shape[1] >= 2):
             plt.clf()
@@ -1224,7 +1346,6 @@ def mmlhs(X_start: np.ndarray, population: int, iterations: int, q: Optional[flo
             plt.grid(True)
             plt.title(f"Iteration {it} - Current Best Plan")
             plt.pause(0.01)
-
     return X_best
 ```
 
@@ -1249,6 +1370,8 @@ print(X_opt)
 ```{python}
 #| label: fig-forre08a-3
 #| fig-cap: "Comparison of the initial and optimized plans in 2D."
+#| echo: false
+plt.figure(figsize=(6, 6))
 plt.scatter(X_start[:, 0], X_start[:, 1], color='blue', label='Initial Plan')
 plt.scatter(X_opt[:, 0], X_opt[:, 1], color='red', label='Optimized Plan')
 plt.title('Comparison of Initial and Optimized Plans')
@@ -1364,6 +1487,8 @@ Xbestlh= bestlh(n=5, k=2, population=5, iterations=10)
 ```{python}
 #| label: fig-forre08a-4
 #| fig-cap: "Best Latin Hypercube Sampling"
+#| echo: false
+plt.figure(figsize=(6, 6))
 plt.scatter(Xbestlh[:, 0], Xbestlh[:, 1], color='red', label='Best Latin Hypercube')
 plt.title('Best Latin Hypercube Sampling')
 plt.grid()
