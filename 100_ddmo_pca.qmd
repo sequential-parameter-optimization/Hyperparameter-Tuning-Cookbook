@@ -29,18 +29,21 @@ import xgboost as xgb
 ```
 
 
+First, the data is preprocessed to ensure that it does not contain any NaN or infinite values. Then, PCA is performed to reduce the dimensions and extract the principal components. Finally, a linear regression is conducted on the extracted factors.
+
 ::: {#def-multicoll}
 #### Multicollinearity and Multicorrelation
 
 Multicorrelation is a general term that describes correlation between multiple variables. Multicollinearity is a specific problem in regression models caused by strong correlations between independent variables, making model interpretation difficult.
-::: 
+:::
 
 ## Loading and Preprocessing the Data
 
+We load the data set and display the first few rows. The data set contains information about car sales, including various features such as price, engine size, horsepower, and more.
+
 ```{python}
-# Load the dataset
 df = pd.read_csv("data/car_sales.csv", encoding="utf-8")
-# Display the first few rows of the dataset
+print(df.shape)
 df.head()
 ```
 
@@ -51,17 +54,34 @@ df = df.drop(df.columns[0], axis=1)
 print(df.columns)
 ```
 
+### The Target Variable `y`
+
+Transform sales to log scale; handle negative or zero sales separately.
+Explicitly check and handle missing and infinite values.
 ```{python}
-
-# Transform sales to log scale; handle negative or zero sales separately
 df['ln_sales'] = np.log(df['sales'].replace(0, np.nan))
-
-# Explicitly check and handle missing and infinite values
 if df['ln_sales'].isnull().any() or np.isinf(df['ln_sales']).any():
     df['ln_sales'] = df['ln_sales'].fillna(df['ln_sales'].median())  # Or any other strategy
+y = df['ln_sales']
+```
 
-# Use columns from 'type' to 'mpg' as predictors
-independent_var_columns = [ 'price', 'engine_s', 'horsepow', 'wheelbas', 
+### The Features `X`
+
+### Numerical Features
+
+### Data Preprocessing
+
+The following steps are performed during data preprocessing:
+1. Check for NaN or infinite values in `X`.
+2. Replace NaN and infinite values with the median of the respective column.
+3. Remove constant or nearly constant columns.
+4. Standardize the numerical predictors in `X` using `StandardScaler`.
+5. Verify that `X_scaled` does not contain any NaN or infinite values.
+
+
+```{python}
+# Use columns from 'price' to 'mpg' as predictors
+independent_var_columns = ['price', 'engine_s', 'horsepow', 'wheelbas', 
                            'width', 'length', 'curb_wgt', 'fuel_cap', 'mpg']
 
 # Select those columns, ensuring they are numeric
@@ -73,7 +93,25 @@ X = X.fillna(X.median())  # Impute with median or any other appropriate strategy
 X.head()
 ```
 
-### Identify categorical columns
+```{python}
+if X.isnull().any().any():
+    print("NaNs detected in X. Filling with column medians.")
+    X = X.fillna(X.median())
+```
+
+```{python}
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+if np.isnan(X_scaled).any() or np.isinf(X_scaled).any():
+    raise ValueError("X_scaled contains NaN or infinite values after preprocessing.")
+# Convert the scaled data back to a DataFrame
+X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+# Display the first few rows of the scaled features
+X_scaled.head()
+```
+
+
+### Categorical Features
 
 ```{python}
 categorical_cols = ['type']  # Replace if more categorical variables exist
@@ -85,10 +123,10 @@ X_categorical_encoded_df = pd.DataFrame(X_categorical_encoded,
 X_categorical_encoded_df.describe(include='all')
 ```
 
-### Combine non-categorical and categorical (encoded) data 
+### Combine non-categorical and categorical (encoded) data
 
 ```{python}
-X_encoded = pd.concat([X, X_categorical_encoded_df], axis=1)
+X_encoded = pd.concat([X_scaled, X_categorical_encoded_df], axis=1)
 X_encoded.describe(include='all')
 ```
 
@@ -97,30 +135,14 @@ X_encoded.describe(include='all')
 
 ```{python }
 X_encoded_with_const = sm.add_constant(X_encoded)  # Adds a constant term (intercept) to the model
-```
-
-### Renaming Data Frames
-
-* The following code should be unnecessary if the data frame names are set consistently (to be done!)
-
-```{python}
-df_z = df['ln_sales']
-df_in_with_const = X_encoded_with_const
-df_in = X_encoded
-```
-
-
-```{python }
 model = sm.OLS(df['ln_sales'], X_encoded_with_const).fit()
 ```
 
 ## Model Summary and Interpretation
 
-
 ```{python }
 print(model.summary())
 ```
-
 
 ### The OLS Regression Results
 
@@ -133,8 +155,8 @@ Although the model fit appears positive, the coefficients (`coef`) reveal that t
 ```{python}
 coeffs_table = compute_coefficients_table(
     model=model,
-    X_encoded=df_in_with_const,
-    y=df_z,
+    X_encoded=X_encoded_with_const,
+    y=y,
     vif_table=None
 )
 print("\nCoefficients Table:")
@@ -150,22 +172,66 @@ The tolerance (`Tolerance`) indicates the percentage of variance in a specific p
 A variance inflation factor (`VIF`) greater than 2 is typically considered problematic, and the smallest VIF in the table is already greater than 2.
 
 
-## Collinearity Diagnostics
+## Eigenvalues
 
-The eigenvalue-based collinearity diagnostics confirm that there are serious issues with multicollinearity. Several eigenvalues (`Eigenvalue`) are close to 0, indicating that the predictors are highly correlated and that small changes in the data values can lead to large changes in the coefficient estimates.
-
-The condition indices (`Condition Index`) are calculated as the square roots of the ratios of the largest eigenvalue to each subsequent eigenvalue. Values greater than 15 indicate a potential collinearity problem, while values greater than 30 suggest a severe issue. Five of these indices exceed 30, highlighting a very serious problem with multicollinearity.
+Eigenvalues indicate how many factors can be meaningfully extracted.
+An eigenvalue greater than 1 suggests that the factor explains more variance than a single variable.
 
 ```{python}
-X_cond = copy.deepcopy(df_in)
+fa_temp = FactorAnalyzer(n_factors=X_encoded.shape[1], method="principal", rotation=None)
+try:
+    fa_temp.fit(X_encoded)
+    ev, _ = fa_temp.get_eigenvalues()
+    # sort eigenvalues in ascending order
+    ev = np.sort(ev)
+    print("Eigenvalues for each component:\n", ev)
+except Exception as e:
+    print(f"Error during factor analysis fitting: {e}")
+    print("Consider reducing multicollinearity or removing problematic features.")
+```
+
+
+
+## Collinearity Diagnostics Based on Eigenvalues
+
+```{python}
+X_cond = copy.deepcopy(X_encoded)
 condition_index_df = condition_index(X_cond)
 print("\nCondition Index:")
 print(condition_index_df)
 ```
 
-To solve the multicollinearity problem, we can use PCA to reduce the number of predictors. PCA transforms the original correlated variables into a smaller set of uncorrelated variables called principal components. These components can then be used in regression models to avoid multicollinearity issues.
+The eigenvalue-based collinearity diagnostics confirm that there are serious issues with multicollinearity. Several eigenvalues (`Eigenvalue`) are close to 0, indicating that the predictors are highly correlated and that small changes in the data values can lead to large changes in the coefficient estimates.
+
+The condition indices (`Condition Index`) are calculated as the square roots of the ratios of the largest eigenvalue to each subsequent eigenvalue. Values greater than 15 indicate a potential collinearity problem, while values greater than 30 suggest a severe issue. Five of these indices exceed 30, highlighting a very serious problem with multicollinearity.
+
+
+### Kayser-Meyer-Olkin (KMO) Measure
+
+The KMO measure (Kaiser-Meyer-Olkin) is a metric for assessing the suitability of data for factor analysis. A KMO value of 0.6 or higher is often considered acceptable; see also [Wikipedia](https://en.wikipedia.org/wiki/Kaiser%E2%80%93Meyer%E2%80%93Olkin). A KMO value below 0.5 indicates that the data is not suitable for factor analysis.
+
+* The KMO measure is based on the correlation and partial correlation between variables.
+* It is calculated as follows: For each variable, the ratio of the squared sums of correlations to the squared sums of partial correlations is computed. The formula for the KMO measure is:
+
+$$
+KMO = \frac{\displaystyle \underset{j\neq k}{\sum\sum} r_{jk}^2}{\displaystyle \underset{j\neq k}{\sum\sum} r_{jk}^2+\underset{j\neq k}{\sum\sum} p_{jk}^2},
+$$
+
+where $r_{ij}^2$ are the squares of the correlations between variables $i$ and $j$, and $p_{ij}^2$ are the squares of the partial correlations between variables $i$ and $j$.
+
+* The KMO measure ranges between 0 and 1.
+* Values close to 1 indicate that factor analysis is suitable, as the variables are strongly correlated.
+* Values close to 0 indicate that factor analysis is unsuitable, as the variables are only weakly correlated.
+
+```{python}
+kmo_all, kmo_model = calculate_kmo(X_encoded)
+print(f"\nKMO measure: {kmo_model:.3f} (0.6+ is often considered acceptable)")
+```
+
 
 ## Principal Component Analysis, Factor Analysis, PCA
+
+To solve the multicollinearity problem, we can use PCA to reduce the number of predictors. PCA transforms the original correlated variables into a smaller set of uncorrelated variables called principal components. These components can then be used in regression models to avoid multicollinearity issues.
 
 ### Application of PCA in Regression Problems:
 
@@ -209,72 +275,6 @@ print(f"PCA 2: {top_features[1]}")
 
 ## PCA Application for Addressing Multicollinearity
 
-First, the data is preprocessed to ensure that it does not contain any NaN or infinite values. Then, PCA is performed to reduce the dimensions and extract the principal components. Finally, a linear regression is conducted on the extracted factors.
-
-### Data Preprocessing
-
-The following steps are performed during data preprocessing:
-1. Check for NaN or infinite values in `df_in`.
-2. Replace NaN and infinite values with the median of the respective column.
-3. Remove constant or nearly constant columns.
-4. Standardize the numerical predictors in `df_in` using `StandardScaler`.
-5. Verify that `X_scaled` does not contain any NaN or infinite values.
-
-```{python}
-if df_in.isnull().any().any():
-    print("NaNs detected in df_in. Filling with column medians.")
-    df_in = df_in.fillna(df_in.median())
-
-if np.isinf(df_in.values).any():
-    print("Infinite values detected in df_in. Replacing with large finite values.")
-    df_in = df_in.replace([np.inf, -np.inf], np.nan).fillna(df_in.median())
-
-df_in = df_in.loc[:, df_in.std() > 1e-6]
-
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(df_in)
-if np.isnan(X_scaled).any() or np.isinf(X_scaled).any():
-    raise ValueError("X_scaled contains NaN or infinite values after preprocessing.")
-```
-
-### KMO and Eigenvalues
-
-The KMO measure (Kaiser-Meyer-Olkin) is a metric for assessing the suitability of data for factor analysis. A KMO value of 0.6 or higher is often considered acceptable; see also [Wikipedia](https://en.wikipedia.org/wiki/Kaiser%E2%80%93Meyer%E2%80%93Olkin). A KMO value below 0.5 indicates that the data is not suitable for factor analysis.
-
-#### KMO Measure
-
-* The KMO measure is based on the correlation and partial correlation between variables.
-* It is calculated as follows:
-
-For each variable, the ratio of the squared sums of correlations to the squared sums of partial correlations is computed. The formula for the KMO measure is:
-
-$$
-KMO = \frac{\displaystyle \underset{j\neq k}{\sum\sum} r_{jk}^2}{\displaystyle \underset{j\neq k}{\sum\sum} r_{jk}^2+\underset{j\neq k}{\sum\sum} p_{jk}^2},
-$$
-
-where $r_{ij}^2$ are the squares of the correlations between variables $i$ and $j$, and $p_{ij}^2$ are the squares of the partial correlations between variables $i$ and $j$.
-
-* The KMO measure ranges between 0 and 1.
-* Values close to 1 indicate that factor analysis is suitable, as the variables are strongly correlated.
-* Values close to 0 indicate that factor analysis is unsuitable, as the variables are only weakly correlated.
-
-```{python}
-kmo_all, kmo_model = calculate_kmo(X_scaled)
-print(f"\nKMO measure: {kmo_model:.3f} (0.6+ is often considered acceptable)")
-```
-
-Eigenvalues indicate how many factors can be meaningfully extracted. An eigenvalue greater than 1 suggests that the factor explains more variance than a single variable.
-
-```{python}
-fa_temp = FactorAnalyzer(n_factors=X_scaled.shape[1], method="principal", rotation=None)
-try:
-    fa_temp.fit(X_scaled)
-    ev, _ = fa_temp.get_eigenvalues()
-    print("Eigenvalues for each component:\n", ev)
-except Exception as e:
-    print(f"Error during factor analysis fitting: {e}")
-    print("Consider reducing multicollinearity or removing problematic features.")
-```
 
 ### Determining the Number of Factors for Factor Analysis
 
@@ -282,9 +282,9 @@ The number of factors is set to `anz_fak=10` to reduce the dimensions. Factor an
 
 ```{python}
 anz_fak = 10
-n_factors = min(anz_fak, X_scaled.shape[1])
+n_factors = min(anz_fak, X_encoded.shape[1])
 fa = FactorAnalyzer(n_factors=n_factors, method="principal", rotation="varimax")
-fa.fit(X_scaled)
+fa.fit(X_encoded)
 # Factor loadings
 factor_loadings = fa.loadings_
 actual_factors = factor_loadings.shape[1]  # Number of factors actually extracted
@@ -294,18 +294,13 @@ if actual_factors < n_factors:
         f"\nWarning: Only {actual_factors} factors could be extracted "
         f"(requested {n_factors})."
     )
-# Factor scores for each row (shape: [n_samples, actual_factors])
-X_factor_scores = fa.transform(X_scaled)
-print(f"X_factor_scores shape: {X_factor_scores.shape}")
-
-# Adapt the factor column names to the actual factor count
 factor_columns = [f"Factor{i+1}" for i in range(actual_factors)]
-df_factors = pd.DataFrame(X_factor_scores, columns=factor_columns)
-print(f"df_factors shape: {df_factors.shape}")
-print(f"df_factors head:\n{df_factors.head()}")
 ```
 
-* Factor Loadings indicate how strongly each original variable is correlated with the extracted factors. High values suggest that the variable has a significant influence on the factor.
+
+### Factor Loadings
+
+Factor Loadings indicate how strongly each original variable is correlated with the extracted factors. High values suggest that the variable has a significant influence on the factor.
 
 ```{python}
 # Print factor loadings with 2 decimals
@@ -316,7 +311,7 @@ print("Factor Loadings (rounded to 2 decimals):\n", np.round(factor_loadings, 2)
 # Create a DataFrame for the factor loadings
 factor_loadings_df = pd.DataFrame(
     factor_loadings,
-    index=df_in.columns,  # Original feature names
+    index=X_encoded.columns,  # Original feature names
     columns=factor_columns  # Factor names
 )
 
@@ -336,11 +331,28 @@ plt.tight_layout()
 plt.show()
 ```
 
-### Creating the Regression Model with Extracted Factors
+
+#### Factor Scores
+
+The factor scores are the transformed values of the original variables based on the extracted factors. These scores can be used as new features in regression models.
+
+```{python}
+# Factor scores for each row (shape: [n_samples, actual_factors])
+X_factor_scores = fa.transform(X_encoded)
+print(f"X_factor_scores shape: {X_factor_scores.shape}")
+
+# Adapt the factor column names to the actual factor count
+df_factors = pd.DataFrame(X_factor_scores, columns=factor_columns)
+print(f"df_factors shape: {df_factors.shape}")
+print(f"df_factors head:\n{df_factors.head()}")
+```
+
+
+### Creating the Regression Model with all ten Extracted Factors
 
 ```{python}
 X_model = sm.add_constant(df_factors)
-model_factors = sm.OLS(df_z, X_model).fit()
+model_factors = sm.OLS(y, X_model).fit()
 print("\nRegression on Factor Scores:")
 print(model_factors.summary())
 ```
@@ -349,7 +361,7 @@ print(model_factors.summary())
 coeffs_table = compute_coefficients_table(
     model=model_factors,
     X_encoded=X_model,
-    y=df_z,
+    y=y,
     vif_table=None
 )
 print("\nCoefficients Table:")
@@ -368,11 +380,11 @@ print("\nCondition Index:")
 print(condition_index_df)
 ```
 
-## Comparison of Model Performance
+### Comparison of Model Performance
 
 ```{python}
 # Predictions from the Linear Regression Model (model)
-predictions_linear = model.predict(df_in_with_const)
+predictions_linear = model.predict(X_encoded_with_const)
 
 # Predictions from the Factor Analysis Regression Model (model_factors)
 predictions_factors = model_factors.predict(X_model)
@@ -385,10 +397,10 @@ r2_factors = model_factors.rsquared
 adj_r2_factors = model_factors.rsquared_adj
 
 # Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE) for both models
-mse_linear = mean_squared_error(df_z, predictions_linear)
+mse_linear = mean_squared_error(y, predictions_linear)
 rmse_linear = np.sqrt(mse_linear)
 
-mse_factors = mean_squared_error(df_z, predictions_factors)
+mse_factors = mean_squared_error(y, predictions_factors)
 rmse_factors = np.sqrt(mse_factors)
 
 # Print the comparison
@@ -409,6 +421,86 @@ print(f"RMSE: {rmse_factors:.4f}")
 If the R-squared and Adjusted R-squared values for `model_factors` are close to those of `model`, this indicates that the regression model based on factor analysis performs similarly well while potentially reducing multicollinearity. Lower MSE and RMSE values suggest better predictive performance.
 
 
+### Creating the Regression Model with three Extracted Factors only
+
+```{python}
+# Create a regression model using only the first three factors
+# select the first three factors
+df_factors = df_factors.iloc[:, :3]
+```
+
+```{python}
+X_model = sm.add_constant(df_factors)
+model_factors = sm.OLS(y, X_model).fit()
+print("\nRegression on Factor Scores:")
+print(model_factors.summary())
+```
+
+```{python}
+coeffs_table = compute_coefficients_table(
+    model=model_factors,
+    X_encoded=X_model,
+    y=y,
+    vif_table=None
+)
+print("\nCoefficients Table:")
+print(coeffs_table)
+```
+
+
+As expected, the collinearity statistics show that the factor values are uncorrelated. Additionally, it is important to note that the variability of the coefficient estimates in this model is not artificially inflated by collinearity. Consequently, the coefficient estimates are larger relative to their standard errors compared to the original model. This means that more factors are identified as statistically significant, which can influence your final results if you aim to create a model that includes only significant effects.
+
+To verify, we calculate the condition indices for the extracted factors. These should all be close to 1, indicating that there are no serious issues with multicollinearity.
+
+```{python}
+X_cond = copy.deepcopy(df_factors)
+condition_index_df = condition_index(X_cond)
+print("\nCondition Index:")
+print(condition_index_df)
+```
+
+### Comparison of Model Performance of the Reduced Model and the Full Model
+
+```{python}
+# Predictions from the Linear Regression Model (model)
+predictions_linear = model.predict(X_encoded_with_const)
+
+# Predictions from the Factor Analysis Regression Model (model_factors)
+predictions_factors = model_factors.predict(X_model)
+
+# Calculate R-squared and Adjusted R-squared for both models
+r2_linear = model.rsquared
+adj_r2_linear = model.rsquared_adj
+
+r2_factors = model_factors.rsquared
+adj_r2_factors = model_factors.rsquared_adj
+
+# Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE) for both models
+mse_linear = mean_squared_error(y, predictions_linear)
+rmse_linear = np.sqrt(mse_linear)
+
+mse_factors = mean_squared_error(y, predictions_factors)
+rmse_factors = np.sqrt(mse_factors)
+
+# Print the comparison
+print("Vergleich der beiden Modelle")
+print("\nLinear Regression Model:")
+print(f"R-squared: {r2_linear:.4f}")
+print(f"Adjusted R-squared: {adj_r2_linear:.4f}")
+print(f"MSE: {mse_linear:.4f}")
+print(f"RMSE: {rmse_linear:.4f}")
+
+print("\nFactor Analysis Regression Model:")
+print(f"R-squared: {r2_factors:.4f}")
+print(f"Adjusted R-squared: {adj_r2_factors:.4f}")
+print(f"MSE: {mse_factors:.4f}")
+print(f"RMSE: {rmse_factors:.4f}")
+```
+
+If the R-squared and Adjusted R-squared values for `model_factors` are close to those of `model`, this indicates that the regression model based on factor analysis performs similarly well while potentially reducing multicollinearity. Lower MSE and RMSE values suggest better predictive performance.
+
+
+
 ## Summary
 
 ### Interpretation of the Regression Model `model_factors`
@@ -417,13 +509,13 @@ The `model_factors` regression model is based on factor analysis, which reduces 
 
 **Factors:** Instead of using the original variables, the regression is performed on the extracted factors. Each factor represents a weighted combination of the original variables.
 
-**Coefficients:** The coefficients in the `model_factors` regression model indicate the relationship between the target variable (`df_z`) and the extracted factors.
+**Coefficients:** The coefficients in the `model_factors` regression model indicate the relationship between the target variable (`y`) and the extracted factors.
 
 ### Differences Compared to the Standard OLS Model
 
 **Input Variables:**
 
-- **OLS Model (`model`):** Uses the original variables (`df_in`) as predictors.
+- **OLS Model (`model`):** Uses the original variables (`X_encoded`) as predictors.
 - **Factor Analysis Model (`model_factors`):** Uses the extracted factors (`df_factors`) as predictors.
 
 **Multicollinearity:**
@@ -472,9 +564,8 @@ The `model_factors` regression model is based on factor analysis, which reduces 
 # 1. Prepare Data
 # ------------------------------------------------------------------------
 
-# Use the original input features (df_in) as predictors
-X_original = df_in
-y = df_z  # Target variable
+# Use the original input features (X_encoded) as predictors
+X_original = X_encoded
 
 # Split the data into training and testing sets
 X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_original, y, test_size=0.2, random_state=42)
@@ -519,7 +610,7 @@ print(f"RMSE: {rmse_rf_orig:.4f}")
 
 # Use the extracted factors as predictors
 X_factors = df_factors
-y = df_z  # Target variable
+
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_factors, y, test_size=0.2, random_state=42)
