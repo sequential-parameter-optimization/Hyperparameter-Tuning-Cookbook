@@ -1186,7 +1186,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 \dot y(t) = f(y(t), t,  \theta), \qquad y(0) = y_0,
 \]</span> where the initial value <span class="math inline">\(y_0 \in \mathbb{R}^n\)</span>. The <span class="math inline">\(\theta\)</span> parameters were added to the dynamics, so the dynamics function has the dimensions <span class="math inline">\(f : \mathbb{R}^{n} \times \mathbb{R} \times \mathbb{R}^{|\theta|} \to \mathbb{R}^n\)</span>, where <span class="math inline">\(|\theta|\)</span> is the number of parameters we’ve added to <span class="math inline">\(f\)</span>.</p>
 <p>We need the dynamics function to take in the current state <span class="math inline">\(y(t)\)</span> of the ODE, the current time <span class="math inline">\(t\)</span>, and some parameters <span class="math inline">\(\theta\)</span>, and output <span class="math inline">\(\frac{\partial y(t)}{\partial t}\)</span>, which has the same shape as <span class="math inline">\(y(t)\)</span>. They are passed as input to a multi-layer perceptron (MLP). Multiple evaluations of this dynamics layer can be combined using any suitable ODE solver, such as the adaptive-step Dormand-Price solver implemented in the <code>torchdiffeq</code> library’s <code>odeint</code> function.</p>
-<div id="dcd67b03" class="cell" data-execution_count="1">
+<div id="5b7e7f0e" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
@@ -1195,7 +1195,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchdiffeq</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Let’s start by defining an MLP class to serve as the building block of our models.</p>
-<div id="86f75c58" class="cell" data-execution_count="2">
+<div id="e3cedf01" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MLP(nn.Module):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, layer_sizes):</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>(MLP, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
@@ -1210,7 +1210,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.network(x)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we’ll define a ResNet class that uses the MLP as its inner component.</p>
-<div id="aac232ed" class="cell" data-execution_count="3">
+<div id="0313422c" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ResNet(nn.Module):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, layer_sizes, depth):</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>(ResNet, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
@@ -1226,7 +1226,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <li><code>ODEFunc</code> defines how the system evolves over time using the MLP to approximate derivatives <span class="math inline">\(\dot{y}(t)\)</span>.</li>
 <li><code>ODEBlock</code> specifies the network structure. It uses <code>torchdiffeq.odeint</code> to integrate these dynamics over time.</li>
 </ul>
-<div id="f2208a1f" class="cell" data-execution_count="4">
+<div id="25ae51c4" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ODEFunc(nn.Module):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, layer_sizes):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>(ODEFunc, <span class="va">self</span>).<span class="fu">__init__</span>()</span>
@@ -1248,12 +1248,12 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> out[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Generate a toy 1D dataset.</p>
-<div id="f33ac2ca" class="cell" data-execution_count="5">
+<div id="e92452bd" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>inputs <span class="op">=</span> torch.linspace(<span class="op">-</span><span class="fl">2.0</span>, <span class="fl">2.0</span>, <span class="dv">10</span>).reshape(<span class="dv">10</span>, <span class="dv">1</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>targets <span class="op">=</span> inputs<span class="op">**</span><span class="dv">3</span> <span class="op">+</span>  <span class="fl">0.1</span> <span class="op">*</span> inputs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We specify the hyperparameters for the ResNet and ODE-Net.</p>
-<div id="0e7b4ea1" class="cell" data-execution_count="6">
+<div id="fb621cd9" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>layer_sizes <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">25</span>, <span class="dv">1</span>]</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>param_scale <span class="op">=</span> <span class="fl">1.0</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>step_size <span class="op">=</span> <span class="fl">0.01</span></span>
@@ -1261,7 +1261,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>resnet_depth <span class="op">=</span> <span class="dv">3</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Initialize and train the ResNet.</p>
-<div id="a78859f7" class="cell" data-execution_count="7">
+<div id="c93ff3c7" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>resnet <span class="op">=</span> ResNet(layer_sizes, resnet_depth)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>criterion <span class="op">=</span> nn.MSELoss()</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> optim.SGD(resnet.parameters(), lr<span class="op">=</span>step_size)</span>
@@ -1273,7 +1273,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    loss.backward()</span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    optimizer.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a28404fd" class="cell" data-execution_count="8">
+<div id="2f851566" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># We need to change the input dimension to 2, to allow time-dependent dynamics.</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>odenet_layer_sizes <span class="op">=</span> [<span class="dv">2</span>, <span class="dv">25</span>, <span class="dv">1</span>]</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1290,7 +1290,7 @@ Figure&nbsp;45.3: Reverse-mode differentiation of an ODE solution. The adjoint s
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    optimizer.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Finally, plot the predictions of both models.</p>
-<div id="866e0d12" class="cell" data-execution_count="9">
+<div id="3f35b84d" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fine_inputs <span class="op">=</span> np.linspace(<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">3.0</span>, <span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fine_inputs_tensor <span class="op">=</span> torch.from_numpy(fine_inputs).<span class="bu">float</span>()</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">4</span>), dpi<span class="op">=</span><span class="dv">150</span>)</span>

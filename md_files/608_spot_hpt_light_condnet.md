@@ -1,0 +1,112 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+title: Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning Using a CondNet Model
+jupyter: python3
+---
+
+```{python}
+#| label: 608_user-user-imports
+#| echo: false
+import os
+from math import inf
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+* We use the `Diabetes` dataset to illustrate the hyperparameter tuning process of a `CondNet` model using the `spotpython` package.
+* The CondNet model is a conditional neural network that can be used to model conditional distributions [[LINK]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/regression/nn_condnet_regressor/).
+
+```{python}
+#| label: 608_cond_net_setup
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.utils.eda import print_exp_table
+from spotpython.spot import Spot
+from spotpython.utils.file import get_experiment_filename
+from math import inf
+from spotpython.hyperparameters.values import set_hyperparameter
+
+PREFIX="CondNet_01"
+
+data_set = Diabetes()
+input_dim = 10
+output_dim = 1
+cond_dim = 2
+
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    fun_evals=inf,
+    max_time=1,
+    data_set = data_set,
+    core_model_name="light.regression.NNCondNetRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=input_dim - cond_dim,
+    _L_out=1,
+    _L_cond=cond_dim,)
+
+fun = HyperLight().fun
+
+
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [3,4])
+set_hyperparameter(fun_control, "epochs", [3,7])
+set_hyperparameter(fun_control, "batch_size", [4,5])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,3])
+set_hyperparameter(fun_control, "lr_mult", [0.1, 20.0])
+
+design_control = design_control_init(init_size=10)
+
+print_exp_table(fun_control)
+```
+
+```{python}
+#| label: 608_cond_net_run
+spot_tuner = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+res = spot_tuner.run()
+```
+
+
+## Looking at the Results
+
+### Tuning Progress
+
+After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
+
+```{python}
+spot_tuner.plot_progress()
+```
+
+### Tuned Hyperparameters and Their Importance
+
+Results can be printed in tabular form.
+
+```{python}
+from spotpython.utils.eda import print_res_table
+print_res_table(spot_tuner)
+```
+
+A histogram can be used to visualize the most important hyperparameters.
+
+```{python}
+spot_tuner.plot_importance(threshold=1.0)
+```
+
+```{python}
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+```
+
+### Get the Tuned Architecture {#sec-get-spot-results-608}
+
+```{python}
+import pprint
+from spotpython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner)
+pprint.pprint(config)
+```

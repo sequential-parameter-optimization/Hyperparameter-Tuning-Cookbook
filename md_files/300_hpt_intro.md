@@ -1,0 +1,51 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Hyperparameter Tuning
+
+## Structure of the Hyperparameter Tuning Chapters
+
+The first part is structured as follows:
+
+The concept of the hyperparameter tuning is described in @sec-hyperparameter-tuning-goals.
+
+Hyperparameter tuning with sklearn in Python is described in @sec-hpt-sklearn.
+
+Hyperparameter tuning with river in Python is described in @sec-hpt-river.
+
+This part of the book is concluded with a description of the most recent `PyTorch` hyperparameter tuning approach, which is the integration of `spotpython` into the ``PyTorch Lightning`` training workflow. Hyperparameter tuning with PyTorch Lightning in Python is described in @sec-hpt-pytorch.
+This is considered as the most effective, efficient, and flexible way to integrate `spotpython` into the `PyTorch` training workflow.
+
+@fig-spotGUI shows the graphical user interface of `spotpython` that is used in this book.
+
+![spot GUI](./figures_static/spotGUI.png){#fig-spotGUI}
+
+## Goals of Hyperparameter Tuning {#sec-hyperparameter-tuning-goals}
+
+The goal of hyperparameter tuning is to optimize the hyperparameters in a way that improves the performance of the machine learning or deep learning model.
+Hyperparameters are parameters that are not learned during the training process, but are set before the training process begins.
+Hyperparameter tuning is an important, but often difficult and computationally intensive task.
+Changing the architecture of a neural network or the learning rate of an optimizer can have a significant impact on the performance.
+
+Hyperparameter tuning is referred to as "hyperparameter optimization" (HPO) in the literature.
+However, since we do not consider the optimization, but also the understanding of the hyperparameters, we use the term "hyperparameter tuning" in this book. See also the discussion in Chapter 2 of @bart21i, which lays the groundwork and presents an introduction to the process of tuning Machine Learning and Deep Learning hyperparameters and the respective methodology. Since the key elements such as the hyperparameter tuning process and measures of tunability and performance are presented in @bart21i, we refer to this chapter for details.
+
+The simplest, but also most computationally expensive, hyperparameter tuning approach uses manual search (or trial-and-error [@Meignan:2015vp]).
+Commonly encountered is simple random search, i.e., random and repeated selection of hyperparameters for evaluation, and lattice search ("grid search").
+In addition, methods that perform directed search  and other model-free algorithms, i.e., algorithms that do not explicitly rely on a model, e.g., evolution strategies [@Bart13j] or pattern search [@Torczon00] play an important role.
+Also, "hyperband", i.e., a multi-armed bandit strategy that dynamically allocates resources to a set of random configurations and uses successive bisections to stop configurations with poor performance [@Li16a], is very common in hyperparameter tuning.
+The most sophisticated and efficient approaches are the Bayesian optimization and surrogate model based optimization methods, which are based on the optimization of cost functions determined by simulations or experiments.
+
+We consider a surrogate optimization based hyperparameter tuning approach that uses the Python version of the SPOT ("Sequential Parameter Optimization Toolbox") [@BLP05], which is suitable for situations where only limited resources are available. This may be due to limited availability and cost of hardware, or due to the fact that confidential data may only be processed locally, e.g., due to legal requirements.
+Furthermore, in our approach, the understanding of algorithms is seen as a key tool for enabling transparency and explainability. This can be enabled, for example, by quantifying the contribution of machine learning and deep learning components (nodes, layers, split decisions, activation functions, etc.).
+Understanding the importance of hyperparameters and the interactions between multiple hyperparameters plays a major role in the interpretability and explainability of machine learning models.
+SPOT provides statistical tools for understanding hyperparameters and their interactions. Last but not least, it should be noted that the SPOT software code is available in the open source `spotpython` package on github^[[https://github.com/sequential-parameter-optimization](https://github.com/sequential-parameter-optimization)], allowing replicability of the results.
+This tutorial describes the Python variant of SPOT, which is called `spotpython`. The R implementation is described in @bart21i.
+SPOT is an established open source software that has been maintained for more than 15 years [@BLP05] [@bart21i].
+
+

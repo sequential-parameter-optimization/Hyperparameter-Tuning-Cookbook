@@ -1,0 +1,175 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+title: Hyperparameter Tuning with `spotpython` and `PyTorch` Lightning for the Diabetes Data Set Using a ResNet Model
+jupyter: python3
+---
+
+
+In this section, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
+training workflow for a regression task.
+It demonstrates how easy it is to use `spotpython` to tune hyperparameters for a `PyTorch` Lightning model.
+
+
+```{python}
+#| label: 605_imports
+#| echo: false
+import os
+from math import inf
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+After importing the necessary libraries, the `fun_control` dictionary is set up via the `fun_control_init` function.
+The `fun_control` dictionary contains
+
+* `PREFIX`: a unique identifier for the experiment
+* `fun_evals`: the number of function evaluations
+* `max_time`: the maximum run time in minutes
+* `data_set`: the data set. Here we use the `Diabetes` data set that is provided by `spotpython`.
+* `core_model_name`: the class name of the neural network model. This neural network model is provided by `spotpython`.
+* `hyperdict`: the hyperparameter dictionary. This dictionary is used to define the hyperparameters of the neural network model. It is also provided by `spotpython`.
+* `_L_in`: the number of input features. Since the `Diabetes` data set has 10 features, `_L_in` is set to 10.
+* `_L_out`: the number of output features. Since we want to predict a single value, `_L_out` is set to 1.
+
+The `HyperLight` class is used to define the objective function `fun`.
+It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.
+
+```{python}
+#| label: 605_spotpython_setup
+
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.utils.eda import print_exp_table
+from spotpython.spot import Spot
+from spotpython.utils.file import get_experiment_filename
+
+PREFIX="605"
+
+data_set = Diabetes()
+
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    fun_evals=inf,
+    max_time=1,
+    data_set = data_set,
+    core_model_name="light.regression.NNResNetRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=10,
+    _L_out=1)
+
+fun = HyperLight().fun
+```
+
+The method `set_hyperparameter` allows the user to modify default hyperparameter settings.
+Here we modify some hyperparameters to keep the model small and to decrease the tuning time.
+
+```{python}
+from spotpython.hyperparameters.values import set_hyperparameter
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [3,4])
+set_hyperparameter(fun_control, "epochs", [3,7])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,3])
+set_hyperparameter(fun_control, "lr_mult", [0.1, 20.0])
+
+design_control = design_control_init(init_size=10)
+
+print_exp_table(fun_control)
+```
+
+Finally, a `Spot` object is created.
+Calling the method `run()` starts the hyperparameter tuning process.
+
+```{python}
+#| label: 605_run
+spot_tuner = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+res = spot_tuner.run()
+```
+
+## Looking at the Results
+
+### Tuning Progress
+
+After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized with `spotpython`'s method `plot_progress`. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
+
+```{python}
+spot_tuner.plot_progress()
+```
+
+### Tuned Hyperparameters and Their Importance
+
+Results can be printed in tabular form.
+
+```{python}
+from spotpython.utils.eda import print_res_table
+print_res_table(spot_tuner)
+```
+
+A histogram can be used to visualize the most important hyperparameters.
+
+```{python}
+spot_tuner.plot_importance(threshold=1.0)
+```
+
+```{python}
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+```
+
+### Get the Tuned Architecture {#sec-get-spot-results-31}
+
+```{python}
+import pprint
+from spotpython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(spot_tuner)
+pprint.pprint(config)
+```
+
+### Test on the full data set
+
+```{python}
+# set the value of the key "TENSORBOARD_CLEAN" to True in the fun_control dictionary and use the update() method to update the fun_control dictionary
+import os
+# if the directory "./runs" exists, delete it
+if os.path.exists("./runs"):
+    os.system("rm -r ./runs")
+fun_control.update({"tensorboard_log": True})
+```
+
+```{python}
+from spotpython.light.testmodel import test_model
+from spotpython.utils.init import get_feature_names
+
+test_model(config, fun_control)
+get_feature_names(fun_control)
+```
+
+### Cross Validation With Lightning
+
+* The `KFold` class from `sklearn.model_selection` is used to generate the folds for cross-validation.
+* These mechanism is used to generate the folds for the final evaluation of the model.
+* The `CrossValidationDataModule` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/data/lightcrossvalidationdatamodule.py) is used to generate the folds for the hyperparameter tuning process.
+* It is called from the `cv_model` function [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/light/cvmodel.py).
+
+```{python}
+config
+```
+
+```{python}
+from spotpython.light.cvmodel import cv_model
+fun_control.update({"k_folds": 2})
+fun_control.update({"test_size": 0.6})
+cv_model(config, fun_control)
+```
+
+
+## Summary
+
+This section presented an introduction to the basic setup of hyperparameter tuning with `spotpython` and `PyTorch` Lightning using a ResNet model for the Diabetes data set.
+

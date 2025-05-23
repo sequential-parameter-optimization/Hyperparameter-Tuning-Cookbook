@@ -1,0 +1,109 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+  keep-ipynb: true
+---
+
+# Factorial Variables {#sec-factorial}
+
+Until now, we have considered continuous variables. However, in many applications, the variables are not continuous, but rather discrete or categorical. For example, the number of layers in a neural network, the number of trees in a random forest, or the type of kernel in a support vector machine are all discrete variables. In the following, we will consider a simple example with two numerical variables and one categorical variable.
+
+
+```{python}
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+from spotpython.fun.objectivefunctions import Analytical
+import numpy as np
+```
+
+First, we generate the test data set for fitting the Kriging model. We use the `SpaceFilling` class to generate the first two diemnsion of $n=30$ design points.
+The third dimension is a categorical variable, which can take the values $0$, $1$, or $2$.
+```{python}
+gen = SpaceFilling(2)
+n = 30
+rng = np.random.RandomState(1)
+lower = np.array([-5,-0])
+upper = np.array([10,15])
+fun_orig = Analytical().fun_branin
+fun = Analytical().fun_branin_factor
+
+X0 = gen.scipy_lhd(n, lower=lower, upper = upper)
+X1 = np.random.randint(low=0, high=3, size=(n,))
+X = np.c_[X0, X1]
+print(X[:5,:])
+```
+
+The objective function is the `fun_branin_factor` in the `analytical` class [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/fun/objectivefunctions/#spotpython.fun.objectivefunctions.analytical.fun_branin_factor).
+It calculates the Branin function of $(x_1, x_2)$ with an additional factor based on the value of $x_3$. If $x_3 = 1$, the value of the Branin function is increased by 10. If $x_3 = 2$, the value of the Branin function is decreased by 10. Otherwise, the value of the Branin function is not changed.
+
+```{python}
+y = fun(X)
+y_orig = fun_orig(X0)
+data = np.c_[X, y_orig, y]
+print(data[:5,:])
+```
+
+
+
+We fit two Kriging models, one with three numerical variables and one with two numerical variables and one categorical variable. We then compare the predictions of the two models.
+
+```{python}
+S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=3, method="interpolation", var_type=["num", "num", "num"])
+S.fit(X, y)
+Sf = Kriging(name='kriging',  seed=123, log_level=50, n_theta=3, method="interpolation", var_type=["num", "num", "factor"])
+Sf.fit(X, y)
+```
+
+We can now compare the predictions of the two models. We generate a new test data set and calculate the sum of the absolute differences between the predictions of the two models and the true values of the objective function.
+If the categorical variable is important, the sum of the absolute differences should be smaller than if the categorical variable is not important.
+
+```{python}
+n = 100
+k = 100
+y_true = np.zeros(n*k)
+y_pred= np.zeros(n*k)
+y_factor_pred= np.zeros(n*k)
+for i in range(k):
+  X0 = gen.scipy_lhd(n, lower=lower, upper = upper)
+  X1 = np.random.randint(low=0, high=3, size=(n,))
+  X = np.c_[X0, X1]
+  a = i*n
+  b = (i+1)*n
+  y_true[a:b] = fun(X)
+  y_pred[a:b] = S.predict(X)
+  y_factor_pred[a:b] = Sf.predict(X)
+```
+
+```{python}
+import pandas as pd
+df = pd.DataFrame({"y":y_true, "Prediction":y_pred, "Prediction_factor":y_factor_pred})
+df.head()
+```
+
+```{python}
+df.tail()
+```
+
+```{python}
+s=np.sum(np.abs(y_pred - y_true))
+sf=np.sum(np.abs(y_factor_pred - y_true))
+res = (sf - s)
+print(res)
+```
+
+```{python}
+from spotpython.plot.validation import plot_actual_vs_predicted
+plot_actual_vs_predicted(y_test=df["y"], y_pred=df["Prediction"], title="Default")
+plot_actual_vs_predicted(y_test=df["y"], y_pred=df["Prediction_factor"], title="Factor")
+```
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/016_num_spot_factorial.ipynb)
+
+:::

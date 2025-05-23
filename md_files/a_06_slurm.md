@@ -1,0 +1,249 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+---
+
+# Using Slurm
+
+## Introduction
+
+This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.
+
+
+## Prepare the Slurm Scripts on the Remote Machine
+
+Two scripts are required to run the `spotpython` code on the remote machine: 
+
+* `startSlurm.sh` and 
+* `startPython.py`.
+
+They should be saved in the same directory as the configuration (`pickle`) file.
+These two scripts must be generated only once and can be reused for different configurations.
+
+The `startSlurm.sh` script is a shell script that contains the following code:
+```{python}
+#| label: start
+#| eval: false
+
+#!/bin/bash
+ 
+### Vergabe von Ressourcen
+#SBATCH --job-name=Test
+#SBATCH --account=Accountname/Projektname  # Hier den gewünschten Account angeben
+#SBATCH --cpus-per-task=20
+#SBATCH --gres=gpu:1
+#SBATCH --time=48:00:00
+#SBATCH --error=job.%J.err
+#SBATCH --output=job.%J.out
+#----
+#SBATCH --partition=gpu
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <path_to_spot.pkl>"
+    exit 1
+fi
+
+SPOT_PKL=$1
+
+module load conda
+
+### change to your conda environment with spotpython installed via
+### pip install spotpython
+conda activate spot312
+
+python startPython.py "$SPOT_PKL"
+
+exit
+```
+
+Save the code in a file named `startSlurm.sh` and copy the file to the remote machine via `scp`, i.e., 
+```{python}
+#| label: copy-startSlurm-to-remote
+#| eval: false
+scp startSlurm.sh user@144.33.22.1:
+```
+
+
+The `startPython.py` script is a Python script that contains the following code:
+```{python}
+#| label: startPython
+#| eval: false
+import argparse
+import pickle
+from spotpython.utils.file import load_and_run_spot_python_experiment
+from spotpython.data.manydataset import ManyToManyDataset
+
+# Uncomment the following if you want to use a custom model (python source code)
+# import sys
+# sys.path.insert(0, './userModel')
+# import my_regressor
+# import my_hyper_dict
+
+
+def main(pickle_file):
+    spot_tuner = load_and_run_spot_python_experiment(filename=pickle_file)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process a pickle file.')
+    parser.add_argument('pickle_file', type=str, help='The path to the pickle file to be processed.')
+
+    args = parser.parse_args()
+    main(args.pickle_file)
+```
+
+Save the code in a file named `startPython.py` and copy the file to the remote machine via `scp`, i.e., 
+```{python}
+#| label: copy-startPython-to-remote
+#| eval: false
+scp startPython.py user@144.33.22.1:
+```
+
+## Generate a `spotpython` Configuration
+
+The configuration can be generated on a local machine using the following command:
+
+```{python}
+#| label: generate-spotpython-config
+#| eval: false
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.spot import Spot
+from spotpython.hyperparameters.values import set_hyperparameter, get_tuned_architecture
+from math import inf
+import torch
+from torch.utils.data import TensorDataset
+# generate data
+num_samples = 100_000
+input_dim = 100
+X = torch.randn(num_samples, input_dim)  # random data for example
+Y = torch.randn(num_samples, 1)  # random target for example
+data_set = TensorDataset(X, Y)
+
+PREFIX="42"
+
+
+fun_control = fun_control_init(
+    accelerator="gpu",
+    devices="auto",
+    num_nodes=1,
+    num_workers=19,
+    precision="32",
+    strategy="auto",
+    save_experiment=True,
+    PREFIX=PREFIX,
+    fun_evals=50,
+    max_time=inf,
+    data_set = data_set,
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=input_dim,
+    _L_out=1)
+
+fun = HyperLight().fun
+
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [5,10])
+set_hyperparameter(fun_control, "epochs", [10,12])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,9])
+
+design_control = design_control_init(init_size=10)
+
+S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+```
+
+The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `42_exp.pkl`.
+
+
+## Copy the Configuration to the Remote Machine
+
+You can copy the configuration to the remote machine using the `scp` command. The following command copies the configuration to the remote machine `144.33.22.1`:
+```{python}
+#| label: copy-config-to-remote
+#| eval: false
+scp 42_exp.pkl user@144.33.22.1:
+```
+
+## Run the `spotpython` Code on the Remote Machine
+
+Login on the remote machine and run the following command to start the `spotpython` code:
+
+```{python}
+#| label: run-spotpython-on-remote
+#| eval: false
+ssh user@144.33.22.1
+# change this to your conda environment!
+conda activate spot312 
+sbatch ./startSlurm.sh 42_exp.pkl
+```
+
+## Copy the Results to the Local Machine
+
+After the `spotpython` code has finished, you can copy the results back to the local machine using the `scp` command.
+The following command copies the results to the local machine:
+```{python}
+#| label: copy-results-to-local
+#| eval: false
+scp user@144.33.22.1:42_res.pkl .
+```
+
+::: {.callout-note}
+### Experiment and Result Files
+* `spotpython` generates two files: 
+  * `PREFIX_exp.pkl` (experiment file), which stores the information about running the experiment, and
+  * `PREFIX_res.pkl` (result file), which stores the results of the experiment.
+:::
+
+
+## Analyze the Results on the Local Machine
+
+The file `42_res.pkl` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code. Note: `PREFIX` is the same as in the previous steps, i.e., `"42"`.
+
+
+```{python}
+#| label: spotgui
+#| eval: false
+from spotpython.utils.file import load_result
+spot_tuner = load_result(PREFIX)
+```
+
+### Visualizing the Tuning Progress
+
+Now the `spot_tuner` object is loaded and you can analyze the results interactively.
+```{python}
+#| label: analyze-results-progress-plot
+#| eval: false
+spot_tuner.plot_progress(log_y=True, filename=None)
+```
+
+### Design Table with Default and Tuned Hyperparameters
+
+```{python}
+#| label: analyze-results-design-table
+#| eval: false
+from spotpython.utils.eda import print_res_table
+print_res_table(spot_tuner)
+```
+
+### Plotting Important Hyperparameters
+
+```{python}
+#| label: analyze-results-plot-imp-hyperparam
+#| eval: false
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
+```
+
+### The Tuned Hyperparameters
+
+```{python}
+#| label: get_tuned_hyperparameters
+#| eval: false
+get_tuned_architecture(spot_tuner)
+```

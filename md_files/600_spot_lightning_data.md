@@ -1,0 +1,514 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# HPT PyTorch Lightning: Data {#sec-hpt-pytorch-lightning-data-30}
+
+In this tutorial, we will show how `spotpython` can be integrated into the `PyTorch` Lightning
+training workflow. 
+
+This chapter describes the data preparation and processing in `spotpython`. The Diabetes data set is used as an example. This is a PyTorch Dataset for regression. A toy data set from scikit-learn. Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients,  as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+
+
+## Setup {#sec-setup-30}
+
+* Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size, etc. 
+* The parameter `WORKERS` specifies the number of workers. 
+* The prefix `PREFIX` is used for the experiment name and the name of the log file.
+* The parameter `DEVICE` specifies the device to use for training.
+
+```{python}
+import torch
+from spotpython.utils.device import getDevice
+from math import inf
+WORKERS = 0
+PREFIX="030"
+DEVICE = getDevice()
+DEVICES = 1
+TEST_SIZE = 0.4
+```
+
+
+
+::: {.callout-note}
+### Note: Device selection
+
+* Although there are no .cuda() or .to(device) calls required, because Lightning does these for you, see 
+[LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html), we would like to know which device is used. Threrefore, we imitate the LightningModule behaviour which selects the highest device. 
+* The method `spotpython.utils.device.getDevice()` returns the device that is used by Lightning.
+:::
+
+
+## Initialization of the `fun_control` Dictionary
+
+`spotpython` uses a Python dictionary for storing the information required for the hyperparameter tuning process.
+
+```{python}
+from spotpython.utils.init import fun_control_init
+import numpy as np
+fun_control = fun_control_init(
+    _L_in=10,
+    _L_out=1,
+    _torchmetric="mean_squared_error",
+    PREFIX=PREFIX,
+    device=DEVICE,
+    enable_progress_bar=False,
+    num_workers=WORKERS,
+    show_progress=True,
+    test_size=TEST_SIZE,
+    )
+```
+
+## Loading the Diabetes Data Set
+
+Here, we load the Diabetes data set from `spotpython`'s `data` module.
+
+```{python}
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+print(len(dataset))
+```
+
+### Data Set and Data Loader
+
+As shown below, a DataLoader from `torch.utils.data` can be used to check the data.
+
+```{python}
+# Set batch size for DataLoader
+batch_size = 5
+# Create DataLoader
+from torch.utils.data import DataLoader
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+### Preparing Training, Validation, and Test Data
+
+The following code shows how to split the data into training, validation, and test sets.
+Then a Lightning Trainer is used to train (`fit`) the model, validate it, and test it.
+
+```{python}
+from torch.utils.data import DataLoader
+from spotpython.data.diabetes import Diabetes
+from spotpython.light.regression.netlightregression import NetLightRegression
+from torch import nn
+import lightning as L
+import torch
+BATCH_SIZE = 8
+dataset = Diabetes(target_type=torch.float)
+train1_set, test_set = torch.utils.data.random_split(dataset, [0.6, 0.4])
+train_set, val_set = torch.utils.data.random_split(train1_set, [0.6, 0.4])
+train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, drop_last=True, pin_memory=True)
+test_loader = DataLoader(test_set, batch_size=BATCH_SIZE)
+val_loader = DataLoader(val_set, batch_size=BATCH_SIZE)
+batch_x, batch_y = next(iter(train_loader))
+print(f"batch_x.shape: {batch_x.shape}")
+print(f"batch_y.shape: {batch_y.shape}")
+net_light_base = NetLightRegression(l1=128,
+                                    epochs=10,
+                                    batch_size=BATCH_SIZE,
+                                    initialization='Default',
+                                    act_fn=nn.ReLU(),
+                                    optimizer='Adam',
+                                    dropout_prob=0.1,
+                                    lr_mult=0.1,
+                                    patience=5,
+                                    _L_in=10,
+                                    _L_out=1,
+                                    _torchmetric="mean_squared_error")
+trainer = L.Trainer(max_epochs=10,  enable_progress_bar=False)
+trainer.fit(net_light_base, train_loader)
+trainer.validate(net_light_base, val_loader)
+trainer.test(net_light_base, test_loader)
+```
+
+### Dataset for spotpython
+
+`spotpython` handles the data set, which is added to the `fun_control` dictionary with the key `data_set` as follows: 
+
+```{python}
+from spotpython.hyperparameters.values import set_control_key_value
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+set_control_key_value(control_dict=fun_control,
+                        key="data_set",
+                        value=dataset,
+                        replace=True)
+print(len(dataset))
+```
+
+If the data set is in the `fun_control` dictionary, it is used to create a `LightDataModule` object. This object is used to create the data loaders for the training, validation, and test sets.
+Therefore, the following information must be provided in the `fun_control` dictionary:
+
+* `data_set`: the data set
+* `batch_size`: the batch size
+* `num_workers`: the number of workers
+* `test_size`: the size of the test set
+* `test_seed`: the seed for the test set
+
+```{python}
+from spotpython.utils.init import fun_control_init
+import numpy as np
+fun_control = fun_control_init(
+    data_set=dataset,
+    device="cpu",
+    enable_progress_bar=False,
+    num_workers=0,
+    show_progress=True,
+    test_size=0.4,
+    test_seed=42,    
+    )
+```
+
+
+```{python}
+from spotpython.data.lightdatamodule import LightDataModule
+dm = LightDataModule(
+    dataset=fun_control["data_set"],
+    batch_size=8,
+    num_workers=fun_control["num_workers"],
+    test_size=fun_control["test_size"],
+    test_seed=fun_control["test_seed"],
+)
+dm.setup()
+print(f"train_model(): Test set size: {len(dm.data_test)}")
+print(f"train_model(): Train set size: {len(dm.data_train)}")
+```
+
+## The LightDataModule
+
+The steps described above are handled by the `LightDataModule` class. This class is used to create the data loaders for the training, validation, and test sets. The `LightDataModule` class is part of the `spotpython` package.
+The `LightDataModule` class provides the following methods:
+
+* `prepare_data()`: This method is used to prepare the data set.
+* `setup()`: This method is used to create the data loaders for the training, validation, and test sets.
+* `train_dataloader()`: This method is used to return the data loader for the training set.
+* `val_dataloader()`: This method is used to return the data loader for the validation set.
+* `test_dataloader()`: This method is used to return the data loader for the test set.
+* `predict_dataloader()`: This method is used to return the data loader for the prediction set.
+
+### The `prepare_data()` Method
+
+The `prepare_data()` method is used to prepare the data set. This method is called only once and on a single process. It can be used to download the data set. In our case, the data set is already available, so this method uses a simple `pass` statement.
+
+### The `setup()` Method
+
+Splits the data for use in training, validation, and testing. It uses `torch.utils.data.random_split()` to split the data.
+Splitting is based on the `test_size` and `test_seed`. 
+The `test_size` can be a float or an int.
+
+#### Determine the Sizes of the Data Sets
+
+
+```{python}
+from torch.utils.data import random_split
+data_full = dataset
+test_size = fun_control["test_size"]
+test_seed=fun_control["test_seed"]
+# if test_size is float, then train_size is 1 - test_size
+if isinstance(test_size, float):
+    full_train_size = round(1.0 - test_size, 2)
+    val_size = round(full_train_size * test_size, 2)
+    train_size = round(full_train_size - val_size, 2)
+else:
+    # if test_size is int, then train_size is len(data_full) - test_size
+    full_train_size = len(data_full) - test_size
+    val_size = int(full_train_size * test_size / len(data_full))
+    train_size = full_train_size - val_size
+
+print(f"LightDataModule setup(): full_train_size: {full_train_size}")
+print(f"LightDataModule setup(): val_size: {val_size}")
+print(f"LightDataModule setup(): train_size: {train_size}")
+print(f"LightDataModule setup(): test_size: {test_size}")
+```
+
+
+`stage` is used to define the data set to be returned.
+The `stage` can be `None`, `fit`, `test`, or `predict`.
+If `stage` is `None`, the method returns the training (`fit`), testing (`test`) and prediction (`predict`) data sets.
+
+#### Stage "fit" {#sec-stage-fit-30}
+```{python}
+stage = "fit"
+if stage == "fit" or stage is None:
+    generator_fit = torch.Generator().manual_seed(test_seed)
+    data_train, data_val, _ = random_split(data_full, [train_size, val_size, test_size], generator=generator_fit)
+print(f"LightDataModule setup(): Train set size: {len(data_train)}")
+print(f"LightDataModule setup(): Validation set size: {len(data_val)}")
+```
+
+#### Stage "test" {#sec-stage-test-30}
+```{python}
+stage = "test"
+if stage == "test" or stage is None:
+    generator_test = torch.Generator().manual_seed(test_seed)
+    data_test, _ = random_split(data_full, [test_size, full_train_size], generator=generator_test)
+print(f"LightDataModule setup(): Test set size: {len(data_test)}")
+# Set batch size for DataLoader
+batch_size = 5
+# Create DataLoader
+from torch.utils.data import DataLoader
+dataloader = DataLoader(data_test, batch_size=batch_size, shuffle=False)
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+#### Stage "predict" {#sec-stage-predict-30}
+
+Prediction and testing use the same data set.
+
+
+```{python}
+stage = "predict"
+if stage == "predict" or stage is None:
+    generator_predict = torch.Generator().manual_seed(test_seed)
+    data_predict, _ = random_split(
+        data_full, [test_size, full_train_size], generator=generator_predict
+    )
+print(f"LightDataModule setup(): Predict set size: {len(data_predict)}")
+# Set batch size for DataLoader
+batch_size = 5
+# Create DataLoader
+from torch.utils.data import DataLoader
+dataloader = DataLoader(data_predict, batch_size=batch_size, shuffle=False)
+# Iterate over the data in the DataLoader
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+### The `train_dataloader()` Method
+
+Returns the training dataloader, i.e., a Pytorch DataLoader instance using the training dataset.
+It simply returns a DataLoader with the `data_train` set that was created in the `setup()` method as described in @sec-stage-fit-30.
+
+```{python}
+#| eval: false
+def train_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_train, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+The `train_dataloader()` method can be used as follows:
+
+```{python}
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Training set size: {len(data_module.data_train)}")
+dl = data_module.train_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+### The `val_dataloader()` Method
+
+Returns the validation dataloader, i.e., a Pytorch DataLoader instance using the validation dataset.
+It simply returns a DataLoader with the `data_val` set that was created in the `setup()` method as desccribed in @sec-stage-fit-30.
+
+```{python}
+#| eval: false
+def val_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_val, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+
+The `val_dataloader()` method can be used as follows:
+
+```{python}
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Validation set size: {len(data_module.data_val)}")
+dl = data_module.val_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+
+### The `test_dataloader()` Method
+
+Returns the test dataloader, i.e., a Pytorch DataLoader instance using the test dataset.
+It simply returns a DataLoader with the `data_test` set that was created in the `setup()` method as described in @sec-stage-test-30.
+
+```{python}
+#| eval: false
+def test_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_test, batch_size=self.batch_size, num_workers=self.num_workers)
+```
+
+
+The `test_dataloader()` method can be used as follows:
+
+```{python}
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Test set size: {len(data_module.data_test)}")
+dl = data_module.test_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+
+### The `predict_dataloader()` Method
+
+Returns the prediction dataloader, i.e., a Pytorch DataLoader instance using the prediction dataset.
+It simply returns a DataLoader with the `data_predict` set that was created in the `setup()` method as described in @sec-stage-predict-30.
+
+::: {.callout-warning}
+The `batch_size` is set to the length of the `data_predict` set.
+:::
+```{python}
+#| eval: false
+def predict_dataloader(self) -> DataLoader:
+    return DataLoader(self.data_predict, batch_size=len(self.data_predict), num_workers=self.num_workers)
+``` 
+
+The `predict_dataloader()` method can be used as follows:
+
+```{python}
+from spotpython.data.lightdatamodule import LightDataModule
+from spotpython.data.diabetes import Diabetes
+dataset = Diabetes(target_type=torch.float)
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+print(f"Test set size: {len(data_module.data_predict)}")
+dl = data_module.predict_dataloader()
+# Iterate over the data in the DataLoader
+for batch in dl:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print(f"Inputs Shape: {inputs.shape}")
+    print(f"Targets Shape: {targets.shape}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+
+## Using the `LightDataModule` in the `train_model()` Method
+
+First, a `LightDataModule` object is created and the `setup()` method is called.
+```{python}
+#| eval: false
+dm = LightDataModule(
+    dataset=fun_control["data_set"],
+    batch_size=config["batch_size"],
+    num_workers=fun_control["num_workers"],
+    test_size=fun_control["test_size"],
+    test_seed=fun_control["test_seed"],
+)
+dm.setup()
+```
+
+Then, the `Trainer` is initialized.
+```{python}
+#| eval: false
+# Init trainer
+trainer = L.Trainer(
+    default_root_dir=os.path.join(fun_control["CHECKPOINT_PATH"], config_id),
+    max_epochs=model.hparams.epochs,
+    accelerator=fun_control["accelerator"],
+    devices=fun_control["devices"],
+    logger=TensorBoardLogger(
+        save_dir=fun_control["TENSORBOARD_PATH"],
+        version=config_id,
+        default_hp_metric=True,
+        log_graph=fun_control["log_graph"],
+    ),
+    callbacks=[
+        EarlyStopping(monitor="val_loss", patience=config["patience"], mode="min", strict=False, verbose=False)
+    ],
+    enable_progress_bar=enable_progress_bar,
+)
+```
+Next, the `fit()` method is called to train the model.
+
+```{python}
+#| eval: false
+# Pass the datamodule as arg to trainer.fit to override model hooks :)
+trainer.fit(model=model, datamodule=dm)
+```
+
+Finally, the `validate()` method is called to validate the model.
+The `validate()` method returns the validation loss.
+
+```{python}
+#| eval: false
+# Test best model on validation and test set
+# result = trainer.validate(model=model, datamodule=dm, ckpt_path="last")
+result = trainer.validate(model=model, datamodule=dm)
+# unlist the result (from a list of one dict)
+result = result[0]
+return result["val_loss"]
+```
+
+
+## Further Information 
+
+### Preprocessing {#sec-preprocessing-30}
+
+Preprocessing is handled by `Lightning` and `PyTorch`. It is described in the [LIGHTNINGDATAMODULE](https://lightning.ai/docs/pytorch/stable/data/datamodule.html) documentation. Here you can find information about the `transforms` methods.
+

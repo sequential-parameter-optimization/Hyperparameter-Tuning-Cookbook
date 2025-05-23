@@ -1,0 +1,825 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Expected Improvement {#sec-expected-improvement}
+
+This chapter describes, analyzes, and compares different infill criterion. An infill criterion defines how the next point $x_{n+1}$ is selected from the surrogate model $S$. Expected improvement is a popular infill criterion in Bayesian optimization.
+
+## Example: `Spot` and the 1-dim Sphere Function
+
+```{python}
+import numpy as np
+from math import inf
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.utils.init import fun_control_init, surrogate_control_init, design_control_init
+import matplotlib.pyplot as plt
+```
+
+### The Objective Function: 1-dim Sphere
+
+* The `spotpython` package provides several classes of objective functions.
+* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+   $$f(x) = x^2 $$
+
+```{python}
+fun = Analytical().fun_sphere
+```
+
+* The size of the `lower` bound vector determines the problem dimension.
+* Here we will use `np.array([-1])`, i.e., a one-dim function.
+
+:::{.callout-note}
+#### TensorBoard
+
+Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:
+
+```{python}
+from spotpython.utils.init import fun_control_init
+PREFIX = "07_Y"
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    fun_evals = 25,
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    tolerance_x = np.sqrt(np.spacing(1)),)
+design_control = design_control_init(init_size=10)
+```
+:::
+
+```{python}
+spot_1 = Spot(
+            fun=fun,
+            fun_control=fun_control,
+            design_control=design_control)
+spot_1.run()
+```
+
+### Results
+
+```{python}
+spot_1.print_results()
+```
+
+```{python}
+spot_1.plot_progress(log_y=True)
+```
+
+![TensorBoard visualization of the spotpython optimization process and the surrogate model.](figures_static/07_tensorboard_Y.png){width="100%"}
+
+## Same, but with EI as infill_criterion
+
+```{python}
+PREFIX = "07_EI_ISO"
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    fun_evals = 25,
+    tolerance_x = np.sqrt(np.spacing(1)),
+    infill_criterion = "ei")
+```
+```{python}
+spot_1_ei = Spot(fun=fun,
+                     fun_control=fun_control)
+spot_1_ei.run()
+```
+
+```{python}
+spot_1_ei.plot_progress(log_y=True)
+```
+
+```{python}
+spot_1_ei.print_results()
+```
+
+![TensorBoard visualization of the spotpython optimization process and the surrogate model. Expected improvement, isotropic Kriging.](figures_static/07_tensorboard_EI_ISO.png){width="100%"}
+
+
+## Non-isotropic Kriging
+
+```{python}
+PREFIX = "07_EI_NONISO"
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    lower = np.array([-1, -1]),
+    upper = np.array([1, 1]),
+    fun_evals = 25,
+    tolerance_x = np.sqrt(np.spacing(1)),
+    infill_criterion = "ei")
+surrogate_control = surrogate_control_init(
+    n_theta=2,
+    method="interpolation",
+    )
+```
+
+```{python}
+spot_2_ei_noniso = Spot(fun=fun,
+                   fun_control=fun_control,
+                   surrogate_control=surrogate_control)
+spot_2_ei_noniso.run()
+```
+
+```{python}
+spot_2_ei_noniso.plot_progress(log_y=True)
+```
+
+```{python}
+spot_2_ei_noniso.print_results()
+```
+
+```{python}
+spot_2_ei_noniso.surrogate.plot()
+```
+
+![TensorBoard visualization of the spotpython optimization process and the surrogate model. Expected improvement, isotropic Kriging.](figures_static/07_tensorboard_EI_NONISO.png){width="100%"}
+
+
+## Using `sklearn` Surrogates
+
+### The spot Loop
+
+The `spot` loop consists of the following steps:
+
+1. Init: Build initial design $X$
+2. Evaluate initial design on real objective $f$: $y = f(X)$
+3. Build surrogate: $S = S(X,y)$
+4. Optimize on surrogate: $X_0 =  \text{optimize}(S)$
+5. Evaluate on real objective: $y_0 = f(X_0)$
+6. Impute (Infill) new points: $X = X \cup X_0$, $y = y \cup y_0$.
+7. Got 3.
+
+The `spot` loop is implemented in `R` as follows:
+
+![Visual representation of the model based search with SPOT. Taken from: Bartz-Beielstein, T., and Zaefferer, M. Hyperparameter tuning approaches. In Hyperparameter Tuning for Machine and Deep Learning with R - A Practical Guide, E. Bartz, T. Bartz-Beielstein, M. Zaefferer, and O. Mersmann, Eds. Springer, 2022, ch. 4, pp. 67–114. ](figures_static/spotModel.png)
+
+### spot: The Initial Model
+
+#### Example: Modifying the initial design size
+
+This is the "Example: Modifying the initial design size"  from Chapter 4.5.1 in [bart21i].
+
+```{python}
+spot_ei = Spot(fun=fun,
+                fun_control=fun_control_init(
+                lower = np.array([-1,-1]),
+                upper= np.array([1,1])), 
+                design_control = design_control_init(init_size=5))
+spot_ei.run()
+```
+
+```{python}
+spot_ei.plot_progress()
+```
+
+```{python}
+np.min(spot_1.y), np.min(spot_ei.y)
+```
+
+### Init: Build Initial Design
+
+```{python}
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+from spotpython.fun.objectivefunctions import Analytical
+gen = SpaceFilling(2)
+rng = np.random.RandomState(1)
+lower = np.array([-5,-0])
+upper = np.array([10,15])
+fun = Analytical().fun_branin
+
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+print(X)
+y = fun(X, fun_control=fun_control)
+print(y)
+```
+
+```{python}
+S = Kriging(name='kriging',  seed=123)
+S.fit(X, y)
+S.plot()
+```
+
+```{python}
+gen = SpaceFilling(2, seed=123)
+X0 = gen.scipy_lhd(3)
+gen = SpaceFilling(2, seed=345)
+X1 = gen.scipy_lhd(3)
+X2 = gen.scipy_lhd(3)
+gen = SpaceFilling(2, seed=123)
+X3 = gen.scipy_lhd(3)
+X0, X1, X2, X3
+```
+
+### Evaluate 
+
+###  Build Surrogate
+
+### A Simple Predictor
+
+The code below shows how to use a simple model for prediction.
+
+* Assume that only two (very costly) measurements are available:
+  
+  1. f(0) = 0.5
+  2. f(2) = 2.5
+
+* We are interested in the value at $x_0 = 1$, i.e., $f(x_0 = 1)$, but cannot run an additional, third experiment.
+
+```{python}
+from sklearn import linear_model
+X = np.array([[0], [2]])
+y = np.array([0.5, 2.5])
+S_lm = linear_model.LinearRegression()
+S_lm = S_lm.fit(X, y)
+X0 = np.array([[1]])
+y0 = S_lm.predict(X0)
+print(y0)
+```
+
+* Central Idea:
+  * Evaluation of the surrogate model `S_lm` is much cheaper (or / and much faster) than running the real-world experiment $f$.
+
+## Gaussian Processes regression: basic introductory example
+
+This example was taken from [scikit-learn](https://scikit-learn.org/stable/auto_examples/gaussian_process/plot_gpr_noisy_targets.html). After fitting our model, we see that the hyperparameters of the kernel have been optimized. Now, we will use our kernel to compute the mean prediction of the full dataset and plot the 95% confidence interval.
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import math as m
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+
+X = np.linspace(start=0, stop=10, num=1_000).reshape(-1, 1)
+y = np.squeeze(X * np.sin(X))
+rng = np.random.RandomState(1)
+training_indices = rng.choice(np.arange(y.size), size=6, replace=False)
+X_train, y_train = X[training_indices], y[training_indices]
+
+kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+gaussian_process = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+gaussian_process.fit(X_train, y_train)
+gaussian_process.kernel_
+
+mean_prediction, std_prediction = gaussian_process.predict(X, return_std=True)
+
+plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, mean_prediction, label="Mean prediction")
+plt.fill_between(
+    X.ravel(),
+    mean_prediction - 1.96 * std_prediction,
+    mean_prediction + 1.96 * std_prediction,
+    alpha=0.5,
+    label=r"95% confidence interval",
+)
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("sk-learn Version: Gaussian process regression on noise-free dataset")
+```
+
+```{python}
+from spotpython.surrogate.kriging import Kriging
+import numpy as np
+import matplotlib.pyplot as plt
+rng = np.random.RandomState(1)
+X = np.linspace(start=0, stop=10, num=1_000).reshape(-1, 1)
+y = np.squeeze(X * np.sin(X))
+training_indices = rng.choice(np.arange(y.size), size=6, replace=False)
+X_train, y_train = X[training_indices], y[training_indices]
+
+
+S = Kriging(name='kriging',  seed=123, log_level=50, cod_type="norm")
+S.fit(X_train, y_train)
+
+mean_prediction, std_prediction, ei = S.predict(X, return_val="all")
+
+std_prediction
+
+plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, mean_prediction, label="Mean prediction")
+plt.fill_between(
+    X.ravel(),
+    mean_prediction - 1.96 * std_prediction,
+    mean_prediction + 1.96 * std_prediction,
+    alpha=0.5,
+    label=r"95% confidence interval",
+)
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("spotpython Version: Gaussian process regression on noise-free dataset")
+```
+
+## The Surrogate: Using scikit-learn models
+
+Default is the internal `kriging` surrogate.
+
+```{python}
+S_0 = Kriging(name='kriging', seed=123)
+```
+
+Models from `scikit-learn` can be selected, e.g., Gaussian Process:
+
+```{python}
+# Needed for the sklearn surrogates:
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import linear_model
+from sklearn import tree
+import pandas as pd
+```
+
+```{python}
+kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+```
+
+* and many more:
+
+```{python}
+S_Tree = DecisionTreeRegressor(random_state=0)
+S_LM = linear_model.LinearRegression()
+S_Ridge = linear_model.Ridge()
+S_RF = RandomForestRegressor(max_depth=2, random_state=0) 
+```
+
+* The scikit-learn GP model `S_GP` is selected.
+
+```{python}
+S = S_GP
+```
+
+```{python}
+isinstance(S, GaussianProcessRegressor)
+ 
+```
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical().fun_branin
+fun_control = fun_control_init(
+    lower = np.array([-5,-0]),
+    upper = np.array([10,15]),
+    fun_evals = 15)    
+design_control = design_control_init(init_size=5)
+spot_GP = Spot(fun=fun, 
+                    fun_control=fun_control,
+                    surrogate=S, 
+                    design_control=design_control)
+spot_GP.run()
+```
+
+```{python}
+spot_GP.y
+```
+
+```{python}
+spot_GP.plot_progress()
+```
+
+```{python}
+spot_GP.print_results()
+```
+
+## Additional Examples
+
+```{python}
+# Needed for the sklearn surrogates:
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import linear_model
+from sklearn import tree
+import pandas as pd
+```
+
+```{python}
+kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+```
+
+```{python}
+from spotpython.surrogate.kriging import Kriging
+import numpy as np
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+
+S_K = Kriging(name='kriging',
+              seed=123,
+              log_level=50,
+              infill_criterion = "y",
+              n_theta=1,
+              method="interpolation",
+              cod_type="norm")
+fun = Analytical().fun_sphere
+
+fun_control = fun_control_init(
+    lower = np.array([-1,-1]),
+    upper = np.array([1,1]),
+    fun_evals = 25)
+
+spot_S_K = Spot(fun=fun,
+                     fun_control=fun_control,
+                     surrogate=S_K,
+                     design_control=design_control,
+                     surrogate_control=surrogate_control)
+spot_S_K.run()
+```
+
+```{python}
+spot_S_K.plot_progress(log_y=True)
+```
+
+```{python}
+spot_S_K.surrogate.plot()
+```
+
+```{python}
+spot_S_K.print_results()
+```
+
+### Optimize on Surrogate
+
+### Evaluate on Real Objective
+
+### Impute / Infill new Points
+
+## Tests
+
+```{python}
+import numpy as np
+from spotpython.spot import Spot
+from spotpython.fun.objectivefunctions import Analytical
+
+fun_sphere = Analytical().fun_sphere
+
+fun_control = fun_control_init(
+                    lower=np.array([-1, -1]),
+                    upper=np.array([1, 1]),
+                    n_points = 2)
+spot_1 = Spot(
+    fun=fun_sphere,
+    fun_control=fun_control,
+)
+
+# (S-2) Initial Design:
+spot_1.X = spot_1.design.scipy_lhd(
+    spot_1.design_control["init_size"], lower=spot_1.lower, upper=spot_1.upper
+)
+print(spot_1.X)
+
+# (S-3): Eval initial design:
+spot_1.y = spot_1.fun(spot_1.X)
+print(spot_1.y)
+
+spot_1.fit_surrogate()
+X0 = spot_1.suggest_new_X()
+print(X0)
+assert X0.size == spot_1.n_points * spot_1.k
+```
+
+## EI: The Famous Schonlau Example
+
+```{python}
+X_train0 = np.array([1, 2, 3, 4, 12]).reshape(-1,1)
+X_train = np.linspace(start=0, stop=10, num=5).reshape(-1, 1)
+```
+
+```{python}
+from spotpython.surrogate.kriging import Kriging
+import numpy as np
+import matplotlib.pyplot as plt
+
+X_train = np.array([1., 2., 3., 4., 12.]).reshape(-1,1)
+y_train = np.array([0., -1.75, -2, -0.5, 5.])
+
+S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation", cod_type="norm")
+S.fit(X_train, y_train)
+
+X = np.linspace(start=0, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, mean_prediction, label="Mean prediction")
+if True:
+    plt.fill_between(
+        X.ravel(),
+        mean_prediction - 2 * std_prediction,
+        mean_prediction + 2 * std_prediction,
+        alpha=0.5,
+        label=r"95% confidence interval",
+    )
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression on noise-free dataset")
+```
+
+```{python}
+#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+# plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, -ei, label="Expected Improvement")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression on noise-free dataset")
+```
+
+```{python}
+S.get_model_params()
+```
+
+## EI: The Forrester Example
+
+```{python}
+from spotpython.surrogate.kriging import Kriging
+import numpy as np
+import matplotlib.pyplot as plt
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+
+# exact x locations are unknown:
+X_train = np.array([0.0, 0.175, 0.225, 0.3, 0.35, 0.375, 0.5,1]).reshape(-1,1)
+
+fun = Analytical().fun_forrester
+fun_control = fun_control_init(
+    PREFIX="07_EI_FORRESTER",
+    sigma=1.0,
+    seed=123,)
+y_train = fun(X_train, fun_control=fun_control)
+
+S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation", cod_type="norm")
+S.fit(X_train, y_train)
+
+X = np.linspace(start=0, stop=1, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, mean_prediction, label="Mean prediction")
+if True:
+    plt.fill_between(
+        X.ravel(),
+        mean_prediction - 2 * std_prediction,
+        mean_prediction + 2 * std_prediction,
+        alpha=0.5,
+        label=r"95% confidence interval",
+    )
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression on noise-free dataset")
+```
+
+```{python}
+#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+# plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X, -ei, label="Expected Improvement")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression on noise-free dataset")
+```
+
+## Noise
+
+```{python}
+import numpy as np
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+import matplotlib.pyplot as plt
+
+gen = SpaceFilling(1)
+rng = np.random.RandomState(1)
+lower = np.array([-10])
+upper = np.array([10])
+fun = Analytical().fun_sphere
+fun_control = fun_control_init(
+    PREFIX="07_Y",
+    sigma=2.0,
+    seed=123,)
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+print(X)
+y = fun(X, fun_control=fun_control)
+print(y)
+y.shape
+X_train = X.reshape(-1,1)
+y_train = y
+
+S = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            method="interpolation")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression on noisy dataset")
+```
+
+```{python}
+S.get_model_params()
+```
+
+```{python}
+S = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            method="regression")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+#plt.plot(X, y, label=r"$f(x) = x \sin(x)$", linestyle="dotted")
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression with nugget on noisy dataset")
+```
+
+```{python}
+S.get_model_params()
+```
+
+## Cubic Function
+
+```{python}
+import numpy as np
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+import matplotlib.pyplot as plt
+
+gen = SpaceFilling(1)
+rng = np.random.RandomState(1)
+lower = np.array([-10])
+upper = np.array([10])
+fun = Analytical().fun_cubed
+fun_control = fun_control_init(
+    PREFIX="07_Y",
+    sigma=10.0,
+    seed=123,)
+
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+print(X)
+y = fun(X, fun_control=fun_control)
+print(y)
+y.shape
+X_train = X.reshape(-1,1)
+y_train = y
+
+S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Cubed: Gaussian process regression on noisy dataset")
+```
+
+```{python}
+S = Kriging(name='kriging',  seed=123, log_level=0, n_theta=1, method="regression")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Cubed: Gaussian process with nugget regression on noisy dataset")
+```
+
+```{python}
+import numpy as np
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+import matplotlib.pyplot as plt
+
+gen = SpaceFilling(1)
+rng = np.random.RandomState(1)
+lower = np.array([-10])
+upper = np.array([10])
+fun = Analytical().fun_runge
+fun_control = fun_control_init(
+    PREFIX="07_Y",
+    sigma=0.25,
+    seed=123,)
+
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+print(X)
+y = fun(X, fun_control=fun_control)
+print(y)
+y.shape
+X_train = X.reshape(-1,1)
+y_train = y
+
+S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression on noisy dataset")
+```
+
+```{python}
+S = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            method="regression")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression with nugget on noisy dataset")
+```
+
+## Modifying Lambda Search Space
+
+
+```{python}
+S = Kriging(name='kriging',
+            seed=123,
+            log_level=50,
+            n_theta=1,
+            method="regression",
+            min_Lambda=0.1,
+            max_Lambda=10)
+S.fit(X_train, y_train)
+
+print(f"Lambda: {S.Lambda}")
+```
+
+```{python}
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+#plt.plot(X, ei, label="Expected Improvement")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Gaussian process regression with nugget on noisy dataset. Modified Lambda search space.")
+```
+
+

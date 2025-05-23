@@ -1,0 +1,329 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Handling Noise {#sec-noise}
+
+This chapter demonstrates how noisy functions can be handled by `Spot` and how noise can be simulated, i.e., added to the objective function.
+
+## Example: `Spot` and the Noisy Sphere Function
+
+```{python}
+import numpy as np
+from math import inf
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+import matplotlib.pyplot as plt
+from spotpython.utils.init import fun_control_init, get_spot_tensorboard_path
+from spotpython.utils.init import fun_control_init, design_control_init, surrogate_control_init
+
+PREFIX = "08"
+
+```
+
+
+### The Objective Function: Noisy Sphere
+
+The `spotpython` package provides several classes of objective functions, which return a one-dimensional output $y=f(x)$ for a given input $x$ (independent variable). Several objective functions allow one- or multidimensional input, some also combinations of real-valued and categorial input values.
+
+An objective function is considered as "analytical" if it can be described by a closed mathematical formula, e.g.,
+$$
+f(x, y) = x^2 + y^2.
+$$
+
+To simulate measurement errors, adding artificial noise to the function value $y$ is a common practice, e.g.,:
+
+$$
+f(x, y) = x^2 + y^2 + \epsilon.
+$$
+
+Usually, noise is assumed to be normally distributed with mean $\mu=0$ and standard deviation $\sigma$.
+spotpython uses numpy's `scale` parameter, which specifies the standard deviation (spread or "width") of the distribution is used. This must be a non-negative value, see [https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html](https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html).
+
+:::{.callout-note}
+### Example: The sphere function without noise
+
+The default setting does not use any noise.
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical().fun_sphere
+x = np.linspace(-1,1,100).reshape(-1,1)
+y = fun(x)
+plt.figure()
+plt.plot(x,y, "k")
+plt.show()
+```
+:::
+
+
+:::{.callout-note}
+### Example: The sphere function with noise
+
+Noise can be added to the sphere function as follows:
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical(seed=123, sigma=0.02).fun_sphere
+x = np.linspace(-1,1,100).reshape(-1,1)
+y = fun(x)
+plt.figure()
+plt.plot(x,y, "k")
+plt.show()
+```
+:::
+
+### Reproducibility: Noise Generation and Seed Handling
+
+spotpython provides two mechanisms for generating random noise:
+
+1. The seed is initialized once, i.e., when the objective function is instantiated. This can be done using the following call: `fun = Analytical(sigma=0.02, seed=123).fun_sphere`.
+2. The seed is set every time the objective function is called. This can be done using the following call: `y = fun(x, sigma=0.02, seed=123)`.
+
+These two different ways lead to different results as explained in the following tables:
+
+
+
+:::{.callout-note}
+### Example: Noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical(sigma=0.02, seed=123).fun_sphere
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+The seed is set once. Every call to `fun()` results in a different value.
+The whole experiment can be repeated, the initial seed is used to generate the same sequence as shown below:
+
+:::
+
+:::{.callout-note}
+### Example: Noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical(sigma=0.02, seed=123).fun_sphere
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+:::
+
+If `spotpython` is used as a hyperparameter tuner, it is important that only one realization of the noise function is optimized.
+This behaviour can be accomplished by passing the same seed via the dictionary `fun_control` to every call of the objective function `fun` as shown below:
+
+:::{.callout-note}
+### Example: The same noise added to the sphere function
+
+Since `sigma` is set to `0.02`, noise is added to the function:
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical().fun_sphere
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    sigma=0.02)
+y = fun(x, fun_control=fun_control)
+x = np.array([1]).reshape(-1,1)
+for i in range(3):
+    print(f"{i}: {fun(x)}")
+```
+
+:::
+
+
+## spotpython's Noise Handling Approaches
+
+The following setting will be used for the next steps:
+
+```{python}
+fun = Analytical().fun_sphere
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    sigma=0.02,
+)
+```
+
+
+
+`spotpython` is adopted as follows to cope with noisy functions:
+
+1. `fun_repeats` is set to a value larger than 1 (here: 2)
+2. `noise` is set to `true`. Therefore, a nugget (`Lambda`) term is added to the correlation matrix
+3.  `init size` (of the `design_control` dictionary) is set to a value larger than 1 (here: 3)
+
+```{python}
+spot_1_noisy = Spot(fun=fun,
+                   fun_control=fun_control_init(
+                                    lower = np.array([-1]),
+                                    upper = np.array([1]),
+                                    fun_evals = 20,
+                                    fun_repeats = 2,
+                                    noise = True,
+                                    show_models=True),
+                   design_control=design_control_init(init_size=3, repeats=2),
+                   surrogate_control=surrogate_control_init(method="regression"))
+```
+
+```{python}
+spot_1_noisy.run()
+```
+
+## Print the Results
+
+```{python}
+spot_1_noisy.print_results()
+```
+
+```{python}
+#| fig-label: fig-progress
+#| fig-cap: "Progress plot. *Black* dots denote results from the initial design. *Red* dots  illustrate the improvement found by the surrogate model based optimization."
+spot_1_noisy.plot_progress(log_y=False,
+    filename="./figures/" + PREFIX + "_progress.png")
+```
+
+##  Noise and Surrogates: The Nugget Effect
+
+### The Noisy Sphere
+
+#### The Data
+
+* We prepare some data first:
+
+```{python}
+import numpy as np
+import spotpython
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.surrogate.kriging import Kriging
+import matplotlib.pyplot as plt
+
+gen = SpaceFilling(1)
+rng = np.random.RandomState(1)
+lower = np.array([-10])
+upper = np.array([10])
+fun = Analytical().fun_sphere
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    sigma=4)
+X = gen.scipy_lhd(10, lower=lower, upper = upper)
+y = fun(X, fun_control=fun_control)
+X_train = X.reshape(-1,1)
+y_train = y
+```
+
+* A surrogate without nugget is fitted to these data:
+
+```{python}
+S = Kriging(name='kriging',
+            n_theta=1,
+            method="interpolation")
+S.fit(X_train, y_train)
+
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S.predict(X_axis, return_val="all")
+
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression on noisy dataset")
+```
+
+* In comparison to the surrogate without nugget, we fit a surrogate with nugget to the data:
+
+```{python}
+S_nug = Kriging(name='kriging',
+            n_theta=1,
+            method="regression")
+S_nug.fit(X_train, y_train)
+X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
+mean_prediction, std_prediction, ei = S_nug.predict(X_axis, return_val="all")
+plt.scatter(X_train, y_train, label="Observations")
+plt.plot(X_axis, mean_prediction, label="mue")
+plt.legend()
+plt.xlabel("$x$")
+plt.ylabel("$f(x)$")
+_ = plt.title("Sphere: Gaussian process regression with nugget on noisy dataset")
+```
+
+* The value of the nugget term can be extracted from the model as follows:
+
+```{python}
+S.Lambda
+```
+
+```{python}
+S_nug.Lambda
+```
+
+* We see:
+    * the first model `S` has no nugget, 
+    * whereas the second model has a nugget value (`Lambda`) larger than zero.
+
+## Exercises
+
+### Noisy `fun_cubed`
+
+* Analyse the effect of noise on the `fun_cubed` function with the following settings:
+
+```{python}
+fun = Analytical().fun_cubed
+fun_control = fun_control_init(
+    sigma=10)
+lower = np.array([-10])
+upper = np.array([10])
+```
+
+###  `fun_runge`
+
+* Analyse the effect of noise on the `fun_runge` function with the following settings:
+
+```{python}
+lower = np.array([-10])
+upper = np.array([10])
+fun = Analytical().fun_runge
+fun_control = fun_control_init(
+    sigma=0.25)
+```
+
+
+###  `fun_forrester`
+
+* Analyse the effect of noise on the `fun_forrester` function with the following settings: 
+
+```{python}
+lower = np.array([0])
+upper = np.array([1])
+fun = Analytical().fun_forrester
+fun_control = fun_control_init(
+    sigma=5)
+```
+
+
+###  `fun_xsin`
+
+* Analyse the effect of noise on the `fun_xsin` function with the following settings: 
+
+```{python}
+lower = np.array([-1.])
+upper = np.array([1.])
+fun = Analytical().fun_xsin
+fun_control = fun_control_init(    
+    sigma=0.5)
+```
+

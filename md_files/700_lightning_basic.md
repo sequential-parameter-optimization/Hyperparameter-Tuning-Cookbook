@@ -1,0 +1,742 @@
+---
+title: Basic Lightning Module
+jupyter: python3
+---
+
+## Introduction
+
+This chapter implements a basic Pytorch Lightning module. It is based on the Lightning documentation [LIGHTNINGMODULE](https://lightning.ai/docs/pytorch/stable/common/lightning_module.html).
+
+
+A `LightningModule` organizes your `PyTorch` code into six sections:
+
+* Initialization (`__init__` and `setup()`).
+* Train Loop (`training_step()`)
+* Validation Loop (`validation_step()`)
+* Test Loop (`test_step()`)
+* Prediction Loop (`predict_step()`)
+* Optimizers and LR Schedulers (`configure_optimizers()`)
+
+The `Trainer` automates every required step in a clear and reproducible way. It is the most important part of PyTorch Lightning. It is responsible for training, testing, and validating the model.
+The `Lightning` core structure looks like this:
+
+```python
+net = MyLightningModuleNet()
+trainer = Trainer()
+trainer.fit(net)
+```
+There are no `.cuda()` or `.to(device)` calls required. Lightning does these for you.
+
+```python
+# don't do in Lightning
+x = torch.Tensor(2, 3)
+x = x.cuda()
+x = x.to(device)
+
+# do this instead
+x = x  # leave it alone!
+
+# or to init a new tensor
+new_x = torch.Tensor(2, 3)
+new_x = new_x.to(x)
+```
+
+A LightningModule is a `torch.nn.Module` but with added functionality. For example:
+
+```python
+net = Net.load_from_checkpoint(PATH)
+net.freeze()
+out = net(x)
+```
+
+## Starter Example: Transformer
+
+Here are the only required methods for setting up a transfomer model:
+
+```{python}
+#| label: transformer-setup
+#| eval: true
+import lightning as L
+import torch
+
+from lightning.pytorch.demos import Transformer
+
+
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def forward(self, inputs, target):
+        return self.model(inputs, target)
+
+    def training_step(self, batch, batch_idx):
+        inputs, target = batch
+        output = self(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.model.parameters(), lr=0.1)
+
+```
+
+The `LightningTransformer` class is a subclass of `LightningModule`. It can be trainted as follows:
+
+```{python}
+#| label: transformer-train
+#| eval: true
+from lightning.pytorch.demos import WikiText2
+from torch.utils.data import DataLoader
+
+dataset = WikiText2()
+dataloader = DataLoader(dataset)
+model = LightningTransformer(vocab_size=dataset.vocab_size)
+
+trainer = L.Trainer(fast_dev_run=100)
+trainer.fit(model=model, train_dataloaders=dataloader)
+
+```
+
+## Lightning Core Methods
+
+The LightningModule has many convenient methods, but the core ones you need to know about are shown in @tbl-lm-core-methods.
+
+| Method | Description |
+| :--- | :--- |
+| `__init__` and `setup` | Initializes the model. |
+| `forward` | Performs a forward pass through the model. To run data through your model only (separate from `training_step`). |
+| `training_step` | Performs a complete training step. |
+| `validation_step` | Performs a complete validation step. |
+| `test_step` | Performs a complete test step. |
+| `predict_step` | Performs a complete prediction step. |
+| `configure_optimizers` | Configures the optimizers and learning-rate schedulers. |
+: The core methods of a LightningModule {#tbl-lm-core-methods}
+
+We will take a closer look at thes methods.
+
+### Training Step
+
+#### Basics
+
+To activate the training loop, override the `training_step()` method.
+\index{training\_step()}
+If you want to calculate epoch-level metrics and log them, use `log()`.
+
+```python
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def training_step(self, batch, batch_idx):
+        inputs, target = batch
+        output = self.model(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+
+        # logs metrics for each training_step,
+        # and the average across the epoch, to the progress bar and logger
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+```
+
+The `log()` method automatically reduces the requested metrics across a complete epoch and devices. 
+
+#### Background
+
+* Here is the pseudocode of what the `log()` method does under the hood:
+\index{log()}
+```python
+outs = []
+for batch_idx, batch in enumerate(train_dataloader):
+    # forward
+    loss = training_step(batch, batch_idx)
+    outs.append(loss.detach())
+
+    # clear gradients
+    optimizer.zero_grad()
+    # backward
+    loss.backward()
+    # update parameters
+    optimizer.step()
+
+# note: in reality, we do this incrementally, instead of keeping all outputs in memory
+epoch_metric = torch.mean(torch.stack(outs))
+``` 
+
+* In the case that you need to make use of all the outputs from each `training_step()`, override the `on_train_epoch_end()` method.
+\index{on\_train\_epoch\_end()}
+
+```python
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+        self.training_step_outputs = []
+
+    def training_step(self, batch, batch_idx):
+        inputs, target = batch
+        output = self.model(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        preds = ...
+        self.training_step_outputs.append(preds)
+        return loss
+
+    def on_train_epoch_end(self):
+        all_preds = torch.stack(self.training_step_outputs)
+        # do something with all preds
+        ...
+        self.training_step_outputs.clear()  # free memory
+```
+
+
+
+### Validation Step
+
+#### Basics
+
+To activate the validation loop while training, override the `validation_step()` method.
+
+\index{validation\_step()}
+
+```python
+class LightningTransformer(L.LightningModule):
+    def validation_step(self, batch, batch_idx):
+        inputs, target = batch
+        output = self.model(inputs, target)
+        loss = F.cross_entropy(y_hat, y)
+        self.log("val_loss", loss)
+        return loss
+``` 
+
+#### Background
+
+* You can also run just the validation loop on your validation dataloaders by overriding `validation_step()` and calling `validate()`.
+
+\index{validate()}
+
+```python
+model = LightningTransformer(vocab_size=dataset.vocab_size)
+trainer = L.Trainer()
+trainer.validate(model)
+```
+
+* In the case that you need to make use of all the outputs from each `validation_step()`, override the `on_validation_epoch_end()` method. Note that this method is called before `on_train_epoch_end()`.
+
+\index{on\_validation\_epoch\_end()}
+
+```python
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+        self.validation_step_outputs = []
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        inputs, target = batch
+        output = self.model(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        pred = ...
+        self.validation_step_outputs.append(pred)
+        return pred
+
+    def on_validation_epoch_end(self):
+        all_preds = torch.stack(self.validation_step_outputs)
+        # do something with all preds
+        ...
+        self.validation_step_outputs.clear()  # free memory
+```
+
+### Test Step
+
+The process for enabling a test loop is the same as the process for enabling a validation loop.
+For this you need to override the `test_step()` method.
+The only difference is that the test loop is only called when `test()` is used.
+\index{test\_step()}
+
+```python
+def test_step(self, batch, batch_idx):
+    inputs, target = batch
+    output = self.model(inputs, target)
+    loss = F.cross_entropy(y_hat, y)
+    self.log("test_loss", loss)
+    return loss
+```
+
+### Predict Step
+
+#### Basics
+
+By default, the `predict_step()` method runs the `forward()` method. In order to customize this behaviour, simply override the `predict_step()` method.
+
+\index{predict\_step()}
+
+```python
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def predict_step(self, batch):
+        inputs, target = batch
+        return self.model(inputs, target)
+```
+
+#### Background
+
+* If you want to perform inference with the system, you can add a `forward` method to the LightningModule.
+* When using forward, you are responsible to call `eval()` and use the `no_grad()` context manager.
+
+```python
+class LightningTransformer(L.LightningModule):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def forward(self, batch):
+        inputs, target = batch
+        return self.model(inputs, target)
+
+    def training_step(self, batch, batch_idx):
+        inputs, target = batch
+        output = self.model(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.model.parameters(), lr=0.1)
+
+
+model = LightningTransformer(vocab_size=dataset.vocab_size)
+
+model.eval()
+with torch.no_grad():
+    batch = dataloader.dataset[0]
+    pred = model(batch)
+```
+
+
+## Lightning Extras
+
+This section covers some additional features of Lightning.
+
+### Lightning: Save Hyperparameters
+
+Often times we train many versions of a model. You might share that model or come back to it a few months later at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc.).
+
+Lightning has a standardized way of saving the information for you in checkpoints and YAML files. The goal here is to improve readability and reproducibility.
+
+
+Use `save_hyperparameters()` within your `LightningModule`’s `__init__` method.
+\index{save\_hyperparameters()}
+It will enable Lightning to store all the provided arguments under the `self.hparams` attribute.
+These hyperparameters will also be stored within the model checkpoint, which simplifies model re-instantiation after training.
+
+```python
+class LitMNIST(L.LightningModule):
+    def __init__(self, layer_1_dim=128, learning_rate=1e-2):
+        super().__init__()
+        # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
+        self.save_hyperparameters()
+
+        # equivalent
+        self.save_hyperparameters("layer_1_dim", "learning_rate")
+
+        # Now possible to access layer_1_dim from hparams
+        self.hparams.layer_1_dim
+```
+
+### Lightning: Model Loading
+
+LightningModules that have hyperparameters automatically saved with `save_hyperparameters()` can conveniently be loaded and instantiated directly from a checkpoint with `load_from_checkpoint()`:
+
+\index{load\_from\_checkpoint()}
+
+```python
+# to load specify the other args
+model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
+```
+
+
+
+
+
+## Starter Example: Linear Neural Network
+
+
+We will use the `LightningModule` to create a simple neural network for regression.
+It will be implemented as the `LightningBasic` class.
+
+### Hidden Layers
+
+To specify the number of hidden layers, we will use the hyperparameter `l1` and the function `get_hidden_sizes()`  [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/hyperparameters/architecture/#spotpython.hyperparameters.architecture.get_hidden_sizes) from the `spotpython` package.
+
+
+```{python}
+#| label: get_hidden_sizes
+#| eval: true
+#| echo: true
+from spotpython.hyperparameters.architecture import get_hidden_sizes
+_L_in = 10
+l1 = 20
+max_n = 4
+get_hidden_sizes(_L_in, l1, max_n)
+```
+
+### Hyperparameters
+
+The argument `l1` will be treated as a hyperparameter, so it will be tuned in the following steps.
+Besides `l1`, additonal hyperparameters are `act_fn` and `dropout_prob`.
+
+ The arguments `_L_in`, `_L_out`, and `_torchmetric` are not hyperparameters, but are needed to create the network. The first two are specified by the data and the latter by user preferences (the desired evaluation metric).
+
+
+### The LightningBasic Class
+
+```{python}
+#| label: lightning_starter_example_regression
+#| eval: true
+#| echo: true
+import lightning as L
+import torch
+import torch.nn.functional as F
+import torchmetrics.functional.regression
+from torch import nn
+from spotpython.hyperparameters.architecture import get_hidden_sizes
+
+class LightningBasic(L.LightningModule):
+    def __init__(
+    self,
+    l1: int,
+    act_fn: nn.Module,
+    dropout_prob: float,
+    _L_in: int,
+    _L_out: int,
+    _torchmetric: str,
+    *args,
+    **kwargs):
+        super().__init__()
+        self._L_in = _L_in
+        self._L_out = _L_out
+        self._torchmetric = _torchmetric
+        self.metric = getattr(torchmetrics.functional.regression, _torchmetric)
+        # _L_in and _L_out are not hyperparameters, but are needed to create the network
+        # _torchmetric is not a hyperparameter, but is needed to calculate the loss
+        self.save_hyperparameters(ignore=["_L_in", "_L_out", "_torchmetric"])
+        # set dummy input array for Tensorboard Graphs
+        # set log_graph=True in Trainer to see the graph (in traintest.py)
+        hidden_sizes = get_hidden_sizes(_L_in=self._L_in, l1=l1, max_n=4)
+        # Create the network based on the specified hidden sizes
+        layers = []
+        layer_sizes = [self._L_in] + hidden_sizes
+        layer_size_last = layer_sizes[0]
+        for layer_size in layer_sizes[1:]:
+            layers += [
+                nn.Linear(layer_size_last, layer_size),
+                self.hparams.act_fn,
+                nn.Dropout(self.hparams.dropout_prob),
+            ]
+            layer_size_last = layer_size
+        layers += [nn.Linear(layer_sizes[-1], self._L_out)]
+        # nn.Sequential summarizes a list of modules into a single module,
+        # applying them in sequence
+        self.layers = nn.Sequential(*layers)
+
+    def _calculate_loss(self, batch):
+        x, y = batch
+        y = y.view(len(y), 1)
+        y_hat = self.layers(x)
+        loss = self.metric(y_hat, y)
+        return loss
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.layers(x)
+
+    def training_step(self, batch: tuple) -> torch.Tensor:
+        loss = self._calculate_loss(batch)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch: tuple) -> torch.Tensor:
+        loss = self._calculate_loss(batch)
+        # logs metrics for each training_step,
+        # and the average across the epoch, to the progress bar and logger
+        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        loss = self._calculate_loss(batch)
+        # logs metrics for each training_step,
+        # and the average across the epoch, to the progress bar and logger
+        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        x, _ = batch
+        y_hat = self.layers(x)
+        return y_hat
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.layers.parameters(), lr=0.02)
+```
+
+We can instantiate the `LightningBasic` class as follows:
+
+```{python}
+#| label: lightning_starter_instantiate
+#| eval: true
+#| echo: true
+model_base = LightningBasic(
+    l1=20,
+    act_fn=nn.ReLU(),
+    dropout_prob=0.01,
+    _L_in=10,
+    _L_out=1,
+    _torchmetric="mean_squared_error")
+```
+
+
+It has the following structure:
+
+```{python}
+#| label: lightning_starter_print_model
+#| eval: true
+#| echo: true
+print(model_base)
+```
+
+
+```{python}
+#| label: lightning_starter_model_architecture_plot
+#| eval: true
+#| echo: true
+from spotpython.plot.xai import viz_net
+viz_net(net=model_base,
+    device="cpu",
+    filename="model_architecture700", format="png")
+```
+
+![Model architecture](./model_architecture700.png)
+
+### The Data Set: Diabetes
+
+We will use the `Diabetes` [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/data/diabetes/) data set from the `spotpython` package, which is a PyTorch Dataset for regression based on a data set from `scikit-learn`.
+It consists of DataFrame entries, which were converted to PyTorch tensors.
+
+Ten baseline variables, age, sex, body mass index, average blood pressure, and six blood serum measurements were obtained for each of n = 442 diabetes patients, as well as the response of interest, a quantitative measure of disease progression one year after baseline.
+
+The `Diabetes` data set has the following properties:
+
+* Number of Instances: 442
+* Number of Attributes: First 10 columns are numeric predictive values.
+* Target: Column 11 is a quantitative measure of disease progression one year after baseline.
+* Attribute Information:
+    * age age in years
+    * sex
+    * bmi body mass index
+    * bp average blood pressure
+    * s1 tc, total serum cholesterol
+    * s2 ldl, low-density lipoproteins
+    * s3 hdl, high-density lipoproteins
+    * s4 tch, total cholesterol / HDL
+    * s5 ltg, possibly log of serum triglycerides level
+    * s6 glu, blood sugar level
+
+```{python}
+#| label: lightning_starter_diabetes_dataset
+#| eval: true
+#| echo: true
+from torch.utils.data import DataLoader
+from spotpython.data.diabetes import Diabetes
+import torch
+dataset = Diabetes(feature_type=torch.float32, target_type=torch.float32)
+# Set batch size for DataLoader to 2 for demonstration purposes
+batch_size = 2
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+for batch in dataloader:
+    inputs, targets = batch
+    print(f"Batch Size: {inputs.size(0)}")
+    print("---------------")
+    print(f"Inputs: {inputs}")
+    print(f"Targets: {targets}")
+    break
+```
+
+### The DataLoaders
+
+Before we can call the `Trainer` to fit, validate, and test the model, we need to create the `DataLoaders` for each of these steps. 
+The `DataLoaders` are used to load the data into the model in batches and need the `batch_size`.
+
+\index{DataLoaders}
+\index{batch\_size}
+
+
+```{python}
+#| label: lightning_starter_dataloaders
+#| eval: true
+#| echo: true
+import torch
+from spotpython.data.diabetes import Diabetes
+from torch.utils.data import DataLoader
+
+batch_size = 8
+
+dataset = Diabetes(target_type=torch.float)
+train1_set, test_set = torch.utils.data.random_split(dataset, [0.6, 0.4])
+train_set, val_set = torch.utils.data.random_split(train1_set, [0.6, 0.4])
+print(f"Full Data Set: {len(dataset)}")
+print(f"Train Set: {len(train_set)}")
+print(f"Validation Set: {len(val_set)}")
+print(f"Test Set: {len(test_set)}")
+train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, pin_memory=True)
+test_loader = DataLoader(test_set, batch_size=batch_size)
+val_loader = DataLoader(val_set, batch_size=batch_size)
+```
+
+
+### The Trainer
+
+Now we are ready to train the model. We will use the `Trainer` class from the `lightning` package.
+For demonstration purposes, we will train the model for 100 epochs only.
+
+
+```{python}
+#| label: lightning_starter_train
+#| eval: true
+#| echo: true
+epochs = 100
+
+trainer = L.Trainer(max_epochs=epochs, enable_progress_bar=True)
+trainer.fit(model=model_base, train_dataloaders=train_loader)
+```
+
+```{python}
+trainer.validate(model_base, val_loader)
+```
+
+```{python}
+#| label: lightning_starter_test
+#| eval: true
+#| echo: true
+# automatically loads the best weights for you
+out = trainer.test(model_base, test_loader, verbose=True)
+```
+
+```{python}
+yhat = trainer.predict(model_base, test_loader)
+# convert the list of tensors to a numpy array
+yhat = torch.cat(yhat).numpy()
+yhat.shape
+```
+
+### Using a DataModule
+
+Instead of creating the three `DataLoaders` manually, we can use the `LightDataModule` class from the `spotpython` package.
+
+```{python}
+#| label: lightning_starter_datamodule
+#| eval: true
+#| echo: true
+from spotpython.data.lightdatamodule import LightDataModule
+dataset = Diabetes(target_type=torch.float)
+data_module = LightDataModule(dataset=dataset, batch_size=5, test_size=0.4)
+data_module.setup()
+```
+
+There is a minor difference in the sizes of the data sets due to the random split as can be seen in the following code:
+
+```{python}
+#| label: lightning_starter_datamodule_print_sizes
+#| eval: true
+#| echo: true
+print(f"Full Data Set: {len(dataset)}")
+print(f"Training set size: {len(data_module.data_train)}")
+print(f"Validation set size: {len(data_module.data_val)}")
+print(f"Test set size: {len(data_module.data_test)}")
+```
+
+
+The `DataModule` can be used to train the model as follows:
+
+```{python}
+#| label: lightning_starter_train_datamodule
+#| eval: true
+#| echo: true
+trainer = L.Trainer(max_epochs=epochs, enable_progress_bar=False)
+trainer.fit(model=model_base, datamodule=data_module)
+```
+
+```{python}
+#| label: lightning_starter_validate_datamodule
+#| eval: true
+#| echo: true
+trainer.validate(model=model_base, datamodule=data_module, verbose=True, ckpt_path=None)
+```
+
+```{python}
+#| label: lightning_starter_test_datamodule
+#| eval: true
+#| echo: true
+trainer.test(model=model_base, datamodule=data_module, verbose=True, ckpt_path=None)
+```
+
+## Using spotpython with Pytorch Lightning
+
+
+```{python}
+#| label: lightning_starter_imports_spotpython
+#| eval: true
+#| echo: true
+import os
+from math import inf
+import warnings
+warnings.filterwarnings("ignore")
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.utils.eda import print_exp_table, print_res_table
+from spotpython.spot import Spot
+from spotpython.utils.file import get_experiment_filename
+```
+
+```{python}
+#| label: lightning_starter_full_spot
+#| eval: true
+#| echo: true
+PREFIX="700"
+data_set = Diabetes()
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    save_experiment=True,
+    fun_evals=inf,
+    fun_repeats=2,
+    max_time=1,
+    data_set=data_set,
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=10,
+    _L_out=1,
+    TENSORBOARD_CLEAN=True,
+    tensorboard_log=True,
+    noise=True,
+    ocba_delta = 1,  )
+fun = HyperLight().fun
+from spotpython.hyperparameters.values import set_hyperparameter
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [3,4])
+set_hyperparameter(fun_control, "epochs", [3,7])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,3])
+
+design_control = design_control_init(init_size=10, repeats=2)
+
+print_exp_table(fun_control)
+
+spot_tuner = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+res = spot_tuner.run()
+spot_tuner.plot_progress()
+print_res_table(spot_tuner)
+```

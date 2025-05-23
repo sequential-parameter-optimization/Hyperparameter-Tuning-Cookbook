@@ -1,0 +1,496 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+  keep-ipynb: true
+---
+
+# Using `sklearn` Surrogates in `spotpython` {#sec-sklearn-surrogates}
+
+Besides the internal kriging surrogate, which is used as a default by `spotpython`, any surrogate model from `scikit-learn` can be used as a surrogate in `spotpython`. This chapter explains how to use `scikit-learn` surrogates in `spotpython`.
+
+```{python}
+import numpy as np
+from math import inf
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+```
+
+## Example: Branin Function with `spotpython`'s Internal Kriging Surrogate
+
+### The Objective Function Branin
+
+* The `spotpython` package provides several classes of objective functions.
+* We will use an analytical objective function, i.e., a function that can be described by a (closed) formula.
+* Here we will use the Branin function:
+
+        y = a * (x2 - b * x1**2 + c * x1 - r) ** 2 + s * (1 - t) * np.cos(x1) + s,
+        where values of a, b, c, r, s and t are: a = 1, b = 5.1 / (4*pi**2),
+        c = 5 / pi, r = 6, s = 10 and t = 1 / (8*pi).
+
+* It has three global minima:
+
+
+        f(x) = 0.397887 at (-pi, 12.275), (pi, 2.275), and (9.42478, 2.475).
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun = Analytical().fun_branin
+```
+
+:::{.callout-note}
+#### TensorBoard
+
+Similar to the one-dimensional case, which was introduced in Section @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use the same code, only the prefix is different:
+
+```{python}
+from spotpython.utils.init import fun_control_init, design_control_init
+PREFIX = "04"
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    lower = np.array([-5,-0]),
+    upper = np.array([10,15]),
+    fun_evals=20,
+    max_time=inf)
+
+design_control = design_control_init(
+    init_size=10)
+```
+
+:::
+
+### Running the surrogate model based optimizer `Spot`:
+
+```{python}
+spot_2 = Spot(fun=fun,
+                   fun_control=fun_control,
+                   design_control=design_control)
+```
+
+```{python}
+spot_2.run()
+```
+
+### TensorBoard
+
+Now we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+
+We can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+
+The TensorBoard plot illustrates how `spotpython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
+
+![TensorBoard visualization of the spotpython optimization process and the surrogate model.](figures_static/04_tensorboard_01.png){width="100%"}
+
+
+
+### Print the Results
+
+```{python}
+spot_2.print_results()
+```
+
+### Show the Progress and the Surrogate
+
+```{python}
+spot_2.plot_progress(log_y=True)
+```
+
+```{python}
+spot_2.surrogate.plot()
+```
+
+## Example: Using Surrogates From scikit-learn
+
+* Default is the `spotpython` (i.e., the internal) `kriging` surrogate.
+* It can be called explicitely and passed to `Spot`.
+
+```{python}
+from spotpython.surrogate.kriging import Kriging
+S_0 = Kriging(name='kriging', seed=123)
+```
+
+* Alternatively, models from `scikit-learn` can be selected, e.g., Gaussian Process, RBFs, Regression Trees, etc.
+
+```{python}
+# Needed for the sklearn surrogates:
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import linear_model
+from sklearn import tree
+import pandas as pd
+```
+
+* Here are some additional models that might be useful later:
+
+```{python}
+S_Tree = DecisionTreeRegressor(random_state=0)
+S_LM = linear_model.LinearRegression()
+S_Ridge = linear_model.Ridge()
+S_RF = RandomForestRegressor(max_depth=2, random_state=0)
+```
+
+### GaussianProcessRegressor as a Surrogate
+
+* To use a Gaussian Process model from `sklearn`, that is similar to `spotpython`'s `Kriging`, we can proceed as follows:
+
+```{python}
+kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+S_GP = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+```
+
+* The scikit-learn GP model `S_GP` is selected for `Spot` as follows: 
+
+    `surrogate = S_GP`
+
+* We can check the kind of surogate model with the command `isinstance`:
+
+```{python}
+isinstance(S_GP, GaussianProcessRegressor) 
+```
+
+```{python}
+isinstance(S_0, Kriging)
+```
+
+* Similar to the `Spot` run with the internal `Kriging` model, we can call the run with the `scikit-learn` surrogate:
+
+```{python}
+fun = Analytical(seed=123).fun_branin
+spot_2_GP = Spot(fun=fun,
+                     fun_control=fun_control,
+                     design_control=design_control,
+                     surrogate = S_GP)
+spot_2_GP.run()
+```
+
+```{python}
+spot_2_GP.plot_progress()
+```
+
+```{python}
+spot_2_GP.print_results()
+```
+
+## Example: One-dimensional Sphere Function With `spotpython`'s Kriging
+
+* In this example, we will use an one-dimensional function, which allows us to visualize the optimization process.
+  * `show_models= True` is added to the argument list.
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun_control = fun_control_init(
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    fun_evals=10,
+    max_time=inf,
+    show_models= True,
+    tolerance_x = np.sqrt(np.spacing(1)))
+fun = Analytical(seed=123).fun_sphere
+design_control = design_control_init(
+    init_size=3)
+```
+
+```{python}
+spot_1 = Spot(fun=fun,
+                    fun_control=fun_control,
+                    design_control=design_control)
+spot_1.run()
+```
+
+### Results
+
+```{python}
+spot_1.print_results()
+```
+
+```{python}
+spot_1.plot_progress(log_y=True)
+```
+
+* The method `plot_model` plots the final surrogate:
+
+```{python}
+spot_1.plot_model()
+```
+
+## Example: `Sklearn` Model GaussianProcess
+
+* This example visualizes the search process on the `GaussianProcessRegression` surrogate from `sklearn`.
+* Therefore `surrogate = S_GP` is added to the argument list.
+
+```{python}
+fun = Analytical(seed=123).fun_sphere
+spot_1_GP = Spot(fun=fun,
+                      fun_control=fun_control,
+                      design_control=design_control,
+                      surrogate = S_GP)
+spot_1_GP.run()
+```
+
+```{python}
+spot_1_GP.print_results()
+```
+
+```{python}
+spot_1_GP.plot_progress(log_y=True)
+```
+
+```{python}
+spot_1_GP.plot_model()
+```
+
+## Exercises
+
+### 1. A decision tree regressor: `DecisionTreeRegressor` {#sec-10-exercise-01}
+
+* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html).
+* Use the surrogate as the model for optimization.
+
+### 2. A random forest regressor: `RandomForestRegressor` {#sec-10-exercise-02}
+
+* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html).
+* Use the surrogate as the model for optimization.
+
+### 3. Ordinary least squares Linear Regression: `LinearRegression` {#sec-10-exercise-03}
+
+* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html).
+* Use the surrogate as the model for optimization.
+
+### 4. Linear least squares with l2 regularization: `Ridge` {#sec-10-exercise-04}
+
+* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html).
+* Use the surrogate as the model for optimization.
+
+### 5. Gradient Boosting: `HistGradientBoostingRegressor` {#sec-10-exercise-05}
+
+* Describe the surrogate model. Use the information from the [scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html#sklearn.ensemble.HistGradientBoostingRegressor).
+* Use the surrogate as the model for optimization.
+
+
+
+### 6. Comparison of Surrogates {#sec-10-exercise-06}
+
+* Use the following two objective functions
+
+  1. the 1-dim sphere function [`fun_sphere`](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/objectivefunctions.py) and
+  2. the two-dim Branin function [`fun_branin`](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/objectivefunctions.py):
+    
+    for a comparison of the performance of the five different surrogates: 
+    * `spotpython`'s internal Kriging
+    * `DecisionTreeRegressor`
+    * `RandomForestRegressor`
+    * `linear_model.LinearRegression`
+    * `linear_model.Ridge`.
+
+* Generate a table with the results (number of function evaluations, best function value, and best parameter vector) for each surrogate and each function as shown in @tbl-results.
+
+| `surrogate` | `fun` | `fun_evals` | `max_time` | `x_0` | `min_y` | Comments |
+|-------------|-------|-------------:|------------|------------------:|---------:|----------|
+| `Kriging`     | `fun_sphere` | 10         | `inf`         |          |      |          |
+| `Kriging`     | `fun_branin` | 10         | `inf`          |          |      |          |
+| `DecisionTreeRegressor`     | `fun_sphere` | 10         | `inf`          |          |      |          |
+| ...     | ... | ...         | ...          |          |      |          |
+| `Ridge`     | `fun_branin` | 10         | `inf`          |          |      |          |
+
+: Result table {#tbl-results}
+
+* Discuss the results. Which surrogate is the best for which function? Why?
+
+
+## Selected Solutions
+
+### Solution to Exercise @sec-10-exercise-05: Gradient Boosting
+
+
+#### Branin: Using SPOT
+
+```{python}
+import numpy as np
+from math import inf
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.utils.init import fun_control_init, design_control_init
+from spotpython.spot import Spot
+```
+
+
+* The Objective Function Branin
+
+```{python}
+fun = Analytical().fun_branin
+PREFIX = "BRANIN"
+fun_control = fun_control_init(
+    PREFIX=PREFIX,
+    lower = np.array([-5,-0]),
+    upper = np.array([10,15]),
+    fun_evals=20,
+    max_time=inf)
+
+design_control = design_control_init(
+    init_size=10)
+```
+
+*  Running the surrogate model based optimizer `Spot`:
+
+```{python}
+spot_2 = Spot(fun=fun,
+                   fun_control=fun_control,
+                   design_control=design_control)
+spot_2.run()
+```
+* Print the results
+
+```{python}
+spot_2.print_results()
+```
+
+*  Show the optimization progress:
+
+```{python}
+spot_2.plot_progress(log_y=True)
+```
+
+* Generate a surrogate model plot:
+
+```{python}
+spot_2.surrogate.plot()
+```
+
+#### Branin: Using Surrogates From scikit-learn
+
+* The `HistGradientBoostingRegressor` model from `scikit-learn` is selected:
+
+```{python}
+# Needed for the sklearn surrogates:
+from sklearn.ensemble import HistGradientBoostingRegressor
+import pandas as pd
+S_XGB = HistGradientBoostingRegressor()
+```
+
+* The scikit-learn XGB model `S_XGB` is selected for `Spot` as follows: `surrogate = S_XGB`.
+* Similar to the `Spot` run with the internal `Kriging` model, we can call the run with the `scikit-learn` surrogate:
+
+```{python}
+fun = Analytical(seed=123).fun_branin
+spot_2_XGB = Spot(fun=fun,
+                     fun_control=fun_control,
+                     design_control=design_control,
+                     surrogate = S_XGB)
+spot_2_XGB.run()
+```
+
+* Print the Results
+
+
+```{python}
+spot_2_XGB.print_results()
+```
+
+
+*  Show the Progress
+
+```{python}
+spot_2_XGB.plot_progress(log_y=True)
+```
+
+* Since the `sklearn` model does not provide a `plot` method, we cannot generate a surrogate model plot.
+
+
+#### One-dimensional Sphere Function With `spotpython`'s Kriging
+
+* In this example, we will use an one-dimensional function, which allows us to visualize the optimization process.
+  * `show_models= True` is added to the argument list.
+
+```{python}
+from spotpython.fun.objectivefunctions import Analytical
+fun_control = fun_control_init(
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    fun_evals=10,
+    max_time=inf,
+    show_models= True,
+    tolerance_x = np.sqrt(np.spacing(1)))
+fun = Analytical(seed=123).fun_sphere
+design_control = design_control_init(
+    init_size=3)
+```
+
+```{python}
+spot_1 = Spot(fun=fun,
+                    fun_control=fun_control,
+                    design_control=design_control)
+spot_1.run()
+```
+
+* Print the Results
+
+```{python}
+spot_1.print_results()
+```
+
+* Show the Progress
+```{python}
+spot_1.plot_progress(log_y=True)
+```
+
+* The method `plot_model` plots the final surrogate:
+
+```{python}
+spot_1.plot_model()
+```
+
+#### One-dimensional Sphere Function With `Sklearn` Model HistGradientBoostingRegressor
+
+* This example visualizes the search process on the `HistGradientBoostingRegressor` surrogate from `sklearn`.
+* Therefore `surrogate = S_XGB` is added to the argument list.
+
+```{python}
+fun_control = fun_control_init(
+    lower = np.array([-1]),
+    upper = np.array([1]),
+    fun_evals=10,
+    max_time=inf,
+    show_models= True,
+    tolerance_x = np.sqrt(np.spacing(1)))
+fun = Analytical(seed=123).fun_sphere
+design_control = design_control_init(
+    init_size=3)
+spot_1_XGB = Spot(fun=fun,
+                      fun_control=fun_control,
+                      design_control=design_control,
+                      surrogate = S_XGB)
+spot_1_XGB.run()
+```
+
+```{python}
+spot_1_XGB.print_results()
+```
+
+```{python}
+spot_1_XGB.plot_progress(log_y=True)
+```
+
+```{python}
+spot_1_XGB.plot_model()
+```
+
+
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/010_num_spot_sklearn_surrogate.ipynb)
+
+:::

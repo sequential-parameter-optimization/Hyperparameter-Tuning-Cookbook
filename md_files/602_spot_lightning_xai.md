@@ -1,0 +1,301 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+jupyter: python3
+title: Explainable AI with SpotPython and Pytorch
+---
+
+```{python}
+#| echo: false
+#| label: imports
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+```{python}
+#| label: configure_spot
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.spot import Spot
+from spotpython.utils.file import get_experiment_filename
+from spotpython.hyperparameters.values import set_hyperparameter
+from math import inf
+
+PREFIX="602_12_1"
+
+data_set = Diabetes()
+
+fun_control = fun_control_init(
+    save_experiment=True,
+    PREFIX=PREFIX,
+    fun_evals=inf,
+    max_time=1,
+    data_set = data_set,
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    _L_in=10,
+    _L_out=1)
+
+fun = HyperLight().fun
+
+
+set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
+set_hyperparameter(fun_control, "l1", [3,7])
+set_hyperparameter(fun_control, "epochs", [10,12])
+set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
+set_hyperparameter(fun_control, "patience", [2,9])
+
+design_control = design_control_init(init_size=7)
+
+S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+```
+
+## Running the Hyperparameter Tuning or Loading the Existing Model
+
+
+```{python}
+#| label: run_experiment
+S.run()
+```
+
+## Results from the Hyperparameter Tuning Experiment
+
+* After the hyperparameter tuning is finished, the following information is available:
+    * the `S` object and the associated
+    * `fun_control` dictionary
+
+```{python}
+#| label: print_results
+S.print_results(print_screen=True)
+```
+
+```{python}
+#| label: 602_plot_progress_xai
+S.plot_progress()
+```
+### Getting the Best Model, i.e, the Tuned Architecture
+
+* The method `get_tuned_architecture` [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/hyperparameters/values/#spotpython.hyperparameters.values.get_tuned_architecture) returns the best model architecture found during the hyperparameter tuning.
+* It returns the transformed values, i.e., `batch_size = 2^x` if the hyperparameter `batch_size` was transformed with the `transform_power_2_int` function.
+
+```{python}
+#| label: get_tuned_architecture
+from spotpython.hyperparameters.values import get_tuned_architecture
+import pprint
+config = get_tuned_architecture(S)
+pprint.pprint(config)
+```
+
+* Note: `get_tuned_architecture` has the option `force_minX` which does not have any effect in this case.
+
+```{python}
+#| label: get_tuned_architecture_force_minX
+from spotpython.hyperparameters.values import get_tuned_architecture
+config = get_tuned_architecture(S, force_minX=True)
+pprint.pprint(config)
+```
+
+## Training the Tuned Architecture on the Test Data
+
+* Since we are interested in the explainability of the model, we will train the tuned architecture on the test data.
+* `spotpythons`'s `test_model` function [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/testmodel/) is used to train the model on the test data.
+* Note: Until now, we do not use any information about the NN's weights and biases. Only the architecture, which is available as the `config`, is used.
+* `spotpython` used the TensorBoard logger to save the training process in the `./runs` directory. Therefore, we have to enable the TensorBoard logger in the `fun_control` dictionary. To get a clean start, we remove an existing `runs` folder.
+
+```{python}
+#| label: test_model
+from spotpython.light.testmodel import test_model
+from spotpython.light.loadmodel import load_light_from_checkpoint
+fun_control.update({"tensorboard_log": True})
+test_model(config, fun_control)
+```
+
+```{python}
+#| label: load_model_from_chkpt
+model = load_light_from_checkpoint(config, fun_control)
+```
+
+#### Details of the Training Process on the Test Data
+
+* The `test_model` method initializes the model with the tuned architecture as follows:
+
+```python
+model = fun_control["core_model"](**config, _L_in=_L_in, _L_out=_L_out, _torchmetric=_torchmetric)
+```
+
+* Then, the Lightning Trainer is initialized with the `fun_control` dictionary and the model as follows:
+    
+    ```python
+        trainer = L.Trainer(
+        default_root_dir=os.path.join(fun_control["CHECKPOINT_PATH"], config_id),
+        max_epochs=model.hparams.epochs,
+        accelerator=fun_control["accelerator"],
+        devices=fun_control["devices"],
+        logger=TensorBoardLogger(
+            save_dir=fun_control["TENSORBOARD_PATH"],
+            version=config_id,
+            default_hp_metric=True,
+            log_graph=fun_control["log_graph"],
+        ),
+        callbacks=[
+            EarlyStopping(monitor="val_loss", patience=config["patience"], mode="min", strict=False, verbose=False),
+            ModelCheckpoint(
+                dirpath=os.path.join(fun_control["CHECKPOINT_PATH"], config_id), save_last=True
+            ), 
+        ],
+        enable_progress_bar=enable_progress_bar,
+    )
+    trainer.fit(model=model, datamodule=dm)    
+    test_result = trainer.test(datamodule=dm, ckpt_path="last")
+    ```
+
+* As shown in the code above, the last checkpoint ist saved.
+* `spotpython`'s method `load_light_from_checkpoint` is used to load the last checkpoint and to get the model's weights and biases. It requires the `fun_control` dictionary and the `config_id` as input to find the correct checkpoint.
+* Now, the model is trained and the weights and biases are available.
+
+## Visualizing the Neural Network Architecture
+
+```{python}
+# get the device
+from spotpython.utils.device import getDevice
+device = getDevice()
+```
+
+```{python}
+#| label: viz_net_spotpython
+from spotpython.plot.xai import viz_net
+viz_net(model, device=device)
+```
+
+![architecture](./model_architecture.png)
+
+## XAI Methods
+
+* `spotpython` provides methods to explain the model's predictions. The following neural network elements can be analyzed: 
+
+### Weights
+
+* Weights are the parameters of the neural network that are learned from the data during training. They connect neurons between layers and determine the strength and direction of the signal sent from one neuron to another. The network adjusts the weights during training to minimize the error between the predicted output and the actual output.
+* Interpretation of the weights: A high weight value indicates a strong influence of the input neuron on the output. Positive weights suggest a positive correlation, whereas negative weights suggest an inverse relationship between neurons.
+
+### Activations
+
+* Activations are the outputs produced by neurons after applying an activation function to the weighted sum of inputs. The activation function (e.g., ReLU, sigmoid, tanh) adds non-linearity to the model, allowing it to learn more complex relationships.
+* Interpretation of the activations: The value of activations indicates the intensity of the signal passed to the next layer. Certain activation patterns can highlight which features or parts of the data the network is focusing on.
+
+### Gradients
+
+* Gradients are the partial derivatives of the loss function with respect to different parameters (weights) of the network. During backpropagation, gradients are used to update the weights in the direction that reduces the loss by methods like gradient descent.
+* Interpretation of the gradients: The magnitude of the gradient indicates how much a parameter should change to reduce the error. A large gradient implies a steeper slope and a bigger update, while a small gradient suggests that the parameter is near an optimal point. If gradients are too small (vanishing gradient problem), the network may learn slowly or stop learning. If they are too large (exploding gradient problem), the updates may be unstable.
+* `sptpython` provides the method `get_gradients` to get the gradients of the model. 
+
+```{python}
+#| label: import_xai
+from spotpython.plot.xai import (get_activations, get_gradients, get_weights, visualize_weights, visualize_gradients, visualize_mean_activations, visualize_gradient_distributions, visualize_weights_distributions, visualize_activations_distributions)
+batch_size = config["batch_size"]
+```
+
+### Getting the Weights
+
+```{python}
+#| label: get_weights
+from spotpython.plot.xai import sort_layers
+weights, _ = get_weights(model)
+# sort_layers(weights)
+```
+
+```{python}
+#| label: visualize_weights
+visualize_weights(model, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
+```
+
+```{python}
+#| label: visualize_weights_distributions
+visualize_weights_distributions(model, color=f"C{0}", columns=4)
+```
+
+### Getting the Activations
+
+```{python}
+#| label: get_activations
+from spotpython.plot.xai import get_activations
+activations, mean_activations, layer_sizes = get_activations(net=model, fun_control=fun_control, batch_size=batch_size, device=device)
+```
+
+```{python}
+#| label: visualize_mean_activations
+visualize_mean_activations(mean_activations, layer_sizes=layer_sizes, absolute=True, cmap="GreenYellowRed", figsize=(6, 6))
+```
+
+```{python}
+#| label: visualize_activations_distributions
+visualize_activations_distributions(activations=activations,
+                                    net=model, color="C0", columns=4)
+```
+
+### Getting the Gradients
+
+```{python}
+#| label: get_gradients
+gradients, _ = get_gradients(net=model, fun_control=fun_control, batch_size=batch_size, device=device)
+```
+
+```{python}
+#| label: visualize_gradients
+visualize_gradients(model, fun_control, batch_size, absolute=True, cmap="GreenYellowRed", figsize=(6, 6), device=device)
+```
+
+```{python}
+#| label: visualize_gradient_distributions
+visualize_gradient_distributions(model, fun_control, batch_size=batch_size, color=f"C{0}", device=device, columns=3)
+```
+
+## Feature Attributions
+
+### Integrated Gradients
+
+```{python}
+#| label: get_attributions_xai
+from spotpython.plot.xai import get_attributions, plot_attributions
+df_att = get_attributions(S, fun_control, attr_method="IntegratedGradients", n_rel=10)
+plot_attributions(df_att, attr_method="IntegratedGradients")
+```
+
+### Deep Lift
+
+```{python}
+#| label: get_attributions_deep_lift
+df_lift = get_attributions(S, fun_control, attr_method="DeepLift",n_rel=10)
+print(df_lift)
+plot_attributions(df_lift,  attr_method="DeepLift")
+```
+
+### Feature Ablation
+
+```{python}
+#| label: get_attributions_feature_ablation
+df_fl = get_attributions(S, fun_control, attr_method="FeatureAblation",n_rel=10)
+```
+
+```{python}
+#| label: plot_attributions_feature_ablation
+print(df_fl)
+plot_attributions(df_fl, attr_method="FeatureAblation")
+```
+
+## Conductance
+
+```{python}
+#| label: get_conductance
+from spotpython.plot.xai import plot_conductance_last_layer, get_weights_conductance_last_layer
+weights_last, layer_conductance_last = get_weights_conductance_last_layer(S, fun_control)
+plot_conductance_last_layer(weights_last, layer_conductance_last, figsize=(6, 6))
+```
+
+

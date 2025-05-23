@@ -1,0 +1,253 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+---
+
+# Sequential Parameter Optimization: Using `scipy` Optimizers {#sec-scipy-optimizers}
+
+As a default optimizer, `spotpython` uses `differential_evolution` from the `scipy.optimize` package. Alternatively, any other optimizer from the `scipy.optimize` package can be used. This chapter describes how different optimizers from the `scipy optimize` package can be used on the surrogate.
+The optimization algorithms are available from [https://docs.scipy.org/doc/scipy/reference/optimize.html](https://docs.scipy.org/doc/scipy/reference/optimize.html)
+
+```{python}
+#| label: 04_imports
+import numpy as np
+from math import inf
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from scipy.optimize import shgo
+from scipy.optimize import direct
+from scipy.optimize import differential_evolution
+from scipy.optimize import dual_annealing
+from scipy.optimize import basinhopping
+from spotpython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init
+```
+
+## The Objective Function Branin
+
+The `spotpython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula. Here we will use the Branin function. The 2-dim Branin function is
+$$
+y = a  (x_2 - b  x_1^2 + c  x_1 - r) ^2 + s  (1 - t)  \cos(x_1) + s,
+$$
+where values of $a$, $b$, $c$, $r$, $s$ and $t$ are: $a = 1$, $b = 5.1 / (4\pi^2)$, $c = 5 / \pi$, $r = 6$, $s = 10$ and $t = 1 / (8\pi)$.
+
+It has three global minima: $f(x) = 0.397887$ at $(-\pi, 12.275)$, $(\pi, 2.275)$, and $(9.42478, 2.475)$.
+
+Input Domain: This function is usually evaluated on the square  $x_1 \in  [-5, 10] \times x_2 \in  [0, 15]$.
+
+```{python}
+#| label: 04_objective_function
+from spotpython.fun.objectivefunctions import Analytical
+lower = np.array([-5,-0])
+upper = np.array([10,15])
+fun = Analytical(seed=123).fun_branin
+```
+
+## The Optimizer{#sec-optimizer}
+
+Differential Evolution (DE) from the `scikit.optimize` package, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution) is the default optimizer for the search on the surrogate.
+Other optimiers that are available in `spotpython`, see [https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization](https://docs.scipy.org/doc/scipy/reference/optimize.html#global-optimization).
+
+  * `dual_annealing`
+  * `direct`
+  * `shgo`
+  * `basinhopping`
+
+These optimizers can be selected as follows:
+
+```{python}
+#| label: 04_optimizer_control
+#| eval: false
+from scipy.optimize import differential_evolution
+optimizer = differential_evolution
+```
+As noted above, we will use `differential_evolution`. The optimizer can use `1000` evaluations. This value will be passed to the `differential_evolution` method, which has the argument `maxiter` (int). It defines the maximum number of generations over which the entire differential evolution population is evolved, see [https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution)
+
+
+:::{.callout-note}
+#### TensorBoard
+
+Similar to the one-dimensional case, which is discussed in @sec-visualizing-tensorboard-01, we can use TensorBoard to monitor the progress of the optimization. We will use a similar code, only the prefix is different:
+
+```{python}
+fun_control=fun_control_init(
+                    lower = lower,
+                    upper = upper,
+                    fun_evals = 20,
+                    PREFIX = "04_DE_"
+                    )
+surrogate_control=surrogate_control_init(
+                    n_theta=len(lower))
+```
+
+:::
+
+```{python}
+spot_de = Spot(fun=fun,
+                    fun_control=fun_control,
+                    surrogate_control=surrogate_control)
+spot_de.run()
+```
+
+### TensorBoard
+
+If the `prefix` argument in `fun_control_init()`is not `None` (as above, where the `prefix` was set to `04_DE_`) , we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+
+We can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+
+The TensorBoard plot illustrates how `spotpython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
+
+![TensorBoard visualization of the spotpython optimization process and the surrogate model.](figures_static/05_tensorboard_01.png){width="100%"}
+
+
+## Print the Results
+
+```{python}
+spot_de.print_results()
+```
+
+## Show the Progress
+
+```{python}
+spot_de.plot_progress(log_y=True)
+```
+
+```{python}
+spot_de.surrogate.plot()
+```
+
+## Exercises
+
+
+### `dual_annealing`
+
+* Describe the optimization algorithm, see [scipy.optimize.dual_annealing](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html).
+* Use the algorithm as an optimizer on the surrogate.
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotpython with the `dual_annealing` optimizer as follows:
+
+```{python}
+spot_da = Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=dual_annealing,
+                    surrogate_control=surrogate_control)
+spot_da.run()
+spot_da.print_results()
+spot_da.plot_progress(log_y=True)
+spot_da.surrogate.plot()
+```
+
+:::
+
+
+### `direct`
+
+* Describe the optimization algorithm
+* Use the algorithm as an optimizer on the surrogate
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotpython with the `direct` optimizer as follows:
+
+```{python}
+spot_di = Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=direct,
+                    surrogate_control=surrogate_control)
+spot_di.run()
+spot_di.print_results()
+spot_di.plot_progress(log_y=True)
+spot_di.surrogate.plot()
+```
+
+:::
+
+### `shgo`
+
+* Describe the optimization algorithm
+* Use the algorithm as an optimizer on the surrogate
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotpython with the `direct` optimizer as follows:
+
+```{python}
+spot_sh = Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=shgo,
+                    surrogate_control=surrogate_control)
+spot_sh.run()
+spot_sh.print_results()
+spot_sh.plot_progress(log_y=True)
+spot_sh.surrogate.plot()
+```
+
+:::
+
+
+
+### `basinhopping`
+
+* Describe the optimization algorithm
+* Use the algorithm as an optimizer on the surrogate
+
+:::{.callout-tip}
+##### Tip: Selecting the Optimizer for the Surrogate
+
+We can run spotpython with the `direct` optimizer as follows:
+
+```{python}
+spot_bh = Spot(fun=fun,
+                    fun_control=fun_control,
+                    optimizer=basinhopping,
+                    surrogate_control=surrogate_control)
+spot_bh.run()
+spot_bh.print_results()
+spot_bh.plot_progress(log_y=True)
+spot_bh.surrogate.plot()
+```
+
+:::
+
+
+### Performance Comparison
+
+Compare the performance and run time of the 5 different optimizers:
+
+  * `differential_evolution`
+  * `dual_annealing`
+  *  `direct`
+  * `shgo`
+  * `basinhopping`.
+
+The Branin function has three global minima:
+
+* $f(x) = 0.397887$  at 
+  * $(-\pi, 12.275)$, 
+  * $(\pi, 2.275)$, and 
+  * $(9.42478, 2.475)$.    
+* Which optima are found by the optimizers?
+* Does the `seed` argument in `fun = Analytical(seed=123).fun_branin` change this behavior?
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this chapter is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/004_spot_sklearn_optimization.ipynb)
+
+:::

@@ -1,0 +1,422 @@
+---
+execute:
+  cache: false
+  eval: true
+  echo: true
+  warning: false
+  keep-ipynb: true
+---
+
+# Multi-dimensional Functions {#sec-multi-dim}
+
+
+This chapter illustrates how high-dimensional functions can be optimized and analyzed.
+For reasons of illustration, we will use the three-dimensional Sphere function, which is a simple and well-known function.
+The problem dimension is $k=3$, but can be easily adapted to other, higher dimensions.
+
+```{python}
+import numpy as np
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.utils.init import fun_control_init, surrogate_control_init, design_control_init
+from spotpython.spot import Spot
+```
+
+## The Objective Function: 3-dim Sphere
+
+The `spotpython` package provides several classes of objective functions.
+We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+$$
+f(x) = \sum_i^k x_i^2.
+$$ 
+   
+
+The Sphere function is continuous, convex and unimodal. The plot shows its two-dimensional form.
+\index{Sphere function}
+The global minimum is 
+$$
+f(x) = 0, \text{at } x = (0,0, \ldots, 0).
+$$
+
+It is available as `fun_sphere` in the `Analytical` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/objectivefunctions.py).
+\index{fun\_sphere}
+
+```{python}
+fun = Analytical().fun_sphere
+```
+
+
+Here we will use problem dimension $k=3$, which can be specified by the `lower` bound arrays.
+The size of the `lower` bound array determines the problem dimension. If we select `-1.0 * np.ones(3)`, a three-dimensional function is created.
+
+In contrast to the one-dimensional case (@sec-visualizing-tensorboard-01), where only one `theta` value was used, we will use three different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.
+As default, `spotpython` sets the `n_theta` to the problem dimension. Therefore, the `n_theta` parameter can be omitted in this case. More specifically, if `n_theta` is larger than 1 or set to the string "anisotropic", then the $k$ theta values are used, where $k$ is the problem dimension. 
+The meaning of "anisotropic" is explained in @#sec-iso-aniso-kriging.
+
+The prefix is set to `"03"` to distinguish the results from the one-dimensional case.
+Again, TensorBoard can be used to monitor the progress of the optimization.
+
+We can also add interpretable labels to the dimensions, which will be used in the plots. Therefore, we set `var_name=["Pressure", "Temp", "Lambda"]` instead of the default `var_name=None`, which would result in the labels `x_0`, `x_1`, and `x_2`.
+
+```{python}
+#| label: 008-spot-run
+fun_control = fun_control_init(
+              PREFIX="03",
+              lower = -1.0*np.ones(3),
+              upper = np.ones(3),
+              var_name=["Pressure", "Temp", "Lambda"],
+              TENSORBOARD_CLEAN=True,
+              tensorboard_log=True)
+surrogate_control = surrogate_control_init(n_theta=3)
+spot_3 = Spot(fun=fun,
+                  fun_control=fun_control,
+                  surrogate_control=surrogate_control)
+spot_3.run()
+```
+
+::: {.callout-note}
+Now we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+and can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+::: 
+
+### Results
+
+#### Best Objective Function Values
+
+The best objective function value and its corresponding input values are printed as follows:
+
+```{python}
+_ = spot_3.print_results()
+```
+
+The method `plot_progress()` plots current and best found solutions versus the number of iterations as shown in @fig-008-spot-plot-progress.
+
+```{python}
+#| label: fig-008-spot-plot-progress
+#| fig-cap: Progress of the optimization process for the 3-dim Sphere function. The initial design points are shown in black, whereas the points that were found by the search on the surrogate are plotted in red.
+spot_3.plot_progress()
+```
+
+#### A Contour Plot
+
+We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.
+Note, we have specified identical `min_z` and `max_z` values to generate comparable plots.
+
+
+```{python}
+spot_3.plot_contour(i=0, j=1, min_z=0, max_z=2.25)
+```
+
+* In a similar manner, we can plot dimension $i=0$ and $j=2$:
+
+```{python}
+spot_3.plot_contour(i=0, j=2, min_z=0, max_z=2.25)
+```
+
+* The final combination is $i=1$ and $j=2$:
+
+```{python}
+spot_3.plot_contour(i=1, j=2, min_z=0, max_z=2.25)
+```
+
+* The three plots look very similar, because the `fun_sphere` is symmetric.
+* This can also be seen from the variable importance:
+
+```{python}
+_ = spot_3.print_importance()
+```
+
+
+```{python}
+spot_3.plot_importance()
+```
+
+### TensorBoard
+
+![TensorBoard visualization of the spotpython process. Objective function values plotted against wall time.](figures_static/02_tensorboard_01.png)
+
+The second TensorBoard visualization shows the input values, i.e., $x_0, \ldots, x_2$, plotted against the wall time.
+![TensorBoard visualization of the spotpython process.](figures_static/02_tensorboard_02.png)
+
+The third TensorBoard plot illustrates how `spotpython` can be used as a microscope for the internal mechanisms of the surrogate-based optimization process. Here, one important parameter, the learning rate $\theta$ of the Kriging surrogate is plotted against the number of optimization steps.
+
+![TensorBoard visualization of the spotpython surrogate model.](figures_static/02_tensorboard_03.png){width="100%"}
+
+
+### Conclusion
+
+Based on this quick analysis, we can conclude that all three dimensions are equally important (as expected, because the Analytical function is known).
+
+
+## Exercises
+
+
+::: {#exr-fun-cubed}
+### The Three Dimensional `fun_cubed`
+
+The `spotpython` package provides several classes of objective functions.
+
+We will use the `fun_cubed` in the `Analytical` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/objectivefunctions.py). The input dimension is `3`. The search range is  $-1 \leq x \leq 1$ for all dimensions.
+
+Tasks:
+  * Generate contour plots
+  * Calculate the variable importance.
+  * Discuss the variable importance: 
+    * Are all variables equally important? 
+    * If not: 
+      * Which is the most important variable?
+      * Which is the least important variable?
+:::
+
+::: {#exr-fun-wing-wt}
+### The Ten Dimensional `fun_wing_wt`
+
+* The input dimension is `10`. The search range is  $0 \leq x \leq 1$ for all dimensions.
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+  * Generate contour plots for the three most important variables. Do they confirm your selection?
+:::
+
+
+::: {#exr-fun-runge}
+### The Three Dimensional `fun_runge`
+
+* The input dimension is `3`. The search range is  $-5 \leq x \leq 5$ for all dimensions.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+:::
+
+::: {#exr-fun-linear}
+### The Three Dimensional `fun_linear`
+
+* The input dimension is `3`. The search range is  $-5 \leq x \leq 5$ for all dimensions.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+:::
+
+::: {#exr-fun-rosen}
+### The Two Dimensional Rosenbrock Function `fun_rosen` 
+
+* The input dimension is `2`. The search range is  $-5 \leq x \leq 10$ for all dimensions.
+* See [Rosenbrock function](https://en.wikipedia.org/wiki/Rosenbrock_function) and [Rosenbrock Function](https://www.sfu.ca/~ssurjano/rosen.html) for details.
+* Generate contour plots
+* Calculate the variable importance.
+* Discuss the variable importance: 
+  * Are all variables equally important? 
+  * If not: 
+    * Which is the most important variable?
+    * Which is the least important variable?
+:::
+
+
+## Selected Solutions
+
+::: {#sol-fun-cubed}
+### Solution to @exr-fun-cubed: The Three-dimensional Cubed Function `fun_cubed`
+
+We instanciate the `fun_cubed` function from the `Analytical` class.
+
+```{python}
+#| label: 008-spot-fun-cubed-instanciation
+from spotpython.fun.objectivefunctions import Analytical
+fun_cubed = Analytical().fun_cubed
+```
+
+* Here we will use problem dimension $k=3$, which can be specified by the `lower` bound arrays. The size of the `lower` bound array determines the problem dimension. If we select `-1.0 * np.ones(3)`, a three-dimensional function is created.
+* In contrast to the one-dimensional case, where only one `theta` value was used, we will use three different `theta` values (one for each dimension), i.e., we can set `n_theta=3` in the `surrogate_control`. However, this is not necessary, because by default, `n_theta` is set to the number of dimensions.
+* The prefix is set to `"03"` to distinguish the results from the one-dimensional case.
+* We will set the `fun_evals=20` to limit the number of function evaluations to 20 for this example.
+* The size of the initial design is set to `10` by default. It can be changed by setting `init_size=10` via `design_control_init` in the `design_control` dictionary.
+* Again, TensorBoard can be used to monitor the progress of the optimization.
+* We can also add interpretable labels to the dimensions, which will be used in the plots. Therefore, we set `var_name=["Pressure", "Temp", "Lambda"]` instead of the default `var_name=None`, which would result in the labels `x_0`, `x_1`, and `x_2`.
+
+Here is the link to the documentation of the fun_control_init function: [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.fun_control_init).
+The documentation of the `design_control_init` function can be found here: [[DOC]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.design_control_init).
+
+The setup can be done as follows:
+```{python}
+fun_control = fun_control_init(
+              PREFIX="cubed",
+              fun_evals=20,
+              lower = -1.0*np.ones(3),
+              upper = np.ones(3),
+              var_name=["Pressure", "Temp", "Lambda"],
+              TENSORBOARD_CLEAN=True,
+              tensorboard_log=True
+              )
+
+surrogate_control = surrogate_control_init(n_theta=3)
+design_control = design_control_init(init_size=10)
+```
+
+* After the setup, we can pass the dictionaries to the `Spot` class and run the optimization process.
+
+```{python}
+spot_cubed = Spot(fun=fun_cubed,
+                  fun_control=fun_control,
+                  surrogate_control=surrogate_control)
+spot_cubed.run()
+```
+
+* Results
+
+```{python}
+_ = spot_cubed.print_results()
+```
+
+```{python}
+spot_cubed.plot_progress()
+```
+
+* Contour Plots
+
+We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.
+
+We can specify identical `min_z` and `max_z` values to generate comparable plots.
+The default values are `min_z=None` and `max_z=None`, which will be replaced by the minimum and maximum values of the objective function.
+
+```{python}
+min_z = -3
+max_z = 1
+spot_cubed.plot_contour(i=0, j=1, min_z=min_z, max_z=max_z)
+``` 
+
+* In a similar manner, we can plot dimension $i=0$ and $j=2$:
+
+```{python}
+spot_cubed.plot_contour(i=0, j=2, min_z=min_z, max_z=max_z)
+```
+
+* The final combination is $i=1$ and $j=2$:
+
+```{python}
+spot_cubed.plot_contour(i=1, j=2, min_z=min_z, max_z=max_z)
+```
+
+* The variable importance can be printed and visualized as follows:
+
+```{python}
+_ = spot_cubed.print_importance()
+```
+
+```{python}
+spot_cubed.plot_importance()
+```
+
+
+:::
+
+
+::: {#sol-fun-rosen}
+### Solution to @exr-fun-rosen: The Two-dimensional Rosenbrock Function `fun_rosen`
+
+
+```{python}
+import numpy as np
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.utils.init import fun_control_init, surrogate_control_init
+from spotpython.spot import Spot
+```
+
+* The Objective Function: 2-dim `fun_rosen`
+
+The `spotpython` package provides several classes of objective functions.
+We will use the `fun_rosen` in the `Analytical` class [[SOURCE]](https://github.com/sequential-parameter-optimization/spotpython/blob/main/src/spotpython/fun/objectivefunctions.py).
+
+```{python}
+fun_rosen = Analytical().fun_rosen
+```
+
+* Here we will use problem dimension $k=2$, which can be specified by the `lower` bound arrays.
+* The size of the `lower` bound array determines the problem dimension. If we select `-5.0 * np.ones(2)`, a two-dimensional function is created.
+* In contrast to the one-dimensional case, where only one `theta` value is used, we will use $k$ different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.
+* The prefix is set to `"ROSEN"`.
+* Again, TensorBoard can be used to monitor the progress of the optimization.
+
+
+```{python}
+fun_control = fun_control_init(
+              PREFIX="ROSEN",
+              lower = -5.0*np.ones(2),
+              upper = 10*np.ones(2),
+              fun_evals=25)
+surrogate_control = surrogate_control_init(n_theta=2)
+spot_rosen = Spot(fun=fun_rosen,
+                  fun_control=fun_control,
+                  surrogate_control=surrogate_control)
+spot_rosen.run()
+```
+
+Now we can start TensorBoard in the background with the following command:
+
+```{raw}
+tensorboard --logdir="./runs"
+```
+and can access the TensorBoard web server with the following URL:
+
+```{raw}
+http://localhost:6006/
+```
+
+
+* Results
+
+```{python}
+_ = spot_rosen.print_results()
+```
+
+```{python}
+spot_rosen.plot_progress(log_y=True)
+```
+
+* A Contour Plot: We can select two dimensions, say $i=0$ and $j=1$, and generate a contour plot as follows.
+* Note: For higher dimensions, it might be useful to have identical `min_z` and `max_z` values to generate comparable plots.
+The default values are `min_z=None` and `max_z=None`, which will be replaced by the minimum and maximum values of the objective function.
+
+```{python}
+min_z = None
+max_z = None
+spot_rosen.plot_contour(i=0, j=1, min_z=min_z, max_z=max_z)
+```
+
+
+* The variable importance can be calculated as follows:
+
+```{python}
+_ = spot_rosen.print_importance()
+```
+
+
+```{python}
+spot_rosen.plot_importance()
+```
+:::
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/008_num_spot_multidim.ipynb)
+
+:::
