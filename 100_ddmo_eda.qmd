@@ -1648,9 +1648,10 @@ Partial derivative with respect to $\mu$  is
 \frac{\partial}{\partial \mu} \log L(x_1, x_2, \ldots, x_n, \mu, \sigma^2) & = \frac{1}{\sigma^2} \sum_{i=1}^n (x_i - \mu) = 0
 \end{align}
 We obtain the maximum likelihood estimate for $\mu$ as
-\begin{equation}
-\hat{\mu} = \frac{1}{n} \sum_{i=1}^n x_i
-\end{equation}
+$$
+\hat{\mu} = \frac{1}{n} \sum_{i=1}^n x_i,
+$$ {#eq-mle-mean}
+which is the sample mean $\overline{x}$.
 
 The partial derivative with respect to $\sigma^2$ is
 \begin{align}
@@ -1661,12 +1662,14 @@ This can be simplified to
 -n + \frac{1}{\sigma^2} \sum_{i=1}^n (x_i - \mu)^2 = 0\\
 \Rightarrow n \sigma^2 = \sum_{i=1}^n (x_i - \mu)^2
 \end{align}
-Using the maximum likelihood estimate for $\mu$, we get
+Using the maximum likelihood estimate for $\mu$ from @eq-mle-mean, 
+we get
 \begin{equation}
 \hat{\sigma}^2 = \frac{1}{n} \sum_{i=1}^n (x_i - \hat{\mu})^2
+= \frac{1}{n} \sum_{i=1}^n (x_i - \overline{x})^2
 \end{equation}
 \begin{equation}
-= \frac{n-1}{n} \frac{\sum_{i=1}^n (x_i - \hat{\mu})^2{n-1}} = \frac{n-1}{n} s^2,
+= \frac{n-1}{n} \frac{\sum_{i=1}^n (x_i - \hat{\mu})^2}{n-1} = \frac{n-1}{n} s^2,
 \end{equation}
 where 
 \begin{equation}

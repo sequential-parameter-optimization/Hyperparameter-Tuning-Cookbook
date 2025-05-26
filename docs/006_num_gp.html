@@ -1039,8 +1039,13 @@ window.Quarto = {
   <li><a href="#building-the-kriging-model" id="toc-building-the-kriging-model" class="nav-link" data-scroll-target="#building-the-kriging-model"><span class="header-section-number">9.2</span> Building the Kriging Model</a></li>
   <li><a href="#mle-to-estimate-theta-and-p" id="toc-mle-to-estimate-theta-and-p" class="nav-link" data-scroll-target="#mle-to-estimate-theta-and-p"><span class="header-section-number">9.3</span> MLE to estimate <span class="math inline">\(\theta\)</span> and <span class="math inline">\(p\)</span></a>
   <ul class="collapse">
-  <li><a href="#the-concentrated-log-likelihood" id="toc-the-concentrated-log-likelihood" class="nav-link" data-scroll-target="#the-concentrated-log-likelihood"><span class="header-section-number">9.3.1</span> The Concentrated Log-Likelihood</a></li>
-  <li><a href="#correlation-and-covariance-matrices-revisited" id="toc-correlation-and-covariance-matrices-revisited" class="nav-link" data-scroll-target="#correlation-and-covariance-matrices-revisited"><span class="header-section-number">9.3.2</span> Correlation and Covariance Matrices Revisited</a></li>
+  <li><a href="#the-log-likelihood" id="toc-the-log-likelihood" class="nav-link" data-scroll-target="#the-log-likelihood"><span class="header-section-number">9.3.1</span> The Log-Likelihood</a></li>
+  <li><a href="#differentiation-with-respect-to-mu" id="toc-differentiation-with-respect-to-mu" class="nav-link" data-scroll-target="#differentiation-with-respect-to-mu"><span class="header-section-number">9.3.2</span> Differentiation with Respect to <span class="math inline">\(\mu\)</span></a></li>
+  <li><a href="#differentiation-with-respect-to-sigma" id="toc-differentiation-with-respect-to-sigma" class="nav-link" data-scroll-target="#differentiation-with-respect-to-sigma"><span class="header-section-number">9.3.3</span> Differentiation with Respect to <span class="math inline">\(\sigma\)</span></a></li>
+  <li><a href="#results-of-the-optimizations" id="toc-results-of-the-optimizations" class="nav-link" data-scroll-target="#results-of-the-optimizations"><span class="header-section-number">9.3.4</span> Results of the Optimizations</a></li>
+  <li><a href="#the-concentrated-log-likelihood-function" id="toc-the-concentrated-log-likelihood-function" class="nav-link" data-scroll-target="#the-concentrated-log-likelihood-function"><span class="header-section-number">9.3.5</span> The Concentrated Log-Likelihood Function</a></li>
+  <li><a href="#optimizing-the-parameters-vectheta-and-vecp" id="toc-optimizing-the-parameters-vectheta-and-vecp" class="nav-link" data-scroll-target="#optimizing-the-parameters-vectheta-and-vecp"><span class="header-section-number">9.3.6</span> Optimizing the Parameters <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span></a></li>
+  <li><a href="#correlation-and-covariance-matrices-revisited" id="toc-correlation-and-covariance-matrices-revisited" class="nav-link" data-scroll-target="#correlation-and-covariance-matrices-revisited"><span class="header-section-number">9.3.7</span> Correlation and Covariance Matrices Revisited</a></li>
   </ul></li>
   <li><a href="#implementing-an-mle-of-the-model-parameters" id="toc-implementing-an-mle-of-the-model-parameters" class="nav-link" data-scroll-target="#implementing-an-mle-of-the-model-parameters"><span class="header-section-number">9.4</span> Implementing an MLE of the Model Parameters</a></li>
   <li><a href="#kriging-prediction" id="toc-kriging-prediction" class="nav-link" data-scroll-target="#kriging-prediction"><span class="header-section-number">9.5</span> Kriging Prediction</a></li>
@@ -1093,7 +1098,7 @@ Note
 <li>This section is based on chapter 2.4 in <span class="citation" data-cites="Forr08a">Forrester, Sóbester, and Keane (<a href="references.html#ref-Forr08a" role="doc-biblioref">2008</a>)</span>.</li>
 <li>The following Python packages are imported:</li>
 </ul>
-<div id="e4ebd9e7" class="cell" data-execution_count="1">
+<div id="11537e67" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> (array, zeros, power, ones, exp, multiply,</span>
@@ -1269,7 +1274,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
 \]</span></p>
 <p>Finally, <span class="math display">\[ \Psi = \exp(-D)\]</span> is computed.</p>
 <p>Next, we will demonstrate how this computation can be implemented in Python. We will consider four points in three dimensions and compute the correlation matrix <span class="math inline">\(\Psi\)</span> using the basis function from <a href="#eq-krigingbase" class="quarto-xref">Equation&nbsp;<span>9.1</span></a>. These points are placed at the origin, at the unit vectors, and at the points <span class="math inline">\((100, 100, 100)\)</span> and <span class="math inline">\((101, 100, 100)\)</span>. So, they form two clusters: one at the origin and one at <span class="math inline">\((100, 100, 100)\)</span>.</p>
-<div id="c0bbc429" class="cell" data-execution_count="5">
+<div id="2f2368eb" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> np.array([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([ [<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>], [<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">0</span>], [<span class="dv">100</span>, <span class="dv">100</span>, <span class="dv">100</span>], [<span class="dv">101</span>, <span class="dv">100</span>, <span class="dv">100</span>]])</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>X</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1280,7 +1285,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
        [101, 100, 100]])</code></pre>
 </div>
 </div>
-<div id="f1cfc4d0" class="cell" data-execution_count="6">
+<div id="0ade9155" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_Psi(X, theta):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> X.shape[<span class="dv">0</span>]</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> X.shape[<span class="dv">1</span>]</span>
@@ -1293,7 +1298,7 @@ D_3 = \theta_3 \begin{pmatrix} 0 &amp; (x_{13} - x_{23})^2 &amp; (x_{13} -x_{33}
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> D <span class="op">+</span> D.T</span>
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> exp(<span class="op">-</span>D)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="e5724de3" class="cell" data-execution_count="7">
+<div id="60b9c45c" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Psi <span class="op">=</span> build_Psi(X, theta)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>Psi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
@@ -1320,7 +1325,7 @@ Figure&nbsp;9.3: Correlation matrix <span class="math inline">\(\Psi\)</span>.
 </div>
 <div id="exm-corr-matrix-existing" class="theorem example">
 <p><span class="theorem-title"><strong>Example 9.4 (Example: The Correlation Matrix (Using Existing Functions))</strong></span> The same result as computed in the previous example can be obtained with existing python functions, e.g., from the package <code>scipy</code>.</p>
-<div id="6062ee0b" class="cell" data-execution_count="9">
+<div id="425b48be" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_Psi(X, theta, eps<span class="op">=</span>sqrt(spacing(<span class="dv">1</span>))):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> exp(<span class="op">-</span> squareform(pdist(X,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                            metric<span class="op">=</span><span class="st">'sqeuclidean'</span>,</span>
@@ -1338,7 +1343,7 @@ Figure&nbsp;9.3: Correlation matrix <span class="math inline">\(\Psi\)</span>.
 </div>
 </div>
 <p>The condition number of the correlation matrix <span class="math inline">\(\Psi\)</span> is a measure of how well the matrix can be inverted. A high condition number indicates that the matrix is close to singular, which can lead to numerical instability in computations involving the inverse of the matrix, see <a href="006_matrices.html#sec-conditon-number" class="quarto-xref"><span>Section 10.1</span></a>.</p>
-<div id="a4d412a2" class="cell" data-execution_count="10">
+<div id="7f7204ac" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>np.linalg.cond(Psi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>np.float64(2.163953413738652)</code></pre>
@@ -1348,11 +1353,11 @@ Figure&nbsp;9.3: Correlation matrix <span class="math inline">\(\Psi\)</span>.
 </section>
 <section id="mle-to-estimate-theta-and-p" class="level2" data-number="9.3">
 <h2 data-number="9.3" class="anchored" data-anchor-id="mle-to-estimate-theta-and-p"><span class="header-section-number">9.3</span> MLE to estimate <span class="math inline">\(\theta\)</span> and <span class="math inline">\(p\)</span></h2>
-<section id="the-concentrated-log-likelihood" class="level3" data-number="9.3.1">
-<h3 data-number="9.3.1" class="anchored" data-anchor-id="the-concentrated-log-likelihood"><span class="header-section-number">9.3.1</span> The Concentrated Log-Likelihood</h3>
+<section id="the-log-likelihood" class="level3" data-number="9.3.1">
+<h3 data-number="9.3.1" class="anchored" data-anchor-id="the-log-likelihood"><span class="header-section-number">9.3.1</span> The Log-Likelihood</h3>
 <p>Until now, the observed data <span class="math inline">\(\vec{y}\)</span> was not used. We know what the correlations mean, but how do we estimate the values of <span class="math inline">\(\theta_j\)</span> and where does our observed data <span class="math inline">\(y\)</span> come in? To estimate the values of <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span>, they are chosen to maximize the likelihood of <span class="math inline">\(\vec{y}\)</span>, <span id="eq-likelihood-55-a"><span class="math display">\[
 L = L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2}} \exp\left[ - \frac{\sum_{i=1}^n(Y(\vec{x}^{(i)})-\mu)^2}{2 \sigma^2}\right],
-\tag{9.6}\]</span></span> where <span class="math inline">\(\mu\)</span> is the mean of the observed data <span class="math inline">\(\vec{y}\)</span> and <span class="math inline">\(\sigma\)</span> is the standard deviation of the errors <span class="math inline">\(\epsilon\)</span>. which can be expressed in terms of the sample data <span id="eq-likelihood-55"><span class="math display">\[
+\tag{9.6}\]</span></span> where <span class="math inline">\(\mu\)</span> is the mean of the observed data <span class="math inline">\(\vec{y}\)</span> and <span class="math inline">\(\sigma\)</span> is the standard deviation of the errors <span class="math inline">\(\epsilon\)</span>, which can be expressed in terms of the sample data <span id="eq-likelihood-55"><span class="math display">\[
 L = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
 \tag{9.7}\]</span></span></p>
 <div id="rem-likelihood-55" class="proof remark">
@@ -1389,13 +1394,67 @@ p(\vec{y}) = \frac{1}{(2\pi \sigma^2)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ -\fra
 <p>In summary, the <a href="#eq-likelihood-55-a" class="quarto-xref">Equation&nbsp;<span>9.6</span></a> represents the likelihood under a simplified assumption of independent errors, whereas <a href="#eq-likelihood-55" class="quarto-xref">Equation&nbsp;<span>9.7</span></a> is the likelihood derived from the assumption that the observed data comes from a <strong>multivariate normal distribution</strong> where observations are correlated according to the matrix <span class="math inline">\(\vec{\Psi}\)</span>. <a href="#eq-likelihood-55" class="quarto-xref">Equation&nbsp;<span>9.7</span></a>, using the sample data vector <span class="math inline">\(\vec{y}\)</span> and the correlation matrix <span class="math inline">\(\vec{\Psi}\)</span>, properly accounts for the dependencies between data points inherent in the stochastic process model. Maximizing this likelihood is how the correlation parameters <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span> are estimated in Kriging.</p>
 </div>
 <p><a href="#eq-likelihood-55" class="quarto-xref">Equation&nbsp;<span>9.7</span></a> can be formulated as the log-likelihood: <span id="eq-loglikelihood-55"><span class="math display">\[
-\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
+\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
 \tag{9.8}\]</span></span></p>
+</section>
+<section id="differentiation-with-respect-to-mu" class="level3" data-number="9.3.2">
+<h3 data-number="9.3.2" class="anchored" data-anchor-id="differentiation-with-respect-to-mu"><span class="header-section-number">9.3.2</span> Differentiation with Respect to <span class="math inline">\(\mu\)</span></h3>
+<p>Looking at the log-likelihood function, only the last term depends on <span class="math inline">\(\mu\)</span>:</p>
+<p><span class="math display">\[
+\frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+\]</span></p>
+<p>To differentiate this with respect to the scalar <span class="math inline">\(\mu\)</span>, we can use matrix calculus rules.</p>
+<p>Let <span class="math inline">\(\mathbf{v} = \vec{y} - \vec{1}\mu\)</span>. <span class="math inline">\(\vec{y}\)</span> is a constant vector with respect to <span class="math inline">\(\mu\)</span>, and <span class="math inline">\(\vec{1}\mu\)</span> is a vector whose derivative with respect to the scalar <span class="math inline">\(\mu\)</span> is <span class="math inline">\(\vec{1}\)</span>. So, <span class="math inline">\(\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}\)</span>.</p>
+<p>The term is in the form <span class="math inline">\(\mathbf{v}^T \mathbf{A} \mathbf{v}\)</span>, where <span class="math inline">\(\mathbf{A} = \vec{\Psi}^{-1}\)</span> is a symmetric matrix. The derivative of <span class="math inline">\(\mathbf{v}^T \mathbf{A} \mathbf{v}\)</span> with respect to <span class="math inline">\(\mathbf{v}\)</span> is <span class="math inline">\(2 \mathbf{A} \mathbf{v}\)</span>. Using the chain rule for differentiation with respect to the scalar <span class="math inline">\(\mu\)</span>: <span class="math display">\[ \frac{\partial}{\partial \mu} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = 2 \left(\frac{\partial \mathbf{v}}{\partial \mu}\right)^T \mathbf{A} \mathbf{v} \]</span> Substituting <span class="math inline">\(\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}\)</span> and <span class="math inline">\(\mathbf{v} = \vec{y} - \vec{1}\mu\)</span>: <span class="math display">\[
+\frac{\partial}{\partial \mu} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 2 (-\vec{1})^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+\]</span></p>
+<p>Now, differentiate the full log-likelihood term depending on <span class="math inline">\(\mu\)</span>:</p>
+<p><span class="math display">\[
+\frac{\partial}{\partial \mu} \left( - \frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = - \frac{1}{2 \sigma^2} \left( -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = \frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+\]</span></p>
+<p>Setting this to zero for maximization gives:</p>
+<p><span class="math display">\[
+\frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+\]</span></p>
+<p>Rearranging gives: <span class="math display">\[
+\vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+\]</span></p>
+<p>Solving for <span class="math inline">\(\mu\)</span> gives: <span class="math display">\[
+\vec{1}^T \vec{\Psi}^{-1} \vec{y} = \mu \vec{1}^T \vec{\Psi}^{-1} \vec{1}.
+\]</span></p>
+</section>
+<section id="differentiation-with-respect-to-sigma" class="level3" data-number="9.3.3">
+<h3 data-number="9.3.3" class="anchored" data-anchor-id="differentiation-with-respect-to-sigma"><span class="header-section-number">9.3.3</span> Differentiation with Respect to <span class="math inline">\(\sigma\)</span></h3>
+<p>Let <span class="math inline">\(\nu = \sigma^2\)</span> for simpler differentiation notation. The log-likelihood becomes: <span class="math display">\[
+\ln(L) = C_1 - \frac{n}{2} \ln(\nu) - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu},
+\]</span> where <span class="math inline">\(C_1 = - \frac{n}{2} \ln(2\pi) - \frac{1}{2} \ln |\vec{\Psi}|\)</span> is a constant with respect to <span class="math inline">\(\nu = \sigma^2\)</span>.</p>
+<p>We differentiate with respect to <span class="math inline">\(\nu\)</span>: <span class="math display">\[
+\frac{\partial \ln(L)}{\partial \nu} = \frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) + \frac{\partial}{\partial \nu} \left( - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu} \right).
+\]</span></p>
+<p>The first term’s derivative is straightforward: <span class="math display">\[
+\frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) = -\frac{n}{2} \cdot \frac{1}{\nu} = -\frac{n}{2\sigma^2}.
+\]</span></p>
+<p>For the second term, let <span class="math inline">\(C_2 = (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)\)</span>. This term is constant with respect to <span class="math inline">\(\sigma^2\)</span>. The derivative is:</p>
+<p><span class="math display">\[
+\frac{\partial}{\partial \nu} \left( - \frac{C_2}{2\nu} \right) = - \frac{C_2}{2} \frac{\partial}{\partial \nu} (\nu^{-1}) = - \frac{C_2}{2} (-\nu^{-2}) = \frac{C_2}{2\nu^2} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+\]</span></p>
+<p>Combining the derivatives, the gradient of the log-likelihood with respect to <span class="math inline">\(\sigma^2\)</span> is: <span class="math display">\[
+\frac{\partial \ln(L)}{\partial \sigma^2} = -\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+\]</span></p>
+<p>Setting this to zero for maximization gives: <span class="math display">\[
+-\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2} = 0.
+\]</span></p>
+</section>
+<section id="results-of-the-optimizations" class="level3" data-number="9.3.4">
+<h3 data-number="9.3.4" class="anchored" data-anchor-id="results-of-the-optimizations"><span class="header-section-number">9.3.4</span> Results of the Optimizations</h3>
 <p>Optimization of the log-likelihood by taking derivatives with respect to <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\sigma\)</span> results in <span id="eq-muhat-55"><span class="math display">\[
 \hat{\mu} = \frac{\vec{1}^T \vec{\Psi}^{-1} \vec{y}^T}{\vec{1}^T \vec{\Psi}^{-1} \vec{1}^T}
 \tag{9.9}\]</span></span> and <span id="eq-sigmahat-55"><span class="math display">\[
 \hat{\sigma}^2 = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.
 \tag{9.10}\]</span></span></p>
+</section>
+<section id="the-concentrated-log-likelihood-function" class="level3" data-number="9.3.5">
+<h3 data-number="9.3.5" class="anchored" data-anchor-id="the-concentrated-log-likelihood-function"><span class="header-section-number">9.3.5</span> The Concentrated Log-Likelihood Function</h3>
 <p>Combining the equations, i.e., substituting <a href="#eq-muhat-55" class="quarto-xref">Equation&nbsp;<span>9.9</span></a> and <a href="#eq-sigmahat-55" class="quarto-xref">Equation&nbsp;<span>9.10</span></a> into <a href="#eq-loglikelihood-55" class="quarto-xref">Equation&nbsp;<span>9.8</span></a> leads to the concentrated log-likelihood function: <span id="eq-concentrated-loglikelihood"><span class="math display">\[
 \ln(L) \approx - \frac{n}{2} \ln(\hat{\sigma}) - \frac{1}{2} \ln |\vec{\Psi}|.
 \tag{9.11}\]</span></span></p>
@@ -1406,11 +1465,14 @@ p(\vec{y}) = \frac{1}{(2\pi \sigma^2)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ -\fra
 <li>To maximize <span class="math inline">\(\ln(L)\)</span>, optimal values of <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span> are determined numerically, because the function (<a href="#eq-concentrated-loglikelihood" class="quarto-xref">Equation&nbsp;<span>9.11</span></a>) is not differentiable.</li>
 </ul>
 </div>
+</section>
+<section id="optimizing-the-parameters-vectheta-and-vecp" class="level3" data-number="9.3.6">
+<h3 data-number="9.3.6" class="anchored" data-anchor-id="optimizing-the-parameters-vectheta-and-vecp"><span class="header-section-number">9.3.6</span> Optimizing the Parameters <span class="math inline">\(\vec{\theta}\)</span> and <span class="math inline">\(\vec{p}\)</span></h3>
 <p>The concentrated log-likelihood function is very quick to compute. We do not need a statistical model, because we are only interested in the maximum likelihood estimate (MLE) of <span class="math inline">\(\theta\)</span> and <span class="math inline">\(p\)</span>. Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for <span class="math inline">\(\theta\)</span> and <span class="math inline">\(p\)</span>. After the optimization, the correlation matrix <span class="math inline">\(\Psi\)</span> is build with the optimized <span class="math inline">\(\theta\)</span> and <span class="math inline">\(p\)</span> values. This is best (most likely) Kriging model for the given data <span class="math inline">\(y\)</span>.</p>
 <p>Observing <a href="#fig-theta12" class="quarto-xref">Figure&nbsp;<span>9.2</span></a>, there’s significant change between <span class="math inline">\(\theta = 0.1\)</span> and <span class="math inline">\(\theta = 1\)</span>, just as there is between <span class="math inline">\(\theta = 1\)</span> and <span class="math inline">\(\theta = 10\)</span>. Hence, it is sensible to search for <span class="math inline">\(\theta\)</span> on a logarithmic scale. Suitable search bounds typically range from <span class="math inline">\(10^{-3}\)</span> to <span class="math inline">\(10^2\)</span>, although this is not a stringent requirement. Importantly, the scaling of the observed data does not affect the values of <span class="math inline">\(\hat{\theta}\)</span>, but the scaling of the design space does. Therefore, it is advisable to consistently scale variable ranges between zero and one to ensure consistency in the degree of activity <span class="math inline">\(\hat{\theta}_j\)</span> represents across different problems.</p>
 </section>
-<section id="correlation-and-covariance-matrices-revisited" class="level3" data-number="9.3.2">
-<h3 data-number="9.3.2" class="anchored" data-anchor-id="correlation-and-covariance-matrices-revisited"><span class="header-section-number">9.3.2</span> Correlation and Covariance Matrices Revisited</h3>
+<section id="correlation-and-covariance-matrices-revisited" class="level3" data-number="9.3.7">
+<h3 data-number="9.3.7" class="anchored" data-anchor-id="correlation-and-covariance-matrices-revisited"><span class="header-section-number">9.3.7</span> Correlation and Covariance Matrices Revisited</h3>
 <p>The covariance matrix <span class="math inline">\(\Sigma\)</span> is constructed by considering both the variance <span class="math inline">\(\sigma^2\)</span> and the correlation matrix <span class="math inline">\(\Psi\)</span>. They are related as follows:</p>
 <ol type="1">
 <li><strong>Covariance vs.&nbsp;Correlation:</strong> Covariance is a measure of the joint variability of two random variables, while correlation is a standardized measure of this relationship, ranging from -1 to 1. The relationship between covariance and correlation for two random variables <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> is given by <span class="math inline">\(\text{cor}(X, Y) = \text{cov}(X, Y) / (\sigma_X \sigma_Y)\)</span>, where <span class="math inline">\(\sigma_X\)</span> and <span class="math inline">\(\sigma_Y\)</span> are their standard deviations.</li>
@@ -1485,7 +1547,7 @@ Y(\vec{x})
 <section id="calculating-the-correlation-matrix-psi" class="level3" data-number="9.6.1">
 <h3 data-number="9.6.1" class="anchored" data-anchor-id="calculating-the-correlation-matrix-psi"><span class="header-section-number">9.6.1</span> Calculating the Correlation Matrix <span class="math inline">\(\Psi\)</span></h3>
 <p>The correlation matrix <span class="math inline">\(\Psi\)</span> is based on the pairwise squared distances between the input locations. Here we will use <span class="math inline">\(n=8\)</span> sample locations and <span class="math inline">\(\theta\)</span> is set to 1.0.</p>
-<div id="c7c72b72" class="cell" data-execution_count="11">
+<div id="804f4fa8" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">8</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span><span class="op">*</span>np.pi, n, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.<span class="bu">round</span>(X, <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1501,7 +1563,7 @@ Y(\vec{x})
 </div>
 </div>
 <p>Evaluate at sample points</p>
-<div id="d2b1b60f" class="cell" data-execution_count="12">
+<div id="6d4cf55b" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.sin(X)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.<span class="bu">round</span>(y, <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1590,7 +1652,7 @@ Figure&nbsp;9.4: Sin(x) evaluated at 8 points.
 <section id="computing-the-psi-matrix" class="level3" data-number="9.6.2">
 <h3 data-number="9.6.2" class="anchored" data-anchor-id="computing-the-psi-matrix"><span class="header-section-number">9.6.2</span> Computing the <span class="math inline">\(\Psi\)</span> Matrix</h3>
 <p>We will use the <code>build_Psi</code> function from <a href="#exm-corr-matrix-existing" class="quarto-xref">Example&nbsp;<span>9.4</span></a> to compute the correlation matrix <span class="math inline">\(\Psi\)</span>. <span class="math inline">\(\theta\)</span> should be an array of one value, because we are only working in one dimension (<span class="math inline">\(k=1\)</span>).</p>
-<div id="dd7166b7" class="cell" data-execution_count="14">
+<div id="8fde52fe" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> np.array([<span class="fl">1.0</span>])</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>Psi <span class="op">=</span> build_Psi(X, theta)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.<span class="bu">round</span>(Psi, <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1624,7 +1686,7 @@ Figure&nbsp;9.5: Correlation matrix <span class="math inline">\(\Psi\)</span> fo
 <section id="selecting-the-new-locations" class="level3" data-number="9.6.3">
 <h3 data-number="9.6.3" class="anchored" data-anchor-id="selecting-the-new-locations"><span class="header-section-number">9.6.3</span> Selecting the New Locations</h3>
 <p>We would like to predict at <span class="math inline">\(m = 100\)</span> new locations (or testign locations) in the interval <span class="math inline">\([0, 2\pi]\)</span>. The new locations are stored in the variable <code>x</code>.</p>
-<div id="bd9f90b0" class="cell" data-execution_count="16">
+<div id="7f9cde4d" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="dv">100</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span><span class="op">*</span>np.pi, m, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -1632,7 +1694,7 @@ Figure&nbsp;9.5: Correlation matrix <span class="math inline">\(\Psi\)</span> fo
 <section id="computing-the-psi-vector" class="level3" data-number="9.6.4">
 <h3 data-number="9.6.4" class="anchored" data-anchor-id="computing-the-psi-vector"><span class="header-section-number">9.6.4</span> Computing the <span class="math inline">\(\psi\)</span> Vector</h3>
 <p>Distances between testing locations <span class="math inline">\(x\)</span> and training data locations <span class="math inline">\(X\)</span>.</p>
-<div id="c098a3b7" class="cell" data-execution_count="17">
+<div id="2d0d04ad" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_psi(X, x, theta, eps<span class="op">=</span>sqrt(spacing(<span class="dv">1</span>))):</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> X.shape[<span class="dv">0</span>]</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> X.shape[<span class="dv">1</span>]</span>
@@ -1674,7 +1736,7 @@ Figure&nbsp;9.6: Visualization of the predition matrix <span class="math inline"
 <section id="predicting-at-new-locations" class="level3" data-number="9.6.5">
 <h3 data-number="9.6.5" class="anchored" data-anchor-id="predicting-at-new-locations"><span class="header-section-number">9.6.5</span> Predicting at New Locations</h3>
 <p>Computation of the predictive equations.</p>
-<div id="09b9a94d" class="cell" data-execution_count="19">
+<div id="c6b631f9" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>U <span class="op">=</span> cholesky(Psi).T</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>one <span class="op">=</span> np.ones(n).reshape(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> (one.T.dot(solve(U, solve(U.T, y)))) <span class="op">/</span> one.T.dot(solve(U, solve(U.T, one)))</span>
@@ -1688,7 +1750,7 @@ Figure&nbsp;9.6: Visualization of the predition matrix <span class="math inline"
 </section>
 <section id="visualization" class="level3" data-number="9.6.6">
 <h3 data-number="9.6.6" class="anchored" data-anchor-id="visualization"><span class="header-section-number">9.6.6</span> Visualization</h3>
-<div id="fbe6c0ed" class="cell" data-execution_count="20">
+<div id="82d87413" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>plt.plot(x, f, color <span class="op">=</span> <span class="st">"orange"</span>, label<span class="op">=</span><span class="st">"Fitted"</span>)</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>plt.plot(x, np.sin(x), color <span class="op">=</span> <span class="st">"grey"</span>, label<span class="op">=</span><span class="st">"Original"</span>)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>plt.plot(X, y, <span class="st">"bo"</span>, label<span class="op">=</span><span class="st">"Measurements"</span>)</span>

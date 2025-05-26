@@ -345,7 +345,7 @@ np.linalg.cond(Psi)
 
 ## MLE to estimate $\theta$ and $p$
 
-### The Concentrated Log-Likelihood
+### The Log-Likelihood
 
 Until now, the observed data $\vec{y}$ was not used.
 We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
@@ -353,7 +353,7 @@ To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maxim
 $$
 L = L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2}} \exp\left[ - \frac{\sum_{i=1}^n(Y(\vec{x}^{(i)})-\mu)^2}{2 \sigma^2}\right],
 $$ {#eq-likelihood-55-a}
-where $\mu$ is the mean of the observed data $\vec{y}$ and $\sigma$ is the standard deviation of the errors $\epsilon$.
+where $\mu$ is the mean of the observed data $\vec{y}$ and $\sigma$ is the standard deviation of the errors $\epsilon$,
 which can be expressed in terms of the sample data 
 $$
 L = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
@@ -391,10 +391,19 @@ assuming $Y(\vec{x}^{(i)}) = y^{(i)}$ and using vector notation for $\vec{y}$ an
     $$
 
 6.  **Connecting the Expressions:**
-    In the stochastic process framework, the mean vector of the observed data $\vec{y}$ is $\vec{1}\mu$. The covariance matrix $\Sigma$ is constructed by considering both the variance $\sigma^2$ and the correlations $\Psi$. The covariance between $Y(\vec{x}^{(i)})$ and $Y(\vec{x}^{(l)})$ is $\sigma^2 \text{cor}(Y(\vec{x}^{(i)}), Y(\vec{x}^{(l)}))$. Therefore, the covariance matrix is $\Sigma = \sigma^2 \vec{\Psi}$.
-    Substituting $\vec{\mu} = \vec{1}\mu$ and $\Sigma = \sigma^2 \vec{\Psi}$ into the multivariate normal PDF formula, we get:
-    $\Sigma^{-1} = (\sigma^2 \vec{\Psi})^{-1} = \frac{1}{\sigma^2} \vec{\Psi}^{-1}$.
-    $|\Sigma| = |\sigma^2 \vec{\Psi}| = (\sigma^2)^n |\vec{\Psi}|$.
+    In the stochastic process framework, the following holds:
+    * The mean vector of the observed data $\vec{y}$ is $\vec{1}\mu$.
+    * The covariance matrix $\Sigma$ is constructed by considering both the variance $\sigma^2$ and the correlations $\Psi$.
+    * The covariance between $Y(\vec{x}^{(i)})$ and $Y(\vec{x}^{(l)})$ is $\sigma^2 \text{cor}(Y(\vec{x}^{(i)}), Y(\vec{x}^{(l)}))$.
+    * Therefore, the covariance matrix is $\Sigma = \sigma^2 \vec{\Psi}$.
+    * Substituting $\vec{\mu} = \vec{1}\mu$ and $\Sigma = \sigma^2 \vec{\Psi}$ into the multivariate normal PDF formula, we get:
+    $$
+    \Sigma^{-1} = (\sigma^2 \vec{\Psi})^{-1} = \frac{1}{\sigma^2} \vec{\Psi}^{-1}
+    $$
+    and
+    $$
+    |\Sigma| = |\sigma^2 \vec{\Psi}| = (\sigma^2)^n |\vec{\Psi}|.
+    $$
     The PDF becomes:
     $$
     p(\vec{y}) = \frac{1}{\sqrt{(2\pi)^n (\sigma^2)^n |\vec{\Psi}|}} \exp\left[ -\frac{1}{2}(\vec{y} - \vec{1}\mu)^T \left(\frac{1}{\sigma^2} \vec{\Psi}^{-1}\right)(\vec{y} - \vec{1}\mu) \right]
@@ -412,8 +421,86 @@ In summary, the @eq-likelihood-55-a represents the likelihood under a simplified
 
 @eq-likelihood-55 can be formulated as the log-likelihood:
 $$
-\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
+\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
 $$ {#eq-loglikelihood-55}
+
+
+### Differentiation with Respect to $\mu$
+Looking at the log-likelihood function, only the last term depends on $\mu$:
+
+$$
+\frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+To differentiate this with respect to the scalar $\mu$, we can use matrix calculus rules.
+
+Let $\mathbf{v} = \vec{y} - \vec{1}\mu$. $\vec{y}$ is a constant vector with respect to $\mu$, and $\vec{1}\mu$ is a vector whose derivative with respect to the scalar $\mu$ is $\vec{1}$. So, $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$.
+
+The term is in the form $\mathbf{v}^T \mathbf{A} \mathbf{v}$, where $\mathbf{A} = \vec{\Psi}^{-1}$ is a symmetric matrix. The derivative of $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to $\mathbf{v}$ is $2 \mathbf{A} \mathbf{v}$. Using the chain rule for differentiation with respect to the scalar $\mu$: $$ \frac{\partial}{\partial \mu} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = 2 \left(\frac{\partial \mathbf{v}}{\partial \mu}\right)^T \mathbf{A} \mathbf{v} $$ Substituting $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$ and $\mathbf{v} = \vec{y} - \vec{1}\mu$:
+$$
+\frac{\partial}{\partial \mu} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 2 (-\vec{1})^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+Now, differentiate the full log-likelihood term depending on $\mu$:
+
+$$
+\frac{\partial}{\partial \mu} \left( - \frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = - \frac{1}{2 \sigma^2} \left( -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = \frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+
+Setting this to zero for maximization gives:
+
+$$
+\frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+$$
+
+Rearranging gives:
+$$
+\vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+$$
+
+Solving for $\mu$ gives:
+$$
+\vec{1}^T \vec{\Psi}^{-1} \vec{y} = \mu \vec{1}^T \vec{\Psi}^{-1} \vec{1}.
+$$
+
+
+### Differentiation with Respect to $\sigma$
+Let $\nu = \sigma^2$ for simpler differentiation notation. The log-likelihood becomes:
+$$
+\ln(L) = C_1 - \frac{n}{2} \ln(\nu) - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu},
+$$
+where $C_1 = - \frac{n}{2} \ln(2\pi) - \frac{1}{2} \ln |\vec{\Psi}|$ is a constant with respect to $\nu = \sigma^2$.
+
+We differentiate with respect to $\nu$:
+$$
+\frac{\partial \ln(L)}{\partial \nu} = \frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) + \frac{\partial}{\partial \nu} \left( - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu} \right).
+$$
+
+The first term's derivative is straightforward:
+$$
+\frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) = -\frac{n}{2} \cdot \frac{1}{\nu} = -\frac{n}{2\sigma^2}.
+$$
+
+For the second term, let $C_2 = (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)$. This term is constant with respect to $\sigma^2$. The derivative is:
+
+$$
+\frac{\partial}{\partial \nu} \left( - \frac{C_2}{2\nu} \right) = - \frac{C_2}{2} \frac{\partial}{\partial \nu} (\nu^{-1}) = - \frac{C_2}{2} (-\nu^{-2}) = \frac{C_2}{2\nu^2} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+$$
+
+Combining the derivatives, the gradient of the log-likelihood with respect to $\sigma^2$ is:
+$$
+\frac{\partial \ln(L)}{\partial \sigma^2} = -\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+$$
+
+
+Setting this to zero for maximization gives:
+$$
+-\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2} = 0.
+$$
+
+
+### Results of the Optimizations
 
 Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
 $$
@@ -423,6 +510,9 @@ and
 $$
 \hat{\sigma}^2 = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.
 $$ {#eq-sigmahat-55}
+
+
+### The Concentrated Log-Likelihood Function
 
 Combining the equations, i.e., substituting @eq-muhat-55 and @eq-sigmahat-55 into @eq-loglikelihood-55 leads to the concentrated log-likelihood function: 
 $$
@@ -435,6 +525,8 @@ $$ {#eq-concentrated-loglikelihood}
 * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the function (@eq-concentrated-loglikelihood) is not differentiable.
 :::
 
+### Optimizing the Parameters $\vec{\theta}$ and $\vec{p}$
+
 The concentrated log-likelihood function is very quick to compute. We do not need a statistical model, because we are only interested in the maximum likelihood estimate (MLE) of $\theta$ and $p$.
 Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
 After the optimization, the correlation matrix $\Psi$ is build with the optimized $\theta$ and $p$ values. This is best (most likely) Kriging model for the given data $y$. 
@@ -443,24 +535,42 @@ Observing @fig-theta12, there's significant change between $\theta = 0.1$ and $\
 values of $\hat{\theta}$, but the scaling of the design space does.
 Therefore, it is advisable to consistently scale variable ranges between zero and one to ensure consistency in the degree of activity $\hat{\theta}_j$ represents across different problems.
 
+### Correlation and Covariance Matrices Revisited
 
-### Implementing an MLE of the Model Parameters
+The covariance matrix $\Sigma$ is constructed by considering both the variance $\sigma^2$ and the correlation matrix $\Psi$.
+They are related as follows:
 
-The matrix algebra necessary for calculating the likelihood is the most computationally intensive aspect of the Kriging process. It's crucial to ensure that the code implementation is as efficient as possible.
+1.  **Covariance vs. Correlation:** Covariance is a measure of the joint variability of two random variables, while correlation is a standardized measure of this relationship, ranging from -1 to 1. The relationship between covariance and correlation for two random variables $X$ and $Y$ is given by $\text{cor}(X, Y) = \text{cov}(X, Y) / (\sigma_X \sigma_Y)$, where $\sigma_X$ and $\sigma_Y$ are their standard deviations.
+2.  **The Covariance Matrix $\Sigma$:** The **covariance matrix $\Sigma$** (or $\text{Cov}(Y, Y)$ for the vector $\vec{Y}$) captures the **pairwise covariances** between all elements of the vector of observed responses.
+3.  **Connecting $\sigma^2$ and $\Psi$ to $\Sigma$:** In the Kriging framework described, the variance of each observation is often assumed to be constant, $\sigma^2$. The covariance between any two observations $Y(\vec{x}^{(i)})$ and $Y(\vec{x}^{(l)})$ is given by $\sigma^2$ multiplied by their correlation. That is, 
+$$
+\text{cov}(Y(\vec{x}^{(i)}), Y(\vec{x}^{(l)})) = \sigma^2 \text{cor}(Y(\vec{x}^{(i)}), Y(\vec{x}^{(l)})).
+$$
+This relationship holds for *all* pairs of points. When expressed in matrix form, the covariance matrix $\Sigma$ is the product of the variance $\sigma^2$ (a scalar) and the correlation matrix $\Psi$:
+$$
+\Sigma = \sigma^2 \Psi.
+$$
+
+In essence, the correlation matrix $\Psi$ defines the *structure* or *shape* of the dependencies between the data points based on their locations. The parameter $\sigma^2$ acts as a **scaling factor** that converts these unitless correlation values (which are between -1 and 1) into actual covariance values with units of variance, setting the overall level of variability in the system.
+
+So, $\sigma^2$ tells us about the general spread or variability of the underlying process, while $\Psi$ tells you *how* that variability is distributed and how strongly points are related to each other based on their positions. Together, they completely define the covariance structure of your observed data in the multivariate normal distribution used in Kriging.
+
+
+
+## Implementing an MLE of the Model Parameters
+
+The matrix algebra necessary for calculating the likelihood is the most computationally intensive aspect of the Kriging process. It is crucial to ensure that the code implementation is as efficient as possible.
 
 Given that $\Psi$ (our correlation matrix) is symmetric, only half of the matrix needs to be computed before adding it to its transpose. When calculating the log-likelihood, several matrix inversions are required. The fastest approach is to conduct one Cholesky factorization and then apply backward and forward substitution for each inverse.
 
-The Cholesky factorization is applicable only to positive-definite matrices, which $\Psi$ generally is. However, if $\Psi$ becomes nearly singular, such as when the $\mathbf{x}^{(i)}$'s are densely packed, the Cholesky factorization might fail. In these cases, one could employ an LU-decomposition, though the result might be unreliable. When $\Psi$ is near singular, the best course of action is to either use regression techniques or, as we do here, assign a poor likelihood value to parameters generating the near singular matrix, thus diverting the MLE search towards better-conditioned $\Psi$ matrices.
+The Cholesky factorization is applicable only to positive-definite matrices, which $\Psi$ generally is. However, if $\Psi$ becomes nearly singular, such as when the $\vec{x}^{(i)}$'s are densely packed, the Cholesky factorization might fail. In these cases, one could employ an LU-decomposition, though the result might be unreliable. When $\Psi$ is near singular, the best course of action is to either use regression techniques or, as we do here, assign a poor likelihood value to parameters generating the near singular matrix, thus diverting the MLE search towards better-conditioned $\Psi$ matrices.
 
 When working with correlation matrices, increasing the values on the main diagonal of a matrix will increase the absolute value of its determinant. A critical numerical consideration in calculating the concentrated log-likelihood is that for poorly conditioned matrices, $\det(\Psi)$ approaches zero, leading to potential numerical instability. To address this issue, it is advisable to calculate $\ln(\lvert\Psi\rvert)$ in @eq-concentrated-loglikelihood using twice the sum of the logarithms of the diagonal elements of the Cholesky factorization. This approach provides a more numerically stable method for computing the log-determinant, as the Cholesky decomposition $\Psi = L L^T$ allows us to express $\ln(\lvert\Psi\rvert) = 2\sum_{i=1}^{n} \ln(L_{ii})$, avoiding the direct computation of potentially very small determinant values.
 
 
 ## Kriging Prediction
 
-We will use the Kriging correlation $\Psi$ to predict new values based on the observed data. The matrix algebra involved for calculating the likelihood is the most computationally intensive part of the Kriging process. Care must be taken that the computer code is as efficient as possible.
-
-Basic elements of the Kriging based surrogate optimization 
-such as interpolation, expected improvement, and regression are presented. The presentation follows the approach described in @Forr08a and @bart21i.
+We will use the Kriging correlation $\Psi$ to predict new values based on the observed data. The presentation follows the approach described in @Forr08a and @bart21i.
 
 Main idea for prediction is that the new $Y(\vec{x})$ should be consistent with the old sample data $X$.  For a new prediction $\hat{y}$ at $\vec{x}$, the value of $\hat{y}$ is chosen so that it maximizes the likelihood of the sample data $X$ and the prediction, given the (optimized) correlation parameter $\vec{\theta}$ and $\vec{p}$ from above.  The observed data $\vec{y}$ is augmented with the new prediction $\hat{y}$ which results in the augmented vector $\vec{\tilde{y}} = ( \vec{y}^T, \hat{y})^T$. A vector of correlations between the observed data and the new prediction is defined as
 
@@ -500,7 +610,7 @@ $$
 \ln(L) = - \frac{n}{2} \ln(2\pi) - \frac{n}{2} \ln(\hat{\sigma}^2) - \frac{1}{2} \ln |\vec{\hat{\Psi}}| -  \frac{(\vec{\tilde{y}} - \vec{1}\hat{\mu})^T \vec{\tilde{\Psi}}^{-1}(\vec{\tilde{y}} - \vec{1}\hat{\mu})}{2 \hat{\sigma}^2},
 $$ {#eq-loglikelihood-augmented}
 
-where $\vec{1}$ is a vector of ones and $\hat{\mu}$ and $\hat{\sigma}^2$ are the MLEs from @eq-muhat-55 and @eq-sigmahat-55. Only the last term in  @eq-loglikelihood-augmented depends on $\hat{y}$, so we need only consider this term in the maximization. Details cen be found in @Forr08a. Finally, the MLE for $\hat{y}$ can be calculated as
+where $\vec{1}$ is a vector of ones and $\hat{\mu}$ and $\hat{\sigma}^2$ are the MLEs from @eq-muhat-55 and @eq-sigmahat-55. Only the last term in  @eq-loglikelihood-augmented depends on $\hat{y}$, so we need only consider this term in the maximization. Details can be found in @Forr08a. Finally, the MLE for $\hat{y}$ can be calculated as
 $$
 \hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \vec{\tilde{\Psi}}^{-1} (\vec{y} - \vec{1}\hat{\mu}).
 $$ {#eq-mle-yhat}

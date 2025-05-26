@@ -345,7 +345,7 @@ np.linalg.cond(Psi)
 
 ## MLE to estimate $\theta$ and $p$
 
-### The Concentrated Log-Likelihood
+### The Log-Likelihood
 
 Until now, the observed data $\vec{y}$ was not used.
 We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
@@ -353,7 +353,7 @@ To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maxim
 $$
 L = L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2}} \exp\left[ - \frac{\sum_{i=1}^n(Y(\vec{x}^{(i)})-\mu)^2}{2 \sigma^2}\right],
 $$ {#eq-likelihood-55-a}
-where $\mu$ is the mean of the observed data $\vec{y}$ and $\sigma$ is the standard deviation of the errors $\epsilon$.
+where $\mu$ is the mean of the observed data $\vec{y}$ and $\sigma$ is the standard deviation of the errors $\epsilon$,
 which can be expressed in terms of the sample data 
 $$
 L = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
@@ -421,8 +421,86 @@ In summary, the @eq-likelihood-55-a represents the likelihood under a simplified
 
 @eq-likelihood-55 can be formulated as the log-likelihood:
 $$
-\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| \frac{-(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
+\ln(L) = - \frac{n}{2} \ln(2\pi \sigma) - \frac{1}{2} \ln |\vec{\Psi}| - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}.
 $$ {#eq-loglikelihood-55}
+
+
+### Differentiation with Respect to $\mu$
+Looking at the log-likelihood function, only the last term depends on $\mu$:
+
+$$
+\frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+To differentiate this with respect to the scalar $\mu$, we can use matrix calculus rules.
+
+Let $\mathbf{v} = \vec{y} - \vec{1}\mu$. $\vec{y}$ is a constant vector with respect to $\mu$, and $\vec{1}\mu$ is a vector whose derivative with respect to the scalar $\mu$ is $\vec{1}$. So, $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$.
+
+The term is in the form $\mathbf{v}^T \mathbf{A} \mathbf{v}$, where $\mathbf{A} = \vec{\Psi}^{-1}$ is a symmetric matrix. The derivative of $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to $\mathbf{v}$ is $2 \mathbf{A} \mathbf{v}$. Using the chain rule for differentiation with respect to the scalar $\mu$: $$ \frac{\partial}{\partial \mu} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = 2 \left(\frac{\partial \mathbf{v}}{\partial \mu}\right)^T \mathbf{A} \mathbf{v} $$ Substituting $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$ and $\mathbf{v} = \vec{y} - \vec{1}\mu$:
+$$
+\frac{\partial}{\partial \mu} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 2 (-\vec{1})^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+Now, differentiate the full log-likelihood term depending on $\mu$:
+
+$$
+\frac{\partial}{\partial \mu} \left( - \frac{1}{2 \sigma^2} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = - \frac{1}{2 \sigma^2} \left( -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) \right) = \frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
+$$
+
+
+Setting this to zero for maximization gives:
+
+$$
+\frac{1}{\sigma^2} \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+$$
+
+Rearranging gives:
+$$
+\vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 0.
+$$
+
+Solving for $\mu$ gives:
+$$
+\vec{1}^T \vec{\Psi}^{-1} \vec{y} = \mu \vec{1}^T \vec{\Psi}^{-1} \vec{1}.
+$$
+
+
+### Differentiation with Respect to $\sigma$
+Let $\nu = \sigma^2$ for simpler differentiation notation. The log-likelihood becomes:
+$$
+\ln(L) = C_1 - \frac{n}{2} \ln(\nu) - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu},
+$$
+where $C_1 = - \frac{n}{2} \ln(2\pi) - \frac{1}{2} \ln |\vec{\Psi}|$ is a constant with respect to $\nu = \sigma^2$.
+
+We differentiate with respect to $\nu$:
+$$
+\frac{\partial \ln(L)}{\partial \nu} = \frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) + \frac{\partial}{\partial \nu} \left( - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2\nu} \right).
+$$
+
+The first term's derivative is straightforward:
+$$
+\frac{\partial}{\partial \nu} \left( -\frac{n}{2} \ln(\nu) \right) = -\frac{n}{2} \cdot \frac{1}{\nu} = -\frac{n}{2\sigma^2}.
+$$
+
+For the second term, let $C_2 = (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)$. This term is constant with respect to $\sigma^2$. The derivative is:
+
+$$
+\frac{\partial}{\partial \nu} \left( - \frac{C_2}{2\nu} \right) = - \frac{C_2}{2} \frac{\partial}{\partial \nu} (\nu^{-1}) = - \frac{C_2}{2} (-\nu^{-2}) = \frac{C_2}{2\nu^2} = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+$$
+
+Combining the derivatives, the gradient of the log-likelihood with respect to $\sigma^2$ is:
+$$
+\frac{\partial \ln(L)}{\partial \sigma^2} = -\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2}.
+$$
+
+
+Setting this to zero for maximization gives:
+$$
+-\frac{n}{2\sigma^2} + \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{2(\sigma^2)^2} = 0.
+$$
+
+
+### Results of the Optimizations
 
 Optimization of the log-likelihood by taking derivatives with respect to $\mu$ and $\sigma$ results in
 $$
@@ -432,6 +510,9 @@ and
 $$
 \hat{\sigma}^2 = \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu)}{n}.
 $$ {#eq-sigmahat-55}
+
+
+### The Concentrated Log-Likelihood Function
 
 Combining the equations, i.e., substituting @eq-muhat-55 and @eq-sigmahat-55 into @eq-loglikelihood-55 leads to the concentrated log-likelihood function: 
 $$
@@ -443,6 +524,8 @@ $$ {#eq-concentrated-loglikelihood}
 * The first term in @eq-concentrated-loglikelihood requires information about the measured point (observations) $y_i$.
 * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the function (@eq-concentrated-loglikelihood) is not differentiable.
 :::
+
+### Optimizing the Parameters $\vec{\theta}$ and $\vec{p}$
 
 The concentrated log-likelihood function is very quick to compute. We do not need a statistical model, because we are only interested in the maximum likelihood estimate (MLE) of $\theta$ and $p$.
 Optimizers such as Nelder-Mead, Conjugate Gradient, or Simulated Annealing can be used to determine optimal values for $\theta$ and $p$.
