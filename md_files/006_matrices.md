@@ -8,6 +8,43 @@ execute:
 
 # Matrices
 
+## Derivatives of Quadratic Forms {#sec-derivative-quadratic-form}
+
+We present a step-by-step derivation of the general formula 
+$$
+\frac{\partial}{\partial \mathbf{v}} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = \mathbf{A} \mathbf{v} + \mathbf{A}^T \mathbf{v}.
+$$ {#eq-derivative-quadratic-form}
+
+1. Define the components. Let $\mathbf{v}$ be a vector of size $n \times 1$, and let $\mathbf{A}$ be a matrix of size $n \times n$.
+2. Write out the quadratic form in summation notation. The product $\mathbf{v}^T \mathbf{A} \mathbf{v}$ is a scalar. It can be expanded and be rewritten as a double summation: 
+$$
+\mathbf{v}^T \mathbf{A} \mathbf{v} = \sum_{i=1}^n \sum_{j=1}^n v_i a_{ij} v_j.
+$$
+
+3. Calculate the partial derivative with respect to a component $v_k$: The derivative of the scalar $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to the vector $\mathbf{v}$ is the gradient vector, whose $k$-th component is $\frac{\partial}{\partial v_k} (\mathbf{v}^T \mathbf{A} \mathbf{v})$. We need to find $\frac{\partial}{\partial v_k} \left( \sum_{i=1}^n \sum_{j=1}^n v_i a_{ij} v_j \right)$. Consider the terms in the summation that involve $v_k$. A term $v_i a_{ij} v_j$ involves $v_k$ if $i=k$ or $j=k$ (or both).
+    * Terms where $i=k$: $v_k a_{kj} v_j$. The derivative with respect to $v_k$ is $a_{kj} v_j$.
+    * Terms where $j=k$: $v_i a_{ik} v_k$. The derivative with respect to $v_k$ is $v_i a_{ik}$.
+    * The term where $i=k$ and $j=k$: $v_k a_{kk} v_k = a_{kk} v_k^2$. Its derivative with respect to $v_k$ is $2 a_{kk} v_k$. Notice this term is included in both cases above when $i=k$ and $j=k$. When $i=k$, the term is $v_k a_{kk} v_k$, derivative is $a_{kk} v_k$. When $j=k$, the term is $v_k a_{kk} v_k$, derivative is $v_k a_{kk}$. Summing these two gives $2 a_{kk} v_k$.
+
+4. Let's differentiate the sum $\sum_{i=1}^n \sum_{j=1}^n v_i a_{ij} v_j$ with respect to $v_k$: 
+$$
+\frac{\partial}{\partial v_k} \left( \sum_{i=1}^n \sum_{j=1}^n v_i a_{ij} v_j \right) = \sum_{i=1}^n \sum_{j=1}^n \frac{\partial}{\partial v_k} (v_i a_{ij} v_j).
+$$
+
+5. The partial derivative $\frac{\partial}{\partial v_k} (v_i a_{ij} v_j)$ is non-zero only if $i=k$ or $j=k$.
+    * If $i=k$ and $j \ne k$: $\frac{\partial}{\partial v_k} (v_k a_{kj} v_j) = a_{kj} v_j$.
+    * If $i \ne k$ and $j = k$: $\frac{\partial}{\partial v_k} (v_i a_{ik} v_k) = v_i a_{ik}$.
+    * If $i=k$ and $j=k$: $\frac{\partial}{\partial v_k} (v_k a_{kk} v_k) = \frac{\partial}{\partial v_k} (a_{kk} v_k^2) = 2 a_{kk} v_k$.
+
+6. So, the partial derivative is the sum of derivatives of all terms involving $v_k$: $\frac{\partial}{\partial v_k} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = \sum_{j \ne k} (a_{kj} v_j) + \sum_{i \ne k} (v_i a_{ik}) + (2 a_{kk} v_k)$.
+
+7. We can rewrite this by including the $i=k, j=k$ term back into the summations: $\sum_{j \ne k} (a_{kj} v_j) + a_{kk} v_k + \sum_{i \ne k} (v_i a_{ik}) + v_k a_{kk}$ (since $v_k a_{kk} = a_{kk} v_k$) $= \sum_{j=1}^n a_{kj} v_j + \sum_{i=1}^n v_i a_{ik}$.
+
+8. Convert back to matrix/vector notation: The first summation $\sum_{j=1}^n a_{kj} v_j$ is the $k$-th component of the matrix-vector product $\mathbf{A} \mathbf{v}$.The second summation $\sum_{i=1}^n v_i a_{ik}$ can be written as $\sum_{i=1}^n a_{ik} v_i$. Recall that the element in the $k$-th row and $i$-th column of the transpose matrix $\mathbf{A}^T$ is $(A^T)_{ki} = a_{ik}$. So, $\sum_{i=1}^n a_{ik} v_i = \sum_{i=1}^n (A^T)_{ki} v_i$, which is the $k$-th component of the matrix-vector product $\mathbf{A}^T \mathbf{v}$.
+
+9. Assemble the gradient vector: The $k$-th component of the gradient $\frac{\partial}{\partial \mathbf{v}} (\mathbf{v}^T \mathbf{A} \mathbf{v})$ is $(\mathbf{A} \mathbf{v})_k + (\mathbf{A}^T \mathbf{v})_k$. Since this holds for all $k = 1, \dots, n$, the gradient vector is the sum of the two vectors $\mathbf{A} \mathbf{v}$ and $\mathbf{A}^T \mathbf{v}$.
+Therefore, the general formula for the derivative is $\frac{\partial}{\partial \mathbf{v}} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = \mathbf{A} \mathbf{v} + \mathbf{A}^T \mathbf{v}$.
+
 
 
 ## The Condition Number {#sec-conditon-number}
