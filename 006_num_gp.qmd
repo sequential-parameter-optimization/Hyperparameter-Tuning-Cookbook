@@ -22,7 +22,7 @@ from numpy.linalg import cholesky, solve
 from scipy.spatial.distance import squareform, pdist, cdist
 ```
 
-:::
+::: 
 
 <!-- bart21mSlides2022Lec-05 -->
 
@@ -44,6 +44,7 @@ $$
 $$ {#eq-krigingbase}
 where $\vec{x}$ and $\vec{x}^{(i)}$  denote the $k$-dim vector $\vec{x}= (x_1, \ldots, x_k)^T$ and $\vec{x}^{(i)}= (x_1^{(i)}, \ldots, x_k^{(i)})^T$, respectively.
 
+$\Box$
 :::
 
 Kriging  uses a specialized basis function that offers greater flexibility than standard RBFs. Examining @eq-krigingbase, we can observe how Kriging builds upon and extends the Gaussian basis concept. The key enhancements of Kriging over Gaussian RBF can be summarized as follows:
@@ -112,6 +113,16 @@ $$ {#eq-cov-matrix-kriging-52}
 
 This assumed correlation between the sample data reflects our expectation that an engineering function will behave in a certain way and it will be smoothly and continuous.
 
+::: {#rem-stocastic-process}
+### Note on Stochastic Processes
+
+See @sec-random-samples-gp for a more detailed discussion on realizations of stochastic processes.
+
+$\Box$
+:::
+
+
+
 We now have a set of $n$ random variables ($\mathbf{Y}$) that are correlated with each other as described in the $(n \times n)$ correlation matrix
 $\Psi$,
 see @eq-corr-matrix-kriging-51.
@@ -171,6 +182,8 @@ def visualize_inverse_exp_squared_distance_p(distance, point, theta, p_values):
 #| echo: false
 visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_values=[0.1, 1, 2.0])
 ```
+
+$\Box$
 :::
 
 ::: {#exm-kriging-corr-2}
@@ -190,6 +203,7 @@ visualize_inverse_exp_squared_distance_p(distance= 2.5, point=0, theta=1, p_valu
 visualize_inverse_exp_squared_distance_theta(distance= 2.5, point=0, theta_values=[0.1, 1, 10.0])
 ```
 
+$\Box$
 :::
 
 Considering the activity parameter $\theta$ is useful in high-dimensional problems where it is difficult to visualize the design landscape and the effect of the variable is unknown. By examining the elements of the vector $\vec{\theta}$, we can identify the most important variables and focus on them. This is a crucial step in the optimization process, as it allows us to reduce the dimensionality of the problem and focus on the most important variables.
@@ -313,7 +327,7 @@ plt.colorbar()
 plt.show()
 ```
 
-
+$\Box$
 :::
 
 
@@ -340,7 +354,7 @@ The condition number of the correlation matrix $\Psi$ is a measure of how well t
 np.linalg.cond(Psi)
 ```
 
-
+$\Box$
 :::
 
 ## MLE to estimate $\theta$ and $p$
@@ -351,12 +365,12 @@ Until now, the observed data $\vec{y}$ was not used.
 We know what the correlations mean, but how do we estimate the values of $\theta_j$ and where does our observed data $y$ come in?
 To estimate the values of $\vec{\theta}$ and $\vec{p}$, they are chosen to maximize the likelihood of $\vec{y}$,
 $$
-L = L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma)^{n/2}} \exp\left[ - \frac{\sum_{i=1}^n(Y(\vec{x}^{(i)})-\mu)^2}{2 \sigma^2}\right],
+L = L\left(Y(\vec{x}^{(1)}), \ldots, Y(\vec{x}^{(n)}) | \mu, \sigma \right) = \frac{1}{(2\pi \sigma^2)^{n/2}} \exp\left[ - \frac{\sum_{i=1}^n(Y(\vec{x}^{(i)})-\mu)^2}{2 \sigma^2}\right],
 $$ {#eq-likelihood-55-a}
 where $\mu$ is the mean of the observed data $\vec{y}$ and $\sigma$ is the standard deviation of the errors $\epsilon$,
 which can be expressed in terms of the sample data 
 $$
-L = \frac{1}{(2\pi \sigma)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
+L = \frac{1}{(2\pi \sigma^2)^{n/2} |\vec{\Psi}|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
 $$ {#eq-likelihood-55}
 
 ::: {#rem-likelihood-55}
@@ -416,6 +430,7 @@ assuming $Y(\vec{x}^{(i)}) = y^{(i)}$ and using vector notation for $\vec{y}$ an
 
 In summary, the @eq-likelihood-55-a represents the likelihood under a simplified assumption of independent errors, whereas @eq-likelihood-55 is the likelihood derived from the assumption that the observed data comes from a **multivariate normal distribution** where observations are correlated according to the matrix $\vec{\Psi}$. @eq-likelihood-55, using the sample data vector $\vec{y}$ and the correlation matrix $\vec{\Psi}$, properly accounts for the dependencies between data points inherent in the stochastic process model. Maximizing this likelihood is how the correlation parameters $\vec{\theta}$ and $\vec{p}$ are estimated in Kriging.
 
+$\Box$
 ::: 
 
 
@@ -436,7 +451,23 @@ To differentiate this with respect to the scalar $\mu$, we can use matrix calcul
 
 Let $\mathbf{v} = \vec{y} - \vec{1}\mu$. $\vec{y}$ is a constant vector with respect to $\mu$, and $\vec{1}\mu$ is a vector whose derivative with respect to the scalar $\mu$ is $\vec{1}$. So, $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$.
 
-The term is in the form $\mathbf{v}^T \mathbf{A} \mathbf{v}$, where $\mathbf{A} = \vec{\Psi}^{-1}$ is a symmetric matrix. The derivative of $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to $\mathbf{v}$ is $2 \mathbf{A} \mathbf{v}$. Using the chain rule for differentiation with respect to the scalar $\mu$: $$ \frac{\partial}{\partial \mu} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = 2 \left(\frac{\partial \mathbf{v}}{\partial \mu}\right)^T \mathbf{A} \mathbf{v} $$ Substituting $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$ and $\mathbf{v} = \vec{y} - \vec{1}\mu$:
+The term is in the form $\mathbf{v}^T \mathbf{A} \mathbf{v}$, where $\mathbf{A} = \vec{\Psi}^{-1}$ is a symmetric matrix. The derivative of $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to $\mathbf{v}$ is $2 \mathbf{A} \mathbf{v}$ as explained in @rem-derivative-quadratic-form.
+
+::: {#rem-derivative-quadratic-form}
+### Derivative of a Quadratic Form
+
+Consider the derivative of $\mathbf{v}^T \mathbf{A} \mathbf{v}$ with respect to $\mathbf{v}$:
+
+* The derivative of a scalar function $f(\mathbf{v})$ with respect to a vector $\mathbf{v}$ is a vector (the gradient).
+* For a quadratic form $\mathbf{v}^T \mathbf{A} \mathbf{v}$, where $\mathbf{A}$ is a matrix and $\mathbf{v}$ is a vector, the general formula for the derivative with respect to $\mathbf{v}$ is $\frac{\partial}{\partial \mathbf{v}} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = \mathbf{A} \mathbf{v} + \mathbf{A}^T \mathbf{v}$. (This is a standard result in matrix calculus and explained in @eq-derivative-quadratic-form).
+* Since $\mathbf{A} = \vec{\Psi}^{-1}$ is a symmetric matrix, its transpose $\mathbf{A}^T$ is equal to $\mathbf{A}$.
+* Substituting $\mathbf{A}^T = \mathbf{A}$ into the general derivative formula, we get $\mathbf{A} \mathbf{v} + \mathbf{A} \mathbf{v} = 2 \mathbf{A} \mathbf{v}$.
+
+$\Box$
+:::
+
+
+Using the chain rule for differentiation with respect to the scalar $\mu$: $$ \frac{\partial}{\partial \mu} (\mathbf{v}^T \mathbf{A} \mathbf{v}) = 2 \left(\frac{\partial \mathbf{v}}{\partial \mu}\right)^T \mathbf{A} \mathbf{v} $$ Substituting $\frac{\partial \mathbf{v}}{\partial \mu} = -\vec{1}$ and $\mathbf{v} = \vec{y} - \vec{1}\mu$:
 $$
 \frac{\partial}{\partial \mu} (\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = 2 (-\vec{1})^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu) = -2 \vec{1}^T \vec{\Psi}^{-1} (\vec{y} - \vec{1}\mu)
 $$
@@ -523,6 +554,8 @@ $$ {#eq-concentrated-loglikelihood}
 ### The Concentrated Log-Likelihood
 * The first term in @eq-concentrated-loglikelihood requires information about the measured point (observations) $y_i$.
 * To maximize $\ln(L)$, optimal values of $\vec{\theta}$ and $\vec{p}$ are determined numerically, because the function (@eq-concentrated-loglikelihood) is not differentiable.
+
+$\Box$
 :::
 
 ### Optimizing the Parameters $\vec{\theta}$ and $\vec{p}$
@@ -603,6 +636,8 @@ $$ \tilde{\vec{\Psi}} =
 \vec{\psi}^T & 1
 \end{pmatrix}.
 $$
+
+$\Box$
 ::: 
 
 The log-likelihood of the augmented data is

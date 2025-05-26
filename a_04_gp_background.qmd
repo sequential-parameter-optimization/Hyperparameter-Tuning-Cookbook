@@ -164,7 +164,7 @@ plt.colorbar()
 plt.show()
 ```
 
-## Generation of Random Samples and Plotting the Realizations of the Random Function
+## Generation of Random Samples and Plotting the Realizations of the Random Function {#sec-random-samples-gp}
 
 In the context of the multivariate normal distribution, the next step is to utilize the previously constructed covariance matrix denoted as `Sigma`. It is used as an essential component in generating random samples from the multivariate normal distribution.
 
