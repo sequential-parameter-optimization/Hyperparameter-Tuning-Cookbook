@@ -23,7 +23,13 @@ from spotpython.utils.sampling import rlh
 from spotpython.utils.effects import screening_plot, screeningplan
 from spotpython.fun.objectivefunctions import Analytical
 from spotpython.utils.sampling import (fullfactorial, bestlh,
-     jd, mm, mmphi, mmsort, perturb, mmlhs, phisort)
+     jd, mm, mmphi, mmsort, perturb, mmlhs, phisort, mmphi_intensive)
+from spotpython.design.poor import Poor
+from spotpython.design.clustered import Clustered
+from spotpython.design.sobol import Sobol
+from spotpython.design.spacefilling import SpaceFilling
+from spotpython.design.random import Random
+from spotpython.design.grid import Grid
 ```
 :::
 
@@ -1501,9 +1507,388 @@ plt.show()
 ```
 :::
 
-
-
 Sorting all candidate plans in ascending order is not strictly necessary - after all, only the best one is truly of interest. Nonetheless, the added computational complexity is minimal (the vector will only ever contain as many elements as there are candidate $q$ values, and only an index array is sorted, not the actual repository of plans). This sorting gives the reader the opportunity to compare, if desired, how different choices of $q$ influence the resulting plans.
+
+
+
+## Experimental Analysis of the Morris-Mitchell Criterion
+
+Morris-Mitchell Criterion Experimental Analysis
+
+* Number of points: 16, Dimensions: 2
+* mmphi parameters: q (exponent) = 2.0, p (distance norm) = 2.0 (1=Manhattan, 2=Euclidean)
+
+```{python}
+N_POINTS = 16
+N_DIM = 2
+RANDOM_SEED = 42
+q = 2.0
+p = 2.0
+```
+
+### Evaluation of Sampling Designs
+
+We generate various sampling designs and evaluate their space-filling properties using the Morris-Mitchell criterion.
+
+```{python}
+designs = {}
+if int(np.sqrt(N_POINTS))**2 == N_POINTS:
+    grid_design = Grid(k=N_DIM)
+    designs["Grid (4x4)"] = grid_design.generate_grid_design(points_per_dim=int(np.sqrt(N_POINTS)))
+else:
+    print(f"Skipping grid design as N_POINTS={N_POINTS} is not a perfect square for a simple 2D grid.")
+
+lhs_design = SpaceFilling(k=N_DIM, seed=42)
+designs["LHS"] = lhs_design.generate_qms_lhs_design(n_points=N_POINTS)
+
+sobol_design = Sobol(k=N_DIM, seed=42)
+designs["Sobol"] = sobol_design.generate_sobol_design(n_points=N_POINTS)
+
+random_design = Random(k=N_DIM)
+designs["Random"] = random_design.uniform(n_points=N_POINTS)
+
+poor_design = Poor(k=N_DIM)
+designs["Collinear"] = poor_design.generate_collinear_design(n_points=N_POINTS)
+
+clustered_design = Clustered(k=N_DIM)
+designs["Clustered (3 clusters)"] = clustered_design.generate_clustered_design(n_points=N_POINTS, n_clusters=3, seed=42)
+
+results = {}
+
+print("Calculating Morris-Mitchell metric (smaller is better):")
+for name, X_design in designs.items():
+    metric_val = mmphi(X_design, q=q, p=p)
+    results[name] = metric_val
+    print(f"  {name}: {metric_val:.4f}")
+```
+
+```{python}
+if N_DIM == 2:
+    num_designs = len(designs)
+    cols = 2
+    rows = int(np.ceil(num_designs / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
+    axes = axes.ravel() # Flatten axes array for easy iteration
+
+    for i, (name, X_design) in enumerate(designs.items()):
+        ax = axes[i]
+        ax.scatter(X_design[:, 0], X_design[:, 1], s=50, edgecolors='k', alpha=0.7)
+        ax.set_title(f"{name}\nmmphi = {results[name]:.3f}", fontsize=10)
+        ax.set_xlabel("X1")
+        ax.set_ylabel("X2")
+        ax.set_xlim(-0.05, 1.05)
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_aspect('equal', adjustable='box')
+        ax.grid(True, linestyle='--', alpha=0.6)
+
+    # Hide any unused subplots
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.suptitle(f"Comparison of 2D Sampling Designs ({N_POINTS} points each)", fontsize=14, y=1.02)
+    plt.show()
+```
+
+
+### Demonstrate the Impact of mmphi Parameters
+
+Demonstrating Impact of mmphi Parameters on 'LHS' Design
+
+```{python}
+X_lhs = designs["LHS"]
+
+# 1. Default parameters (already calculated)
+print(f"  LHS (q={q}, p={p} Euclidean): {results['LHS']:.4f}")
+
+# 2. Change q (main exponent, literature's p or k)
+q_high = 15.0
+metric_lhs_q_high = mmphi(X_lhs, q=q_high, p=p)
+print(f"  LHS (q={q_high}, p={p} Euclidean): {metric_lhs_q_high:.4f} (Higher q penalizes small distances more)")
+
+# 3. Change p (distance norm, literature's q or m)
+p_manhattan = 1.0
+metric_lhs_p_manhattan = mmphi(X_lhs, q=q, p=p_manhattan)
+print(f"  LHS (q={q}, p={p_manhattan} Manhattan): {metric_lhs_p_manhattan:.4f} (Using L1 distance)")
+```
+
+### Morris-Mitchell Criterion: Impact of Adding Points
+
+Impact of adding a point to a 2x2 grid design
+
+```{python}
+# Initial 2x2 Grid Design
+X_initial = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+mmphi_initial = mmphi(X_initial, q=q, p=p)
+
+print(f"Parameters: q (exponent) = {q}, p (distance) = {p} (Euclidean)\n")
+print(f"Initial 2x2 Grid Design (4 points):")
+print(f"  Points:\n{X_initial}")
+print(f"  Morris-Mitchell Criterion (Phi_q): {mmphi_initial:.4f}\n")
+```
+
+Scenarios for adding a 5th point:
+
+```{python}
+scenarios = {
+    "Scenario 1: Add to Center": {
+        "new_point": np.array([[0.5, 0.5]]),
+        "description": "Adding a point in the center of the grid."
+    },
+    "Scenario 2: Add Close to Existing (Cluster)": {
+        "new_point": np.array([[0.1, 0.1]]),
+        "description": "Adding a point very close to an existing point (0,0)."
+    },
+    "Scenario 3: Add on Edge": {
+        "new_point": np.array([[0.5, 0.0]]),
+        "description": "Adding a point on an edge between (0,0) and (1,0)."
+    }
+}
+
+results_summary = []
+augmented_designs_for_plotting = {"Initial Design": X_initial}
+
+for name, scenario_details in scenarios.items():
+    new_point = scenario_details["new_point"]
+    X_augmented = np.vstack((X_initial, new_point))
+    augmented_designs_for_plotting[name] = X_augmented
+    
+    mmphi_augmented = mmphi(X_augmented, q=q, p=p)
+    change = mmphi_augmented - mmphi_initial
+    
+    print(f"{name}:")
+    print(f"  Description: {scenario_details['description']}")
+    print(f"  New Point Added: {new_point}")
+    # print(f"  Augmented Design (5 points):\n{X_augmented}") # Optional: print full matrix
+    print(f"  Morris-Mitchell Criterion (Phi_q): {mmphi_augmented:.4f}")
+    print(f"  Change from Initial Phi_q: {change:+.4f}\n")
+    
+    results_summary.append({
+        "Scenario": name,
+        "Initial Phi_q": mmphi_initial,
+        "Augmented Phi_q": mmphi_augmented,
+        "Change": change
+    })
+```
+```{python}
+num_designs = len(augmented_designs_for_plotting)
+cols = 2
+rows = int(np.ceil(num_designs / cols))
+
+fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 5 * rows))
+axes = axes.ravel() 
+
+plot_idx = 0
+# Plot initial design first
+ax = axes[plot_idx]
+ax.scatter(X_initial[:, 0], X_initial[:, 1], s=100, edgecolors='k', alpha=0.7, label="Original Points")
+ax.set_title(f"Initial Design\nPhi_q = {mmphi_initial:.3f}", fontsize=10)
+ax.set_xlabel("X1")
+ax.set_ylabel("X2")
+ax.set_xlim(-0.1, 1.1)
+ax.set_ylim(-0.1, 1.1)
+ax.set_aspect('equal', adjustable='box')
+ax.grid(True, linestyle='--', alpha=0.6)
+ax.legend(fontsize='small')
+plot_idx +=1
+
+# Plot augmented designs
+for name, X_design in augmented_designs_for_plotting.items():
+    if name == "Initial Design":
+        continue # Already plotted
+
+    ax = axes[plot_idx]
+    # Highlight original vs new point
+    original_points = X_design[:-1, :]
+    new_point = X_design[-1, :].reshape(1,2)
+    
+    ax.scatter(original_points[:, 0], original_points[:, 1], s=100, edgecolors='k', alpha=0.7, label="Original Points")
+    ax.scatter(new_point[:, 0], new_point[:, 1], s=150, color='red', edgecolors='k', marker='X', label="Added Point")
+    
+    current_phi_q = next(item['Augmented Phi_q'] for item in results_summary if item["Scenario"] == name)
+    ax.set_title(f"{name}\nPhi_q = {current_phi_q:.3f}", fontsize=10)
+    ax.set_xlabel("X1")
+    ax.set_ylabel("X2")
+    ax.set_xlim(-0.1, 1.1)
+    ax.set_ylim(-0.1, 1.1)
+    ax.set_aspect('equal', adjustable='box')
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend(fontsize='small')
+    plot_idx +=1
+    
+# Hide any unused subplots
+for j in range(plot_idx, len(axes)):
+    fig.delaxes(axes[j])
+
+plt.tight_layout(rect=[0, 0, 1, 0.96]) # Adjust layout to make space for suptitle
+plt.suptitle(f"Impact of Adding a Point to a 2x2 Grid Design (q={q}, p={p})", fontsize=14)
+plt.show()
+```
+
+```{python}
+#| eval: false
+#| echo: false
+print("\nSummary Table (Conceptual):")
+print("| Scenario | Initial Phi_q | Augmented Phi_q | Change |")
+print("|----------------------------------------|---------------|-----------------|-----------|")
+print(f"| Baseline (2x2 Grid) | {mmphi_initial:<13.3f} | --- | --- |")
+for res in results_summary:
+    print(f"| {res['Scenario']:<38} | {res['Initial Phi_q']:<13.3f} | {res['Augmented Phi_q']:<15.3f} | {res['Change']:<+9.3f} |")
+
+```
+
+Summary Table (Conceptual):
+
+| Scenario | Initial Phi_q | Augmented Phi_q | Change |
+|----------------------------------------|---------------|-----------------|-----------|
+| Baseline (2x2 Grid) | 2.236         | --- | --- |
+| Scenario 1: Add to Center              | 2.236         | 3.606           | +1.369    |
+| Scenario 2: Add Close to Existing (Cluster) | 2.236         | 7.619           | +5.383    |
+| Scenario 3: Add on Edge                | 2.236         | 3.821           | +1.585    |
+
+
+## A Sample-Size Invariant Version of the Morris-Mitchell Criterion
+
+### Comparison of `mmphi()` and `mmphi_intensive()`
+
+The Morris-Mitchell criterion is a widely used metric for evaluating the space-filling properties of Latin hypercube sampling designs. However, it is sensitive to the number of points in the design, which can lead to misleading comparisons between designs with different sample sizes. To address this issue, a sample-size invariant version of the Morris-Mitchell criterion has been proposed.
+It is avaiable in the `spotpython` package as `mmphi_intensive()`, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/sampling/#spotpython.utils.sampling.mmphi_intensive). 
+
+The functions `mmphi()` and `mmphi_intensive()` both calculate a Morris-Mitchell criterion, but they differ in their normalization, which makes `mmphi_intensive()` invariant to the sample size.
+
+Let $X$ be a sampling plan with $n$ points $\{x_1, x_2, \dots, x_n\}$ in a $k$-dimensional space.
+Let $d_{ij} = \|x_i - x_j\|_p$ be the $p$-norm distance between points $x_i$ and $x_j$.
+Let $J_l$ be the multiplicity of the $l$-th unique distance $d_l$ among all pairs of points in $X$.
+Let $m$ be the total number of unique distances.
+
+**1. `mmphi()` (Morris-Mitchell Criterion $\Phi_q$)**
+
+The `mmphi()` function, as defined in the context and implemented in `sampling.py`, calculates the Morris-Mitchell criterion $\Phi_q$ as:
+
+$$
+\Phi_q(X) = \left( \sum_{l=1}^{m} J_l d_l^{-q} \right)^{1/q},
+$$
+where:
+
+*   $J_l$ is the number of pairs of points separated by the unique distance $d_l$.
+*   $d_l$ are the unique pairwise distances.
+*   $q$ is a user-defined exponent (typically $q > 0$).
+
+This formulation is directly based on the sum of inverse powers of distances.
+The value of $\Phi_q$ is generally dependent on the number of points $n$ in the design $X$, as the sum $\sum J_l d_l^{-q}$ will typically increase with more points (and thus more pairs).
+
+**2. `mmphi_intensive()` (Intensive Morris-Mitchell Criterion)**
+
+The `mmphi_intensive()` function, as implemented in `sampling.py` calculates a sample-size invariant version of the Morris-Mitchell criterion, which will be referred to as $\Phi_q^{I}$. The formula is:
+
+$$
+\Phi_q^{I}(X) = \left( \frac{1}{M} \sum_{l=1}^{m} J_l d_l^{-q} \right)^{1/q}
+$$
+
+where:
+
+*   $M = \binom{n}{2} = \frac{n(n-1)}{2}$ is the total number of unique pairs of points in the design $X$.
+*   The other terms $J_l$, $d_l$, $q$ are the same as in `mmphi()`.
+
+
+The key mathematical difference is the normalization factor $\frac{1}{M}$ inside the parentheses before the outer exponent $1/q$ is applied.
+
+*   **`mmphi()`**: Calculates $\left( \text{SumTerm} \right)^{1/q}$, where SumTerm = $\sum J_l d_l^{-q}$.
+*   **`mmphi_intensive()`**: Calculates $\left( \frac{\text{SumTerm}}{M} \right)^{1/q}$.
+
+By dividing the sum $\sum J_l d_l^{-q}$ by $M$ (the total number of pairs), `mmphi_intensive()` effectively calculates an *average* contribution per pair to the $-q$-th power of distance, before taking the $q$-th root. This normalization makes the criterion less dependent on the absolute number of points $n$ and allows for more meaningful comparisons of space-fillingness between designs of different sizes. A smaller value indicates a better (more space-filling) design for both criteria.
+
+### Plotting the Two Morris-Mitchell Criteria for Different Sample Sizes
+
+@fig-forre08a-6 shows the comparison of the two Morris-Mitchell criteria for different sample sizes using the `plot_mmphi_vs_n_lhs` function. The red line represents the standard Morris-Mitchell criterion, while the blue line represents the sample-size invariant version. Note the difference in the y-axis scales, which highlights how the sample-size invariant version remains consistent across varying sample sizes.
+
+
+```{python}
+#| label: code-forre08a-6
+def plot_mmphi_vs_n_lhs(k_dim: int, 
+                        seed: int, 
+                        n_min: int = 10, 
+                        n_max: int = 100, 
+                        n_step: int = 5,
+                        q_phi: float = 2.0, 
+                        p_phi: float = 2.0):
+    """
+    Generates LHS designs for varying n, calculates mmphi and mmphi_intensive,
+    and plots them against the number of samples (n).
+
+    Args:
+        k_dim (int): Number of dimensions for the LHS design.
+        seed (int): Random seed for reproducibility.
+        n_min (int): Minimum number of samples.
+        n_max (int): Maximum number of samples.
+        n_step (int): Step size for increasing n.
+        q_phi (float): Exponent q for the Morris-Mitchell criteria.
+        p_phi (float): Distance norm p for the Morris-Mitchell criteria.
+    """
+    n_values = list(range(n_min, n_max + 1, n_step))
+    if not n_values:
+        print("Warning: n_values list is empty. Check n_min, n_max, and n_step.")
+        return
+
+    mmphi_results = []
+    mmphi_intensive_results = []
+
+    lhs_generator = SpaceFilling(k=k_dim, seed=seed)
+
+    print(f"Calculating for n from {n_min} to {n_max} with step {n_step}...")
+    for n_points in n_values:
+        if n_points < 2 : # mmphi requires at least 2 points to calculate distances
+            print(f"Skipping n={n_points} as it's less than 2.")
+            mmphi_results.append(np.nan)
+            mmphi_intensive_results.append(np.nan)
+            continue
+        try:
+            X_design = lhs_generator.generate_qms_lhs_design(n_points=n_points)
+            
+            phi = mmphi(X_design, q=q_phi, p=p_phi)
+            phi_intensive, _, _ = mmphi_intensive(X_design, q=q_phi, p=p_phi)
+            
+            mmphi_results.append(phi)
+            mmphi_intensive_results.append(phi_intensive)
+        except Exception as e:
+            print(f"Error calculating for n={n_points}: {e}")
+            mmphi_results.append(np.nan)
+            mmphi_intensive_results.append(np.nan)
+
+    fig, ax1 = plt.subplots(figsize=(9, 6))
+
+    color = 'tab:red'
+    ax1.set_xlabel('Number of Samples (n)')
+    ax1.set_ylabel('mmphi (Φq)', color=color)
+    ax1.plot(n_values, mmphi_results, color=color, marker='o', linestyle='-', label='mmphi (Φq)')
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.grid(True, linestyle='--', alpha=0.7)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:blue'
+    ax2.set_ylabel('mmphi_intensive (Φq_I)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(n_values, mmphi_intensive_results, color=color, marker='x', linestyle='--', label='mmphi_intensive (Φq_I)')
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.title(f'Morris-Mitchell Criteria vs. Number of Samples (n)\nLHS (k={k_dim}, q={q_phi}, p={p_phi})')
+    # Add legends
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines + lines2, labels + labels2, loc='best')
+    plt.show()
+```
+
+
+
+```{python}
+#| label: fig-forre08a-6
+#| fig-cap: "Comparison of the two Morris-Mitchell Criteria for Different Sample Sizes"
+N_DIM = 2
+RANDOM_SEED = 42
+plot_mmphi_vs_n_lhs(k_dim=N_DIM, seed=RANDOM_SEED, n_min=10, n_max=100, n_step=5)
+```
+
 
 
 

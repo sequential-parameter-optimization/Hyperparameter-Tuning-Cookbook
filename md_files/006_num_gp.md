@@ -334,7 +334,7 @@ $\Box$
 ::: {#exm-corr-matrix-existing}
 ### Example: The Correlation Matrix (Using Existing Functions)
 
-The same result as computed in the previous example can be obtained with existing python functions, e.g., from the package `scipy`.
+The same result as computed in @exm-corr-matrix-detailed can be obtained with existing python functions, e.g., from the package `scipy`.
 
 ```{python}
 def build_Psi(X, theta, eps=sqrt(spacing(1))):
