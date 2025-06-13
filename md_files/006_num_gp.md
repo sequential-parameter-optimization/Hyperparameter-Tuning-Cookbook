@@ -803,7 +803,145 @@ plt.legend(loc='upper right')
 plt.show()
 ```
 
+### The Complete Python Code for the Example
 
+Here is the self-contained Python code for direct use in a notebook:
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy import (array, zeros, power, ones, exp, multiply, eye, linspace, spacing, sqrt, arange, append, ravel)
+from numpy.linalg import cholesky, solve
+from scipy.spatial.distance import squareform, pdist, cdist
+
+# --- 1. Kriging Basis Functions (Defining the Correlation) ---
+# The core of Kriging uses a specialized basis function for correlation:
+# psi(x^(i), x) = exp(- sum_{j=1}^k theta_j |x_j^(i) - x_j|^p_j)
+# For this 1D example (k=1), and with p_j=2 (squared Euclidean distance implicit from pdist usage)
+# and theta_j = theta (a single value), it simplifies.
+
+def build_Psi(X, theta, eps=sqrt(spacing(1))):
+    """
+    Computes the correlation matrix Psi based on pairwise squared Euclidean distances
+    between input locations, scaled by theta.
+    Adds a small epsilon to the diagonal for numerical stability (nugget effect).
+    """
+    # Calculate pairwise squared Euclidean distances (D) between points in X
+    D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))
+    # Compute Psi = exp(-D)
+    Psi = exp(-D)
+    # Add a small value to the diagonal for numerical stability (nugget)
+    # This is often done in Kriging implementations, though a regression method
+    # with a 'nugget' parameter (Lambda) is explicitly mentioned for noisy data later.
+    # The source code snippet for build_Psi explicitly includes `multiply(eye(X.shape), eps)`.
+    # FIX: Use X.shape to get the number of rows for the identity matrix
+    Psi += multiply(eye(X.shape[0]), eps) # Corrected line
+    return Psi
+
+def build_psi(X_train, x_predict, theta):
+    """
+    Computes the correlation vector (or matrix) psi between new prediction locations
+    and training data locations.
+    """
+    # Calculate pairwise squared Euclidean distances (D) between prediction points (x_predict)
+    # and training points (X_train).
+    # `cdist` computes distances between each pair of the two collections of inputs.
+    D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)
+    # Compute psi = exp(-D)
+    psi = exp(-D)
+    return psi.T # Return transpose to be consistent with literature (n x m or n x 1)
+
+# --- 2. Data Points for the Sinusoid Function Example ---
+# The example uses a 1D sinusoid measured at eight equally spaced x-locations [153, Table 9.1].
+n = 8 # Number of sample locations
+X_train = np.linspace(0, 2 * np.pi, n, endpoint=False).reshape(-1, 1) # Generate x-locations
+y_train = np.sin(X_train) # Corresponding y-values (sine of x)
+
+print("--- Training Data (X_train, y_train) ---")
+print("x values:\n", np.round(X_train, 2))
+print("y values:\n", np.round(y_train, 2))
+print("-" * 40)
+
+# Visualize the data points
+plt.figure(figsize=(8, 5))
+plt.plot(X_train, y_train, "bo", label=f"Measurements ({n} points)")
+plt.title(f"Sin(x) evaluated at {n} points")
+plt.xlabel("x")
+plt.ylabel("sin(x)")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# --- 3. Calculating the Correlation Matrix (Psi) ---
+# Psi is based on pairwise squared distances between input locations.
+# theta is set to 1.0 for this 1D example.
+theta = np.array([1.0])
+Psi = build_Psi(X_train, theta)
+
+print("\n--- Computed Correlation Matrix (Psi) ---")
+print("Dimensions of Psi:", Psi.shape) # Should be (8, 8)
+print("First 5x5 block of Psi:\n", np.round(Psi[:5,:5], 2))
+print("-" * 40)
+
+# --- 4. Selecting New Locations (for Prediction) ---
+# We want to predict at m = 100 new locations in the interval [0, 2*pi].
+m = 100 # Number of new locations
+x_predict = np.linspace(0, 2 * np.pi, m, endpoint=True).reshape(-1, 1)
+
+print("\n--- New Locations for Prediction (x_predict) ---")
+print(f"Number of prediction points: {m}")
+print("First 5 prediction points:\n", np.round(x_predict[:5], 2).flatten())
+print("-" * 40)
+
+# --- 5. Computing the psi Vector ---
+# This vector contains correlations between each of the n observed data points
+# and each of the m new prediction locations.
+psi = build_psi(X_train, x_predict, theta)
+
+print("\n--- Computed Prediction Correlation Matrix (psi) ---")
+print("Dimensions of psi:", psi.shape) # Should be (8, 100)
+print("First 5x5 block of psi:\n", np.round(psi[:5,:5], 2))
+print("-" * 40)
+
+# --- 6. Predicting at New Locations (Kriging Prediction) ---
+# The Maximum Likelihood Estimate (MLE) for y_hat is calculated using the formula:
+# y_hat(x) = mu_hat + psi.T @ Psi_inv @ (y - 1 * mu_hat) [p. 2 of previous response, and 263]
+# Matrix inversion is efficiently performed using Cholesky factorization.
+
+# Step 6a: Cholesky decomposition of Psi
+U = cholesky(Psi).T # Note: `cholesky` in numpy returns lower triangular L, we need U (upper) so transpose L.
+
+# Step 6b: Calculate mu_hat (estimated mean)
+# mu_hat = (one.T @ Psi_inv @ y) / (one.T @ Psi_inv @ one) [p. 2 of previous response]
+one = np.ones(n).reshape(-1, 1) # Vector of ones
+mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
+mu_hat = mu_hat.item() # Extract scalar value
+
+print("\n--- Kriging Prediction Calculation ---")
+print(f"Estimated mean (mu_hat): {np.round(mu_hat, 4)}")
+
+# Step 6c: Calculate predictions f (y_hat) at new locations
+# f = mu_hat * ones(m) + psi.T @ Psi_inv @ (y - one * mu_hat)
+f_predict = mu_hat * np.ones(m).reshape(-1, 1) + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
+
+print(f"Dimensions of predicted values (f_predict): {f_predict.shape}") # Should be (100, 1)
+print("First 5 predicted f values:\n", np.round(f_predict[:5], 2).flatten())
+print("-" * 40)
+
+# --- 7. Visualization ---
+# Plot the original sinusoid function, the measured points, and the Kriging predictions.
+
+plt.figure(figsize=(10, 6))
+plt.plot(x_predict, f_predict, color="orange", label="Kriging Prediction")
+plt.plot(x_predict, np.sin(x_predict), color="grey", linestyle='--', label="True Sinusoid Function")
+plt.plot(X_train, y_train, "bo", markersize=8, label="Measurements")
+plt.title(f"Kriging prediction of sin(x) with {n} points. (theta: {theta})")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend(loc='upper right')
+plt.grid(True)
+plt.show()
+```
 
 
 ## Jupyter Notebook
