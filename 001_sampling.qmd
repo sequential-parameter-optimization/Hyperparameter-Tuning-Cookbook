@@ -23,7 +23,7 @@ from spotpython.utils.sampling import rlh
 from spotpython.utils.effects import screening_plot, screeningplan
 from spotpython.fun.objectivefunctions import Analytical
 from spotpython.utils.sampling import (fullfactorial, bestlh,
-     jd, mm, mmphi, mmsort, perturb, mmlhs, phisort)
+     jd, mm, mmphi, mmsort, perturb, mmlhs, phisort, mmphi_intensive)
 from spotpython.design.poor import Poor
 from spotpython.design.clustered import Clustered
 from spotpython.design.sobol import Sobol
@@ -1745,6 +1745,151 @@ Summary Table (Conceptual):
 | Scenario 1: Add to Center              | 2.236         | 3.606           | +1.369    |
 | Scenario 2: Add Close to Existing (Cluster) | 2.236         | 7.619           | +5.383    |
 | Scenario 3: Add on Edge                | 2.236         | 3.821           | +1.585    |
+
+
+## A Sample-Size Invariant Version of the Morris-Mitchell Criterion
+
+### Comparison of `mmphi()` and `mmphi_intensive()`
+
+The Morris-Mitchell criterion is a widely used metric for evaluating the space-filling properties of Latin hypercube sampling designs. However, it is sensitive to the number of points in the design, which can lead to misleading comparisons between designs with different sample sizes. To address this issue, a sample-size invariant version of the Morris-Mitchell criterion has been proposed.
+It is avaiable in the `spotpython` package as `mmphi_intensive()`, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/sampling/#spotpython.utils.sampling.mmphi_intensive). 
+
+The functions `mmphi()` and `mmphi_intensive()` both calculate a Morris-Mitchell criterion, but they differ in their normalization, which makes `mmphi_intensive()` invariant to the sample size.
+
+Let $X$ be a sampling plan with $n$ points $\{x_1, x_2, \dots, x_n\}$ in a $k$-dimensional space.
+Let $d_{ij} = \|x_i - x_j\|_p$ be the $p$-norm distance between points $x_i$ and $x_j$.
+Let $J_l$ be the multiplicity of the $l$-th unique distance $d_l$ among all pairs of points in $X$.
+Let $m$ be the total number of unique distances.
+
+**1. `mmphi()` (Morris-Mitchell Criterion $\Phi_q$)**
+
+The `mmphi()` function, as defined in the context and implemented in `sampling.py`, calculates the Morris-Mitchell criterion $\Phi_q$ as:
+
+$$
+\Phi_q(X) = \left( \sum_{l=1}^{m} J_l d_l^{-q} \right)^{1/q},
+$$
+where:
+
+*   $J_l$ is the number of pairs of points separated by the unique distance $d_l$.
+*   $d_l$ are the unique pairwise distances.
+*   $q$ is a user-defined exponent (typically $q > 0$).
+
+This formulation is directly based on the sum of inverse powers of distances.
+The value of $\Phi_q$ is generally dependent on the number of points $n$ in the design $X$, as the sum $\sum J_l d_l^{-q}$ will typically increase with more points (and thus more pairs).
+
+**2. `mmphi_intensive()` (Intensive Morris-Mitchell Criterion)**
+
+The `mmphi_intensive()` function, as implemented in `sampling.py` calculates a sample-size invariant version of the Morris-Mitchell criterion, which will be referred to as $\Phi_q^{I}$. The formula is:
+
+$$
+\Phi_q^{I}(X) = \left( \frac{1}{M} \sum_{l=1}^{m} J_l d_l^{-q} \right)^{1/q}
+$$
+
+where:
+
+*   $M = \binom{n}{2} = \frac{n(n-1)}{2}$ is the total number of unique pairs of points in the design $X$.
+*   The other terms $J_l$, $d_l$, $q$ are the same as in `mmphi()`.
+
+
+The key mathematical difference is the normalization factor $\frac{1}{M}$ inside the parentheses before the outer exponent $1/q$ is applied.
+
+*   **`mmphi()`**: Calculates $\left( \text{SumTerm} \right)^{1/q}$, where SumTerm = $\sum J_l d_l^{-q}$.
+*   **`mmphi_intensive()`**: Calculates $\left( \frac{\text{SumTerm}}{M} \right)^{1/q}$.
+
+By dividing the sum $\sum J_l d_l^{-q}$ by $M$ (the total number of pairs), `mmphi_intensive()` effectively calculates an *average* contribution per pair to the $-q$-th power of distance, before taking the $q$-th root. This normalization makes the criterion less dependent on the absolute number of points $n$ and allows for more meaningful comparisons of space-fillingness between designs of different sizes. A smaller value indicates a better (more space-filling) design for both criteria.
+
+### Plotting the Two Morris-Mitchell Criteria for Different Sample Sizes
+
+@fig-forre08a-6 shows the comparison of the two Morris-Mitchell criteria for different sample sizes using the `plot_mmphi_vs_n_lhs` function. The red line represents the standard Morris-Mitchell criterion, while the blue line represents the sample-size invariant version. Note the difference in the y-axis scales, which highlights how the sample-size invariant version remains consistent across varying sample sizes.
+
+
+```{python}
+#| label: code-forre08a-6
+def plot_mmphi_vs_n_lhs(k_dim: int, 
+                        seed: int, 
+                        n_min: int = 10, 
+                        n_max: int = 100, 
+                        n_step: int = 5,
+                        q_phi: float = 2.0, 
+                        p_phi: float = 2.0):
+    """
+    Generates LHS designs for varying n, calculates mmphi and mmphi_intensive,
+    and plots them against the number of samples (n).
+
+    Args:
+        k_dim (int): Number of dimensions for the LHS design.
+        seed (int): Random seed for reproducibility.
+        n_min (int): Minimum number of samples.
+        n_max (int): Maximum number of samples.
+        n_step (int): Step size for increasing n.
+        q_phi (float): Exponent q for the Morris-Mitchell criteria.
+        p_phi (float): Distance norm p for the Morris-Mitchell criteria.
+    """
+    n_values = list(range(n_min, n_max + 1, n_step))
+    if not n_values:
+        print("Warning: n_values list is empty. Check n_min, n_max, and n_step.")
+        return
+
+    mmphi_results = []
+    mmphi_intensive_results = []
+
+    lhs_generator = SpaceFilling(k=k_dim, seed=seed)
+
+    print(f"Calculating for n from {n_min} to {n_max} with step {n_step}...")
+    for n_points in n_values:
+        if n_points < 2 : # mmphi requires at least 2 points to calculate distances
+            print(f"Skipping n={n_points} as it's less than 2.")
+            mmphi_results.append(np.nan)
+            mmphi_intensive_results.append(np.nan)
+            continue
+        try:
+            X_design = lhs_generator.generate_qms_lhs_design(n_points=n_points)
+            
+            phi = mmphi(X_design, q=q_phi, p=p_phi)
+            phi_intensive, _, _ = mmphi_intensive(X_design, q=q_phi, p=p_phi)
+            
+            mmphi_results.append(phi)
+            mmphi_intensive_results.append(phi_intensive)
+        except Exception as e:
+            print(f"Error calculating for n={n_points}: {e}")
+            mmphi_results.append(np.nan)
+            mmphi_intensive_results.append(np.nan)
+
+    fig, ax1 = plt.subplots(figsize=(9, 6))
+
+    color = 'tab:red'
+    ax1.set_xlabel('Number of Samples (n)')
+    ax1.set_ylabel('mmphi (Φq)', color=color)
+    ax1.plot(n_values, mmphi_results, color=color, marker='o', linestyle='-', label='mmphi (Φq)')
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.grid(True, linestyle='--', alpha=0.7)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:blue'
+    ax2.set_ylabel('mmphi_intensive (Φq_I)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(n_values, mmphi_intensive_results, color=color, marker='x', linestyle='--', label='mmphi_intensive (Φq_I)')
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.title(f'Morris-Mitchell Criteria vs. Number of Samples (n)\nLHS (k={k_dim}, q={q_phi}, p={p_phi})')
+    # Add legends
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines + lines2, labels + labels2, loc='best')
+    plt.show()
+```
+
+
+
+```{python}
+#| label: fig-forre08a-6
+#| fig-cap: "Comparison of the two Morris-Mitchell Criteria for Different Sample Sizes"
+N_DIM = 2
+RANDOM_SEED = 42
+plot_mmphi_vs_n_lhs(k_dim=N_DIM, seed=RANDOM_SEED, n_min=10, n_max=100, n_step=5)
+```
+
+
 
 
 ## Jupyter Notebook
