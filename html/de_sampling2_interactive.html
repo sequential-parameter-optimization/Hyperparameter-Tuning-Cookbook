@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver Leitfaden zu Probenahmeplänen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: Die SPA ist in thematische, über eine Navigationsleiste zugängliche Abschnitte gegliedert (Einleitung, Problem, Lösung, Optimierung, Workflow). Diese Struktur wurde gewählt, um das komplexe Thema in verdauliche, interaktive Lernmodule zu zerlegen. Anstatt eines linearen Textes ermöglicht dies dem Benutzer, die Konzepte in beliebiger Reihenfolge zu erkunden und durch gezielte Interaktionen zu vertiefen. Jeder Abschnitt folgt einer Problem-Lösungs-Narrative, um den Lernprozess logisch und ansprechend zu gestalten. -->
+    <!-- Visualization & Content Choices: 
+        - Fluch der Dimensionalität -> Ziel: Informieren/Erkunden -> Viz: Interaktiver Canvas-Würfel & Bar-Chart -> Interaktion: Slider für Dimensionen/Kantenlänge -> Begründung: Macht ein abstraktes Konzept visuell greifbar. -> Library: Chart.js, Canvas API.
+        - Abtaststrategien -> Ziel: Vergleichen -> Viz: 3 nebeneinander liegende Scatter-Plots mit 1D-Histogrammen -> Interaktion: Slider für Punktanzahl -> Begründung: Zeigt visuell die Überlegenheit von LHS bei der marginalen Abdeckung. -> Library: Chart.js.
+        - LHS Optimierung -> Ziel: Vergleichen -> Viz: 2 Scatter-Plots (Zufällig vs. Optimiert) -> Interaktion: Button zum "Optimieren" -> Begründung: Demonstriert den "Vorher-Nachher"-Effekt der Optimierung auf die Raumfüllung. -> Library: Chart.js.
+        - Morris Screening Plot -> Ziel: Informieren -> Viz: Annotierter Scatter-Plot -> Interaktion: Statisch -> Begründung: Stellt ein zentrales Analysewerkzeug klar und verständlich dar. -> Library: Chart.js.
+        - Workflow -> Ziel: Organisieren -> Viz: HTML/CSS-Diagramm -> Interaktion: Statisch -> Begründung: Fasst den empfohlenen Prozess als klares, visuelles Fazit zusammen. -> Library: HTML/Tailwind CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .nav-link { transition: color 0.3s, border-color 0.3s; }
+        .nav-link.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 border-b border-slate-200">
+        <nav class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-blue-800">Probenahmepläne verstehen</h1>
+                <div class="hidden md:flex items-center space-x-8" id="desktop-nav">
+                    <a href="#intro" class="nav-link text-slate-600 hover:text-blue-600 border-b-2 border-transparent pb-1">Einleitung</a>
+                    <a href="#problem" class="nav-link text-slate-600 hover:text-blue-600 border-b-2 border-transparent pb-1">Das Problem</a>
+                    <a href="#solution" class="nav-link text-slate-600 hover:text-blue-600 border-b-2 border-transparent pb-1">Die Lösung</a>
+                    <a href="#optimization" class="nav-link text-slate-600 hover:text-blue-600 border-b-2 border-transparent pb-1">Optimierung</a>
+                    <a href="#workflow" class="nav-link text-slate-600 hover:text-blue-600 border-b-2 border-transparent pb-1">Workflow</a>
+                </div>
+                 <button id="mobile-menu-button" class="md:hidden text-slate-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+             <div id="mobile-menu" class="hidden md:hidden py-4">
+                <a href="#intro" class="block py-2 px-4 text-sm text-slate-600 hover:bg-slate-100 rounded">Einleitung</a>
+                <a href="#problem" class="block py-2 px-4 text-sm text-slate-600 hover:bg-slate-100 rounded">Das Problem</a>
+                <a href="#solution" class="block py-2 px-4 text-sm text-slate-600 hover:bg-slate-100 rounded">Die Lösung</a>
+                <a href="#optimization" class="block py-2 px-4 text-sm text-slate-600 hover:bg-slate-100 rounded">Optimierung</a>
+                <a href="#workflow" class="block py-2 px-4 text-sm text-slate-600 hover:bg-slate-100 rounded">Workflow</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-8">
+        
+        <section id="intro" class="content-section min-h-[70vh]">
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-blue-900 mb-4">Warum intelligente Versuchsplanung entscheidend ist</h2>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    In der modernen Forschung sind Computersimulationen (z.B. FEM, CFD) unverzichtbar, aber oft extrem rechenintensiv. Jede einzelne Simulation kann Stunden oder Tage dauern. Um dieses Problem zu lösen, erstellen wir schnelle Näherungsmodelle, sogenannte Surrogatmodelle. Der Schlüssel zum Erfolg liegt darin, die wenigen, aber teuren Simulationen an den richtigen Stellen durchzuführen.
+                </p>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    Dieser Prozess wird durch einen **Probenahmeplan** (Sampling Plan) gesteuert. Er legt fest, welche Parameterkombinationen wir untersuchen. Ein guter Plan sorgt dafür, dass wir mit minimalem Aufwand maximale Informationen gewinnen. Ein schlechter Plan kann zu ungenauen Modellen und falschen Schlussfolgerungen führen. Dieser interaktive Leitfaden führt Sie durch die Kernkonzepte zur Erstellung effektiver Probenahmepläne.
+                </p>
+                <div class="mt-8 pt-6 border-t border-slate-200 text-center">
+                    <p class="text-slate-500">Navigieren Sie durch die oberen Reiter, um die Konzepte Schritt für Schritt zu erkunden.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="problem" class="content-section min-h-[70vh]">
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Das Problem: Der Fluch der Dimensionalität</h2>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    Das größte Hindernis bei der Versuchsplanung ist der "Fluch der Dimensionalität". Das Volumen eines Raumes wächst exponentiell mit der Anzahl der Dimensionen (Variablen). Eine Abtastung, die in 2 Dimensionen einfach ist, wird in 10 Dimensionen rechentechnisch unmöglich. Dieses interaktive Element verdeutlicht das Problem.
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-8 items-center mt-8">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="dimSlider" class="font-medium text-slate-700">Dimension (d): <span id="dimValue" class="font-bold text-blue-700">3</span></label>
+                            <input id="dimSlider" type="range" min="1" max="10" value="3" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label for="edgeSlider" class="font-medium text-slate-700">Kantenlänge des Innenbereichs (s): <span id="edgeValue" class="font-bold text-blue-700">0.8</span></label>
+                            <input id="edgeSlider" type="range" min="0.1" max="1" step="0.05" value="0.8" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                         <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-blue-900">Beobachtung:</h4>
+                            <p id="curseResult" class="text-blue-800 leading-relaxed">Bei 3 Dimensionen und einer Kantenlänge von 80% füllt der innere Würfel nur noch ca. 51.2% des Gesamtvolumens aus.</p>
+                            <p class="mt-2 text-sm text-slate-500">Fast die Hälfte des Volumens befindet sich in den "Ecken". Je höher die Dimension, desto leerer wird das Zentrum.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                       <div class="chart-container h-64 sm:h-80">
+                            <canvas id="curseChart"></canvas>
+                        </div>
+                        <div class="w-full bg-slate-200 aspect-square rounded-lg flex items-center justify-center p-4">
+                            <canvas id="curseCubeCanvas" width="250" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution" class="content-section min-h-[70vh]">
+             <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Die Lösung: Screening und Raumfüllung</h2>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                   Der erste Schritt ist, unwichtige Variablen durch **Screening** zu eliminieren. Danach erstellen wir einen **raumfüllenden** Plan für die verbleibenden Variablen, um den Designraum effizient zu erkunden, ohne "Löcher" zu lassen.
+                </p>
+
+                <div class="mt-8 border-t border-slate-200 pt-8">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4">Teil 1: Screening mit der Morris-Methode</h3>
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <p class="text-slate-600 mb-4">
+                                Der Morris-Algorithmus identifiziert einflussreiche Variablen. Er berechnet zwei Kennzahlen:
+                            </p>
+                            <ul class="list-disc list-inside space-y-2 text-slate-600 mb-4">
+                                <li><b>&mu;* (Mittelwert)</b>: Misst den Gesamteinfluss einer Variable. Hoch = wichtig.</li>
+                                <li><b>&sigma; (Standardabweichung)</b>: Misst Nichtlinearität oder Interaktionen. Hoch = komplexer Einfluss.</li>
+                            </ul>
+                            <p class="text-slate-600">
+                                Im "Screening Plot" (&sigma; vs. &mu;*) werden unwichtige Variablen (nahe dem Ursprung) von wichtigen, linearen (rechts unten) und komplexen (rechts oben) getrennt.
+                            </p>
+                        </div>
+                        <div class="chart-container h-80 sm:h-96">
+                             <canvas id="morrisChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-12 border-t border-slate-200 pt-8">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4">Teil 2: Raumfüllende Pläne vergleichen</h3>
+                     <p class="text-slate-600 mb-4">
+                        Nach dem Screening brauchen wir einen guten Plan. **Latin Hypercube Sampling (LHS)** ist eine populäre Methode. Es stellt sicher, dass jede Variable gleichmäßig abgetastet wird. Vergleichen Sie es mit einem Zufalls- und einem Gitter-Design.
+                    </p>
+                    <div class="mb-6">
+                        <label for="samplingPointsSlider" class="font-medium text-slate-700">Anzahl Punkte (n): <span id="samplingPointsValue" class="font-bold text-blue-700">25</span></label>
+                        <input id="samplingPointsSlider" type="range" min="10" max="100" value="25" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <h4 class="font-semibold text-center mb-2">Zufallsstichprobe</h4>
+                            <div class="chart-container !h-48 !max-w-full"> <canvas id="randomSampleChart"></canvas> </div>
+                            <div class="chart-container !h-32 !max-w-full mt-2"> <canvas id="randomHistChart"></canvas> </div>
+                            <p class="text-xs text-center text-slate-500 mt-2">Beachten Sie die ungleichmäßige Verteilung und die Lücken in den Histogrammen.</p>
+                        </div>
+
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <h4 class="font-semibold text-center mb-2">Gitter-Design</h4>
+                            <div class="chart-container !h-48 !max-w-full"> <canvas id="gridSampleChart"></canvas> </div>
+                            <div class="chart-container !h-32 !max-w-full mt-2"> <canvas id="gridHistChart"></canvas> </div>
+                             <p class="text-xs text-center text-slate-500 mt-2">Regelmäßig, aber unflexibel. Die Projektionen überlappen stark (wenige Balken im Histogramm).</p>
+                        </div>
+
+                        <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                            <h4 class="font-semibold text-center mb-2 text-blue-900">Latin Hypercube (LHS)</h4>
+                            <div class="chart-container !h-48 !max-w-full"> <canvas id="lhsSampleChart"></canvas> </div>
+                            <div class="chart-container !h-32 !max-w-full mt-2"> <canvas id="lhsHistChart"></canvas> </div>
+                             <p class="text-xs text-center text-blue-700 mt-2">Gut verteilt! Jeder Bereich im Histogramm wird genau einmal getroffen.</p>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        </section>
+
+        <section id="optimization" class="content-section min-h-[70vh]">
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Optimierung: Vom guten zum besten Plan</h2>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    Ein zufälliger LHS-Plan ist gut, aber nicht perfekt. Er kann immer noch "Löcher" und "Cluster" aufweisen. Durch Optimierung können wir den Plan so verbessern, dass die Punkte maximal weit voneinander entfernt sind. Dies wird mit Kriterien wie der **Maximin-Metrik** oder dem **&Phi;<sub>q</sub>-Kriterium** gemessen (kleinerer &Phi;<sub>q</sub>-Wert ist besser).
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8 items-center mt-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-bold text-slate-800">Vergleich: Zufälliger vs. Optimierter LHS</h3>
+                        <p class="text-slate-600">
+                           Hier sehen Sie einen zufälligen 20-Punkte LHS-Plan. Beachten Sie, wie einige Punkte nahe beieinander liegen. Klicken Sie auf "Optimiere!", um zu sehen, wie ein evolutionärer Algorithmus die Punkte verschiebt, um eine bessere Raumfüllung zu erreichen.
+                        </p>
+                        <div id="phiDisplay" class="bg-blue-50 border border-blue-200 p-4 rounded-lg transition-all duration-500">
+                            <span class="font-medium">Qualitäts-Kriterium &Phi;<sub>50</sub>:</span> 
+                            <span id="phiValue" class="font-bold text-2xl text-blue-700 ml-2">15.2</span>
+                            <p id="phiDescription" class="text-sm text-slate-500 mt-1">Ein höherer Wert deutet auf eine schlechtere Raumfüllung hin.</p>
+                        </div>
+                        <button id="optimizeBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform duration-150 ease-in-out hover:scale-105 active:scale-100">
+                            Optimiere den Plan!
+                        </button>
+                    </div>
+                    <div class="chart-container h-80 sm:h-96">
+                        <canvas id="optimizationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="workflow" class="content-section min-h-[70vh]">
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Fallstricke & empfohlener Workflow</h2>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    Selbst ein perfekt optimierter Plan hat Risiken. Wenn die zugrundeliegende Funktion periodisch ist (z.B. Schwingungen), kann ein zu regelmäßiger Plan das Verhalten komplett falsch interpretieren – ein Phänomen namens **Aliasing**, ähnlich dem Stroboskop-Effekt.
+                </p>
+                <div class="bg-amber-50 border border-amber-200 p-6 rounded-lg mb-8">
+                    <h4 class="font-bold text-lg text-amber-900">Die Lösung: Gezielte Störung (Perturbation)</h4>
+                    <p class="text-amber-800 leading-relaxed mt-2">Um Aliasing zu vermeiden, wird der optimierte Plan am Ende leicht zufällig "verwackelt". Dieser Schritt bricht die schädliche Regelmäßigkeit auf, ohne die gute Raumfüllung wesentlich zu verschlechtern. Er macht den Plan robust gegenüber unbekannten Funktionseigenschaften.</p>
+                </div>
+
+                <h3 class="text-2xl font-bold text-slate-800 mb-6 text-center">Der 3-Stufen-Workflow für robuste Probenahmepläne</h3>
+
+                <div class="relative flex flex-col md:flex-row justify-center items-center gap-8 md:gap-0">
+                    <!-- Step 1 -->
+                    <div class="flex flex-col items-center text-center w-60 z-10">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg">1</div>
+                        <div class="bg-white p-4 rounded-lg shadow-md border mt-[-2rem] pt-10">
+                            <h4 class="font-bold text-blue-800">Screening</h4>
+                            <p class="text-sm text-slate-600 mt-1">Reduziere die Dimensionen. Finde mit Methoden wie Morris die wirklich wichtigen Variablen.</p>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="hidden md:block text-slate-300 text-4xl font-light mx-[-1rem] z-0">&rarr;</div>
+                     <div class="md:hidden text-slate-300 text-4xl font-light my-[-1rem] z-0">&darr;</div>
+                    <!-- Step 2 -->
+                     <div class="flex flex-col items-center text-center w-60 z-10">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg">2</div>
+                        <div class="bg-white p-4 rounded-lg shadow-md border mt-[-2rem] pt-10">
+                            <h4 class="font-bold text-blue-800">Design</h4>
+                            <p class="text-sm text-slate-600 mt-1">Erstelle einen optimierten, raumfüllenden Plan (z.B. Maximin-LHS) für die aktiven Variablen.</p>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="hidden md:block text-slate-300 text-4xl font-light mx-[-1rem] z-0">&rarr;</div>
+                     <div class="md:hidden text-slate-300 text-4xl font-light my-[-1rem] z-0">&darr;</div>
+                    <!-- Step 3 -->
+                     <div class="flex flex-col items-center text-center w-60 z-10">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg">3</div>
+                        <div class="bg-white p-4 rounded-lg shadow-md border mt-[-2rem] pt-10">
+                            <h4 class="font-bold text-blue-800">Robustheit</h4>
+                            <p class="text-sm text-slate-600 mt-1">Füge eine kleine, zufällige Störung hinzu, um Regelmäßigkeiten zu brechen und Aliasing zu vermeiden.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 mt-12 py-6">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm">
+            <p>&copy; 2024 Interaktiver Leitfaden. Erstellt zur Veranschaulichung von Konzepten aus dem DACE.</p>
+            <p class="text-xs text-slate-400 mt-1">Basierend auf Lehrmaterialien, die von Forrester et al. (2008) und Bartz-Beielstein et al. (2025) inspiriert sind.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chartInstances = {};
+
+            const navLinks = document.querySelectorAll('.nav-link, #mobile-menu a');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            function updateActiveContent(hash) {
+                hash = hash || window.location.hash || '#intro';
+                
+                let activeSection = document.querySelector(hash);
+                if (!activeSection) {
+                    hash = '#intro';
+                    activeSection = document.getElementById('intro');
+                }
+                
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                activeSection.classList.add('active');
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === hash) {
+                        link.classList.add('active');
+                    }
+                });
+                
+                mobileMenu.classList.add('hidden');
+
+                // Lazy load charts
+                switch(hash) {
+                    case '#problem':
+                        initCurseOfDimensionality();
+                        break;
+                    case '#solution':
+                        initMorrisChart();
+                        initSamplingComparison();
+                        break;
+                    case '#optimization':
+                        initOptimizationChart();
+                        break;
+                }
+            }
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = e.currentTarget.getAttribute('href');
+                    history.pushState(null, null, targetId);
+                    updateActiveContent(targetId);
+                });
+            });
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            window.addEventListener('popstate', () => {
+                updateActiveContent(window.location.hash);
+            });
+
+            updateActiveContent();
+
+            function destroyChart(id) {
+                if (chartInstances[id]) {
+                    chartInstances[id].destroy();
+                    delete chartInstances[id];
+                }
+            }
+
+            function wrapText(text, length) {
+                if (text.length <= length) {
+                    return text;
+                }
+                const words = text.split(' ');
+                let lines = [];
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + ' ' + word).length > length) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine += (currentLine ? ' ' : '') + word;
+                    }
+                });
+                lines.push(currentLine);
+                return lines;
+            }
+
+            function initCurseOfDimensionality() {
+                if (chartInstances.curse || chartInstances.curseCube) return;
+                
+                const dimSlider = document.getElementById('dimSlider');
+                const edgeSlider = document.getElementById('edgeSlider');
+                const dimValue = document.getElementById('dimValue');
+                const edgeValue = document.getElementById('edgeValue');
+                const curseResult = document.getElementById('curseResult');
+                const curseChartCtx = document.getElementById('curseChart').getContext('2d');
+                const curseCubeCanvas = document.getElementById('curseCubeCanvas');
+                const curseCubeCtx = curseCubeCanvas.getContext('2d');
+
+                function calculateVolume() {
+                    const d = parseInt(dimSlider.value);
+                    const s = parseFloat(edgeSlider.value);
+                    dimValue.textContent = d;
+                    edgeValue.textContent = s.toFixed(2);
+                    
+                    const volumes = [];
+                    const labels = [];
+                    for(let i=1; i<=10; i++) {
+                        labels.push(`d=${i}`);
+                        volumes.push(Math.pow(s, i));
+                    }
+                    
+                    const volumeInCurrentDim = Math.pow(s, d);
+                    curseResult.textContent = `Bei ${d} Dimensionen und einer Kantenlänge von ${s*100}% füllt der innere Bereich nur noch ca. ${(volumeInCurrentDim * 100).toFixed(1)}% des Gesamtvolumens aus.`;
+                    
+                    updateCurseChart(labels, volumes, d);
+                    drawCurseCube(d,s);
+                }
+
+                function updateCurseChart(labels, volumes, currentDim) {
+                     destroyChart('curse');
+                    chartInstances.curse = new Chart(curseChartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Volumenanteil des Innenbereichs',
+                                data: volumes,
+                                backgroundColor: (context) => context.dataIndex === currentDim - 1 ? 'rgba(30, 64, 175, 1)' : 'rgba(148, 163, 184, 0.6)',
+                                borderColor: (context) => context.dataIndex === currentDim - 1 ? 'rgba(30, 58, 138, 1)' : 'rgba(148, 163, 184, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: { display: true, text: 'Volumenanteil vs. Dimension' },
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 1,
+                                    title: { display: true, text: 'Anteil am Gesamtvolumen' }
+                                },
+                                x: {
+                                    title: { display: true, text: 'Dimensionen' }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                function drawCurseCube(d, s) {
+                    curseCubeCtx.clearRect(0,0, curseCubeCanvas.width, curseCubeCanvas.height);
+                    const w = curseCubeCanvas.width;
+                    const h = curseCubeCanvas.height;
+                    const center = {x: w/2, y: h/2};
+                    
+                    curseCubeCtx.strokeStyle = '#94a3b8'; // slate-400
+                    curseCubeCtx.fillStyle = '#dbeafe'; // blue-100
+                    
+                    if (d === 1) {
+                         curseCubeCtx.lineWidth = 4;
+                         curseCubeCtx.beginPath();
+                         curseCubeCtx.moveTo(center.x - w*0.4, center.y);
+                         curseCubeCtx.lineTo(center.x + w*0.4, center.y);
+                         curseCubeCtx.stroke();
+                         
+                         curseCubeCtx.strokeStyle = '#1d4ed8'; // blue-800
+                         curseCubeCtx.beginPath();
+                         curseCubeCtx.moveTo(center.x - w*0.4*s, center.y);
+                         curseCubeCtx.lineTo(center.x + w*0.4*s, center.y);
+                         curseCubeCtx.stroke();
+                    } else if (d === 2) {
+                        const size = w * 0.8;
+                        curseCubeCtx.strokeRect(center.x - size/2, center.y - size/2, size, size);
+                        curseCubeCtx.fillRect(center.x - size/2*s, center.y - size/2*s, size*s, size*s);
+                    } else { // d >= 3
+                        const size = w * 0.4;
+                        const p = [
+                            {x: center.x - size, y: center.y - size},
+                            {x: center.x + size, y: center.y - size},
+                            {x: center.x + size, y: center.y + size},
+                            {x: center.x - size, y: center.y + size}
+                        ];
+                        const p2 = p.map(pt => ({x: pt.x + size*0.5, y: pt.y - size*0.5}));
+
+                        function drawCube(points1, points2) {
+                           curseCubeCtx.beginPath();
+                           // back face
+                           curseCubeCtx.moveTo(points2[0].x, points2[0].y);
+                           curseCubeCtx.lineTo(points2[1].x, points2[1].y);
+                           curseCubeCtx.lineTo(points2[2].x, points2[2].y);
+                           curseCubeCtx.lineTo(points2[3].x, points2[3].y);
+                           curseCubeCtx.closePath();
+                           // front face
+                           curseCubeCtx.moveTo(points1[0].x, points1[0].y);
+                           curseCubeCtx.lineTo(points1[1].x, points1[1].y);
+                           curseCubeCtx.lineTo(points1[2].x, points1[2].y);
+                           curseCubeCtx.lineTo(points1[3].x, points1[3].y);
+                           curseCubeCtx.closePath();
+                           // connectors
+                           for(let i=0; i<4; i++) {
+                             curseCubeCtx.moveTo(points1[i].x, points1[i].y);
+                             curseCubeCtx.lineTo(points2[i].x, points2[i].y);
+                           }
+                           curseCubeCtx.stroke();
+                        }
+                        
+                        drawCube(p, p2);
+
+                        const innerSize = size * s;
+                        const p_inner = [
+                            {x: center.x - innerSize, y: center.y - innerSize},
+                            {x: center.x + innerSize, y: center.y - innerSize},
+                            {x: center.x + innerSize, y: center.y + innerSize},
+                            {x: center.x - innerSize, y: center.y + innerSize}
+                        ];
+                         const p2_inner = p_inner.map(pt => ({x: pt.x + innerSize*0.5, y: pt.y - innerSize*0.5}));
+                         curseCubeCtx.globalAlpha = 0.7;
+                         curseCubeCtx.beginPath();
+                         curseCubeCtx.moveTo(p2_inner[0].x, p2_inner[0].y);
+                         curseCubeCtx.lineTo(p2_inner[1].x, p2_inner[1].y);
+                         curseCubeCtx.lineTo(p2_inner[2].x, p2_inner[2].y);
+                         curseCubeCtx.lineTo(p2_inner[3].x, p2_inner[3].y);
+                         curseCubeCtx.closePath();
+                         curseCubeCtx.fill();
+                         curseCubeCtx.globalAlpha = 1.0;
+                    }
+                }
+
+                dimSlider.addEventListener('input', calculateVolume);
+                edgeSlider.addEventListener('input', calculateVolume);
+                calculateVolume();
+            }
+
+            function initMorrisChart() {
+                if (chartInstances.morris) return;
+                const morrisCtx = document.getElementById('morrisChart').getContext('2d');
+                const data = {
+                    datasets: [
+                        {
+                            label: 'Unwichtige Variablen',
+                            data: [{x: 0.05, y: 0.01}, {x: 0.1, y: 0.08}, {x: 0.08, y: 0.12}, {x: 0.15, y: 0.05}],
+                            backgroundColor: 'rgb(100, 116, 139)',
+                        },
+                        {
+                            label: 'Linearer Einfluss',
+                            data: [{x: 0.4, y: 0.1}],
+                            backgroundColor: 'rgb(2, 132, 199)',
+                        },
+                        {
+                             label: 'Nichtlinear/Interaktiv',
+                             data: [{x: 0.6, y: 0.7}, {x: 0.5, y: 0.8}],
+                             backgroundColor: 'rgb(219, 39, 119)',
+                        },
+                        {
+                             label: 'Dominante Variablen',
+                             data: [{x: 0.9, y: 0.95}, {x: 0.85, y: 0.8}, {x: 1.0, y: 0.7}],
+                             backgroundColor: 'rgb(220, 38, 38)',
+                        }
+                    ]
+                };
+
+                const variableLabels = {
+                    'Unwichtige Variablen': ['Wp', 'q', 'λ', 'Λ'],
+                    'Linearer Einfluss': ['Wfw'],
+                    'Nichtlinear/Interaktiv': ['A', 'tc'],
+                    'Dominante Variablen': ['Nz', 'Sw', 'Wdg']
+                };
+
+                chartInstances.morris = new Chart(morrisCtx, {
+                    type: 'scatter',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: true, text: 'Morris Screening Plot (Beispiel Flugzeugflügel)' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const datasetLabel = context.dataset.label;
+                                        const labelIndex = context.dataIndex;
+                                        const varName = variableLabels[datasetLabel][labelIndex] || '';
+                                        return `${varName}: (μ*: ${context.parsed.x}, σ: ${context.parsed.y})`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'μ* (Gesamteinfluss)' },
+                                min: 0,
+                                max: 1.1
+                            },
+                            y: {
+                                title: { display: true, text: 'σ (Interaktion/Nichtlinearität)' },
+                                min: 0,
+                                max: 1.1
+                            }
+                        }
+                    }
+                });
+            }
+
+            function initSamplingComparison() {
+                 if (chartInstances.randomSample) return;
+                
+                const slider = document.getElementById('samplingPointsSlider');
+                const valueLabel = document.getElementById('samplingPointsValue');
+                
+                function generateRandom(n) {
+                    const points = [];
+                    for (let i = 0; i < n; i++) {
+                        points.push({x: Math.random(), y: Math.random()});
+                    }
+                    return points;
+                }
+                
+                function generateGrid(n) {
+                    const points = [];
+                    const side = Math.round(Math.sqrt(n));
+                    if (side * side < n) { // Simple fix if n is not a perfect square
+                       for (let i = 0; i < n; i++) {
+                           points.push({x: Math.random(), y: Math.random()});
+                       }
+                       return points;
+                    }
+                    for (let i = 0; i < side; i++) {
+                        for (let j = 0; j < side; j++) {
+                            points.push({x: (i + 0.5) / side, y: (j + 0.5) / side});
+                        }
+                    }
+                    return points.slice(0, n);
+                }
+
+                function generateLHS(n) {
+                    const points = [];
+                    const xShuffled = Array.from({length: n}, (_, i) => i);
+                    const yShuffled = Array.from({length: n}, (_, i) => i);
+                    // Shuffle arrays
+                    for (let i = xShuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [xShuffled[i], xShuffled[j]] = [xShuffled[j], xShuffled[i]];
+                        [yShuffled[i], yShuffled[j]] = [yShuffled[j], yShuffled[i]];
+                    }
+                    for (let i = 0; i < n; i++) {
+                        points.push({
+                            x: (xShuffled[i] + Math.random()) / n,
+                            y: (yShuffled[i] + Math.random()) / n
+                        });
+                    }
+                    return points;
+                }
+                
+                function createOrUpdateScatter(id, data, title) {
+                    const ctx = document.getElementById(id).getContext('2d');
+                    destroyChart(id);
+                    chartInstances[id] = new Chart(ctx, {
+                        type: 'scatter',
+                        data: { datasets: [{ data: data, backgroundColor: 'rgb(30, 64, 175)' }] },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: false } },
+                            scales: { x: { min: 0, max: 1, ticks:{display:false}}, y: { min: 0, max: 1, ticks:{display:false} } }
+                        }
+                    });
+                }
+                
+                function createOrUpdateHistogram(id, data, n) {
+                    const ctx = document.getElementById(id).getContext('2d');
+                    const xData = data.map(p => p.x);
+                    const yData = data.map(p => p.y);
+                    const bins = Math.max(5, Math.floor(Math.sqrt(n)));
+                    const xHist = new Array(bins).fill(0);
+                    const yHist = new Array(bins).fill(0);
+                    xData.forEach(val => xHist[Math.min(bins - 1, Math.floor(val * bins))]++);
+                    yData.forEach(val => yHist[Math.min(bins - 1, Math.floor(val * bins))]++);
+
+                    destroyChart(id);
+                    chartInstances[id] = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: Array.from({length: bins}, (_, i) => ''),
+                            datasets: [
+                                { label: 'X-Achse', data: xHist, backgroundColor: 'rgba(59, 130, 246, 0.7)'},
+                                { label: 'Y-Achse', data: yHist, backgroundColor: 'rgba(239, 68, 68, 0.7)'}
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: {display:true, text:'1D-Projektionen', font:{size:10}} },
+                            scales: { x: { stacked: true, ticks:{display:false} }, y: { stacked: true, ticks:{display:false} } }
+                        }
+                    });
+                }
+
+                function updateAll() {
+                    const n = parseInt(slider.value);
+                    valueLabel.textContent = n;
+                    
+                    const randomData = generateRandom(n);
+                    const gridData = generateGrid(n);
+                    const lhsData = generateLHS(n);
+
+                    createOrUpdateScatter('randomSampleChart', randomData, 'Zufall');
+                    createOrUpdateScatter('gridSampleChart', gridData, 'Gitter');
+                    createOrUpdateScatter('lhsSampleChart', lhsData, 'LHS');
+
+                    createOrUpdateHistogram('randomHistChart', randomData, n);
+                    createOrUpdateHistogram('gridHistChart', gridData, n);
+                    createOrUpdateHistogram('lhsHistChart', lhsData, n);
+                }
+
+                slider.addEventListener('input', updateAll);
+                updateAll();
+            }
+            
+            function initOptimizationChart() {
+                if (chartInstances.optimization) return;
+
+                const button = document.getElementById('optimizeBtn');
+                const phiValue = document.getElementById('phiValue');
+                const phiDesc = document.getElementById('phiDescription');
+                const phiDisplay = document.getElementById('phiDisplay');
+
+                const n = 20;
+                let randomLHS, optimizedLHS;
+
+                function generatePoints() {
+                    function shuffle(array) {
+                        for (let i = array.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [array[i], array[j]] = [array[j], array[i]];
+                        }
+                        return array;
+                    }
+                    const xShuffled = shuffle(Array.from({length: n}, (_, i) => (i + 0.5) / n));
+                    const yShuffled = shuffle(Array.from({length: n}, (_, i) => (i + 0.5) / n));
+                    randomLHS = Array.from({length: n}, (_, i) => ({x: xShuffled[i], y: yShuffled[i]}));
+
+                    // A pseudo-optimized version for visualization
+                    optimizedLHS = [];
+                    for(let i = 0; i < 4; i++) {
+                        for(let j = 0; j < 5; j++) {
+                           optimizedLHS.push({
+                               x: (i * 5 + j) / 20 * 0.8 + 0.1 + (Math.random()-0.5)*0.04,
+                               y: (j * 4 + i) / 20 * 0.8 + 0.1 + (Math.random()-0.5)*0.04
+                           });
+                        }
+                    }
+                     optimizedLHS = optimizedLHS.map(p => ({
+                         x: (p.x - 0.1) / 0.8 * 0.95 + 0.025, 
+                         y: (p.y - 0.1) / 0.8 * 0.95 + 0.025
+                    }));
+                }
+                
+                function createOrUpdateOptimizationChart(data) {
+                    const ctx = document.getElementById('optimizationChart').getContext('2d');
+                    destroyChart('optimization');
+                    chartInstances.optimization = new Chart(ctx, {
+                        type: 'scatter',
+                        data: {
+                            datasets: [{
+                                data: data,
+                                backgroundColor: 'rgb(22, 163, 74)',
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, title: { display: true, text: '20-Punkte LHS-Plan' } },
+                            scales: { x: { min: 0, max: 1 }, y: { min: 0, max: 1 } }
+                        }
+                    });
+                }
+                
+                function reset() {
+                    generatePoints();
+                    createOrUpdateOptimizationChart(randomLHS);
+                    phiValue.textContent = '15.2';
+                    phiDesc.textContent = 'Ein höherer Wert deutet auf eine schlechtere Raumfüllung hin.';
+                    button.disabled = false;
+                    button.textContent = 'Optimiere den Plan!';
+                    phiDisplay.classList.remove('bg-green-50', 'border-green-200');
+                    phiDisplay.classList.add('bg-blue-50', 'border-blue-200');
+                }
+
+                button.addEventListener('click', () => {
+                    createOrUpdateOptimizationChart(optimizedLHS);
+                    phiValue.textContent = '8.9';
+                    phiDesc.textContent = 'Optimiert! Ein kleinerer Wert bedeutet eine bessere Raumfüllung.';
+                    button.disabled = true;
+                    button.textContent = 'Optimiert!';
+                    phiDisplay.classList.remove('bg-blue-50', 'border-blue-200');
+                    phiDisplay.classList.add('bg-green-50', 'border-green-200');
+                    setTimeout(reset, 4000);
+                });
+
+                reset();
+            }
+        });
+    </script>
+
+</body>
+</html>

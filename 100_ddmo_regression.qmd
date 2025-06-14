@@ -220,7 +220,8 @@ $$
 f_L(X) = \beta_0 + \beta_1 X_1 + \ldots + \beta_p X_p.
 $$
 A linear model is specified in terms of $p + 1$ parameters
-$ \beta_1, \beta_2, \ldots, \beta_p$. We estimate the parameters by fitting the model to \emph{training data}. Although it is almost never correct,
+$\beta_1, \beta_2, \ldots, \beta_p$.
+We estimate the parameters by fitting the model to \emph{training data}. Although it is almost never correct,
 a linear model often serves as a good and interpretable approximation to the
 unknown true function $f(X)$.
 
