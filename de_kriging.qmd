@@ -1,6 +1,12 @@
 ---
 title: "Eine Einführung in Kriging"
-format: html
+format: 
+    html:
+        toc: true
+        code-fold: true
+    pdf:
+        toc: true
+        code-fold: true
 bibliography: bart23i.bib
 number-sections: true
 lang: de
@@ -144,13 +150,20 @@ $$\psi_{ij} = \text{corr}(\vec{x}^{(i)}, \vec{x}_{pred}^{(j)})$$
 
 **Code-Analyse (`build_psi`):** Die Funktion `build_psi` berechnet diese Matrix.
 
-1.  `D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)`: Hier wird `scipy.spatial.distance.cdist` verwendet, da wir Abstände zwischen Punkten aus zwei *verschiedenen* Mengen berechnen: den $m$ Vorhersagepunkten in `x_predict` und den $n$ Trainingspunkten in `X_train`. Dies führt zu einer $m \times n$ Matrix gewichteter quadrierter Abstände.
+```python
+def build_psi(X_train, x_predict, theta):
+    D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)
+    psi = exp(-D)
+    return psi.T
+```
+
+1.  `D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)`: Hier wird `scipy.spatial.distance.cdist` verwendet, siehe [https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html), da wir Abstände zwischen Punkten aus zwei *verschiedenen* Mengen berechnen: den $m$ Vorhersagepunkten in `x_predict` und den $n$ Trainingspunkten in `X_train`. Dies führt zu einer $m \times n$ Matrix gewichteter quadrierter Abstände.
 2.  `psi = exp(-D)`: Wie zuvor vervollständigt dies die Kernel-Berechnung.
-3.  `return psi.T`: Die resultierende Matrix wird transponiert, um die Größe $n \times m$ zu haben. Dies ist eine Konvention, um mit der in den Vorhersageformeln in Referenztexten wie Forrester et al. dargestellten Matrixalgebra übereinzustimmen.[1]
+3.  `return psi.T`: Die resultierende Matrix wird transponiert, um die Größe $n \times m$ zu haben. Dies ist eine Konvention, um mit der in den Vorhersageformeln in Referenztexten wie @Forr08a dargestellten Matrixalgebra übereinzustimmen.
 
 ### Abschnitt 5: Modellkalibrierung durch Maximum-Likelihood-Schätzung (MLE) {#sec-mle}
 
-Sobald die Struktur des Modells durch den Kernel definiert ist, müssen wir die optimalen Werte für seine Hyperparameter, nämlich $\vec{\theta}$ und $\vec{p}$, bestimmen. Der Code des Benutzers umgeht diesen entscheidenden Schritt, indem er `theta = 1.0` fest codiert, aber in jeder praktischen Anwendung müssen diese Parameter aus den Daten gelernt werden. Die gebräuchlichste und prinzipientreueste Methode hierfür ist die **Maximum-Likelihood-Schätzung (MLE)**.[1]
+Sobald die Struktur des Modells durch den Kernel definiert ist, müssen wir die optimalen Werte für seine Hyperparameter, nämlich $\vec{\theta}$ und $\vec{p}$, bestimmen. Der Code in @sec-example-de umgeht diesen Schritt, indem er `theta = 1.0` fest codiert, aber in jeder praktischen Anwendung müssen diese Parameter aus den Daten gelernt werden. Eine gebräuchliche Methode hierfür ist die **Maximum-Likelihood-Schätzung (MLE)**.
 
 Die Kernidee der MLE besteht darin, die Frage zu beantworten: „Welche Werte der Hyperparameter machen bei unseren beobachteten Daten diese Daten am wahrscheinlichsten?“ Wir finden die Parameter, die die Wahrscheinlichkeit maximieren, die Daten beobachtet zu haben, die wir tatsächlich gesammelt haben.
 
@@ -159,22 +172,41 @@ Die Kernidee der MLE besteht darin, die Frage zu beantworten: „Welche Werte de
 Unter der Annahme des Gauß-Prozesses wird die gemeinsame Wahrscheinlichkeit, den Antwortvektor $\vec{y}$ bei gegebenen Parametern zu beobachten, durch die multivariate normale Wahrscheinlichkeitsdichtefunktion beschrieben. Diese Funktion ist unsere Likelihood, $L$:
 $$
 L(\mu, \sigma^2, \vec{\theta}, \vec{p} | \vec{y}) = \frac{1}{(2\pi\sigma^2)^{n/2}|\Psi|^{1/2}} \exp\left[ - \frac{(\vec{y} - \vec{1}\mu)^T \vec{\Psi}^{-1}(\vec{y} - \vec{1}\mu) }{2 \sigma^2}\right].
-$$
-Hier sind $\mu$ und $\sigma^2$ der globale Mittelwert und die Varianz des Prozesses, und $\Psi$ ist die Korrelationsmatrix, die implizit von $\vec{\theta}$ und $\vec{p}$ abhängt.
+$$ {#eq-likelihood-de}
+Hier sind $\mu$ und $\sigma^2$ der globale Mittelwert und die Varianz des Prozesses, und $\Psi$ ist die Korrelationsmatrix, die implizit von $\vec{\theta}$ und $\vec{p}$ abhängt. Beachten Sie, dass $|\Psi|$ die Determinante (also ein reellwertiger Skalar) der Korrelationsmatrix ist.
 
 #### Die konzentrierte Log-Likelihood
 
-Die direkte Maximierung dieser Funktion ist schwierig. Aus Gründen der rechnerischen Stabilität und mathematischen Bequemlichkeit arbeiten wir stattdessen mit ihrem natürlichen Logarithmus, der Log-Likelihood. Eine wesentliche Vereinfachung ergibt sich, da wir für jedes gegebene $\vec{\theta}$ und $\vec{p}$ (und damit ein festes $\Psi$) die optimalen Werte für $\mu$ und $\sigma^2$ analytisch finden können, indem wir Ableitungen bilden und sie auf null setzen. Die MLE für den Mittelwert ist:
-$$\hat{\mu} = \frac{\mathbf{1}^T \Psi^{-1} \vec{y}}{\mathbf{1}^T \Psi^{-1} \mathbf{1}}$$
-Dies kann als verallgemeinerter gewichteter Durchschnitt der beobachteten Antworten interpretiert werden, wobei die Gewichtung die Korrelationsstruktur berücksichtigt. Ein ähnlicher Ausdruck existiert für die optimale Varianz, $\hat{\sigma}^2$.[1]
+Die direkte Maximierung der Likelihood-Funktion (@eq-likelihood-de) ist schwierig. Aus Gründen der rechnerischen Stabilität und mathematischen Bequemlichkeit arbeiten wir stattdessen mit ihrem natürlichen Logarithmus, der Log-Likelihood (siehe Gleichung (2.29) in @Forr08a):
+$$
+\ln(L) = -\frac{n}{2}\ln(2\pi) - \frac{n}{2}\ln(\sigma^2) - \frac{1}{2}\ln|\Psi| - \frac{(\vec{y} - \vec{1}\mu)^T \Psi^{-1}(\vec{y} - \vec{1}\mu)}{2\sigma^2}. 
+$$ {#eq-log-likelihood-de}
 
-Indem wir diese analytischen Ausdrücke für $\hat{\mu}$ und $\hat{\sigma}^2$ wieder in die Log-Likelihood-Funktion einsetzen, erhalten wir die **konzentrierte Log-Likelihood-Funktion**:
-$$\ln(L) \approx -\frac{n}{2}\ln(\hat{\sigma}^2) - \frac{1}{2}\ln|\Psi|$$
+
+Eine wesentliche Vereinfachung ergibt sich, da wir für jedes gegebene $\vec{\theta}$ und $\vec{p}$ (und damit ein festes $\Psi$) die optimalen Werte für $\mu$ und $\sigma^2$ analytisch finden können, indem wir Ableitungen bilden und sie auf null setzen. Die MLE für den Mittelwert ist (siehe Gleichung (2.30) in @Forr08a):
+$$
+\hat{\mu} = \frac{\mathbf{1}^T \Psi^{-1} \vec{y}}{\mathbf{1}^T \Psi^{-1} \mathbf{1}}.
+$$ {#eq-mu-hat-de}
+Die Berechnung in @eq-mu-hat-de kann als Berechung eines verallgemeinerten gewichteten Durchschnitts der beobachteten Antworten interpretiert werden, wobei die Gewichtung die Korrelationsstruktur berücksichtigt.
+
+Ein ähnlicher Ausdruck existiert für die optimale Varianz, $\hat{\sigma}^2$ (siehe Gleichung (2.31) in @Forr08a):
+$$
+\hat{\sigma}^2 = \frac{(\vec{y} - \mathbf{1}\hat{\mu})^T \Psi^{-1} (\vec{y} - \mathbf{1}\hat{\mu})}{n}.
+$$ 
+
+Indem wir diese analytischen Ausdrücke für $\hat{\mu}$ und $\hat{\sigma}^2$ wieder in die Log-Likelihood-Funktion (@eq-log-likelihood-de) einsetzen, erhalten wir die **konzentrierte Log-Likelihood-Funktion** (siehe Gleichung (2.32) in @Forr08a):
+$$
+\ln(L) \approx -\frac{n}{2}\ln(\hat{\sigma}^2) - \frac{1}{2}\ln|\Psi|.
+$$
 Diese vereinfachte Funktion hängt nun nur noch von den Hyperparametern $\vec{\theta}$ und $\vec{p}$ ab, die in $\Psi$ und $\hat{\sigma}^2$ eingebettet sind.
 
 #### Numerische Optimierung
 
-Wir können die optimalen $\vec{\theta}$ und $\vec{p}$ immer noch nicht analytisch lösen. Die konzentrierte Log-Likelihood ist jedoch eine skalare Funktion, die relativ schnell zu berechnen ist. Wir können daher einen numerischen Optimierungsalgorithmus – wie einen genetischen Algorithmus, Nelder-Mead oder Differential Evolution – verwenden, um den Hyperparameterraum zu durchsuchen und die Werte von $\vec{\theta}$ und $\vec{p}$ zu finden, die diese Funktion maximieren. Dieser Suchprozess ist die „Trainings“- oder „Anpassungs“-Phase beim Aufbau eines Kriging-Modells. Sobald die optimalen Hyperparameter gefunden sind, ist das Modell vollständig kalibriert und bereit, Vorhersagen zu treffen.
+Wir können die optimalen $\vec{\theta}$ und $\vec{p}$ nicht analytisch bestimmen.
+Die konzentrierte Log-Likelihood ist jedoch eine skalare Funktion, die relativ schnell zu berechnen ist.
+Wir können daher einen numerischen Optimierungsalgorithmus – wie einen genetischen Algorithmus, Nelder-Mead oder Differential Evolution – verwenden, um den Hyperparameterraum zu durchsuchen und die Werte von $\vec{\theta}$ und $\vec{p}$ zu finden, die diese Funktion maximieren.
+Dieser Suchprozess ist die „Trainings“- oder „Anpassungs“-Phase beim Aufbau eines Kriging-Modells.
+Sobald die optimalen Hyperparameter gefunden sind, ist das Modell vollständig kalibriert und bereit, Vorhersagen zu treffen.
 
 ## Teil III: Implementierung und Vorhersage
 
@@ -184,9 +216,11 @@ Nachdem der theoretische und mathematische Rahmen geschaffen wurde, konzentriert
 
 Das ultimative Ziel beim Aufbau eines Kriging-Modells ist die Vorhersage des Funktionswerts an neuen, unbeobachteten Punkten. Die hierfür verwendete Formel ist als **Bester Linearer Unverzerrter Prädiktor (BLUP)** bekannt. Sie liefert den Mittelwert des posterioren Gauß-Prozesses am Vorhersageort, was unsere beste Schätzung des Funktionswerts ist.
 
-Die Vorhersageformel lautet:
-$$\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \Psi^{-1} (\vec{y} - \mathbf{1}\hat{\mu})$$
-wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und alle anderen Terme wie im Glossar definiert sind. Lassen Sie uns diese Gleichung dekonstruieren, um eine Intuition aufzubauen:
+Die Vorhersageformel lautet (siehe Gleichung (2.40) in @Forr08a):
+$$
+\hat{y}(\vec{x}) = \hat{\mu} + \vec{\psi}^T \Psi^{-1} (\vec{y} - \mathbf{1}\hat{\mu}),
+$$ {#eq-blup-de}
+wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und alle anderen Terme wie im Glossar definiert sind.Im Folgenden beschreiben wir die einzelnen Komponenten dieser Gleichung und ihre Bedeutung:
 
 1.  **$\hat{\mu}$**: Die Vorhersage beginnt mit dem geschätzten globalen Mittelwert des Prozesses. Dies ist unsere Basisvermutung, bevor wir den Einfluss der lokalen Datenpunkte berücksichtigen.
 2.  **$(\vec{y} - \mathbf{1}\hat{\mu})$**: Dies ist der Vektor der Residuen. Er stellt die Differenz zwischen jedem beobachteten Datenpunkt und dem globalen Mittelwert dar. Dieser Vektor erfasst die spezifischen, lokalen Informationen, die unsere Trainingsdaten liefern.
@@ -195,8 +229,15 @@ wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und a
 
 **Code-Analyse (`mu_hat` und `f_predict`):** Der bereitgestellte Python-Code implementiert diesen Vorhersageprozess direkt.
 
-*   `mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))`: Dies ist eine direkte und numerisch stabile Implementierung der Formel für $\hat{\mu}$. Anstatt `Psi_inv` explizit zu berechnen, wird der auf Cholesky basierende Löser verwendet, der im nächsten Abschnitt detailliert wird. Der Ausdruck `solve(U, solve(U.T, y_train))` ist äquivalent zu `Psi_inv @ y_train`.
-*   `f_predict = mu_hat *... + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))`: Diese Zeile ist eine direkte Übersetzung der BLUP-Formel. Sie berechnet die Residuen `y_train - one * mu_hat`, multipliziert sie mit `Psi_inv` unter Verwendung des Cholesky-Lösers und berechnet dann das Skalarprodukt mit `psi.T`, bevor das Ergebnis zum Basiswert `mu_hat` addiert wird.
+```python
+U = cholesky(Psi).T
+one = np.ones(n).reshape(-1, 1)
+mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
+f_predict = mu_hat * np.ones(m).reshape(-1, 1) + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
+```
+
+*   `mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))`: Dies ist eine direkte und numerisch stabile Implementierung der Formel für $\hat{\mu}$, siehe @eq-mu-hat-de. Anstatt `Psi_inv` explizit zu berechnen, wird der auf Cholesky basierende Löser verwendet, der im nächsten Abschnitt detailliert wird. Der Ausdruck `solve(U, solve(U.T, y_train))` ist äquivalent zu `Psi_inv @ y_train`.
+*   `f_predict = mu_hat *... + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))`: Diese Zeile ist eine direkte Übersetzung der BLUP-Formel aus @eq-blup-de. Sie berechnet die Residuen `y_train - one * mu_hat`, multipliziert sie mit `Psi_inv` unter Verwendung des Cholesky-Lösers und berechnet dann das Skalarprodukt mit `psi.T`, bevor das Ergebnis zum Basiswert `mu_hat` addiert wird.
 
 ### Abschnitt 7: Numerische Best Practices und der Nugget-Effekt {#sec-numerical-best-practices}
 
