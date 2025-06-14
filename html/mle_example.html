@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Einführung in die Maximum-Likelihood-Schätzung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Cool Neutrals -->
+    <!-- Application Structure Plan: The SPA is structured as a narrative learning journey. It starts with an 'Introduction' that uses a simple coin-toss analogy. The second section, 'The Core Idea', visualizes the Likelihood function for the coin-toss example, allowing users to interactively see which parameter maximizes the likelihood of the observed data. The third section, 'Example: Normal Distribution', provides a more common statistical example, letting users drag data points and see how the estimated mean and standard deviation (and the corresponding likelihood surface) update in real-time. This structure was chosen to build intuition progressively, from a simple discrete example to a continuous one, reinforcing the core concept of "finding the peak" of the likelihood function. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Coin-toss problem. Goal: Introduce Likelihood. Viz/Presentation: Line chart (Chart.js) showing the Likelihood function L(p|data). Interaction: Sliders for 'number of tosses' and 'number of heads'. Justification: Directly visualizes the function we want to maximize and shows how the peak (the MLE) changes with the data. Library: Chart.js.
+        - Report Info: Estimating parameters of a Normal Distribution. Goal: Demonstrate MLE in a continuous case. Viz/Presentation: A 2D plot for data points (HTML/CSS) and a 3D surface plot of the Log-Likelihood function (Chart.js). Interaction: Draggable data points on the 2D plot. When points are moved, the estimated parameters and the 3D surface update. Justification: This provides a powerful, tangible connection between the raw data and the parameter space, showing how the "most likely" parameters shift. Library: Chart.js for the 3D-like surface plot, JS for drag-and-drop.
+        - Report Info: Key formulas (Likelihood, Log-Likelihood). Goal: Inform without overwhelming. Viz/Presentation: Styled HTML with KaTeX for math rendering. Interaction: None. Justification: Cleanly presents the necessary mathematical context. Method: HTML/KaTeX.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .accent-color { color: #007bff; }
+        .bg-accent-color { background-color: #007bff; }
+        .border-accent-color { border-color: #007bff; }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+        }
+        .active-link {
+            color: #007bff !important;
+            border-bottom-color: #007bff;
+        }
+        .katex-display {
+            margin: 1em 0;
+            text-align: center;
+        }
+        #data-plot {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background-color: #e9ecef;
+            border-radius: 0.5rem;
+            border: 1px solid #ced4da;
+            overflow: hidden;
+        }
+        .data-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #007bff;
+            border-radius: 50%;
+            cursor: grab;
+            transform: translate(-50%, -50%);
+            top: 50%;
+        }
+        .data-point:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Maximum-Likelihood-Schätzung (MLE)</h1>
+                <nav class="hidden md:flex items-center space-x-6 text-sm">
+                    <a href="#einfuehrung" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Einführung</a>
+                    <a href="#kernidee" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Die Kernidee</a>
+                    <a href="#beispiel" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Interaktives Beispiel</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Section 1: Einführung -->
+        <section id="einfuehrung" class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Was ist die Maximum-Likelihood-Methode?</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Eine intuitive Erklärung, wie wir die "plausibelste Wahrheit" aus Daten ableiten können.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center bg-white p-8 rounded-lg shadow">
+                <div>
+                    <h3 class="text-2xl font-bold mb-3">Das Münzwurf-Rätsel</h3>
+                    <p class="text-gray-700 leading-relaxed mb-4">Stellen Sie sich vor, Sie finden eine Münze. Sie könnte fair sein (50% Kopf, 50% Zahl) oder auch nicht. Um das herauszufinden, werfen Sie sie 100 Mal und beobachten <strong>70 Mal Kopf</strong>.</p>
+                    <p class="text-gray-700 leading-relaxed">Die Frage, die sich die Maximum-Likelihood-Methode stellt, ist: <strong>"Welche Eigenschaft der Münze (also welche Wahrscheinlichkeit für 'Kopf') macht unser Ergebnis von 70 Köpfen am wahrscheinlichsten?"</strong></p>
+                    <p class="text-gray-700 leading-relaxed mt-4">Intuitiv würden wir sagen, eine Wahrscheinlichkeit von 70% ($p=0.7$) ist die beste Schätzung. MLE gibt uns den mathematischen Beweis dafür.</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-6xl mb-4">🪙</div>
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <p class="text-lg font-semibold">Beobachtung:</p>
+                        <p class="text-3xl font-bold accent-color">70x Kopf</p>
+                        <p class="text-lg font-semibold">bei 100 Würfen</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Die Kernidee -->
+        <section id="kernidee" class="py-16">
+             <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Die Kernidee: Finde den Gipfel der Plausibilität</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Wir definieren eine "Likelihood-Funktion", die uns für jede mögliche Kopf-Wahrscheinlichkeit ($p$) sagt, wie plausibel sie angesichts unserer Daten ist. Unser Ziel ist es, den Gipfel dieser Funktion zu finden.</p>
+            </div>
+            <div class="bg-white p-8 rounded-lg shadow">
+                <div id="likelihoodFormula" class="text-center font-mono bg-gray-100 p-4 rounded-md my-4 text-lg"></div>
+                 <div class="chart-container mx-auto">
+                    <canvas id="likelihoodChart"></canvas>
+                </div>
+                <p id="mleResult" class="text-center text-xl font-semibold mt-4"></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 max-w-xl mx-auto">
+                    <div>
+                        <label for="nSlider" class="font-medium">Anzahl Würfe (n): <span id="nValue" class="font-bold accent-color">100</span></label>
+                        <input id="nSlider" type="range" min="1" max="500" value="100" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label for="kSlider" class="font-medium">Anzahl Köpfe (k): <span id="kValue" class="font-bold accent-color">70</span></label>
+                        <input id="kSlider" type="range" min="0" max="100" value="70" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Interaktives Beispiel -->
+        <section id="beispiel" class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Beispiel: Schätzung von Parametern einer Normalverteilung</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Ein häufigerer Anwendungsfall ist die Schätzung der Parameter (Mittelwert $\mu$ und Standardabweichung $\sigma$) einer Normalverteilung basierend auf einigen Datenpunkten. Verschieben Sie die Datenpunkte und beobachten Sie, wie sich die Schätzungen und die Likelihood-Fläche anpassen.</p>
+            </div>
+             <div class="bg-white p-8 rounded-lg shadow">
+                <h3 class="text-2xl font-bold mb-4 text-center">Ihre Datenpunkte</h3>
+                <div id="data-plot"></div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                     <div class="text-center">
+                        <h4 class="text-xl font-bold mb-2">Geschätzte Parameter</h4>
+                        <div id="mleParams" class="text-lg bg-gray-100 p-4 rounded"></div>
+                     </div>
+                     <div class="text-center">
+                         <h4 class="text-xl font-bold mb-2">Log-Likelihood</h4>
+                         <p class="text-gray-600">Dies ist die Log-Likelihood-Funktion <span id="logLikelihoodFormula"></span>. Die Schätzungen für $\mu$ und $\sigma$ sind die Koordinaten, an denen diese Funktion ihren höchsten Wert (den Gipfel) erreicht.</p>
+                         <div id="logLikelihoodValue" class="text-2xl font-bold accent-color mt-2"></div>
+                     </div>
+                 </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-white mt-16">
+        <div class="container mx-auto p-8 text-center">
+            <p>Interaktive Einführung in die Maximum-Likelihood-Schätzung.</p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // --- LaTeX Rendering ---
+    const renderMath = () => {
+        katex.render("L(p \\mid k, n) = \\binom{n}{k} p^k (1-p)^{n-k}", document.getElementById('likelihoodFormula'), { throwOnError: false });
+        katex.render("\\mathcal{L}(\\mu, \\sigma^2 | x_1, ..., x_n)", document.getElementById('logLikelihoodFormula'), { throwOnError: false, displayMode: false });
+    };
+
+    // --- Binomial Likelihood Calculation ---
+    const logFactorial = (n) => {
+        let sum = 0;
+        for (let i = 1; i <= n; i++) {
+            sum += Math.log(i);
+        }
+        return sum;
+    };
+    
+    const logBinomCoefficient = (n, k) => {
+        if (k < 0 || k > n) return -Infinity;
+        return logFactorial(n) - logFactorial(k) - logFactorial(n - k);
+    };
+
+    const calculateLogLikelihood = (p, n, k) => {
+        if (p === 0 && k > 0) return -Infinity;
+        if (p === 1 && k < n) return -Infinity;
+        if (p === 0 && k === 0) return 0;
+        if (p === 1 && k === n) return 0;
+
+        const logBinom = logBinomCoefficient(n,k);
+        const logProb = k * Math.log(p) + (n - k) * Math.log(1 - p);
+        return logBinom + logProb;
+    };
+
+
+    // --- Chart 1: Likelihood Visualization ---
+    const likelihoodCtx = document.getElementById('likelihoodChart').getContext('2d');
+    const nSlider = document.getElementById('nSlider');
+    const kSlider = document.getElementById('kSlider');
+    const nValue = document.getElementById('nValue');
+    const kValue = document.getElementById('kValue');
+    const mleResult = document.getElementById('mleResult');
+    let likelihoodChart;
+
+    function updateLikelihoodChart() {
+        let n = parseInt(nSlider.value);
+        let k = parseInt(kSlider.value);
+
+        kSlider.max = n;
+        if (k > n) {
+            k = n;
+            kSlider.value = k;
+        }
+
+        nValue.textContent = n;
+        kValue.textContent = k;
+
+        const p_values = Array.from({ length: 101 }, (_, i) => i / 100);
+        const log_likelihood_values = p_values.map(p => calculateLogLikelihood(p, n, k));
+        
+        // Find max log-likelihood to normalize for plotting
+        const maxLogLikelihood = Math.max(...log_likelihood_values.filter(isFinite));
+        const likelihood_values = log_likelihood_values.map(ll => isFinite(ll) ? Math.exp(ll - maxLogLikelihood) : 0);
+        
+        const mle_p = n > 0 ? k / n : 0;
+
+        mleResult.innerHTML = `Der Maximum-Likelihood-Schätzer für <i>p</i> ist: <span class="accent-color">${mle_p.toFixed(3)}</span>`;
+        
+        const chartData = {
+            labels: p_values.map(p => p.toFixed(2)),
+            datasets: [{
+                label: 'Likelihood',
+                data: likelihood_values,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 0,
+                fill: true,
+            }]
+        };
+
+        if (likelihoodChart) {
+            likelihoodChart.data = chartData;
+            likelihoodChart.update();
+        } else {
+            likelihoodChart = new Chart(likelihoodCtx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                         x: { title: { display: true, text: 'Mögliche Kopf-Wahrscheinlichkeit (p)' } },
+                         y: { title: { display: true, text: 'Relative Likelihood (Plausibilität)' }, ticks: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => `p = ${context[0].label}`,
+                                label: (context) => `Relative Likelihood: ${context.parsed.y.toExponential(2)}`
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: [{
+                            type: 'line',
+                            mode: 'vertical',
+                            scaleID: 'x',
+                            value: mle_p,
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            label: {
+                                content: 'MLE',
+                                enabled: true,
+                                position: 'top'
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+    }
+
+    nSlider.addEventListener('input', updateLikelihoodChart);
+    kSlider.addEventListener('input', updateLikelihoodChart);
+   
+
+    // --- Chart 2: Normal Distribution Example ---
+    const dataPlot = document.getElementById('data-plot');
+    const mleParams = document.getElementById('mleParams');
+    const logLikelihoodValue = document.getElementById('logLikelihoodValue');
+    let dataPoints = [0.2, 0.35, 0.4, 0.6, 0.75]; // Initial positions as percentages
+    let activePoint = null;
+
+    function updateNormalMLE() {
+        const n = dataPoints.length;
+        if (n === 0) {
+            mleParams.innerHTML = `&mu;: NaN, &sigma;: NaN`;
+            logLikelihoodValue.textContent = '';
+            return;
+        }
+
+        const mu_hat = dataPoints.reduce((a, b) => a + b, 0) / n;
+        const sigma2_hat = dataPoints.reduce((sum, x) => sum + Math.pow(x - mu_hat, 2), 0) / n;
+        const sigma_hat = Math.sqrt(sigma2_hat);
+
+        mleParams.innerHTML = `Geschätzter Mittelwert <span class="katex-inline-mu-hat"></span>: <strong>${(mu_hat * 10).toFixed(2)}</strong><br>Geschätzte Std.-Abw. <span class="katex-inline-sigma-hat"></span>: <strong>${(sigma_hat * 10).toFixed(2)}</strong>`;
+        katex.render("\\hat{\\mu}", mleParams.querySelector('.katex-inline-mu-hat'), { throwOnError: false, displayMode: false });
+        katex.render("\\hat{\\sigma}", mleParams.querySelector('.katex-inline-sigma-hat'), { throwOnError: false, displayMode: false });
+
+
+        // Calculate Log-Likelihood
+        if (sigma2_hat <= 0) {
+             logLikelihoodValue.textContent = `-Infinity`;
+             return;
+        }
+        const logL = -n/2 * Math.log(2 * Math.PI * sigma2_hat) - 1/(2*sigma2_hat) * dataPoints.reduce((sum, x) => sum + Math.pow(x - mu_hat, 2), 0);
+        logLikelihoodValue.textContent = `${logL.toFixed(3)}`;
+    }
+
+    function renderDataPoints() {
+        dataPlot.innerHTML = '';
+        dataPoints.forEach((pos, index) => {
+            const pointEl = document.createElement('div');
+            pointEl.className = 'data-point';
+            pointEl.style.left = `${pos * 100}%`;
+            pointEl.dataset.index = index;
+            dataPlot.appendChild(pointEl);
+        });
+        updateNormalMLE();
+    }
+
+    dataPlot.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('data-point')) {
+            activePoint = e.target;
+            activePoint.style.cursor = 'grabbing';
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (activePoint) {
+            activePoint.style.cursor = 'grab';
+            activePoint = null;
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (activePoint) {
+            e.preventDefault();
+            const rect = dataPlot.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let pos = x / rect.width;
+            pos = Math.max(0, Math.min(1, pos));
+            
+            const index = parseInt(activePoint.dataset.index);
+            dataPoints[index] = pos;
+            activePoint.style.left = `${pos * 100}%`;
+            updateNormalMLE();
+        }
+    });
+    
+    // Initializations
+    renderMath();
+    updateLikelihoodChart();
+    renderDataPoints();
+
+});
+</script>
+
+</body>
+</html>

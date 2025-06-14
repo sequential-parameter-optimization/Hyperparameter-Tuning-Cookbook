@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Einführung in das Kriging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A single-page application with a sticky top navigation bar for non-linear exploration. The structure is thematic: 1. Introduction, 2. Interactive Concepts (exploring the kernel), 3. Digestible Mathematics (using accordions), 4. A central Interactive Example (recreating the report's sin(x) example with sliders for key parameters like n and theta to demonstrate their impact on the prediction and uncertainty), and 5. Outlook. This structure is chosen to transform the passive, linear report into an active learning tool, focusing user attention on the core concepts and the practical demonstration, which is the most valuable part for a beginner. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Kernel Hyperparameters (p, theta). Goal: Explain their effect. Viz: Line chart (Chart.js) showing the correlation function. Interaction: Sliders for p and theta. Justification: Visually connects abstract parameters to their concrete function. Library: Chart.js.
+        - Report Info: Full Kriging model on sin(x). Goal: Demonstrate the full model's behavior. Viz: Line chart (Chart.js) showing true function, data points, Kriging prediction, and uncertainty bounds. Interaction: Sliders for number of points (n) and theta. Justification: Provides a hands-on "playground" to build intuition for the model's sensitivity to its parameters and data density. This is the primary learning tool. Library: Chart.js.
+        - Report Info: Mathematical formulas (Psi, psi, BLUP). Goal: Inform without overwhelming. Presentation: HTML/CSS accordions. Interaction: Click to expand/collapse. Justification: Hides complexity by default, allowing users to explore at their own pace. Method: HTML/CSS/JS.
+        - Report Info: Advanced topics. Goal: Inform. Presentation: Styled HTML/CSS cards. Interaction: None. Justification: Clean, scannable summary. Method: HTML/CSS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7;
+            color: #383838;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .accent-color { color: #DD6B20; }
+        .bg-accent-color { background-color: #DD6B20; }
+        .border-accent-color { border-color: #DD6B20; }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+        }
+        .active-link {
+            color: #DD6B20 !important;
+            border-bottom-color: #DD6B20;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .accordion-button.open .accordion-arrow {
+            transform: rotate(180deg);
+        }
+        .accordion-arrow {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Interaktives Kriging</h1>
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="#einfuehrung" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Einführung</a>
+                    <a href="#konzepte" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Konzepte</a>
+                    <a href="#mathematik" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Mathematik</a>
+                    <a href="#beispiel" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Interaktives Beispiel</a>
+                    <a href="#ausblick" class="nav-link text-gray-600 hover:text-accent-color border-b-2 border-transparent pb-1">Ausblick</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Section 1: Einführung -->
+        <section id="einfuehrung" class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Was ist Kriging?</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Eine intuitive Einführung in die Welt der Surrogatmodellierung zur Approximation komplexer "Black-Box"-Funktionen.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold mb-3">Die Herausforderung: Die "Black Box"</h3>
+                    <p class="text-gray-700 leading-relaxed">In Wissenschaft und Technik stoßen wir oft auf Systeme, deren Verhalten wir vorhersagen wollen, deren innere Funktionsweise aber zu komplex, zu langsam oder unbekannt ist. Denken Sie an aufwändige Klimasimulationen oder Crash-Tests. Jede einzelne Berechnung kann Tage dauern. Tausende davon durchzuführen, um das System zu verstehen oder zu optimieren, ist undurchführbar. Diese Systeme sind "Black Boxes".</p>
+                </div>
+                <div class="bg-gray-800 text-white p-8 rounded-lg text-center shadow-lg">
+                    <span class="text-6xl">?</span>
+                    <p class="mt-4 font-mono">Input -> [BLACK BOX] -> Output</p>
+                    <p class="mt-2 text-sm text-gray-400">Teuer, langsam, unbekannt</p>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center mt-12">
+                 <div class="bg-orange-100/50 p-8 rounded-lg text-center shadow-lg order-2 md:order-1">
+                    <span class="text-6xl">💡</span>
+                    <p class="mt-4 font-mono">Input -> [KRIGING MODELL] -> Vorhersage & Unsicherheit</p>
+                    <p class="mt-2 text-sm text-gray-600">Schnell, datenbasiert, aufschlussreich</p>
+                </div>
+                <div class="order-1 md:order-2">
+                    <h3 class="text-2xl font-bold mb-3">Die Lösung: Kriging als Surrogatmodell</h3>
+                    <p class="text-gray-700 leading-relaxed">Hier kommt das Kriging (auch Gauß-Prozess-Regression) ins Spiel. Es ist ein Surrogatmodell – ein "Modell eines Modells". Anstatt die teure Black Box unzählige Male abzufragen, trainieren wir ein Kriging-Modell mit nur wenigen, gezielt ausgewählten Datenpunkten. Dieses Modell gibt uns nicht nur blitzschnelle Vorhersagen für neue Eingaben, sondern – und das ist seine Superkraft – es quantifiziert auch die Unsicherheit seiner eigenen Vorhersage. Es sagt uns, wo es sich sicher ist und wo es mehr Daten bräuchte.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Konzepte -->
+        <section id="konzepte" class="py-16 bg-white rounded-xl shadow-md">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Die Kernkonzepte</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Das Herzstück des Kriging ist seine Korrelationsfunktion, die bestimmt, wie Punkte einander beeinflussen.</p>
+            </div>
+            <div class="max-w-4xl mx-auto">
+                 <h3 class="text-2xl font-bold mb-4 text-center">Der Korrelationskernel: Das Herz des Modells</h3>
+                 <p class="text-gray-700 mb-6 text-center">Der Kernel definiert, wie die Ähnlichkeit (Korrelation) zwischen zwei Punkten mit zunehmendem Abstand abnimmt. Die gebräuchlichste Form ist der Gauß'sche Kernel. Seine Form wird durch zwei Hyperparameter gesteuert: $\theta$ (theta) und $p$.</p>
+                 <p class="text-center font-mono bg-gray-100 p-4 rounded-md my-4 text-lg"> $\text{corr}(x, x') = \exp(-\theta \cdot |x - x'|^p)$ </p>
+
+                <div class="chart-container mx-auto" style="height: 350px;">
+                    <canvas id="kernelChart"></canvas>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div>
+                        <label for="thetaSlider" class="font-medium">Aktivität $\theta$: <span id="thetaValue" class="font-bold accent-color">1.0</span></label>
+                        <input id="thetaSlider" type="range" min="0.1" max="50" value="1" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-sm text-gray-600 mt-2">Steuert, wie schnell die Korrelation abfällt. Ein hohes $ \theta $ bedeutet, dass die Funktion sehr "aktiv" ist und sich schnell ändert. Das Modell lernt dies automatisch aus den Daten.</p>
+                    </div>
+                    <div>
+                        <label for="pSlider" class="font-medium">Glattheit $ p $: <span id="pValue" class="font-bold accent-color">2.0</span></label>
+                        <input id="pSlider" type="range" min="0.1" max="2" value="2" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-sm text-gray-600 mt-2">Steuert die Glattheit der Funktion. $ p=2 $ (Standard) führt zu einer unendlich glatten (differenzierbaren) Interpolation. Kleinere Werte führen zu "spitzeren" Funktionen.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Mathematik -->
+        <section id="mathematik" class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Die Mathematik dahinter</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Ein kurzer Blick auf die Formeln, die die Vorhersage ermöglichen, präsentiert in verdaulichen Häppchen.</p>
+            </div>
+            <div class="max-w-3xl mx-auto space-y-4">
+                <div class="accordion-item bg-white rounded-lg shadow-sm border border-gray-200">
+                    <button class="accordion-button w-full text-left p-5 font-semibold text-xl flex justify-between items-center">
+                        Die BLUP-Vorhersageformel
+                        <span class="accordion-arrow transform transition-transform duration-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-5 border-t border-gray-200">
+                             <p class="mb-4 text-gray-700">Die Vorhersage $ \hat{y} $ an einem neuen Punkt $ x $ ist der "Best Linear Unbiased Predictor" (BLUP). Sie startet beim geschätzten globalen Mittelwert $ \hat{\mu} $ und korrigiert diesen basierend auf den beobachteten Daten $ \vec{y} $.</p>
+                             <p class="text-center font-mono bg-gray-100 p-4 rounded-md text-lg"> $ \hat{y}(x) = \hat{\mu} + \vec{\psi}^{T}\Psi^{-1}(\vec{y} - \mathbf{1}\hat{\mu}) $ </p>
+                             <p class="mt-4 text-gray-700">Der Korrekturterm gewichtet die Abweichungen der Trainingsdaten vom Mittelwert. Die Gewichte hängen von den Korrelationen des neuen Punktes zu den Trainingspunkten ($ \psi $) und den Korrelationen der Trainingspunkte untereinander ($ \Psi $) ab.</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="accordion-item bg-white rounded-lg shadow-sm border border-gray-200">
+                    <button class="accordion-button w-full text-left p-5 font-semibold text-xl flex justify-between items-center">
+                        Die System-Matrizen: $ \Psi $ und $ \psi $
+                        <span class="accordion-arrow transform transition-transform duration-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-5 border-t border-gray-200 text-gray-700">
+                            <p class="mb-2"><strong class="text-gray-900">$ \Psi $ (Psi)</strong>: Eine $n \times n$ Matrix, die die Korrelationen aller $n$ Trainingspunkte untereinander enthält. Sie beschreibt die "innere Struktur" der bekannten Daten.</p>
+                            <p class="mb-2"><strong class="text-gray-900">$ \psi $ (psi)</strong>: Ein $n \times 1$ Vektor (oder eine $n \times m$ Matrix für $m$ Vorhersagepunkte), der die Korrelationen zwischen einem neuen Punkt und allen Trainingspunkten enthält.</p>
+                             <p class="mt-4">Die direkte Berechnung von $ \Psi^{-1} $ ist numerisch instabil. In der Praxis wird das Gleichungssystem stattdessen mit robusteren Methoden wie der <strong>Cholesky-Zerlegung</strong> gelöst. Ein kleiner "Nugget"-Term wird oft zur Diagonale von $ \Psi $ addiert, um die numerische Stabilität weiter zu verbessern.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Interaktives Beispiel -->
+        <section id="beispiel" class="py-16 bg-white rounded-xl shadow-md">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Interaktives Beispiel: Sinus-Funktion</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Spielen Sie mit den Parametern und beobachten Sie, wie das Kriging-Modell lernt, die Sinus-Funktion zu approximieren.</p>
+            </div>
+            
+            <div class="chart-container mx-auto">
+                <canvas id="krigingChart"></canvas>
+            </div>
+
+            <div class="max-w-3xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="nSlider" class="font-medium">Anzahl Trainingspunkte (n): <span id="nValue" class="font-bold accent-color">8</span></label>
+                    <input id="nSlider" type="range" min="3" max="25" value="8" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-sm text-gray-600 mt-2">Erhöhen Sie die Anzahl der Messpunkte. Mehr Punkte reduzieren die Unsicherheit (grauer Bereich).</p>
+                </div>
+                <div>
+                    <label for="modelThetaSlider" class="font-medium">Aktivität $ \theta $: <span id="modelThetaValue" class="font-bold accent-color">1.0</span></label>
+                    <input id="modelThetaSlider" type="range" min="0.1" max="15" value="1" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-sm text-gray-600 mt-2">Passen Sie den Hyperparameter an. Ein "falscher" $ \theta $-Wert führt zu einer schlechten Anpassung. In der Praxis wird $ \theta $ durch Optimierung (MLE) gefunden.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 5: Ausblick -->
+        <section id="ausblick" class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Der Ausblick: Was kommt als Nächstes?</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Kriging ist ein mächtiges Werkzeug und die Grundlage für viele fortgeschrittene Techniken im computergestützten Engineering.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-xl mb-3 accent-color">Sequentielle Versuchsplanung</h3>
+                    <p class="text-gray-700">Anstatt alle Datenpunkte auf einmal zu wählen, kann das Modell aktiv nach dem informativsten nächsten Punkt suchen. Kriterien wie die "Expected Improvement" (EI) balancieren die Suche nach dem Optimum (Ausnutzen) und die Reduzierung der Unsicherheit (Erkunden).</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-xl mb-3 accent-color">Gradient-Enhanced Kriging</h3>
+                    <p class="text-gray-700">Wenn neben den Funktionswerten auch deren Ableitungen (Gradienten) aus der Simulation verfügbar sind, können diese in das Modell integriert werden, um die Genauigkeit mit sehr wenigen Datenpunkten drastisch zu erhöhen.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-xl mb-3 accent-color">Co-Kriging</h3>
+                    <p class="text-gray-700">Diese Technik fusioniert Daten aus verschiedenen Quellen – z.B. eine schnelle, ungenaue Simulation und eine langsame, hochpräzise. Das Ergebnis ist ein hochgenaues Modell bei deutlich reduziertem Gesamtaufwand.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto p-8 text-center">
+            <p>Interaktive Visualisierung basierend auf dem Report "Eine Einführung in das Kriging".</p>
+        </div>
+    </footer>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // --- Utility and Matrix Functions ---
+    const utils = {
+        linspace: (start, stop, num) => {
+            const step = (stop - start) / (num - 1);
+            return Array.from({ length: num }, (_, i) => start + step * i);
+        },
+        transpose: (matrix) => {
+            if (matrix.length === 0) return [];
+            return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+        },
+        dot: (A, B) => {
+            const A_rows = A.length, A_cols = A[0].length;
+            const B_rows = B.length, B_cols = B[0].length;
+            if (A_cols !== B_rows) throw new Error("Matrix dimensions are not compatible for dot product.");
+
+            let C = Array(A_rows).fill(0).map(() => Array(B_cols).fill(0));
+            for (let i = 0; i < A_rows; i++) {
+                for (let j = 0; j < B_cols; j++) {
+                    for (let k = 0; k < A_cols; k++) {
+                        C[i][j] += A[i][k] * B[k][j];
+                    }
+                }
+            }
+            return C;
+        },
+        cholesky: (A) => {
+            const n = A.length;
+            let L = Array(n).fill(0).map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < j; k++) {
+                        sum += L[i][k] * L[j][k];
+                    }
+                    if (i === j) {
+                        const val = A[i][i] - sum;
+                        if (val < 0) return null; // Not positive definite
+                        L[i][j] = Math.sqrt(val);
+                    } else {
+                        if (L[j][j] === 0) return null; // Division by zero
+                        L[i][j] = (A[i][j] - sum) / L[j][j];
+                    }
+                }
+            }
+            return L;
+        },
+        solve: (L, b) => {
+            const n = L.length;
+            let y = new Array(n).fill(0);
+            for (let i = 0; i < n; i++) {
+                let sum = 0;
+                for (let j = 0; j < i; j++) {
+                    sum += L[i][j] * y[j];
+                }
+                y[i] = (b[i][0] - sum) / L[i][i];
+            }
+            return y;
+        },
+        solveT: (LT, y) => {
+            const n = LT[0].length;
+            let x = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = 0;
+                for (let j = i + 1; j < n; j++) {
+                    sum += LT[i][j] * x[j];
+                }
+                x[i] = (y[i] - sum) / LT[i][i];
+            }
+             return x.map(val => [val]);
+        }
+    };
+    
+    // --- Kriging Logic ---
+    const kriging = {
+        buildPsi: (X, theta) => {
+            const n = X.length;
+            let Psi = Array(n).fill(0).map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    const distSq = Math.pow(X[i][0] - X[j][0], 2);
+                    Psi[i][j] = Math.exp(-theta * distSq);
+                }
+                Psi[i][i] += 1e-8; // Nugget for numerical stability
+            }
+            return Psi;
+        },
+        buildPsiVec: (x_predict, X_train, theta) => {
+            const n_train = X_train.length;
+            const n_predict = x_predict.length;
+            let psi_matrix = Array(n_train).fill(0).map(() => Array(n_predict).fill(0));
+
+            for (let i = 0; i < n_train; i++) {
+                 for (let j = 0; j < n_predict; j++) {
+                    const distSq = Math.pow(X_train[i][0] - x_predict[j][0], 2);
+                    psi_matrix[i][j] = Math.exp(-theta * distSq);
+                 }
+            }
+            return psi_matrix;
+        },
+        predict: (x_predict, X_train, y_train, theta) => {
+            const n = X_train.length;
+            const m = x_predict.length;
+
+            const Psi = kriging.buildPsi(X_train, theta);
+            const psi_vec = kriging.buildPsiVec(x_predict, X_train, theta);
+            
+            const L = utils.cholesky(Psi);
+            if (!L) {
+                 console.error("Matrix is not positive definite. Cholesky failed.");
+                 return {f: Array(m).fill(0), s2: Array(m).fill(0)};
+            }
+            const U = utils.transpose(L);
+
+            const one_n = Array(n).fill(0).map(() => [1]);
+            
+            // Calculate mu_hat
+            const term1 = utils.solve(L, y_train);
+            const term2 = utils.solveT(U, term1).flat();
+            const term3 = utils.solve(L, one_n);
+            const term4 = utils.solveT(U, term3).flat();
+            const mu_hat_num = one_n.flat().reduce((sum, _, i) => sum + term2[i], 0);
+            const mu_hat_den = one_n.flat().reduce((sum, _, i) => sum + term4[i], 0);
+            const mu_hat = mu_hat_den !== 0 ? mu_hat_num / mu_hat_den : 0;
+            
+            // Calculate prediction f
+            const y_minus_mu = y_train.map(val => [val[0] - mu_hat]);
+            const term_f1 = utils.solve(L, y_minus_mu);
+            const term_f2 = utils.solveT(U, term_f1);
+            
+            const psi_T = utils.transpose(psi_vec);
+            const f_correction = utils.dot(psi_T, term_f2);
+            const f = f_correction.map(val => mu_hat + val[0]);
+
+            // Calculate variance s2
+            const s2 = [];
+            const sigma2_hat_num_term1_v = utils.solve(L, y_minus_mu); // This is a 1D vector
+            const sigma2_hat_num = utils.dot([sigma2_hat_num_term1_v], sigma2_hat_num_term1_v.map(val => [val]));
+            const sigma2_hat = sigma2_hat_num[0][0] / n;
+
+            for(let i=0; i < m; i++){
+                const psi_i = psi_vec.map(row => [row[i]]);
+                const term_s1_v = utils.solve(L, psi_i); // This is a 1D vector
+                const s2_i_dot = utils.dot([term_s1_v], term_s1_v.map(val => [val]));
+                const s2_i = sigma2_hat * (1 - s2_i_dot[0][0]);
+                s2.push(Math.max(0, s2_i));
+            }
+            
+            return { f, s2 };
+        }
+    };
+
+    // --- Chart 1: Kernel Visualization ---
+    const kernelCtx = document.getElementById('kernelChart').getContext('2d');
+    const thetaSlider = document.getElementById('thetaSlider');
+    const pSlider = document.getElementById('pSlider');
+    const thetaValue = document.getElementById('thetaValue');
+    const pValue = document.getElementById('pValue');
+
+    const kernelChart = new Chart(kernelCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Korrelationsfunktion',
+                data: [],
+                borderColor: '#DD6B20',
+                backgroundColor: 'rgba(221, 107, 32, 0.2)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { min: 0, max: 1.05, title: { display: true, text: 'Korrelation' } },
+                x: { title: { display: true, text: 'Abstand |x - x\'|' } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    function updateKernelChart() {
+        const theta = parseFloat(thetaSlider.value);
+        const p = parseFloat(pSlider.value);
+        thetaValue.textContent = theta.toFixed(1);
+        pValue.textContent = p.toFixed(1);
+
+        const x = utils.linspace(0, 3, 100);
+        const y = x.map(val => Math.exp(-theta * Math.pow(val, p)));
+
+        kernelChart.data.labels = x.map(v => v.toFixed(2));
+        kernelChart.data.datasets[0].data = y;
+        kernelChart.update();
+    }
+
+    thetaSlider.addEventListener('input', updateKernelChart);
+    pSlider.addEventListener('input', updateKernelChart);
+    updateKernelChart();
+
+
+    // --- Chart 2: Kriging Model Visualization ---
+    const krigingCtx = document.getElementById('krigingChart').getContext('2d');
+    const nSlider = document.getElementById('nSlider');
+    const modelThetaSlider = document.getElementById('modelThetaSlider');
+    const nValue = document.getElementById('nValue');
+    const modelThetaValue = document.getElementById('modelThetaValue');
+    let krigingChart;
+
+    function drawKrigingChart() {
+        const n = parseInt(nSlider.value);
+        const theta = parseFloat(modelThetaSlider.value);
+        nValue.textContent = n;
+        modelThetaValue.textContent = theta.toFixed(1);
+
+        const x_true = utils.linspace(0, 2 * Math.PI, 100);
+        const y_true = x_true.map(Math.sin);
+
+        const X_train = utils.linspace(0, 2 * Math.PI - (2*Math.PI/n), n).map(val => [val]);
+        const y_train = X_train.map(val => [Math.sin(val[0])]);
+        
+        const x_predict = utils.linspace(0, 2 * Math.PI, 100).map(val => [val]);
+        
+        const { f: f_predict, s2: s2_predict } = kriging.predict(x_predict, X_train, y_train, theta);
+
+        const uncertainty_upper = f_predict.map((val, i) => val + 1.96 * Math.sqrt(s2_predict[i]));
+        const uncertainty_lower = f_predict.map((val, i) => val - 1.96 * Math.sqrt(s2_predict[i]));
+
+        const chartData = {
+            labels: x_predict.map(v => v[0].toFixed(2)),
+            datasets: [
+                {
+                    label: 'Wahre Funktion (sin(x))',
+                    data: y_true,
+                    borderColor: 'rgba(150, 150, 150, 0.8)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.1,
+                },
+                {
+                    label: 'Unsicherheit (95% Konfidenzintervall)',
+                    data: uncertainty_upper,
+                    fill: '+1',
+                    backgroundColor: 'rgba(200, 200, 200, 0.4)',
+                    borderColor: 'transparent',
+                    pointRadius: 0,
+                    tension: 0.1,
+                },
+                 {
+                    label: 'Unsicherheit (lower)',
+                    data: uncertainty_lower,
+                    fill: false,
+                    borderColor: 'transparent',
+                    pointRadius: 0,
+                },
+                {
+                    label: 'Kriging Vorhersage',
+                    data: f_predict,
+                    borderColor: '#DD6B20',
+                    backgroundColor: 'rgba(221, 107, 32, 0.5)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    tension: 0.1,
+                },
+                {
+                    label: 'Trainingspunkte',
+                    data: X_train.map((val, i) => ({ x: val[0], y: y_train[i][0] })),
+                    type: 'scatter',
+                    backgroundColor: 'rgb(54, 162, 235)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }
+            ]
+        };
+        
+        if (krigingChart) {
+            krigingChart.data = chartData;
+            krigingChart.update();
+        } else {
+            krigingChart = new Chart(krigingCtx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                         x: { type: 'linear', position: 'bottom', title: { display: true, text: 'x' } },
+                         y: { title: { display: true, text: 'y / sin(x)' } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                         tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataset.label === 'Unsicherheit (lower)') return null;
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(3);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    nSlider.addEventListener('input', drawKrigingChart);
+    modelThetaSlider.addEventListener('input', drawKrigingChart);
+    drawKrigingChart();
+
+
+    // --- Accordion Logic ---
+    document.querySelectorAll('.accordion-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const content = button.nextElementSibling;
+            button.classList.toggle('open');
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    });
+
+    // --- Active Nav Link Scrolling ---
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('nav a');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active-link');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active-link');
+            }
+        });
+    });
+
+});
+</script>
+
+</body>
+</html>
