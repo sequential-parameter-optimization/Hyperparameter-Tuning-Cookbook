@@ -803,7 +803,7 @@ plt.legend(loc='upper right')
 plt.show()
 ```
 
-### The Complete Python Code for the Example
+### The Complete Python Code for the Example {#sec-kriging-example-006}
 
 Here is the self-contained Python code for direct use in a notebook:
 
