@@ -1,5 +1,5 @@
 ---
-title: "Eine Einführung in Kriging"
+title: "Lernmodul: Eine Einführung in Kriging"
 format: 
     html:
         toc: true
@@ -13,9 +13,9 @@ lang: de
 ---
 
 
-## Teil I: Konzeptionelle Grundlagen des Kriging
+## Konzeptionelle Grundlagen des Kriging
 
-### Abschnitt 1: Von einfachen Modellen zur intelligenten Interpolation
+### Von einfachen Modellen zur intelligenten Interpolation
 
 In der modernen ingenieur- und naturwissenschaftlichen Forschung werden Praktiker häufig mit „Black-Box“-Funktionen konfrontiert. Dies sind Systeme oder Simulationen, deren interne Funktionsweise entweder unbekannt oder so komplex ist, dass sie praktisch undurchschaubar ist. Ein gängiges Beispiel ist eine hochpräzise Simulation der numerischen Strömungsmechanik (CFD), bei der Eingaben wie die Flügelgeometrie oder die Strömungsgeschwindigkeit Ausgaben wie Auftrieb und Luftwiderstand erzeugen. Jede Auswertung dieser Black Box kann außerordentlich teuer sein und Stunden oder sogar Tage an Supercomputerzeit in Anspruch nehmen. Wenn das Ziel darin besteht, den Designraum zu erkunden oder ein optimales Design zu finden, ist die Durchführung von Tausenden dieser Auswertungen oft nicht durchführbar.
 
@@ -45,7 +45,7 @@ In dieser Landschaft tritt das **Kriging** als eine besonders anspruchsvolle und
 
 Im Bereich des maschinellen Lernens ist Kriging besser bekannt als **Gauß-Prozess-Regression (GPR)**. Obwohl sich die Terminologie unterscheidet, ist das zugrunde liegende mathematische Gerüst dasselbe. Kriging unterscheidet sich von einfacheren RBF-Modellen durch seine einzigartige Basisfunktion und seine statistische Grundlage, die nicht nur eine Vorhersage, sondern auch ein Maß für die Unsicherheit dieser Vorhersage liefert.
 
-### Abschnitt 2: Die Kernphilosophie des Kriging: Eine stochastische Prozessperspektive
+### Die Kernphilosophie des Kriging: Eine stochastische Prozessperspektive
 
 Um das Kriging wirklich zu verstehen, muss man einen konzeptionellen Sprung wagen, der zunächst kontraintuitiv sein kann. Selbst bei der Modellierung eines perfekt deterministischen Computercodes – bei dem dieselbe Eingabe immer genau dieselbe Ausgabe erzeugt – behandelt das Kriging die Ausgabe der Funktion als eine einzelne Realisierung eines **stochastischen (oder zufälligen) Prozesses**.
 
@@ -61,13 +61,13 @@ Speziell nimmt das Kriging an, dass dieser stochastische Prozess ein **Gauß-Pro
 
 Dies ist als der **Gauß-Prozess-Prior** bekannt. Es ist unsere „vorherige Überzeugung“ über die Natur der Funktion, bevor wir Daten gesehen haben. Wir glauben, dass die Funktionswerte an jedem Satz von Punkten gemeinsam gaußverteilt sein werden, zentriert um einen gewissen Mittelwert, mit einer Kovarianzstruktur, die durch den Abstand zwischen den Punkten diktiert wird. Wenn wir Daten beobachten, verwenden wir Bayes'sche Inferenz, um diese vorherige Überzeugung zu aktualisieren, was zu einem **Gauß-Prozess-Posterior** führt. Dieser Posterior ist ebenfalls ein Gauß-Prozess, aber sein Mittelwert und seine Kovarianz wurden aktualisiert, um mit den beobachteten Daten konsistent zu sein. Der Mittelwert dieses posterioren Prozesses gibt uns die Kriging-Vorhersage, und seine Varianz gibt uns ein Maß für die Unsicherheit über diese Vorhersage. Diese statistische Grundlage ist es, die das Kriging auszeichnet und es ihm ermöglicht, nicht nur zu interpolieren, sondern auch seine eigene Zuverlässigkeit zu quantifizieren.
 
-## Teil II: Die mathematische Architektur eines Kriging-Modells
+## Die mathematische Architektur eines Kriging-Modells
 
 Um vom konzeptionellen Ansatz des Kriging zur praktischen Umsetzung zu gelangen, ist es unerlässlich, seine mathematischen Komponenten zu verstehen. Dieser Abschnitt analysiert die Architektur des Modells und verbindet konsequent die abstrakte mathematische Notation aus Referenztexten mit den konkreten Variablen, die im bereitgestellten Python-Code verwendet werden.
 
-### Tabelle 2.1: Glossar der Kriging-Notation
+### Glossar der Kriging-Notation
 
- Die folgende Tabelle dient als umfassendes Glossar, um die Notation aus [@Forr08a], dem Kochbuch [@bart23iArXiv] und dem in diesem Dokument bereitgestellten Python-Code abzugleichen.
+ @tbl-glossar-de dient als Glossar, um die Notation aus [@Forr08a], dem Kochbuch [@bart23iArXiv] und dem in diesem Dokument in @sec-example-de bereitgestellten Python-Code abzugleichen.
 
 | Mathematisches Symbol | Konzeptionelle Bedeutung | Python-Variable |
 | :--- | :--- | :--- |
@@ -86,7 +86,9 @@ Um vom konzeptionellen Ansatz des Kriging zur praktischen Umsetzung zu gelangen,
 | $\lambda$ (lambda) | Der Regressions-/Nugget-Parameter | `eps` |
 | $\hat{y}(\vec{x})$ | Die Kriging-Vorhersage am Punkt $\vec{x}$ | `f_predict` |
 
-### Abschnitt 3: Der Korrelationskernel: Quantifizierung von Beziehungen
+: Glossar {#tbl-glossar-de}
+
+### Der Korrelationskernel: Quantifizierung von Beziehungen
 
 Der Kern des Kriging-Modells ist seine spezialisierte Basisfunktion, auch als Kernel oder Kovarianzfunktion bekannt. Diese Funktion definiert die Korrelation zwischen zwei beliebigen Punkten im Designraum. Die gebräuchlichste Form, und die in unseren Referenztexten verwendete, ist der Gauß'sche Kernel.
 
@@ -114,7 +116,7 @@ Der Parametervektor $\vec{p} = \{p_1, p_2,..., p_k\}^T$ steuert die Glattheit de
 
 Die Wahl von $p$ spiegelt eine Annahme über die Natur der zugrunde liegenden Funktion wider. Die meisten physikalischen Prozesse sind glatt, was $p=2$ zu einer gängigen und robusten Wahl macht. Für Funktionen mit bekannten scharfen Merkmalen kann jedoch die Optimierung von $p$ in Richtung 1 eine bessere Anpassung ermöglichen.
 
-### Abschnitt 4: Aufbau des Systems: Die Korrelationsmatrizen $\Psi$ und $\vec{\psi}$
+### Aufbau des Systems: Die Korrelationsmatrizen $\Psi$ und $\vec{\psi}$
 
 Mit dem definierten Korrelationskernel können wir nun die Matrizen konstruieren, die den Kern des Kriging-Systems bilden. Diese Matrizen quantifizieren die Beziehungen zwischen allen Punkten in unserem Problem: den bekannten Trainingspunkten und den neuen Vorhersagepunkten.
 
@@ -161,7 +163,7 @@ def build_psi(X_train, x_predict, theta):
 2.  `psi = exp(-D)`: Wie zuvor vervollständigt dies die Kernel-Berechnung.
 3.  `return psi.T`: Die resultierende Matrix wird transponiert, um die Größe $n \times m$ zu haben. Dies ist eine Konvention, um mit der in den Vorhersageformeln in Referenztexten wie @Forr08a dargestellten Matrixalgebra übereinzustimmen.
 
-### Abschnitt 5: Modellkalibrierung durch Maximum-Likelihood-Schätzung (MLE) {#sec-mle}
+### Modellkalibrierung durch Maximum-Likelihood-Schätzung (MLE) {#sec-mle}
 
 Sobald die Struktur des Modells durch den Kernel definiert ist, müssen wir die optimalen Werte für seine Hyperparameter, nämlich $\vec{\theta}$ und $\vec{p}$, bestimmen. Der Code in @sec-example-de umgeht diesen Schritt, indem er `theta = 1.0` fest codiert, aber in jeder praktischen Anwendung müssen diese Parameter aus den Daten gelernt werden. Eine gebräuchliche Methode hierfür ist die **Maximum-Likelihood-Schätzung (MLE)**.
 
@@ -208,11 +210,11 @@ Wir können daher einen numerischen Optimierungsalgorithmus – wie einen geneti
 Dieser Suchprozess ist die „Trainings“- oder „Anpassungs“-Phase beim Aufbau eines Kriging-Modells.
 Sobald die optimalen Hyperparameter gefunden sind, ist das Modell vollständig kalibriert und bereit, Vorhersagen zu treffen.
 
-## Teil III: Implementierung und Vorhersage
+## Implementierung und Vorhersage
 
 Nachdem der theoretische und mathematische Rahmen geschaffen wurde, konzentriert sich dieser Teil auf die praktische Anwendung des Kriging-Modells: wie man es zur Erstellung von Vorhersagen verwendet und welche wesentlichen numerischen Techniken sicherstellen, dass der Prozess sowohl effizient als auch robust ist.
 
-### Abschnitt 6: Der Kriging-Prädiktor: Generierung neuer Werte
+### Der Kriging-Prädiktor: Generierung neuer Werte
 
 Das ultimative Ziel beim Aufbau eines Kriging-Modells ist die Vorhersage des Funktionswerts an neuen, unbeobachteten Punkten. Die hierfür verwendete Formel ist als **Bester Linearer Unverzerrter Prädiktor (BLUP)** bekannt. Sie liefert den Mittelwert des posterioren Gauß-Prozesses am Vorhersageort, was unsere beste Schätzung des Funktionswerts ist.
 
@@ -239,7 +241,7 @@ f_predict = mu_hat * np.ones(m).reshape(-1, 1) + psi.T @ solve(U, solve(U.T, y_t
 *   `mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))`: Dies ist eine direkte und numerisch stabile Implementierung der Formel für $\hat{\mu}$, siehe @eq-mu-hat-de. Anstatt `Psi_inv` explizit zu berechnen, wird der auf Cholesky basierende Löser verwendet, der im nächsten Abschnitt detailliert wird. Der Ausdruck `solve(U, solve(U.T, y_train))` ist äquivalent zu `Psi_inv @ y_train`.
 *   `f_predict = mu_hat *... + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))`: Diese Zeile ist eine direkte Übersetzung der BLUP-Formel aus @eq-blup-de. Sie berechnet die Residuen `y_train - one * mu_hat`, multipliziert sie mit `Psi_inv` unter Verwendung des Cholesky-Lösers und berechnet dann das Skalarprodukt mit `psi.T`, bevor das Ergebnis zum Basiswert `mu_hat` addiert wird.
 
-### Abschnitt 7: Numerische Best Practices und der Nugget-Effekt {#sec-numerical-best-practices}
+### Numerische Best Practices und der Nugget-Effekt {#sec-numerical-best-practices}
 
 Eine direkte Implementierung der Kriging-Gleichungen unter Verwendung der Standard-Matrixinversion kann sowohl langsam als auch numerisch anfällig sein. Professionelle Implementierungen stützen sich auf spezifische numerische Techniken, um Effizienz und Robustheit zu gewährleisten.
 
@@ -247,7 +249,7 @@ Eine direkte Implementierung der Kriging-Gleichungen unter Verwendung der Standa
 
 Die Berechnung der Matrixinversen $\Psi^{-1}$ ist der rechenintensivste Schritt sowohl im MLE-Prozess als auch bei der endgültigen Vorhersage. Eine direkte Inversion hat eine Rechenkomplexität von etwa $O(n^3)$. Wenn die Matrix schlecht konditioniert ist (fast singulär), kann die direkte Inversion außerdem zu großen numerischen Fehlern führen.
 
-Ein überlegener Ansatz ist die Verwendung der **Cholesky-Zerlegung**. Diese Methode gilt für symmetrische, positiv definite Matrizen wie $\Psi$. Sie zerlegt $\Psi$ in das Produkt einer unteren Dreiecksmatrix $L$ und ihrer Transponierten $L^T$ (oder einer oberen Dreiecksmatrix $U$ und ihrer Transponierten $U^T$), sodass $\Psi = LL^T$. Diese Zerlegung ist deutlich schneller als die Inversion, mit einer Komplexität von ungefähr $O(n^3/3)$.[1]
+Ein überlegener Ansatz ist die Verwendung der **Cholesky-Zerlegung**. Diese Methode gilt für symmetrische, positiv definite Matrizen wie $\Psi$. Sie zerlegt $\Psi$ in das Produkt einer unteren Dreiecksmatrix $L$ und ihrer Transponierten $L^T$ (oder einer oberen Dreiecksmatrix $U$ und ihrer Transponierten $U^T$), sodass $\Psi = LL^T$. Diese Zerlegung ist schneller als die Inversion, mit einer Komplexität von ungefähr $O(n^3/3)$ [@Forr08a].
 
 Sobald $\Psi$ zerlegt ist, wird das Lösen eines linearen Systems wie $\Psi \vec{w} = \vec{b}$ zu einem zweistufigen Prozess der Lösung zweier viel einfacherer Dreieckssysteme, ein Verfahren, das als Vorwärts- und Rückwärtssubstitution bekannt ist:
 
@@ -258,22 +260,22 @@ Genau das macht der Python-Code. Die Zeile `U = cholesky(Psi).T` führt die Zerl
 
 #### Der Nugget: Von numerischer Stabilität zur Rauschmodellierung
 
-Die Cholesky-Zerlegung funktioniert garantiert nur, wenn die Matrix $\Psi$ streng positiv definit ist. Ein Problem tritt auf, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen. In diesem Fall wird ihre Korrelation nahe 1 sein, was die entsprechenden Zeilen und Spalten in $\Psi$ nahezu identisch macht. Dies führt dazu, dass die Matrix schlecht konditioniert oder fast singulär wird, was zum Scheitern der Cholesky-Zerlegung führen kann.
+Die Cholesky-Zerlegung funktioniert nur, wenn die Matrix $\Psi$ streng positiv definit ist. Ein Problem tritt auf, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen. In diesem Fall wird ihre Korrelation nahe 1 sein, was die entsprechenden Zeilen und Spalten in $\Psi$ nahezu identisch macht. Dies führt dazu, dass die Matrix schlecht konditioniert oder fast singulär wird, was zum Scheitern der Cholesky-Zerlegung führen kann.
 
-Dieses Problem wird gelöst, indem ein kleiner positiver Wert zur Diagonale der Korrelationsmatrix addiert wird: $\Psi_{new} = \Psi + \lambda I$, wobei $I$ die Identitätsmatrix ist. Diese kleine Addition, oft als **Nugget** bezeichnet, stellt sicher, dass die Matrix gut konditioniert und invertierbar bleibt. Im bereitgestellten Code dient die Variable `eps` diesem Zweck.[1]
+Dieses Problem wird gelöst, indem ein kleiner positiver Wert zur Diagonale der Korrelationsmatrix addiert wird: $\Psi_{new} = \Psi + \lambda I$, wobei $I$ die Identitätsmatrix ist. Diese kleine Addition, oft als **Nugget** bezeichnet, stellt sicher, dass die Matrix gut konditioniert und invertierbar bleibt. Im bereitgestellten Code dient die Variable `eps` diesem Zweck.
 
 Obwohl es als numerischer „Hack“ beginnen mag, hat dieser Nugget-Term eine tiefgreifende und starke statistische Interpretation: Er modelliert Rauschen in den Daten. Dies führt zu zwei unterschiedlichen Arten von Kriging-Modellen:
 
 1.  **Interpolierendes Kriging ($\lambda \approx 0$):** Wenn der Nugget null oder sehr klein ist (wie `eps` im Code), wird das Modell gezwungen, exakt durch jeden Trainingsdatenpunkt zu verlaufen. Dies ist für deterministische Computerexperimente geeignet, bei denen die Ausgabe rauschfrei ist.
 2.  **Regressives Kriging ($\lambda > 0$):** Wenn bekannt ist, dass die Daten verrauscht sind (z. B. aus physikalischen Experimenten oder stochastischen Simulationen), würde das Erzwingen der Interpolation jedes Punktes dazu führen, dass das Modell das Rauschen anpasst, was zu einer übermäßig komplexen und „zappeligen“ Oberfläche führt, die schlecht generalisiert. Durch Hinzufügen eines größeren Nugget-Terms $\lambda$ zur Diagonale teilen wir dem Modell explizit mit, dass es Varianz (Rauschen) in den Beobachtungen gibt. Das Modell ist nicht mehr verpflichtet, exakt durch die Datenpunkte zu verlaufen. Stattdessen wird es eine glattere Regressionskurve erstellen, die den zugrunde liegenden Trend erfasst und gleichzeitig das Rauschen herausfiltert. Die Größe von $\lambda$ kann als weiterer zu optimierender Hyperparameter behandelt werden, der die Varianz des Rauschens darstellt.
 
-Dieselbe mathematische Operation – das Hinzufügen eines Wertes zur Diagonale von $\Psi$ – dient somit einem doppelten Zweck. Ein winziges, festes `eps` ist eine pragmatische Lösung für die numerische Stabilität. Ein größeres, potenziell optimiertes `λ` ist ein formaler statistischer Parameter, der das Verhalten des Modells grundlegend von einem exakten Interpolator zu einem rauschfilternden Regressor ändert. Das Verständnis dieser Dualität ist entscheidend, um von einem Anfängerverständnis zu einem Expertenverständnis zu gelangen, da es ein Implementierungsdetail auf niedriger Ebene mit einer Modellierungsentscheidung auf hoher Ebene verbindet.
+Dieselbe mathematische Operation – das Hinzufügen eines Wertes zur Diagonale von $\Psi$ – dient somit einem doppelten Zweck. Ein winziges, festes `eps` ist eine pragmatische Lösung für die numerische Stabilität. Ein größeres, potenziell optimiertes $\lambda$ ist ein formaler statistischer Parameter, der das Verhalten des Modells grundlegend von einem exakten Interpolator zu einem rauschfilternden Regressor ändert.
 
-## Teil IV: Eine vollständige exemplarische Vorgehensweise: Kriging der Sinusfunktion {#sec-example-de}
+## Eine vollständige exemplarische Vorgehensweise: Kriging der Sinusfunktion {#sec-example-de}
 
 Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel [@bart23icode] anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
 
-### Abschnitt 8: Schritt-für-Schritt-Codeausführung und Interpretation
+### Schritt-für-Schritt-Codeausführung und Interpretation
 
 Das Beispiel zielt darauf ab, die Funktion $y = \sin(x)$ unter Verwendung einer kleinen Anzahl von Stichprobenpunkten zu modellieren. Dies ist ein klassisches „Spielzeugproblem“, das nützlich ist, um zu visualisieren, wie sich das Modell verhält.
 
@@ -286,8 +288,9 @@ y_train = np.sin(X_train)
 ```
 
 Hier generiert das Skript die Trainingsdaten.
-*   `n = 8`: Wir entscheiden uns, die Funktion an 8 verschiedenen Stellen abzutasten.
-*   `X_train`: Dies erstellt ein Array von 8 gleichmäßig verteilten Punkten im Intervall [0, $2\pi$], die als Trainingspunkte dienen.
+
+*   `n = 8`: Wir entscheiden uns, die Funktion an acht verschiedenen Stellen abzutasten.
+*   `X_train`: Dies erstellt ein Array von acht  gleichmäßig verteilten Punkten im Intervall [0, $2\pi$], die als Trainingspunkte dienen.
 *   `y_train = np.sin(X_train)`: Dies berechnet die Sinuswerte an den Trainingspunkten. Das Ergebnis ist ein $8 \times 1$ Vektor, der die beobachteten Antworten darstellt.
 
 #### Schritt 2: Definition der Korrelationsmatrix ($\Psi$)
@@ -297,6 +300,7 @@ Psi = build_Psi(X_train, theta)
 ```
 
 Dieser Schritt berechnet die $8 \times 8$ Korrelationsmatrix $\Psi$ für die Trainingsdaten.
+
 *   `theta = np.array([1.0])`: Der Aktivitätshyperparameter $\theta$ wird auf 1.0 gesetzt. In einer realen Anwendung würde dieser Wert durch MLE gefunden, aber hier wird er zur Vereinfachung festgesetzt.
 *   `Psi = build_Psi(X_train, theta)`: Die Funktion `build_Psi` wird aufgerufen. Sie berechnet den gewichteten quadrierten Abstand zwischen jedem Paar von Punkten in `X_train` und wendet dann den exponentiellen Kernel an. Die resultierende `Psi`-Matrix quantifiziert die angenommene Korrelation zwischen all unseren bekannten Datenpunkten. Die diagonalen Elemente sind 1 (plus ein winziges `eps`), und die außerdiagonalen Werte nehmen ab, wenn der Abstand zwischen den entsprechenden Punkten zunimmt.
 
@@ -315,7 +319,7 @@ Wir definieren nun die Orte, an denen wir neue Vorhersagen machen wollen. Wir er
 psi = build_psi(X_train, x_predict, theta)
 ```
 
-Dieser Schritt berechnet die $8 \times 100$ Korrelationsmatrix $\vec{\psi}$. Die Funktion `build_psi` berechnet die Korrelation zwischen jedem der 8 Trainingspunkte und jedem der 100 Vorhersagepunkte. Jede Spalte der resultierenden `psi`-Matrix entspricht einem Vorhersagepunkt und enthält seine 8 Korrelationswerte mit dem Trainingssatz. Diese Matrix verbindet die neuen, unbekannten Orte mit unserer bestehenden Wissensbasis.
+Dieser Schritt berechnet die $8 \times 100$ Korrelationsmatrix $\vec{\psi}$. Die Funktion `build_psi` berechnet die Korrelation zwischen jedem der acht Trainingspunkte und jedem der 100 Vorhersagepunkte. Jede Spalte der resultierenden `psi`-Matrix entspricht einem Vorhersagepunkt und enthält seine acht Korrelationswerte mit dem Trainingssatz. Diese Matrix verbindet die neuen, unbekannten Orte mit unserer bestehenden Wissensbasis.
 
 #### Schritt 5: Berechnung der Vorhersage
 
@@ -340,17 +344,17 @@ Der letzte Codeblock stellt die Ergebnisse grafisch dar.
 *   **Wahre Sinusfunktion (Graue gestrichelte Linie):** Die tatsächliche $\sin(x)$-Funktion wird als Referenz dargestellt.
 *   **Kriging-Vorhersage (Orange Linie):** Die vorhergesagten Werte `f_predict` werden gegen `x_predict` aufgetragen.
 
-Die Grafik zeigt die Schlüsseleigenschaften des Kriging-Modells. Die orangefarbene Linie verläuft *exakt* durch jeden der blauen Punkte und demonstriert damit ihre **interpolierende** Natur (da `eps` sehr klein war). Wichtiger noch, zwischen den Stichprobenpunkten liefert die Vorhersage eine glatte und bemerkenswert genaue Annäherung an die wahre zugrunde liegende Sinuskurve, obwohl das Modell in diesen Bereichen keine anderen Informationen über die Funktion hatte als die 8 Stichprobenpunkte und die angenommene Korrelationsstruktur.
+Die Grafik zeigt die Schlüsseleigenschaften des Kriging-Modells. Die orangefarbene Linie verläuft *exakt* durch jeden der blauen Punkte und demonstriert damit ihre **interpolierende** Natur (da `eps` sehr klein war). Wichtiger noch, zwischen den Stichprobenpunkten liefert die Vorhersage eine glatte und bemerkenswert genaue Annäherung an die wahre zugrunde liegende Sinuskurve, obwohl das Modell in diesen Bereichen keine anderen Informationen über die Funktion hatte als die acht Stichprobenpunkte und die angenommene Korrelationsstruktur.
 
-### Abschnitt 9: Fazit und weitere Horizonte
+### Fazit und Ausblick
 
-Dieses Lehrmodul hat eine Reise von der grundlegenden Notwendigkeit von Surrogatmodellen bis zur detaillierten mathematischen und rechnerischen Implementierung des Kriging unternommen. Wir begannen damit, das Kriging als eine anspruchsvolle Form der Modellierung mit radialen Basisfunktionen einzuordnen und seine Kernphilosophie zu übernehmen, deterministische Funktionen als Realisierungen eines stochastischen Prozesses zu behandeln. Anschließend haben wir seine Architektur zerlegt: den leistungsstarken Korrelationskernel mit seinen Aktivitäts- ($\theta$) und Glattheits- ($p$) Hyperparametern, die Konstruktion der Korrelationsmatrizen ($\Psi$ und $\vec{\psi}$) und den prinzipientreuen Ansatz der Maximum-Likelihood-Schätzung zur Modellkalibrierung. Schließlich haben wir die numerischen Best Practices wie die Cholesky-Zerlegung untersucht und die doppelte Rolle des Nugget-Terms für die numerische Stabilität und die statistische Rauschmodellierung aufgedeckt. Die schrittweise exemplarische Vorgehensweise des Sinusbeispiels lieferte eine konkrete Demonstration dieser Konzepte und zeigte, wie eine kleine Menge von Datenpunkten verwendet werden kann, um ein hochgenaues, interpolierendes Modell einer unbekannten Funktion zu erzeugen.
+Wir begannen damit, das Kriging als eine anspruchsvolle Form der Modellierung mit radialen Basisfunktionen einzuordnen und seine Kernphilosophie zu übernehmen, deterministische Funktionen als Realisierungen eines stochastischen Prozesses zu behandeln. Anschließend haben wir seine Architektur zerlegt: den leistungsstarken Korrelationskernel mit seinen Aktivitäts- ($\theta$) und Glattheits- ($p$) Hyperparametern, die Konstruktion der Korrelationsmatrizen ($\Psi$ und $\vec{\psi}$) und den Ansatz der Maximum-Likelihood-Schätzung zur Modellkalibrierung. Schließlich haben wir die numerischen Best Practices wie die Cholesky-Zerlegung untersucht und die doppelte Rolle des Nugget-Terms für die numerische Stabilität und die statistische Rauschmodellierung besprochen. Die schrittweise exemplarische Vorgehensweise des Sinusbeispiels lieferte eine konkrete Demonstration dieser Konzepte und zeigte, wie eine kleine Menge von Datenpunkten verwendet werden kann, um ein genaues, interpolierendes Modell einer unbekannten Funktion zu erzeugen.
 
 Für den angehenden Praktiker ist dies nur der Anfang. Die Welt des Kriging und der Gauß-Prozess-Regression ist reich an fortgeschrittenen Techniken, die auf diesen Grundlagen aufbauen.
 
 *   **Fehlerschätzungen und sequentielles Design:** Ein wesentliches Merkmal, das im Beispielcode nicht untersucht wurde, ist, dass das Kriging nicht nur eine mittlere Vorhersage, sondern auch eine **Varianz** an jedem Punkt liefert, die die Unsicherheit des Modells quantifiziert. Diese Varianz ist in Regionen weit entfernt von Datenpunkten hoch und in deren Nähe niedrig. Diese Fehlerschätzung ist die Grundlage für **aktives Lernen** oder **sequentielles Design**, bei dem Infill-Kriterien wie die **erwartete Verbesserung (EI)** verwendet werden, um den nächsten zu beprobenden Punkt intelligent auszuwählen, wobei ein Gleichgewicht zwischen der Notwendigkeit, vielversprechende Regionen auszunutzen (niedriger vorhergesagter Wert) und der Notwendigkeit, unsichere Regionen zu erkunden (hohe Varianz), hergestellt wird.
 
-*   **Gradienten-erweitertes Kriging:** In vielen modernen Simulationsumgebungen ist es möglich, nicht nur den Funktionswert, sondern auch seine Gradienten (Ableitungen) zu geringen zusätzlichen Kosten zu erhalten. Das **Gradienten-erweiterte Kriging** integriert diese Gradienteninformationen in das Modell, was seine Genauigkeit drastisch verbessert und den Aufbau hochpräziser Modelle mit sehr wenigen Stichprobenpunkten ermöglicht.[1]
+*   **Gradienten-erweitertes Kriging:** In vielen modernen Simulationsumgebungen ist es möglich, nicht nur den Funktionswert, sondern auch seine Gradienten (Ableitungen) zu geringen zusätzlichen Kosten zu erhalten. Das **Gradienten-erweiterte Kriging** integriert diese Gradienteninformationen in das Modell, was seine Genauigkeit drastisch verbessert und den Aufbau hochpräziser Modelle mit sehr wenigen Stichprobenpunkten ermöglicht.
 
-*   **Multi-Fidelity-Modellierung (Co-Kriging):** Oft haben Ingenieure Zugang zu mehreren Informationsquellen mit unterschiedlicher Genauigkeit und Kosten – zum Beispiel ein schnelles, aber ungenaues analytisches Modell und eine langsame, aber hochpräzise CFD-Simulation. **Co-Kriging** ist ein Rahmenwerk, das diese unterschiedlichen Datenquellen verschmilzt, indem es die reichlich vorhandenen billigen Daten verwendet, um einen Basistrend zu etablieren, und die spärlichen teuren Daten, um ihn zu korrigieren, was zu einem Modell führt, das genauer ist als eines, das nur aus einer der Datenquellen allein erstellt wurde.[1]
+*   **Multi-Fidelity-Modellierung (Co-Kriging):** Oft haben Ingenieure Zugang zu mehreren Informationsquellen mit unterschiedlicher Genauigkeit und Kosten – zum Beispiel ein schnelles, aber ungenaues analytisches Modell und eine langsame, aber hochpräzise CFD-Simulation. **Co-Kriging** ist ein Rahmenwerk, das diese unterschiedlichen Datenquellen verschmilzt, indem es die reichlich vorhandenen billigen Daten verwendet, um einen Basistrend zu etablieren, und die spärlichen teuren Daten, um ihn zu korrigieren, was zu einem Modell führt, das genauer ist als eines, das nur aus einer der Datenquellen allein erstellt wurde.
 
