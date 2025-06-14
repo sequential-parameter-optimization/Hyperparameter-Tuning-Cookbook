@@ -1,6 +1,9 @@
 ---
 title: "Eine Einführung in Kriging"
 format: html
+bibliography: bart23i.bib
+number-sections: true
+lang: de
 ---
 
 
@@ -10,7 +13,7 @@ format: html
 
 In der modernen ingenieur- und naturwissenschaftlichen Forschung werden Praktiker häufig mit „Black-Box“-Funktionen konfrontiert. Dies sind Systeme oder Simulationen, deren interne Funktionsweise entweder unbekannt oder so komplex ist, dass sie praktisch undurchschaubar ist. Ein gängiges Beispiel ist eine hochpräzise Simulation der numerischen Strömungsmechanik (CFD), bei der Eingaben wie die Flügelgeometrie oder die Strömungsgeschwindigkeit Ausgaben wie Auftrieb und Luftwiderstand erzeugen. Jede Auswertung dieser Black Box kann außerordentlich teuer sein und Stunden oder sogar Tage an Supercomputerzeit in Anspruch nehmen. Wenn das Ziel darin besteht, den Designraum zu erkunden oder ein optimales Design zu finden, ist die Durchführung von Tausenden dieser Auswertungen oft nicht durchführbar.
 
-Diese Herausforderung führt zur Notwendigkeit von **Surrogatmodellen**, auch bekannt als Metamodelle oder Antwortflächenmodelle. Ein Surrogatmodell ist eine rechengünstige Annäherung an eine teure Black-Box-Funktion. Es wird konstruiert, indem eine kleine Anzahl sorgfältig ausgewählter Auswertungen der wahren Funktion durchgeführt und dann ein mathematisches Modell an diese beobachteten Datenpunkte angepasst wird. Dieses „Modell eines Modells“ kann dann Tausende Male zu vernachlässigbaren Kosten ausgewertet werden, was eine effiziente Optimierung, Sensitivitätsanalyse und Erkundung des Designraums ermöglicht.
+Diese Herausforderung führt zur Notwendigkeit von **Surrogatmodellen**, auch bekannt als Metamodelle oder Antwortflächenmodelle "Response-Surface". Ein Surrogatmodell ist eine rechengünstige Annäherung an eine teure Black-Box-Funktion. Es wird konstruiert, indem eine kleine Anzahl sorgfältig ausgewählter Auswertungen der wahren Funktion durchgeführt und dann ein mathematisches Modell an diese beobachteten Datenpunkte angepasst wird. Dieses „Modell eines Modells“ kann dann Tausende Male zu vernachlässigbaren Kosten ausgewertet werden, was eine effiziente Optimierung, Sensitivitätsanalyse und Erkundung des Designraums ermöglicht.
 
 #### Eine Brücke zum Kriging: Verständnis von Radialen Basisfunktionen (RBFs)
 
@@ -22,19 +25,19 @@ $$
 $$
 wobei $\hat{f}(\vec{x})$ der vorhergesagte Wert an einem neuen Punkt $\vec{x}$ ist, $w_i$ die Gewichte sind, $\vec{c}^{(i)}$ die Zentren der Basisfunktionen (typischerweise die Standorte der bekannten Datenpunkte, $\vec{x}^{(i)}$) und $\psi$ die radiale Basisfunktion selbst ist, die auf dem euklidischen Abstand $||\vec{x} - \vec{c}^{(i)}||$ operiert.
 
-Gängige Wahlen für $\psi$ umfassen die linearen, kubischen, Gauß'schen oder multiquadratischen Funktionen.[1] Indem wir fordern, dass das Modell exakt durch alle bekannten Datenpunkte verläuft (ein Prozess, der als Interpolation bezeichnet wird), können wir ein System linearer Gleichungen aufstellen, um die unbekannten Gewichte $w_i$ zu lösen. Dies wird typischerweise in Matrixform geschrieben als:
+Gängige Wahlen für $\psi$ umfassen die linearen, kubischen, Gauß'schen oder multiquadratischen Funktionen [@Forr08a]. Indem wir fordern, dass das Modell exakt durch alle bekannten Datenpunkte verläuft (ein Prozess, der als Interpolation bezeichnet wird), können wir ein System linearer Gleichungen aufstellen, um die unbekannten Gewichte $w_i$ zu lösen. Dies wird typischerweise in Matrixform geschrieben als:
 $$
 \Psi \vec{w} = \vec{y}
 $$
-wobei $\Psi$ eine Matrix der Auswertungen der Basisfunktionen ist, $\vec{w}$ der Vektor der Gewichte und $\vec{y}$ der Vektor der beobachteten Antworten ist. Das Lösen nach den Gewichten ist dann eine Frage der Matrixinversion: $\vec{w} = \Psi^{-1} \vec{y}$.[1] Die Schönheit dieses Ansatzes liegt darin, dass er ein potenziell hochgradig nichtlineares Modellierungsproblem in ein unkompliziertes lineares Algebraproblem umwandelt.[1]
+wobei $\Psi$ eine Matrix der Auswertungen der Basisfunktionen ist, $\vec{w}$ der Vektor der Gewichte und $\vec{y}$ der Vektor der beobachteten Antworten ist. Das Lösen nach den Gewichten ist dann eine Frage der Matrixinversion: $\vec{w} = \Psi^{-1} \vec{y}$. Die Schönheit dieses Ansatzes liegt darin, dass er ein potenziell hochgradig nichtlineares Modellierungsproblem in ein unkompliziertes lineares Algebraproblem umwandelt [@Forr08a].
 
 Diese Struktur weist eine bemerkenswerte Ähnlichkeit mit anderen Modellierungsparadigmen auf. Die RBF-Formulierung ist funktional identisch mit einem einschichtigen künstlichen neuronalen Netz, bei dem die Neuronen eine radiale Aktivierungsfunktion verwenden. In dieser Analogie ist die Eingabe für jedes Neuron der Abstand von einem Zentrum, die Aktivierungsfunktion des Neurons ist die Basisfunktion $\psi$, und die Ausgabe des Netzwerks ist die gewichtete Summe dieser Aktivierungen. Diese Verbindung bietet ein nützliches mentales Modell für diejenigen, die mit maschinellem Lernen vertraut sind, und rahmt RBFs nicht als esoterische statistische Technik, sondern als nahen Verwandten von neuronalen Netzen ein, die beide leistungsstarke universelle Funktionsapproximatoren sind.
 
 #### Einordnung des Kriging
 
-In dieser Landschaft tritt das **Kriging** als eine besonders anspruchsvolle und flexible Art von RBF-Modell hervor. Ursprünglich aus dem Bereich der Geostatistik durch die Arbeit von Danie G. Krige und Georges Matheron stammend, wurde es entwickelt, um Erzkonzentrationen im Bergbau vorherzusagen.[1] Seine Anwendung auf deterministische Computerexperimente wurde von Sacks et al. (1989) vorangetrieben und ist seitdem zu einem Eckpfeiler des Ingenieurdesigns und der Optimierung geworden.[1]
+In dieser Landschaft tritt das **Kriging** als eine besonders anspruchsvolle und flexible Art eines RBF-Modells hervor. Ursprünglich aus dem Bereich der Geostatistik durch die Arbeit von Danie G. Krige und Georges Matheron stammend, wurde es entwickelt, um Erzkonzentrationen im Bergbau vorherzusagen [@Forr08a]. Seine Anwendung auf deterministische Computerexperimente wurde von @Sack89a vorangetrieben und ist seitdem zu einem Eckpfeiler des Ingenieurdesigns und der Optimierung geworden.
 
-In der Gemeinschaft des maschinellen Lernens ist Kriging besser bekannt als **Gauß-Prozess-Regression (GPR)**. Obwohl sich die Terminologie unterscheidet, ist das zugrunde liegende mathematische Gerüst dasselbe. Kriging unterscheidet sich von einfacheren RBF-Modellen durch seine einzigartige Basisfunktion und seine statistische Grundlage, die nicht nur eine Vorhersage, sondern auch ein Maß für die Unsicherheit dieser Vorhersage liefert.
+Im Bereich des maschinellen Lernens ist Kriging besser bekannt als **Gauß-Prozess-Regression (GPR)**. Obwohl sich die Terminologie unterscheidet, ist das zugrunde liegende mathematische Gerüst dasselbe. Kriging unterscheidet sich von einfacheren RBF-Modellen durch seine einzigartige Basisfunktion und seine statistische Grundlage, die nicht nur eine Vorhersage, sondern auch ein Maß für die Unsicherheit dieser Vorhersage liefert.
 
 ### Abschnitt 2: Die Kernphilosophie des Kriging: Eine stochastische Prozessperspektive
 
@@ -48,9 +51,9 @@ Dieser angenommene stochastische Prozess ist nicht völlig unstrukturiert. Er wi
 
 #### Gauß-Prozess-Prior
 
-Speziell nimmt das Kriging an, dass dieser stochastische Prozess ein **Gauß-Prozess** ist. Ein Gauß-Prozess ist eine Sammlung von Zufallsvariablen, von denen jede endliche Anzahl eine gemeinsame multivariate Normalverteilung (MVN) hat. Dies ist eine starke Annahme, da eine multivariate Normalverteilung vollständig durch nur zwei Komponenten definiert ist: einen **Mittelwertvektor ($\vec{\mu}$)** und eine **Kovarianzmatrix ($\Sigma$)**.[1]
+Speziell nimmt das Kriging an, dass dieser stochastische Prozess ein **Gauß-Prozess** ist. Ein Gauß-Prozess ist eine Sammlung von Zufallsvariablen, von denen jede endliche Anzahl eine gemeinsame multivariate Normalverteilung (MVN) hat. Dies ist eine starke Annahme, da eine multivariate Normalverteilung vollständig durch nur zwei Komponenten definiert ist: einen **Mittelwertvektor ($\vec{\mu}$)** und eine **Kovarianzmatrix ($\Sigma$)** [@Forr08a].
 
-Dies ist als der **Gauß-Prozess-Prior** bekannt. Es ist unsere „vorherige Überzeugung“ über die Natur der Funktion, bevor wir Daten gesehen haben. Wir glauben, dass die Funktionswerte an jedem Satz von Punkten gemeinsam gaußisch sein werden, zentriert um einen gewissen Mittelwert, mit einer Kovarianzstruktur, die durch den Abstand zwischen den Punkten diktiert wird. Wenn wir Daten beobachten, verwenden wir Bayes'sche Inferenz, um diese vorherige Überzeugung zu aktualisieren, was zu einem **Gauß-Prozess-Posterior** führt. Dieser Posterior ist ebenfalls ein Gauß-Prozess, aber sein Mittelwert und seine Kovarianz wurden aktualisiert, um mit den beobachteten Daten konsistent zu sein. Der Mittelwert dieses posterioren Prozesses gibt uns die Kriging-Vorhersage, und seine Varianz gibt uns ein Maß für die Unsicherheit über diese Vorhersage. Diese statistische Grundlage ist es, die das Kriging auszeichnet und es ihm ermöglicht, nicht nur zu interpolieren, sondern auch seine eigene Zuverlässigkeit zu quantifizieren.
+Dies ist als der **Gauß-Prozess-Prior** bekannt. Es ist unsere „vorherige Überzeugung“ über die Natur der Funktion, bevor wir Daten gesehen haben. Wir glauben, dass die Funktionswerte an jedem Satz von Punkten gemeinsam gaußverteilt sein werden, zentriert um einen gewissen Mittelwert, mit einer Kovarianzstruktur, die durch den Abstand zwischen den Punkten diktiert wird. Wenn wir Daten beobachten, verwenden wir Bayes'sche Inferenz, um diese vorherige Überzeugung zu aktualisieren, was zu einem **Gauß-Prozess-Posterior** führt. Dieser Posterior ist ebenfalls ein Gauß-Prozess, aber sein Mittelwert und seine Kovarianz wurden aktualisiert, um mit den beobachteten Daten konsistent zu sein. Der Mittelwert dieses posterioren Prozesses gibt uns die Kriging-Vorhersage, und seine Varianz gibt uns ein Maß für die Unsicherheit über diese Vorhersage. Diese statistische Grundlage ist es, die das Kriging auszeichnet und es ihm ermöglicht, nicht nur zu interpolieren, sondern auch seine eigene Zuverlässigkeit zu quantifizieren.
 
 ## Teil II: Die mathematische Architektur eines Kriging-Modells
 
@@ -58,7 +61,7 @@ Um vom konzeptionellen Ansatz des Kriging zur praktischen Umsetzung zu gelangen,
 
 ### Tabelle 2.1: Glossar der Kriging-Notation
 
-Eine der größten Herausforderungen für Lernende ist die Zuordnung von theoretischen Symbolen zu ihren Software-Implementierungen. Die folgende Tabelle dient als umfassendes Glossar, um diese Lücke zu schließen und die Notation aus dem Forrester-Text [1], dem Kochbuch und dem vom Benutzer bereitgestellten Python-Code abzugleichen.
+ Die folgende Tabelle dient als umfassendes Glossar, um die Notation aus [@Forr08a], dem Kochbuch [@bart23iArXiv] und dem in diesem Dokument bereitgestellten Python-Code abzugleichen.
 
 | Mathematisches Symbol | Konzeptionelle Bedeutung | Python-Variable |
 | :--- | :--- | :--- |
@@ -94,13 +97,13 @@ Der Parametervektor $\vec{\theta} = \{\theta_1, \theta_2,..., \theta_k\}^T$ ist 
 
 Die Tatsache, dass $\vec{\theta}$ ein Vektor ist – mit einem separaten Wert für jede Eingabedimension – ist ein entscheidendes Merkmal, das dem Kriging immense Leistungsfähigkeit verleiht, insbesondere bei mehrdimensionalen Problemen. Dies ist als **anisotrope Modellierung** bekannt. Indem die Korrelationslänge für jede Variable unterschiedlich sein kann, kann sich das Modell an Funktionen anpassen, die sich entlang verschiedener Achsen unterschiedlich verhalten. Zum Beispiel könnte eine Funktion sehr schnell auf Temperaturänderungen, aber sehr langsam auf Druckänderungen reagieren. Ein anisotropes Kriging-Modell kann dieses Verhalten erfassen, indem es ein großes $\theta$ für die Temperatur und ein kleines $\theta$ für den Druck lernt.
 
-Diese Fähigkeit hat eine tiefgreifende Konsequenz: **automatische Relevanzbestimmung**. Während des Modellanpassungsprozesses (den wir in Abschnitt 5 diskutieren werden) findet der Optimierungsalgorithmus die $\vec{\theta}$-Werte, die die Daten am besten erklären. Wenn eine bestimmte Eingangsvariable $x_j$ wenig oder keinen Einfluss auf die Ausgabe $y$ hat, wird das Modell einen sehr kleinen Wert für $\theta_j$ lernen. Ein kleines $\theta_j$ macht den Term $\theta_j|x_j^{(i)} - x_j|^{p_j}$ nahe null, was die Korrelation effektiv unempfindlich gegenüber Änderungen in dieser Dimension macht. Daher kann ein Ingenieur nach der Anpassung des Modells den optimierten $\vec{\theta}$-Vektor inspizieren, um eine Sensitivitätsanalyse durchzuführen. Die Dimensionen mit den größten $\theta_j$-Werten sind die einflussreichsten Treiber der Systemantwort. Dies verwandelt das Surrogatmodell von einem einfachen Black-Box-Approximator in ein Werkzeug zur Generierung wissenschaftlicher und technischer Erkenntnisse. Der bereitgestellte Python-Code, als eindimensionales Beispiel, vereinfacht dies durch die Verwendung eines einzelnen skalaren `theta`, aber das Verständnis seiner Rolle als Vektor ist entscheidend, um den Nutzen des Kriging in realen Anwendungen zu schätzen.
+Diese Fähigkeit hat eine tiefgreifende Konsequenz: **automatische Relevanzbestimmung**. Während des Modellanpassungsprozesses (den wir in @sec-mle diskutieren werden) findet der Optimierungsalgorithmus die $\vec{\theta}$-Werte, die die Daten am besten erklären. Wenn eine bestimmte Eingangsvariable $x_j$ wenig oder keinen Einfluss auf die Ausgabe $y$ hat, wird das Modell einen sehr kleinen Wert für $\theta_j$ lernen. Ein kleines $\theta_j$ macht den Term $\theta_j|x_j^{(i)} - x_j|^{p_j}$ nahe null, was die Korrelation effektiv unempfindlich gegenüber Änderungen in dieser Dimension macht. Daher kann ein Ingenieur nach der Anpassung des Modells den optimierten $\vec{\theta}$-Vektor inspizieren, um eine Sensitivitätsanalyse durchzuführen. Die Dimensionen mit den größten $\theta_j$-Werten sind die einflussreichsten Treiber der Systemantwort. Dies verwandelt das Surrogatmodell von einem einfachen Black-Box-Approximator in ein Werkzeug zur Generierung wissenschaftlicher und technischer Erkenntnisse. Der in @sec-example-de bereitgestellte Python-Code [@bart23icode], als eindimensionales Beispiel, vereinfacht dies durch die Verwendung eines einzelnen skalaren `theta`, aber das Verständnis seiner Rolle als Vektor ist entscheidend, um den Nutzen des Kriging in realen Anwendungen zu schätzen.
 
 #### Hyperparameter $\vec{p}$: Der Glattheitsparameter
 
-Der Parametervektor $\vec{p} = \{p_1, p_2,..., p_k\}^T$ steuert die Glattheit der Funktion an den Datenpunkten. Sein Wert ist typischerweise auf den Bereich beschränkt.[1]
+Der Parametervektor $\vec{p} = \{p_1, p_2,..., p_k\}^T$ steuert die Glattheit der Funktion an den Datenpunkten. Sein Wert ist typischerweise auf das Intervall $[1,2]$  beschränkt [@Forr08a]. Die Wahl von $p_j$ hat tiefgreifende Auswirkungen auf die Form der resultierenden Basisfunktion:
 
-*   Wenn **$p_j = 2$**, ist die resultierende Funktion unendlich differenzierbar, was bedeutet, dass sie sehr glatt ist. Dies ist im bereitgestellten Python-Code der Fall, was durch die Verwendung der `sqeuclidean`-Distanzmetrik (quadrierter Abstand entspricht $p=2$) implizit ist.
+*   Wenn **$p_j = 2$**, ist die resultierende Funktion unendlich differenzierbar, was bedeutet, dass sie sehr glatt ist. Dies ist im bereitgestellten Python-Code der Fall, was durch die Verwendung der `sqeuclidean`-Distanzmetrik (quadrierter Abstand entspricht $p=2$) implizit ist. Die `sqeuclidean`-Metrik ist auf [https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.sqeuclidean.html](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.sqeuclidean.html) beschrieben.
 *   Wenn **$p_j = 1$**, ist die resultierende Funktion stetig, aber an den Datenpunkten nicht differenzierbar, was ihr ein „spitzeres“ oder „stacheligeres“ Aussehen verleiht.
 
 Die Wahl von $p$ spiegelt eine Annahme über die Natur der zugrunde liegenden Funktion wider. Die meisten physikalischen Prozesse sind glatt, was $p=2$ zu einer gängigen und robusten Wahl macht. Für Funktionen mit bekannten scharfen Merkmalen kann jedoch die Optimierung von $p$ in Richtung 1 eine bessere Anpassung ermöglichen.
@@ -111,20 +114,28 @@ Mit dem definierten Korrelationskernel können wir nun die Matrizen konstruieren
 
 #### Die `Psi`-Matrix ($\Psi$): Korrelation der Trainingsdaten
 
-Die Matrix $\Psi$ ist die $n \times n$ Korrelationsmatrix der Trainingsdaten mit sich selbst. Jedes Element $\Psi_{ij}$ ist die Korrelation zwischen dem Trainingspunkt $\vec{x}^{(i)}$ und dem Trainingspunkt $\vec{x}^{(j)}$, berechnet mit der Basisfunktion.
+Die Matrix $\Psi$ ist die $n \times n$ Korrelationsmatrix der $n$ Trainingsdaten mit sich selbst. Jedes Element $\Psi_{ij}$ ist die Korrelation zwischen dem Trainingspunkt $\vec{x}^{(i)}$ und dem Trainingspunkt $\vec{x}^{(j)}$, berechnet mit der Basisfunktion.
 $$
-\Psi_{ij} = \text{corr}(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\left(-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}\right)
+\Psi_{ij} = \text{corr}(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\left(-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}\right).
 $$
-Da die Korrelation eines Punktes mit sich selbst perfekt ist, sind die diagonalen Elemente $\Psi_{ii}$ immer gleich 1. Die Matrix ist auch symmetrisch, da der Abstand von Punkt A zu B derselbe ist wie von B zu A.[1]
+Da die Korrelation eines Punktes mit sich selbst perfekt ist, sind die diagonalen Elemente $\Psi_{ii}$ immer gleich 1. Die Matrix ist auch symmetrisch, da der Abstand von Punkt $A$ zu $B$ derselbe ist wie von $B$ zu $A$.
 
 **Code-Analyse (`build_Psi`):** Die bereitgestellte Python-Funktion `build_Psi` implementiert diese Berechnung effizient.
+
+```python
+def build_Psi(X, theta, eps=sqrt(spacing(1))):
+    D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))
+    Psi = exp(-D)
+    Psi += multiply(eye(X.shape[0]), eps)
+    return Psi
+```
 
 1.  `D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))`: Diese Zeile ist der rechnerische Kern. Die Funktion `scipy.spatial.distance.pdist` berechnet die paarweisen Abstände zwischen allen Zeilen in der Eingabematrix `X_train`.
     *   `metric='sqeuclidean'` gibt an, dass der quadrierte euklidische Abstand, $(x_i - x_j)^2$, verwendet werden soll. Dies setzt implizit den Hyperparameter $p=2$.
     *   `w=theta` wendet den Aktivitätsparameter als Gewicht auf den quadrierten Abstand jeder Dimension an und berechnet $\theta_j(x_{ij} - x_{kj})^2$ für jedes Paar von Punkten $i, k$ und jede Dimension $j$. Für den 1D-Fall im Code ist dies einfach `theta * (x_i - x_j)^2`.
     *   `squareform` wandelt dann den von `pdist` zurückgegebenen komprimierten Abstandsvektor in die vollständige, symmetrische $n \times n$ Abstandsmatrix um, die wir $D$ nennen können.
 2.  `Psi = exp(-D)`: Dies führt eine elementweise Potenzierung des Negativen der Abstandsmatrix durch und vervollständigt die Berechnung des Gauß'schen Kernels.
-3.  `Psi += multiply(eye(X.shape), eps)`: Diese Zeile addiert eine kleine Konstante `eps` zur Diagonale der $\Psi$-Matrix. Dies ist der „Nugget“-Term, eine entscheidende Komponente sowohl für die numerische Stabilität als auch für die Rauschmodellierung, die in Abschnitt 7 ausführlich behandelt wird.
+3.  `Psi += multiply(eye(X.shape), eps)`: Diese Zeile addiert eine kleine Konstante `eps` zur Diagonale der $\Psi$-Matrix. Dies ist der „Nugget“-Term, eine entscheidende Komponente sowohl für die numerische Stabilität als auch für die Rauschmodellierung, die in @sec-numerical-best-practices behandelt wird.
 
 #### Der `psi`-Vektor/Matrix ($\vec{\psi}$): Vorhersage-Trainings-Korrelation
 
@@ -137,7 +148,7 @@ $$\psi_{ij} = \text{corr}(\vec{x}^{(i)}, \vec{x}_{pred}^{(j)})$$
 2.  `psi = exp(-D)`: Wie zuvor vervollständigt dies die Kernel-Berechnung.
 3.  `return psi.T`: Die resultierende Matrix wird transponiert, um die Größe $n \times m$ zu haben. Dies ist eine Konvention, um mit der in den Vorhersageformeln in Referenztexten wie Forrester et al. dargestellten Matrixalgebra übereinzustimmen.[1]
 
-### Abschnitt 5: Modellkalibrierung: Maximum-Likelihood-Schätzung (MLE)
+### Abschnitt 5: Modellkalibrierung durch Maximum-Likelihood-Schätzung (MLE) {#sec-mle}
 
 Sobald die Struktur des Modells durch den Kernel definiert ist, müssen wir die optimalen Werte für seine Hyperparameter, nämlich $\vec{\theta}$ und $\vec{p}$, bestimmen. Der Code des Benutzers umgeht diesen entscheidenden Schritt, indem er `theta = 1.0` fest codiert, aber in jeder praktischen Anwendung müssen diese Parameter aus den Daten gelernt werden. Die gebräuchlichste und prinzipientreueste Methode hierfür ist die **Maximum-Likelihood-Schätzung (MLE)**.[1]
 
@@ -187,7 +198,7 @@ wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und a
 *   `mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))`: Dies ist eine direkte und numerisch stabile Implementierung der Formel für $\hat{\mu}$. Anstatt `Psi_inv` explizit zu berechnen, wird der auf Cholesky basierende Löser verwendet, der im nächsten Abschnitt detailliert wird. Der Ausdruck `solve(U, solve(U.T, y_train))` ist äquivalent zu `Psi_inv @ y_train`.
 *   `f_predict = mu_hat *... + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))`: Diese Zeile ist eine direkte Übersetzung der BLUP-Formel. Sie berechnet die Residuen `y_train - one * mu_hat`, multipliziert sie mit `Psi_inv` unter Verwendung des Cholesky-Lösers und berechnet dann das Skalarprodukt mit `psi.T`, bevor das Ergebnis zum Basiswert `mu_hat` addiert wird.
 
-### Abschnitt 7: Numerische Best Practices und der Nugget-Effekt
+### Abschnitt 7: Numerische Best Practices und der Nugget-Effekt {#sec-numerical-best-practices}
 
 Eine direkte Implementierung der Kriging-Gleichungen unter Verwendung der Standard-Matrixinversion kann sowohl langsam als auch numerisch anfällig sein. Professionelle Implementierungen stützen sich auf spezifische numerische Techniken, um Effizienz und Robustheit zu gewährleisten.
 
@@ -217,9 +228,9 @@ Obwohl es als numerischer „Hack“ beginnen mag, hat dieser Nugget-Term eine t
 
 Dieselbe mathematische Operation – das Hinzufügen eines Wertes zur Diagonale von $\Psi$ – dient somit einem doppelten Zweck. Ein winziges, festes `eps` ist eine pragmatische Lösung für die numerische Stabilität. Ein größeres, potenziell optimiertes `λ` ist ein formaler statistischer Parameter, der das Verhalten des Modells grundlegend von einem exakten Interpolator zu einem rauschfilternden Regressor ändert. Das Verständnis dieser Dualität ist entscheidend, um von einem Anfängerverständnis zu einem Expertenverständnis zu gelangen, da es ein Implementierungsdetail auf niedriger Ebene mit einer Modellierungsentscheidung auf hoher Ebene verbindet.
 
-## Teil IV: Eine vollständige exemplarische Vorgehensweise: Kriging der Sinusfunktion
+## Teil IV: Eine vollständige exemplarische Vorgehensweise: Kriging der Sinusfunktion {#sec-example-de}
 
-Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
+Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel [@bart23icode] anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
 
 ### Abschnitt 8: Schritt-für-Schritt-Codeausführung und Interpretation
 
