@@ -355,7 +355,9 @@ Für den angehenden Praktiker ist dies nur der Anfang. Die Welt des Kriging und 
 :::{.callout-note}
 #### Interaktive Webseite
 
-* Eine interaktive Webseite für dieses Lernmodul ist hier zu finden: [Hyperparameter-Tuning-Cookbook Interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_kriging_interactive.html).
+* Eine interaktive Webseite zum Thema **Kriging** ist hier zu finden: [Kriging Interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_kriging_interactive.html).
+
+* Eine interaktive Webseite zum Thema **MLE** ist hier zu finden: [MLE Interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_mle_interactive.html).
 :::
 
 :::{.callout-note}

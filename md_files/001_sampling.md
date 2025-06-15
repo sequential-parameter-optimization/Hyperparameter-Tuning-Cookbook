@@ -1829,12 +1829,9 @@ def plot_mmphi_vs_n_lhs(k_dim: int,
     if not n_values:
         print("Warning: n_values list is empty. Check n_min, n_max, and n_step.")
         return
-
     mmphi_results = []
     mmphi_intensive_results = []
-
     lhs_generator = SpaceFilling(k=k_dim, seed=seed)
-
     print(f"Calculating for n from {n_min} to {n_max} with step {n_step}...")
     for n_points in n_values:
         if n_points < 2 : # mmphi requires at least 2 points to calculate distances
@@ -1844,10 +1841,8 @@ def plot_mmphi_vs_n_lhs(k_dim: int,
             continue
         try:
             X_design = lhs_generator.generate_qms_lhs_design(n_points=n_points)
-            
             phi = mmphi(X_design, q=q_phi, p=p_phi)
             phi_intensive, _, _ = mmphi_intensive(X_design, q=q_phi, p=p_phi)
-            
             mmphi_results.append(phi)
             mmphi_intensive_results.append(phi_intensive)
         except Exception as e:
@@ -1859,15 +1854,15 @@ def plot_mmphi_vs_n_lhs(k_dim: int,
 
     color = 'tab:red'
     ax1.set_xlabel('Number of Samples (n)')
-    ax1.set_ylabel('mmphi (Φq)', color=color)
-    ax1.plot(n_values, mmphi_results, color=color, marker='o', linestyle='-', label='mmphi (Φq)')
+    ax1.set_ylabel('mmphi (Phiq)', color=color)
+    ax1.plot(n_values, mmphi_results, color=color, marker='o', linestyle='-', label='mmphi (Phiq)')
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.grid(True, linestyle='--', alpha=0.7)
 
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     color = 'tab:blue'
-    ax2.set_ylabel('mmphi_intensive (Φq_I)', color=color)  # we already handled the x-label with ax1
-    ax2.plot(n_values, mmphi_intensive_results, color=color, marker='x', linestyle='--', label='mmphi_intensive (Φq_I)')
+    ax2.set_ylabel('mmphi_intensive (PhiqI)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(n_values, mmphi_intensive_results, color=color, marker='x', linestyle='--', label='mmphi_intensive (PhiqI)')
     ax2.tick_params(axis='y', labelcolor=color)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver AWWE-Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <!-- Chosen Palette: Slate & Sky Blue -->
+    <!-- Application Structure Plan: A two-column dashboard layout. The left column contains all interactive controls (sliders) and summary information (total weight). This provides immediate feedback. The right column is dedicated to the primary deep-dive visualization: a dynamic contour plot. This structure separates the 'control panel' from the 'exploration canvas', allowing users to manipulate parameters on the left and observe the complex interactions in detail on the right without losing context. -->
+    <!-- Visualization & Content Choices: Report Info -> Goal -> Viz/Presentation Method -> Interaction -> Justification.
+        1. All 10 Parameters -> Inform & Control -> Sliders -> User drags to change value -> Intuitive method for selecting a value within a defined range.
+        2. Calculated Weight (W) -> Inform -> Large dynamic number -> Updates on any slider change -> Provides immediate feedback on the overall effect of a parameter change.
+        3. Parameter Interactions -> Explore Relationships -> Dynamic Contour Plot (Plotly.js) with selectable axes -> User selects X/Y axes from dropdowns; other 8 sliders update the plot's "slice" -> This is the core exploratory tool. It directly addresses the report's main challenge: visualizing a high-dimensional space. By allowing users to choose the axes and manipulate the baseline for the other dimensions, it makes the abstract concept of parameter interaction tangible and explorable.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 60vh;
+            max-height: 600px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Interaktiver Explorer für das Flügelgewicht (AWWE)</h1>
+            <p class="mt-2 text-lg text-slate-600 max-w-3xl mx-auto">Untersuchen Sie, wie 10 verschiedene Entwurfsparameter das Gewicht eines Flugzeugflügels beeinflussen. Passen Sie die Werte an und visualisieren Sie die komplexen Wechselwirkungen in Echtzeit.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-2 text-slate-900">Berechnetes Flügelgewicht (W)</h2>
+                    <p class="text-4xl font-bold text-sky-600"><span id="total-weight">...</span> lb</p>
+                    <p class="text-sm text-slate-500 mt-1">Aktualisiert sich in Echtzeit</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-900">Steuerungsparameter</h2>
+                     <div id="sliders-container" class="space-y-4"></div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-semibold mb-2 text-slate-900">Interaktions-Analyse</h2>
+                <p class="text-sm text-slate-500 mb-4">Wählen Sie zwei Parameter für die Achsen aus, um deren Wechselwirkung zu visualisieren. Verändern Sie dann die anderen Parameter über die Schieberegler, um zu sehen, wie sich die Beziehung ändert. Dies ist der Schlüssel zum Verständnis des hochdimensionalen Problems.</p>
+                
+                <div class="flex flex-wrap gap-4 mb-4">
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="x-axis-select" class="block text-sm font-medium text-slate-700">X-Achse</label>
+                        <select id="x-axis-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm rounded-md"></select>
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="y-axis-select" class="block text-sm font-medium text-slate-700">Y-Achse</label>
+                        <select id="y-axis-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm rounded-md"></select>
+                    </div>
+                </div>
+
+                <div id="contour-plot-container" class="chart-container">
+                    <div id="contour-plot"></div>
+                </div>
+                 <div id="plot-explanation" class="mt-4 text-sm text-slate-600 p-4 bg-slate-100 rounded-lg">
+                    <h3 class="font-semibold text-slate-800">Wie man das Diagramm liest:</h3>
+                    <p class="mt-1">Die farbigen Bereiche zeigen das Flügelgewicht. Rote Bereiche bedeuten ein höheres Gewicht, blaue Bereiche ein niedrigeres. Die Form der Konturlinien verrät die Interaktion: Wenn die Linien stark gekrümmt sind (nicht parallel zu den Achsen), bedeutet dies eine starke Wechselwirkung zwischen den beiden gewählten Parametern. Probieren Sie $N_z$ und A aus, um den stärksten Effekt zu sehen.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const parameterDefinitions = {
+            Sw:  { name: 'Flügelfläche', unit: 'ft²', min: 150, max: 200, step: 1, base: 174, importance: 'dominant', description: 'Projizierte Fläche des Flügels.' },
+            Wfw: { name: 'Treibstoffgewicht im Flügel', unit: 'lb', min: 220, max: 300, step: 1, base: 252, importance: 'negligible', description: 'Gewicht des im Flügel mitgeführten Treibstoffs.' },
+            A:   { name: 'Streckung', unit: '', min: 6, max: 10, step: 0.1, base: 7.52, importance: 'interactive', description: 'Verhältnis von Spannweite² zu Flügelfläche.' },
+            L:   { name: 'Pfeilung (t/4-Linie)', symbol: 'Λ', unit: 'deg', min: -10, max: 10, step: 1, base: 0, importance: 'negligible', description: 'Rückwärtsdfeilung des Flügels in Grad.' },
+            q:   { name: 'Dynamischer Druck', unit: 'lb/ft²', min: 16, max: 45, step: 1, base: 34, importance: 'negligible', description: 'Aerodynamische Belastung im Reiseflug.' },
+            l:   { name: 'Zuspitzung', symbol: 'λ', unit: '', min: 0.5, max: 1, step: 0.01, base: 0.672, importance: 'negligible', description: 'Verhältnis der Flügeltiefe an Spitze zu Wurzel.' },
+            tc:  { name: 'Relative Profildicke', unit: '', min: 0.08, max: 0.18, step: 0.005, base: 0.12, importance: 'interactive', description: 'Verhältnis von Profildicke zu Profiltiefe.' },
+            Nz:  { name: 'Ultimativer Lastfaktor', unit: '', min: 2.5, max: 6, step: 0.1, base: 3.8, importance: 'dominant', description: 'Maximale g-Kraft, der die Struktur standhalten muss.' },
+            Wdg: { name: 'Konstruktions-Gesamtgewicht', unit: 'lb', min: 1700, max: 2500, step: 10, base: 2000, importance: 'dominant', description: 'Maximales Gesamtgewicht des Flugzeugs.' },
+            Wp:  { name: 'Lackgewicht', unit: 'lb/ft²', min: 0.025, max: 0.08, step: 0.001, base: 0.064, importance: 'negligible', description: 'Gewicht der Lackierung pro Flächeneinheit.' },
+        };
+
+        let currentParams = {};
+        const totalWeightEl = document.getElementById('total-weight');
+        const slidersContainer = document.getElementById('sliders-container');
+        const xAxisSelect = document.getElementById('x-axis-select');
+        const yAxisSelect = document.getElementById('y-axis-select');
+
+        function calculateWeight(p) {
+            const cosL_rad = Math.cos(p.L * Math.PI / 180);
+            
+            const term1 = 0.036 * Math.pow(p.Sw, 0.758);
+            const term2 = Math.pow(p.Wfw, 0.0035);
+            const term3 = Math.pow(p.A / (cosL_rad * cosL_rad), 0.6);
+            const term4 = Math.pow(p.q, 0.006);
+            const term5 = Math.pow(p.l, 0.04);
+            const term6 = Math.pow((100 * p.tc) / cosL_rad, -0.3);
+            const term7 = Math.pow(p.Nz * p.Wdg, 0.49);
+            const term8 = p.Sw * p.Wp;
+
+            const W = term1 * term2 * term3 * term4 * term5 * term6 * term7 + term8;
+            return W;
+        }
+
+        function update() {
+            const weight = calculateWeight(currentParams);
+            totalWeightEl.textContent = weight.toFixed(2);
+            updateContourPlot();
+        }
+
+        function createSliders() {
+            Object.keys(parameterDefinitions).forEach(key => {
+                const p = parameterDefinitions[key];
+                currentParams[key] = p.base;
+
+                const sliderWrapper = document.createElement('div');
+                const symbol = p.symbol ? p.symbol : key;
+
+                sliderWrapper.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="${key}-slider" class="text-sm font-medium text-slate-700">${p.name} (${symbol})</label>
+                        <span id="${key}-value" class="text-sm font-semibold text-sky-600 bg-sky-100 px-2 py-0.5 rounded">${p.base} ${p.unit}</span>
+                    </div>
+                    <input type="range" id="${key}-slider" min="${p.min}" max="${p.max}" value="${p.base}" step="${p.step}" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                `;
+                slidersContainer.appendChild(sliderWrapper);
+
+                const slider = document.getElementById(`${key}-slider`);
+                const valueDisplay = document.getElementById(`${key}-value`);
+
+                slider.addEventListener('input', () => {
+                    const val = parseFloat(slider.value);
+                    currentParams[key] = val;
+                    valueDisplay.textContent = `${val.toFixed(p.step.toString().includes('.') ? p.step.toString().split('.')[1].length : 0)} ${p.unit}`;
+                    update();
+                });
+            });
+        }
+        
+        function populateAxisSelectors() {
+            Object.keys(parameterDefinitions).forEach(key => {
+                const p = parameterDefinitions[key];
+                const optionX = document.createElement('option');
+                optionX.value = key;
+                optionX.textContent = `${p.name} (${p.symbol || key})`;
+                xAxisSelect.appendChild(optionX);
+
+                const optionY = document.createElement('option');
+                optionY.value = key;
+                optionY.textContent = `${p.name} (${p.symbol || key})`;
+                yAxisSelect.appendChild(optionY);
+            });
+            xAxisSelect.value = 'Nz';
+            yAxisSelect.value = 'A';
+            
+            xAxisSelect.addEventListener('change', updateContourPlot);
+            yAxisSelect.addEventListener('change', updateContourPlot);
+        }
+
+        function updateContourPlot() {
+            const xVar = xAxisSelect.value;
+            const yVar = yAxisSelect.value;
+
+            if (xVar === yVar) {
+                Plotly.purge('contour-plot');
+                document.getElementById('contour-plot').innerHTML = `<div class="flex items-center justify-center h-full text-slate-500">Bitte zwei unterschiedliche Parameter auswählen.</div>`;
+                return;
+            }
+
+            const xDef = parameterDefinitions[xVar];
+            const yDef = parameterDefinitions[yVar];
+            
+            const resolution = 25;
+            const xValues = Array.from({length: resolution}, (_, i) => xDef.min + i * (xDef.max - xDef.min) / (resolution - 1));
+            const yValues = Array.from({length: resolution}, (_, i) => yDef.min + i * (yDef.max - yDef.min) / (resolution - 1));
+
+            const zValues = [];
+
+            for (const yVal of yValues) {
+                const row = [];
+                for (const xVal of xValues) {
+                    const tempParams = { ...currentParams, [xVar]: xVal, [yVar]: yVal };
+                    row.push(calculateWeight(tempParams));
+                }
+                zValues.push(row);
+            }
+            
+            const data = [{
+                x: xValues,
+                y: yValues,
+                z: zValues,
+                type: 'contour',
+                colorscale: 'Viridis',
+                reversescale: true,
+                contours: {
+                    coloring: 'heatmap'
+                },
+                colorbar: {
+                    title: 'Gewicht (lb)',
+                    titleside: 'right'
+                }
+            }];
+
+            const layout = {
+                title: `Gewicht vs. ${xDef.name} & ${yDef.name}`,
+                xaxis: { title: `${xDef.name} (${xDef.unit})` },
+                yaxis: { title: `${yDef.name} (${yDef.unit})` },
+                autosize: true,
+                margin: { l: 60, r: 20, b: 50, t: 50, pad: 4 },
+                font: {
+                    family: 'Inter, sans-serif'
+                }
+            };
+            
+            const config = {responsive: true, displaylogo: false};
+
+            Plotly.react('contour-plot', data, layout, config);
+        }
+        
+        function init() {
+            createSliders();
+            populateAxisSelectors();
+            update();
+        }
+
+        init();
+
+    </script>
+</body>
+</html>

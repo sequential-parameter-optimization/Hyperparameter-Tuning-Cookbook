@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Lernhilfe zur Cholesky-Zerlegung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: Die SPA ist als geführter Lernpfad mit einer Navigationsleiste für direkten Zugriff konzipiert. Sie beginnt mit einem interaktiven "Was ist"-Rechner, gefolgt von einem "Voraussetzungs-Checker", um die Theorie praktisch zu erproben. Der Kern ist ein schrittweiser "Algorithmus-Walkthrough", der den Berechnungsprozess visualisiert. Ein dynamisches "Effizienz-Diagramm" vergleicht Cholesky mit der LU-Zerlegung. Schließlich fassen "Anwendungsfall-Tabs" die praktische Relevanz zusammen. Diese Struktur wandelt passive Lektüre in aktives Lernen um, indem sie Konzepte in interaktive Werkzeuge zerlegt, was das Verständnis und die Einprägsamkeit für Studierende verbessert. -->
+    <!-- Visualization & Content Choices: 
+        - Interaktiver Rechner (Was ist es?): Informieren -> HTML-Tabellen + JS. Justification: Direkte Manipulation fördert das Verständnis von Input/Output.
+        - Voraussetzungs-Checker (Voraussetzungen): Informieren/Organisieren -> HTML-Formular + JS-Logik. Justification: Macht die abstrakten Bedingungen "symmetrisch" und "positiv-definit" zu einem greifbaren Test.
+        - Algorithmus-Walkthrough (Der Algorithmus): Organisieren/Informieren -> HTML + JS für schrittweise Anzeige. Justification: Zerlegt einen komplexen Prozess in verdauliche, visuelle Schritte.
+        - Effizienz-Vergleich (Effizienz): Vergleichen -> Chart.js-Balkendiagramm mit JS-Slider. Justification: Visualisiert den exponentiellen Vorteil von Cholesky dynamisch und eindrucksvoller als reiner Text.
+        - Anwendungsfall-Tabs (Anwendungen): Organisieren -> HTML/CSS/JS für Tab-Umschaltung. Justification: Präsentiert verschiedene Informationen aufgeräumt und ohne den Nutzer zu überfordern.
+        - Library/Method: Chart.js (Canvas) für das Diagramm.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #4A4A4A;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+            max-width: 200px;
+        }
+        .matrix-lg {
+            max-width: 250px;
+        }
+        .matrix input, .matrix .cell {
+            width: 100%;
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #D1D5DB;
+            background-color: white;
+            transition: all 0.2s ease-in-out;
+        }
+        .matrix input:focus {
+            border-color: #6B8A7A;
+            box-shadow: 0 0 0 2px rgba(107, 138, 122, 0.5);
+            outline: none;
+        }
+        .highlight-step {
+            background-color: #E0E7DE !important;
+            border: 2px solid #6B8A7A !important;
+            transform: scale(1.05);
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 9999px;
+        }
+        .nav-button.active {
+            background-color: #6B8A7A;
+            color: white;
+        }
+        .nav-button:not(.active):hover {
+            background-color: #E0E7DE;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #6B8A7A;
+            color: #6B8A7A;
+            font-weight: 500;
+        }
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 300px;
+            max-height: 400px; 
+        }
+        @media (min-width: 768px) { 
+            .chart-container { height: 350px; } 
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Cholesky-Zerlegung</h1>
+                <div class="hidden md:flex items-center space-x-2">
+                    <button onclick="scrollToSection('intro')" class="nav-button active">Einführung</button>
+                    <button onclick="scrollToSection('voraussetzungen')" class="nav-button">Voraussetzungen</button>
+                    <button onclick="scrollToSection('algorithmus')" class="nav-button">Algorithmus</button>
+                    <button onclick="scrollToSection('effizienz')" class="nav-button">Effizienz</button>
+                    <button onclick="scrollToSection('anwendungen')" class="nav-button">Anwendungen</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="intro" class="min-h-[80vh] flex flex-col justify-center text-center py-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4">Das "Schweizer Taschenmesser" der Matrizen</h2>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto text-gray-600 mb-8">
+                Die Cholesky-Zerlegung ist eine hocheffiziente Methode zur Zerlegung einer speziellen Art von Matrizen. Sie faktorisiert eine symmetrische, positiv-definite Matrix $A$ in das Produkt einer unteren Dreiecksmatrix $L$ und ihrer Transponierten $L^T$.
+            </p>
+            <div class="p-6 bg-white rounded-xl shadow-lg max-w-4xl mx-auto w-full">
+                <h3 class="text-xl font-bold mb-6">Interaktiver Rechner: $A = LL^T$</h3>
+                <p class="text-gray-600 mb-6">Geben Sie die Werte für eine 3x3 symmetrische Matrix $A$ ein und sehen Sie das Ergebnis der Zerlegung in $L$ und $L^T$.</p>
+                <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+                    <!-- Matrix A -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-2xl font-bold mb-2">A</span>
+                        <div id="matrixA_input" class="matrix">
+                            <input id="a11" type="number" value="25" oninput="syncMatrix(this)">
+                            <input id="a12" type="number" value="15" oninput="syncMatrix(this)">
+                            <input id="a13" type="number" value="-5" oninput="syncMatrix(this)">
+                            <input id="a21" type="number" value="15" oninput="syncMatrix(this)" disabled class="bg-gray-100">
+                            <input id="a22" type="number" value="18" oninput="syncMatrix(this)">
+                            <input id="a23" type="number" value="0" oninput="syncMatrix(this)">
+                            <input id="a31" type="number" value="-5" oninput="syncMatrix(this)" disabled class="bg-gray-100">
+                            <input id="a32" type="number" value="0" oninput="syncMatrix(this)" disabled class="bg-gray-100">
+                            <input id="a33" type="number" value="11" oninput="syncMatrix(this)">
+                        </div>
+                    </div>
+                    <span class="text-3xl font-light text-gray-400">=</span>
+                    <!-- Matrix L -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-2xl font-bold mb-2">L</span>
+                        <div id="matrixL_output" class="matrix"></div>
+                    </div>
+                    <span class="text-3xl font-light text-gray-400">×</span>
+                    <!-- Matrix L^T -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-2xl font-bold mb-2">L<sup>T</sup></span>
+                        <div id="matrixLT_output" class="matrix"></div>
+                    </div>
+                </div>
+                <button onclick="calculateCholesky()" class="mt-8 bg-[#6B8A7A] text-white font-bold py-2 px-6 rounded-full hover:bg-[#597165] transition-colors">Berechnen</button>
+                <div id="calc_error" class="mt-4 text-red-600 font-semibold"></div>
+            </div>
+        </section>
+
+        <section id="voraussetzungen" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4">Die Spielregeln: Voraussetzungen</h2>
+            <p class="text-lg max-w-3xl mx-auto text-center text-gray-600 mb-12">Die Cholesky-Zerlegung ist mächtig, aber wählerisch. Sie funktioniert nur, wenn die Matrix zwei Bedingungen erfüllt: Sie muss symmetrisch und positiv-definit sein. Diese App kann als Testwerkzeug dienen: Schlägt die Zerlegung fehl, ist die Matrix nicht positiv-definit.</p>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-2">1. Symmetrie</h3>
+                    <p class="text-gray-600">Eine Matrix ist symmetrisch, wenn sie gleich ihrer Transponierten ist ($A = A^T$). Das bedeutet, das Element in Zeile $i$, Spalte $j$ ist gleich dem Element in Zeile $j$, Spalte $i$. Sie ist entlang der Hauptdiagonale gespiegelt.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-2">2. Positive Definitheit</h3>
+                    <p class="text-gray-600">Dies ist eine subtilere Eigenschaft, die numerische Stabilität garantiert. Eine symmetrische Matrix ist positiv-definit, wenn alle ihre Eigenwerte positiv sind. In der Praxis ist der schnellste Test, einfach die Cholesky-Zerlegung zu versuchen. Scheitert sie (weil die Wurzel einer negativen Zahl gezogen werden müsste), ist die Matrix nicht positiv-definit.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="algorithmus" class="py-16 bg-gray-50 rounded-2xl">
+            <h2 class="text-3xl font-bold text-center mb-4">Der Algorithmus interaktiv</h2>
+            <p class="text-lg max-w-3xl mx-auto text-center text-gray-600 mb-12">Verstehen Sie, wie die Elemente der Matrix $L$ Schritt für Schritt berechnet werden. Klicken Sie auf "Nächster Schritt", um den Prozess für die Beispielmatrix durchzugehen. Die Formeln zeigen, wie jedes $l_{ij}$ aus bekannten Werten von $A$ und zuvor berechneten Werten von $L$ bestimmt wird.</p>
+            <div class="p-6 bg-white rounded-xl shadow-lg max-w-5xl mx-auto">
+                <div class="flex flex-col lg:flex-row items-start justify-center gap-8">
+                    <!-- Matrix A -->
+                    <div class="flex flex-col items-center w-full lg:w-auto">
+                        <span class="text-2xl font-bold mb-2">A</span>
+                        <div id="algo_matrix_A" class="matrix matrix-lg"></div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center self-center text-3xl font-light text-gray-400 py-4 lg:py-0">→</div>
+                    <!-- Matrix L -->
+                    <div class="flex flex-col items-center w-full lg:w-auto">
+                        <span class="text-2xl font-bold mb-2">L</span>
+                        <div id="algo_matrix_L" class="matrix matrix-lg"></div>
+                    </div>
+                    <!-- Formula Display -->
+                    <div class="w-full lg:w-1/3 bg-gray-100 p-4 rounded-lg self-start mt-4 lg:mt-0">
+                        <h4 class="font-bold text-lg mb-2">Berechnungsschritt:</h4>
+                        <div id="formula_display" class="text-left text-sm md:text-base space-y-2">
+                            <p class="text-gray-500">Klicken Sie auf "Start", um zu beginnen.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-8">
+                    <button id="step_button" onclick="nextStep()" class="bg-[#6B8A7A] text-white font-bold py-2 px-6 rounded-full hover:bg-[#597165] transition-colors">Start</button>
+                    <button id="reset_button" onclick="resetAlgorithm()" class="ml-4 bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-full hover:bg-gray-300 transition-colors">Zurücksetzen</button>
+                </div>
+            </div>
+        </section>
+        
+        <section id="effizienz" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4">Warum Cholesky? Effizienz und Stabilität</h2>
+            <p class="text-lg max-w-3xl mx-auto text-center text-gray-600 mb-12">Die Cholesky-Zerlegung ist etwa doppelt so schnell wie die allgemeinere LU-Zerlegung. Dieser Vorteil ergibt sich aus der Ausnutzung der Symmetrie der Matrix. Bewegen Sie den Schieberegler, um zu sehen, wie sich der Unterschied bei der Anzahl der Rechenoperationen (FLOPS) mit der Größe der Matrix ($n$) vergrößert.</p>
+            <div class="p-6 bg-white rounded-xl shadow-lg max-w-3xl mx-auto">
+                <div class="chart-container">
+                    <canvas id="efficiencyChart"></canvas>
+                </div>
+                <div class="mt-6">
+                    <label for="matrix_size" class="block text-center font-medium text-gray-700">Matrixgröße (n x n): <span id="matrix_size_label" class="font-bold">50</span></label>
+                    <input id="matrix_size" type="range" min="10" max="500" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateEfficiencyChart(this.value)">
+                </div>
+            </div>
+        </section>
+
+        <section id="anwendungen" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4">Anwendungen in Wissenschaft und Technik</h2>
+             <p class="text-lg max-w-3xl mx-auto text-center text-gray-600 mb-12">Die Cholesky-Zerlegung ist keine rein akademische Übung. Sie ist der Motor für viele wichtige Anwendungen, bei denen symmetrische, positiv-definite Matrizen naturgemäß auftreten – zum Beispiel zur Beschreibung von Kovarianz oder Korrelation.</p>
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-4 border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button onclick="switchTab(event, 'monte-carlo')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm active">Monte-Carlo-Simulation</button>
+                        <button onclick="switchTab(event, 'optimierung')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Numerische Optimierung</button>
+                        <button onclick="switchTab(event, 'ml')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Maschinelles Lernen</button>
+                    </nav>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div id="monte-carlo" class="tab-content">
+                        <h3 class="font-bold text-xl mb-3">Monte-Carlo-Simulation & Statistik</h3>
+                        <p class="text-gray-600">Ein Schlüsselproblem ist die Erzeugung von Zufallsvektoren, die eine bestimmte Korrelationsstruktur aufweisen. Die Cholesky-Zerlegung der Kovarianzmatrix $\Sigma = LL^T$ liefert den Faktor $L$, der als eine Art "Matrix-Quadratwurzel" dient. Er transformiert einen Vektor unabhängiger Zufallszahlen $\vec{z}$ in einen Vektor $\vec{x} = L\vec{z}$ mit der gewünschten Korrelation. Dies ist fundamental für die Risikomodellierung im Finanzwesen und viele andere Simulationen.</p>
+                    </div>
+                    <div id="optimierung" class="tab-content hidden">
+                        <h3 class="font-bold text-xl mb-3">Numerische Optimierung</h3>
+                        <p class="text-gray-600">Newton-basierte Verfahren zur Suche nach Minima einer Funktion erfordern die Lösung eines linearen Systems $H\vec{p} = -\vec{g}$, wobei $H$ die Hesse-Matrix (zweite Ableitungen) ist. In der Nähe eines Minimums ist $H$ symmetrisch und positiv-definit. Die Cholesky-Zerlegung ist hier die ideale Methode, um dieses System schnell und stabil zu lösen und den nächsten Optimierungsschritt zu finden.</p>
+                    </div>
+                    <div id="ml" class="tab-content hidden">
+                        <h3 class="font-bold text-xl mb-3">Maschinelles Lernen (Gauß-Prozesse)</h3>
+                        <p class="text-gray-600">Gauß-Prozesse sind eine leistungsstarke Methode zur Modellierung von Funktionen. Ihr Herzstück ist eine Kovarianzmatrix, die per Konstruktion symmetrisch und positiv-definit ist. Die Cholesky-Zerlegung ist das Rückgrat fast jeder praktischen Implementierung: Sie wird sowohl zur Anpassung des Modells (Berechnung von Determinante und Invers-Vektor-Produkten) als auch für Vorhersagen benötigt, was die komplexen Berechnungen überhaupt erst handhabbar macht.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto p-8 text-center">
+            <p>Interaktive Lernhilfe zur Linearen Algebra.</p>
+            <p class="text-sm text-gray-400 mt-2">Erstellt, um komplexe Themen zugänglich zu machen.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMatrix('matrixL_output', 3, 3, [], true);
+            renderMatrix('matrixLT_output', 3, 3, [], true);
+            calculateCholesky();
+
+            initAlgorithm();
+            
+            initEfficiencyChart();
+            updateEfficiencyChart(50);
+
+            setupNavScroll();
+        });
+
+        function renderMatrix(containerId, rows, cols, data, isOutput = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            container.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    const index = i * cols + j;
+                    const value = data[index];
+                    
+                    let displayValue = ' ';
+                    if (value !== undefined && value !== null) {
+                        if (typeof value === 'number') {
+                            displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
+                        } else {
+                            displayValue = value;
+                        }
+                    }
+                    cell.textContent = displayValue;
+
+                    if (isOutput) {
+                        cell.classList.add('bg-gray-100');
+                    }
+                    cell.id = `${containerId}_${i}${j}`;
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function syncMatrix(element) {
+            if (element.id === 'a12') document.getElementById('a21').value = element.value;
+            if (element.id === 'a13') document.getElementById('a31').value = element.value;
+            if (element.id === 'a23') document.getElementById('a32').value = element.value;
+        }
+
+        function calculateCholesky() {
+            const errorDiv = document.getElementById('calc_error');
+            errorDiv.textContent = '';
+            try {
+                const a = [
+                    [parseFloat(document.getElementById('a11').value), parseFloat(document.getElementById('a12').value), parseFloat(document.getElementById('a13').value)],
+                    [parseFloat(document.getElementById('a21').value), parseFloat(document.getElementById('a22').value), parseFloat(document.getElementById('a23').value)],
+                    [parseFloat(document.getElementById('a31').value), parseFloat(document.getElementById('a32').value), parseFloat(document.getElementById('a33').value)]
+                ];
+                
+                const l = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j <= i; j++) {
+                        let sum = 0;
+                        for (let k = 0; k < j; k++) {
+                            sum += l[i][k] * l[j][k];
+                        }
+                        if (i === j) {
+                            const underSqrt = a[i][i] - sum;
+                            if (underSqrt < 0) throw new Error("Matrix ist nicht positiv-definit.");
+                            l[i][j] = Math.sqrt(underSqrt);
+                        } else {
+                            l[i][j] = (1.0 / l[j][j] * (a[i][j] - sum));
+                        }
+                    }
+                }
+                
+                const lt = [[l[0][0], l[1][0], l[2][0]], [l[0][1], l[1][1], l[2][1]], [l[0][2], l[1][2], l[2][2]]];
+
+                renderMatrix('matrixL_output', 3, 3, l.flat());
+                renderMatrix('matrixLT_output', 3, 3, lt.flat());
+
+            } catch (e) {
+                errorDiv.textContent = e.message;
+                renderMatrix('matrixL_output', 3, 3, []);
+                renderMatrix('matrixLT_output', 3, 3, []);
+            }
+        }
+
+        const algoMatrixA = [
+            [25, 15, -5],
+            [15, 18, 0],
+            [-5, 0, 11]
+        ];
+        let algoMatrixL = [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null]
+        ];
+        let currentStep = -1;
+        const steps = [
+            { i: 0, j: 0, formula: "l₁₁ = √a₁₁", calculation: "√25 = 5" },
+            { i: 1, j: 0, formula: "l₂₁ = a₂₁ / l₁₁", calculation: "15 / 5 = 3" },
+            { i: 2, j: 0, formula: "l₃₁ = a₃₁ / l₁₁", calculation: "-5 / 5 = -1" },
+            { i: 1, j: 1, formula: "l₂₂ = √(a₂₂ - l₂₁²)", calculation: "√(18 - 3²) = √9 = 3" },
+            { i: 2, j: 1, formula: "l₃₂ = (a₃₂ - l₃₁l₂₁) / l₂₂", calculation: "(0 - (-1)(3)) / 3 = 1" },
+            { i: 2, j: 2, formula: "l₃₃ = √(a₃₃ - l₃₁² - l₃₂²)", calculation: "√(11 - (-1)² - 1²) = √9 = 3" }
+        ];
+
+        function initAlgorithm() {
+            renderMatrix('algo_matrix_A', 3, 3, algoMatrixA.flat(), false);
+            renderMatrix('algo_matrix_L', 3, 3, algoMatrixL.flat().map(v => v === null ? '?' : v), true);
+            currentStep = -1;
+            document.getElementById('step_button').textContent = 'Start';
+            document.getElementById('step_button').disabled = false;
+            document.getElementById('formula_display').innerHTML = '<p class="text-gray-500">Klicken Sie auf "Start", um zu beginnen.</p>';
+        }
+
+        function resetAlgorithm() {
+            algoMatrixL = [[null, null, null], [null, null, null], [null, null, null]];
+            initAlgorithm();
+        }
+
+        function nextStep() {
+            const stepButton = document.getElementById('step_button');
+            if (currentStep === -1) {
+                stepButton.textContent = 'Nächster Schritt';
+            }
+            
+            currentStep++;
+            if (currentStep >= steps.length) {
+                stepButton.textContent = 'Fertig';
+                stepButton.disabled = true;
+                clearHighlights();
+                 document.getElementById('formula_display').innerHTML = '<p class="font-semibold text-green-700">Zerlegung abgeschlossen!</p>';
+                return;
+            }
+            stepButton.disabled = false;
+
+            const step = steps[currentStep];
+            const { i, j, formula, calculation } = step;
+            
+            const lValue = eval(calculation.split('=')[1].trim().replace('√', 'Math.sqrt').replace('²','**2'));
+            algoMatrixL[i][j] = lValue;
+
+            renderMatrix('algo_matrix_L', 3, 3, algoMatrixL.flat().map(v => v === null ? '?' : v.toFixed(0)), true);
+            
+            clearHighlights();
+            document.getElementById(`algo_matrix_L_${i}${j}`).classList.add('highlight-step');
+            if (i === j) { // Diagonal
+                document.getElementById(`algo_matrix_A_${i}${j}`).classList.add('highlight-step');
+            } else { // Off-diagonal
+                document.getElementById(`algo_matrix_A_${i}${j}`).classList.add('highlight-step');
+                document.getElementById(`algo_matrix_L_${j}${j}`).classList.add('highlight-step');
+            }
+
+            for(let row=0; row<=i; row++) {
+                for(let col=0; col<j; col++){
+                     if(algoMatrixL[row][col] !== null) {
+                         document.getElementById(`algo_matrix_L_${row}${col}`).classList.add('highlight-step');
+                     }
+                }
+            }
+
+
+            document.getElementById('formula_display').innerHTML = `
+                <p class="font-medium">Formel:</p>
+                <p class="bg-white p-2 rounded">${formula}</p>
+                <p class="font-medium mt-2">Berechnung:</p>
+                <p class="bg-white p-2 rounded">${calculation}</p>
+            `;
+        }
+        
+        function clearHighlights() {
+            document.querySelectorAll('.highlight-step').forEach(el => el.classList.remove('highlight-step'));
+        }
+
+        let efficiencyChartInstance;
+        function initEfficiencyChart() {
+            const ctx = document.getElementById('efficiencyChart').getContext('2d');
+            efficiencyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Cholesky-Zerlegung', 'LU-Zerlegung'],
+                    datasets: [{
+                        label: 'Relative Rechenoperationen (FLOPS)',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(107, 138, 122, 0.6)',
+                            'rgba(209, 213, 219, 0.6)'
+                        ],
+                        borderColor: [
+                             'rgba(107, 138, 122, 1)',
+                            'rgba(156, 163, 175, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Gleitkommaoperationen (FLOPS) - skaliert'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateEfficiencyChart(n) {
+            document.getElementById('matrix_size_label').textContent = n;
+            const cholesky_flops = (1/3) * (n**3);
+            const lu_flops = (2/3) * (n**3);
+
+            efficiencyChartInstance.data.datasets[0].data = [cholesky_flops, lu_flops];
+            efficiencyChartInstance.update();
+        }
+
+        function switchTab(event, tabID) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.getElementById(tabID).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        }
+
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function setupNavScroll() {
+            const sections = document.querySelectorAll('section');
+            const navButtons = document.querySelectorAll('.nav-button');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navButtons.forEach(button => {
+                            button.classList.toggle('active', button.getAttribute('onclick').includes(entry.target.id));
+                        });
+                    }
+                });
+            }, { rootMargin: '-50% 0px -50% 0px' });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        }
+    </script>
+</body>
+</html>
+```
