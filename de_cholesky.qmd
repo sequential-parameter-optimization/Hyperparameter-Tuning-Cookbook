@@ -284,7 +284,7 @@ Die Cholesky-Zerlegung ist ein unverzichtbares Werkzeug in der numerischen linea
 :::{.callout-note}
 #### Audiomaterial
 
-* Eine Audio zum Thema **Aircraft Wing Weight Example** ist hier zu finden: [Cholesky Audio](https://advm1.gm.fh-koeln.de/~bartz/bart21i/audio/cholesky.m4a).
+* Eine Audio zum Thema **Cholesky-Zerlegung** ist hier zu finden: [Cholesky Audio](https://advm1.gm.fh-koeln.de/~bartz/bart21i/audio/cholesky.m4a).
 
 
 :::
