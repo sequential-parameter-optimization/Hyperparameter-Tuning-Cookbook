@@ -365,6 +365,10 @@
             initAlgorithm();
         }
 
+        function clearHighlights() {
+            document.querySelectorAll('.highlight-step').forEach(el => el.classList.remove('highlight-step'));
+        }
+
         function nextStep() {
             const stepButton = document.getElementById('step_button');
             if (currentStep === -1) {
@@ -376,7 +380,7 @@
                 stepButton.textContent = 'Fertig';
                 stepButton.disabled = true;
                 clearHighlights();
-                 document.getElementById('formula_display').innerHTML = '<p class="font-semibold text-green-700">Zerlegung abgeschlossen!</p>';
+                document.getElementById('formula_display').innerHTML = '<p class="font-semibold text-green-700">Zerlegung abgeschlossen!</p>';
                 return;
             }
             stepButton.disabled = false;
@@ -384,29 +388,44 @@
             const step = steps[currentStep];
             const { i, j, formula, calculation } = step;
             
-            const lValue = eval(calculation.split('=')[1].trim().replace('√', 'Math.sqrt').replace('²','**2'));
+            // --- FIX: Correct calculation logic ---
+            let sum = 0;
+            for (let k = 0; k < j; k++) {
+                sum += algoMatrixL[i][k] * algoMatrixL[j][k];
+            }
+
+            let lValue;
+            if (i === j) {
+                const underSqrt = algoMatrixA[i][i] - sum;
+                lValue = Math.sqrt(underSqrt);
+            } else {
+                lValue = (1.0 / algoMatrixL[j][j]) * (algoMatrixA[i][j] - sum);
+            }
             algoMatrixL[i][j] = lValue;
 
             renderMatrix('algo_matrix_L', 3, 3, algoMatrixL.flat().map(v => v === null ? '?' : v.toFixed(0)), true);
             
+            // --- FIX: Correct highlighting logic ---
             clearHighlights();
+            
+            // Highlight target cell in L
             document.getElementById(`algo_matrix_L_${i}${j}`).classList.add('highlight-step');
-            if (i === j) { // Diagonal
-                document.getElementById(`algo_matrix_A_${i}${j}`).classList.add('highlight-step');
-            } else { // Off-diagonal
-                document.getElementById(`algo_matrix_A_${i}${j}`).classList.add('highlight-step');
+            
+            // Highlight source cell in A
+            document.getElementById(`algo_matrix_A_${i}${j}`).classList.add('highlight-step');
+
+            // Highlight dependencies in L for the sum
+            for (let k = 0; k < j; k++) {
+                document.getElementById(`algo_matrix_L_${i}${k}`).classList.add('highlight-step');
+                document.getElementById(`algo_matrix_L_${j}${k}`).classList.add('highlight-step');
+            }
+
+            // For non-diagonal elements, also highlight the divisor
+            if (i !== j) {
                 document.getElementById(`algo_matrix_L_${j}${j}`).classList.add('highlight-step');
             }
-
-            for(let row=0; row<=i; row++) {
-                for(let col=0; col<j; col++){
-                     if(algoMatrixL[row][col] !== null) {
-                         document.getElementById(`algo_matrix_L_${row}${col}`).classList.add('highlight-step');
-                     }
-                }
-            }
-
-
+            
+            // Update formula display
             document.getElementById('formula_display').innerHTML = `
                 <p class="font-medium">Formel:</p>
                 <p class="bg-white p-2 rounded">${formula}</p>
@@ -415,10 +434,6 @@
             `;
         }
         
-        function clearHighlights() {
-            document.querySelectorAll('.highlight-step').forEach(el => el.classList.remove('highlight-step'));
-        }
-
         let efficiencyChartInstance;
         function initEfficiencyChart() {
             const ctx = document.getElementById('efficiencyChart').getContext('2d');
@@ -503,4 +518,3 @@
     </script>
 </body>
 </html>
-```

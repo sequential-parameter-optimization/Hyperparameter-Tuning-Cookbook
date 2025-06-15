@@ -256,7 +256,7 @@ Viele der in diesem Dokument beschriebenen Konzepte sind in den [Jupyter Noteboo
 :::{.callout-note}
 #### Interaktive Webseite
 
-* Eine interaktive Webseite zum Thema **Curse of Dimensionality** ist hier zu finden: [Curse of Dimensionality interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_curse_interactive.html).
+* Eine interaktive Webseite zum Thema **Curse of Dimensionality** ist hier zu finden: [Curse of Dimensionality interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/en_curse_interactive.html).
 
 :::
 
