@@ -1,5 +1,6 @@
 ---
 lang: de
+eval: true
 ---
 
 # Lernmodul: Eine Einführung in Kriging
@@ -121,7 +122,13 @@ Da die Korrelation eines Punktes mit sich selbst perfekt ist, sind die diagonale
 
 **Code-Analyse (`build_Psi`):** Die bereitgestellte Python-Funktion `build_Psi` implementiert diese Berechnung effizient.
 
-```python
+```{python}
+from scipy.spatial.distance import pdist, squareform, cdist
+from numpy.linalg import cholesky
+import numpy as np
+from numpy import sqrt, spacing, exp, multiply, eye
+from numpy.linalg import solve
+from scipy.spatial.distance import pdist, squareform, cdist
 def build_Psi(X, theta, eps=sqrt(spacing(1))):
     D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))
     Psi = exp(-D)
@@ -143,7 +150,7 @@ $$\psi_{ij} = \text{corr}(\vec{x}^{(i)}, \vec{x}_{pred}^{(j)})$$
 
 **Code-Analyse (`build_psi`):** Die Funktion `build_psi` berechnet diese Matrix.
 
-```python
+```{python}
 def build_psi(X_train, x_predict, theta):
     D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)
     psi = exp(-D)
@@ -222,7 +229,8 @@ wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und a
 
 **Code-Analyse (`mu_hat` und `f_predict`):** Der bereitgestellte Python-Code implementiert diesen Vorhersageprozess direkt.
 
-```python
+```{python}
+Psi = build_Psi(X, theta)
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1, 1)
 mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
@@ -272,7 +280,7 @@ Das Beispiel zielt darauf ab, die Funktion $y = \sin(x)$ unter Verwendung einer 
 
 #### Schritt 1: Datengenerierung
 
-```python
+```{python}
 n = 8
 X_train = np.linspace(0, 2 * np.pi, n, endpoint=False).reshape(-1, 1)
 y_train = np.sin(X_train)
@@ -285,7 +293,7 @@ Hier generiert das Skript die Trainingsdaten.
 *   `y_train = np.sin(X_train)`: Dies berechnet die Sinuswerte an den Trainingspunkten. Das Ergebnis ist ein $8 \times 1$ Vektor, der die beobachteten Antworten darstellt.
 
 #### Schritt 2: Definition der Korrelationsmatrix ($\Psi$)
-```python
+```{python}
 theta = np.array([1.0])
 Psi = build_Psi(X_train, theta)
 ```
@@ -297,7 +305,7 @@ Dieser Schritt berechnet die $8 \times 8$ Korrelationsmatrix $\Psi$ für die Tra
 
 #### Schritt 3: Definition der Vorhersagepunkte
 
-```python
+```{python}
 m = 100
 x_predict = np.linspace(0, 2 * np.pi, m, endpoint=True).reshape(-1, 1)
 ```
@@ -306,7 +314,7 @@ Wir definieren nun die Orte, an denen wir neue Vorhersagen machen wollen. Wir er
 
 #### Schritt 4: Berechnung der Vorhersagekorrelation ($\vec{\psi}$)
 
-```python
+```{python}
 psi = build_psi(X_train, x_predict, theta)
 ```
 
@@ -314,7 +322,7 @@ Dieser Schritt berechnet die $8 \times 100$ Korrelationsmatrix $\vec{\psi}$. Die
 
 #### Schritt 5: Berechnung der Vorhersage
 
-```python
+```{python}
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1, 1)
 mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
