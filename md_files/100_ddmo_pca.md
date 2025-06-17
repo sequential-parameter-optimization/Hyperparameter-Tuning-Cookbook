@@ -32,6 +32,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 import copy
+from spotpython.utils.stats import condition_index
+from spotpython.utils.pca import (get_pca, plot_pca_scree, plot_pca1vs2, get_pca_topk, get_loading_scores, plot_loading_scores)
 ```
 
 ## The Car-Sales Data Set {#sec-data-preprocessing}
@@ -41,7 +43,7 @@ We load the data set, which contains information about car sales, including vari
 
 ```{python}
 #| label: load_car_sales_data
-df = pd.read_csv("data/car_sales.csv", encoding="utf-8")
+df = pd.read_csv("data/car_sales.csv", encoding="utf-8", index_col=None)
 print(df.shape)
 df.head()
 ```
@@ -50,7 +52,7 @@ The first column is removed as it's an index or non-informative column.
 ```{python}
 #| label: drop_first_column
 df = df.drop(df.columns[0], axis=1)
-print(df.columns)
+df.head()
 ```
 ### The Target Variable
 
@@ -116,13 +118,21 @@ X_categorical_encoded_df = pd.DataFrame(X_categorical_encoded,
 X_categorical_encoded_df.describe(include='all')
 ```
 
-### Combine non-categorical and categorical (encoded) data
+### Combining Non-categorical and Categorical (encoded) Data
+
+The final feature set `X_encoded` is created by concatenating the scaled numerical features and the one-hot encoded categorical features. This combined DataFrame will be used for regression analysis.
+
 ```{python}
 X_encoded = pd.concat([X_scaled, X_categorical_encoded_df], axis=1)
+print(f"Dimension: {X_encoded.shape}")
+print(list(X_encoded.columns))
+```
+
+```{python}
 X_encoded.describe(include='all')
 ```
 
-## Fit the Linear Regression Model using statsmodels {#sec-fit-ols}
+## Fit the Linear Regression Model {#sec-fit-ols}
 
 An Ordinary Least Squares (OLS) regression model is fitted using the preprocessed and combined features (`X_encoded`).
 
@@ -200,7 +210,6 @@ where $\lambda_{\max}$ is the largest eigenvalue of the scaled predictor correla
 $CI_i$-values greater than 15 suggest a potential problem, and values over 30 indicate a severe problem.
 
 ```{python}
-from spotpython.utils.stats import condition_index
 X_cond = copy.deepcopy(X_encoded)
 condition_index_df = condition_index(X_cond)
 print("\nCondition Index:")
@@ -262,7 +271,6 @@ The scree plot is constructed by plotting the points $(i, \lambda_i)$ for $i = 1
 ::: 
 
 
-
 ### Loading Scores (for PCA)
 
 Loading scores in the context of Principal Component Analysis (PCA) represent the correlation or relationship between the original variables and the principal components. 
@@ -301,132 +309,34 @@ Loading scores are used in Principal Component Analysis (PCA).
 ### PCA for Car Sales Example
 
 #### Computing the Principal Components
-The Principal Component Analysis (PCA) is applied only to the features (`X_encoded`), not to the target variable. We will use `sklearn.decomposition.PCA` to perform PCA.
+The Principal Component Analysis (PCA) is applied only to the features (`X_encoded`), not to the target variable. We will use functions from `spotpython.utils.pca`, which are based on `sklearn.decomposition.PCA` to perform PCA.
+
+Step 1: Perform PCA and scale the data
 
 ```{python}
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
-def get_pca(df):
-    """
-    Scale the numeric data and perform PCA.
-
-    Args:
-        df (pd.DataFrame): Input DataFrame.
-
-    Returns:
-        tuple: A tuple containing the PCA object, scaled data, feature names, sample names, and PCA-transformed data.
-    """
-    # Select only numeric columns
-    numeric_df = df.select_dtypes(include=[np.number])
-    
-    # Scale the numeric data
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(numeric_df)
-    feature_names = numeric_df.columns
-    sample_names = df.index
-
-    # Perform PCA
-    pca = PCA()
-    pca.fit(scaled_data)
-    pca_data = pca.transform(scaled_data)
-
-    return pca, scaled_data, feature_names, sample_names, pca_data
+#| label: pca_car_sales
+pca, scaled_data, feature_names, sample_names, df_pca_components = get_pca(df=X_encoded, n_components=10)
 ```
 
-```{python}
-def plot_pca_scree(pca, df_name="", max_scree=None, figsize=(12, 6)):
-    """
-    Plot the scree plot for PCA.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        df_name (str): Name of the dataset.
-        max_scree (int): Maximum number of principal components to plot.
-        figsize (tuple): Size of the figure.
-    """
-    per_var = np.round(pca.explained_variance_ratio_ * 100, decimals=1)
-    full_labels = ["PC" + str(x) for x in range(1, len(per_var) + 1)]
-
-    # Limit the number of PCs in the scree plot
-    if max_scree is not None:
-        per_var = per_var[:max_scree]
-        scree_labels = full_labels[:max_scree]
-    else:
-        scree_labels = full_labels
-
-    plt.figure(figsize=figsize)
-    plt.plot(range(1, len(per_var) + 1), per_var, marker='o', linestyle='--')
-    plt.xticks(range(1, len(per_var) + 1), scree_labels)
-    plt.ylabel("Percentage of Explained Variance")
-    plt.xlabel("Principal Component")
-    plt.title(f"Scree Plot. {df_name}")
-    plt.grid(True)
-    plt.show()
-```
+Step 2: Plot the scree plot
 
 ```{python}
-def plot_pca1vs2(pca, pca_data, df_name="", figsize=(12, 6)):
-    """
-    Plot the first two principal components.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        pca_data (array-like): PCA-transformed data.
-        df_name (str): Name of the dataset.
-        figsize (tuple): Size of the figure.
-    """
-    pca_df = pd.DataFrame(pca_data, columns=["PC" + str(i + 1) for i in range(pca_data.shape[1])])
-
-    plt.figure(figsize=figsize)
-    plt.scatter(pca_df["PC1"], pca_df["PC2"])
-    for sample in pca_df.index:
-        plt.annotate(sample, (pca_df.PC1.loc[sample], pca_df.PC2.loc[sample]))
-    plt.title(f"PCA Graph. {df_name}")
-    plt.xlabel(f"PC1 - {np.round(pca.explained_variance_ratio_[0] * 100, 1)}%")
-    plt.ylabel(f"PC2 - {np.round(pca.explained_variance_ratio_[1] * 100, 1)}%")
-    # add grid
-    plt.grid(True)
-    plt.show()
-
-def get_pca_topk(pca, feature_names, k=10):
-    """
-    Get the top k features influencing PC1 and PC2.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        feature_names (list): List of feature names.
-        k (int): Number of top features to select.
-
-    Returns:
-        tuple: Two lists containing the names of the top k features most influential on PC1 and PC2.
-    """
-    loading_scores_pc1 = pd.Series(pca.components_[0], index=feature_names)
-    loading_scores_pc2 = pd.Series(pca.components_[1], index=feature_names)
-
-    sorted_loading_scores_pc1 = loading_scores_pc1.abs().sort_values(ascending=False)
-    sorted_loading_scores_pc2 = loading_scores_pc2.abs().sort_values(ascending=False)
-
-    top_k_features_pc1 = sorted_loading_scores_pc1.head(k).index.tolist()
-    top_k_features_pc2 = sorted_loading_scores_pc2.head(k).index.tolist()
-
-    return top_k_features_pc1, top_k_features_pc2
-```
-
-```{python}
-# Step 1: Perform PCA and scale the data
-pca, scaled_data, feature_names, sample_names, pca_data = get_pca(df=X_encoded)
-
-# Step 2: Plot the scree plot
+#| label: fig-scree_plot_pca-1
+#| fig-cap: "Scree plot for PCA showing the explained variance ratio for each principal component."
 plot_pca_scree(pca, df_name="Car Sales Data", max_scree=10)
+```
 
-# Step 3: Plot the first two principal components
-plot_pca1vs2(pca, pca_data, df_name="Car Sales Data")
+Step 3: Plot the first two principal components
+```{python}
+#| label: fig-pcvals2
+#| fig-cap: "Scatter plot of the first two principal components (PC1 vs PC2) for the Car Sales Data."
+plot_pca1vs2(pca, df_pca_components, df_name="Car Sales Data")
+```
 
-# Step 4: Get the top k features influencing PC1 and PC2
+Step 4: Get the top k features influencing PC1 and PC2
+
+```{python}
+#| label: pca_top_k_features
 top_k_features_pc1, top_k_features_pc2 = get_pca_topk(pca, feature_names, k=10)
 print("Top 10 features influencing PC1:", top_k_features_pc1)
 print("Top 10 features influencing PC2:", top_k_features_pc2)
@@ -435,91 +345,18 @@ print("Top 10 features influencing PC2:", top_k_features_pc2)
 #### Loading Scores for PCA (10 Components)
 
 ```{python}
+#| label: pca_loading_scores-10
+# Get and print loading scores
+loading_scores_df = get_loading_scores(pca, X_encoded.columns)
+print("PCA Loading Scores (10 Components):\n", loading_scores_df)
+```
+
+@fig-pca_loading_scores-10 shows the loading scores heatmap for the first 10 principal components. The heatmap visualizes how much each original feature contributes to each principal component, with darker colors indicating stronger contributions.
+
+```{python}
 #| label: fig-pca_loading_scores-10
-#| fig.cap: "PCA Loading Scores Heatmap showing the influence of original features on the principal components."
-#| fig.width: 10
-#| fig.height: 8
-#| fig.align: center
-#| fig.show: true
-loading_scores = pd.DataFrame(pca.components_.T, columns=[f"PC{i+1}" for i in range(pca.n_components_)], index=X_encoded.columns)
-print("Loading Scores for PCA:\n", loading_scores)
-# Plot the loading scores heatmap
-plt.figure(figsize=(12, 8))
-sns.heatmap(
-    loading_scores, annot=True, fmt=".2f", cmap="coolwarm",
-    cbar_kws={"label": "Loading Score"}, linewidths=0.5
-)
-plt.title("PCA Loading Scores Heatmap")
-plt.xlabel("Principal Components")
-plt.ylabel("Original Features")
-plt.tight_layout()
-plt.show()
-```
-
-
-
-#### Using Three Principal Components only
-
-Next, we apply PCA to the encoded features. 
-For this example, we select three principal components, similar to the Factor Analysis example below.
-
-```{python}
-n_components_pca = 3
-pca = PCA(n_components=n_components_pca)
-X_pca_scores = pca.fit_transform(X_encoded)
-
-# Convert principal components to a DataFrame
-pca_columns = [f"PC{i+1}" for i in range(X_pca_scores.shape[1])]
-df_pca_components = pd.DataFrame(data=X_pca_scores, columns=pca_columns)
-
-print(f"Shape of PCA components DataFrame: {df_pca_components.shape}")
-print("First 5 rows of PCA components:\n", df_pca_components.head())
-
-# Loading scores for interpretation
-pca_loading_scores = pd.DataFrame(pca.components_.T, columns=pca_columns, index=X_encoded.columns)
-print("\nPCA Loading Scores:\n", pca_loading_scores)
-
-# Explained variance
-explained_variance_ratio = pca.explained_variance_ratio_
-print("\nExplained variance ratio per principal component:\n", explained_variance_ratio)
-print("Cumulative explained variance:", np.cumsum(explained_variance_ratio))
-```
-
-#### Plotting the Scree Plot
-
-```{python}
-#| label: fig-scree_plot_pca
-#| fig.cap: "Scree plot for PCA showing the explained variance ratio for each principal component."
-plt.figure(figsize=(10, 6))
-plt.plot(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio, marker='o', linestyle='--')
-plt.title('Scree Plot for PCA')
-plt.xlabel('Number of Principal Components')
-plt.ylabel('Explained Variance Ratio')
-plt.grid(True)
-plt.show()
-```
-
-The scree plot and cumulative explained variance help in determining the optimal number of components. Here, 10 components explain 100% of the variance, as we've chosen to extract all possible components.
-
-#### Plotting the Loading Scores (3 Components)
-
-```{python}
-#| label: fig-pca_loading_scores-3
-#| fig.cap: "PCA Loading Scores Heatmap showing the influence of original features on the principal components."
-#| fig.width: 10
-#| fig.height: 8
-#| fig.align: center
-#| fig.show: true
-plt.figure(figsize=(10, 8))
-sns.heatmap(
-    pca_loading_scores, annot=True, fmt=".2f", cmap="coolwarm",
-    cbar_kws={"label": "Loading Score"}, linewidths=0.5
-)
-plt.title("PCA Loading Scores Heatmap")
-plt.xlabel("Principal Components")
-plt.ylabel("Original Features")
-plt.tight_layout()
-plt.show()
+#| fig-cap: "PCA Loading Scores Heatmap showing the influence of original features on the principal components."
+plot_loading_scores(loading_scores_df)
 ```
 
 
@@ -531,54 +368,61 @@ X_pca_model_with_const = sm.add_constant(df_pca_components)
 model_pca = sm.OLS(y, X_pca_model_with_const).fit()
 print("\nRegression on PCA Components:")
 print(model_pca.summary())
-
-# Verify collinearity statistics for PCA components (VIF and Tolerance)
-# A custom function would be needed here for VIF of PC components,
-# but since PCs are orthogonal, VIFs will be 1.0.
-# The condition number from the OLS summary (Cond. No.) for model_pca
-# should also be close to 1, indicating no multicollinearity.
-```
-
-
-As expected, the condition number for `model_pca` is 1.00, indicating no multicollinearity among the principal components. This confirms that PCA successfully addresses the multicollinearity problem. The R-squared and Adjusted R-squared values remain the same as the original OLS model since PCA preserves the total variance when all components are retained.
-
-### Comparison of Model Performance (PCA vs. OLS)
-```{python}
-# Predictions from the Linear Regression Model (model)
-predictions_linear = model.predict(X_encoded_with_const)
-# Predictions from the PCA Regression Model (model_pca)
-predictions_pca = model_pca.predict(X_pca_model_with_const)
-
-# Calculate R-squared and Adjusted R-squared for both models
-r2_linear = model.rsquared
-adj_r2_linear = model.rsquared_adj
-
-r2_pca = model_pca.rsquared
-adj_r2_pca = model_pca.rsquared_adj
-
-# Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE) for both models
-mse_linear = mean_squared_error(y, predictions_linear)
-rmse_linear = np.sqrt(mse_linear)
-
-mse_pca = mean_squared_error(y, predictions_pca)
-rmse_pca = np.sqrt(mse_pca)
-
-# Print the comparison
-print("Comparison of OLS and PCA Regression Models")
-print("\nLinear Regression Model (Original Features):")
-print(f"R-squared: {r2_linear:.4f}")
-print(f"Adjusted R-squared: {adj_r2_linear:.4f}")
-print(f"MSE: {mse_linear:.4f}")
-print(f"RMSE: {rmse_linear:.4f}")
-
-print("\nPCA Regression Model (Principal Components):")
-print(f"R-squared: {r2_pca:.4f}")
-print(f"Adjusted R-squared: {adj_r2_pca:.4f}")
-print(f"MSE: {mse_pca:.4f}")
-print(f"RMSE: {rmse_pca:.4f}")
 ```
 
 When all principal components are retained, the PCA regression model performs identically to the original OLS model in terms of R-squared, Adjusted R-squared, MSE, and RMSE. This is because PCA merely rotates the data, preserving all variance if all components are used. Its benefit lies in handling multicollinearity and enabling dimensionality reduction if fewer components are chosen without significant loss of information.
+
+### Collinearity Diagnostics for PCA Regression Model
+
+Consider the eigenvalues of the PCA components to verify that they are uncorrelated. The eigenvalues should be close to 1, indicating that the components are orthogonal and do not exhibit multicollinearity.
+
+```{python}
+fa_temp = FactorAnalyzer(n_factors=df_pca_components.shape[1], method="principal", rotation=None)
+try:
+    fa_temp.fit(df_pca_components)
+    ev, _ = fa_temp.get_eigenvalues()
+    ev = np.sort(ev) # The source prints in ascending order
+    print("Eigenvalues for each component:\n", ev)
+except Exception as e:
+    print(f"Error during factor analysis fitting: {e}")
+    print("Consider reducing multicollinearity or removing problematic features.")
+```
+
+Next, we compute the condition indices for the PCA components to confirm that they are uncorrelated.
+
+```{python}
+coeffs_table = compute_coefficients_table(
+    model=model_pca, X_encoded=X_pca_model_with_const, y=y, vif_table=None
+)
+print("\nCoefficients Table:")
+print(coeffs_table)
+```
+
+As expected, results indicate that there is  no multicollinearity among the principal components. This confirms that PCA successfully addresses the multicollinearity problem. The R-squared and Adjusted R-squared values remain the same as the original OLS model since PCA preserves the total variance when all components are retained.
+
+### PCA: Creating the Regression Model with three Principle Components only {#sec-pca-reduced}
+
+```{python}
+# Create a regression model using only the first three principal components
+df_pc_reduced = df_pca_components.iloc[:, :3] # select the first three factors
+X_model_pc_reduced = sm.add_constant(df_pc_reduced)
+model_pc_reduced = sm.OLS(y, X_model_pc_reduced).fit()
+print("\nRegression on PCs (three PCs only):")
+print(model_pc_reduced.summary())
+
+# Verify collinearity statistics for reduced PCs scores
+coeffs_table_pc_reduced = compute_coefficients_table(
+    model=model_pc_reduced, X_encoded=X_model_pc_reduced, y=y, vif_table=None
+)
+print("\nCoefficients Table (Reduced PCs Analysis Model):")
+print(coeffs_table_pc_reduced)
+
+# Verify condition indices for reduced FA scores
+X_cond_pc_reduced = copy.deepcopy(df_pc_reduced)
+condition_index_df_pc_reduced = condition_index(X_cond_pc_reduced)
+print("\nCondition Index (Reduced PC Analysis Model):")
+print(condition_index_df_pc_reduced)
+```
 
 ## Addressing Multicollinearity and Latent Structure with Factor Analysis (FA) {#sec-fa}
 
@@ -725,46 +569,11 @@ print(condition_index_df_fa)
 
 As expected, the collinearity statistics (VIF and Tolerance) for the factor values show that they are uncorrelated (VIF=1, Tolerance=1). The condition indices are also all close to 1, confirming that Factor Analysis successfully mitigates multicollinearity. The coefficient estimates are larger relative to their standard errors compared to the original model, which can lead to more factors being identified as statistically significant.
 
-### Comparison of Model Performance (FA vs. OLS)
-```{python}
-# Predictions from the Linear Regression Model (model)
-predictions_linear = model.predict(X_encoded_with_const)
-# Predictions from the Factor Analysis Regression Model (model_factors)
-predictions_factors = model_factors.predict(X_model_fa)
-
-# Calculate R-squared and Adjusted R-squared for both models
-r2_linear = model.rsquared
-adj_r2_linear = model.rsquared_adj
-
-r2_factors = model_factors.rsquared
-adj_r2_factors = model_factors.rsquared_adj
-
-# Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE) for both models
-mse_linear = mean_squared_error(y, predictions_linear)
-rmse_linear = np.sqrt(mse_linear)
-
-mse_factors = mean_squared_error(y, predictions_factors)
-rmse_factors = np.sqrt(mse_factors)
-
-# Print the comparison
-print("Comparison of OLS and Factor Analysis Regression Models (all 10 factors)")
-print("\nLinear Regression Model (Original Features):")
-print(f"R-squared: {r2_linear:.4f}")
-print(f"Adjusted R-squared: {adj_r2_linear:.4f}")
-print(f"MSE: {mse_linear:.4f}")
-print(f"RMSE: {rmse_linear:.4f}")
-
-print("\nFactor Analysis Regression Model (Factor Scores):")
-print(f"R-squared: {r2_factors:.4f}")
-print(f"Adjusted R-squared: {adj_r2_factors:.4f}")
-print(f"MSE: {mse_factors:.4f}")
-print(f"RMSE: {rmse_factors:.4f}")
-```
-
-
 If the R-squared and Adjusted R-squared values for `model_factors` are close to those of the original `model`, it indicates that the regression model based on Factor Analysis performs similarly well, while successfully reducing multicollinearity. When all factors are used, the predictive performance metrics are identical to the original OLS model.
 
 ### Factor Analysis: Creating the Regression Model with three Extracted Factors only
+
+#### Setting Up the Regression Model with Reduced Factors
 
 To demonstrate the effect of dimensionality reduction, a regression model is created using only the first three extracted factors from Factor Analysis.
 
@@ -792,46 +601,19 @@ print(condition_index_df_fa_reduced)
 
 The collinearity statistics for the reduced factor set continue to show that they are uncorrelated, with VIFs of 1.0 and condition indices close to 1.
 
-### Comparison of Model Performance of the Reduced FA Model and the Full OLS Model
-```{python}
-# Predictions from the Linear Regression Model (model)
-predictions_linear = model.predict(X_encoded_with_const)
-# Predictions from the Reduced Factor Analysis Regression Model (model_factors_reduced)
-predictions_factors_reduced = model_factors_reduced.predict(X_model_fa_reduced)
-
-# Calculate R-squared and Adjusted R-squared for both models
-r2_linear = model.rsquared
-adj_r2_linear = model.rsquared_adj
-
-r2_factors_reduced = model_factors_reduced.rsquared
-adj_r2_factors_reduced = model_factors_reduced.rsquared_adj
-
-# Calculate Mean Squared Error (MSE) and Root Mean Squared Error (RMSE) for both models
-mse_linear = mean_squared_error(y, predictions_linear)
-rmse_linear = np.sqrt(mse_linear)
-
-mse_factors_reduced = mean_squared_error(y, predictions_factors_reduced)
-rmse_factors_reduced = np.sqrt(mse_factors_reduced)
-
-# Print the comparison
-print("Comparison of OLS and Reduced Factor Analysis Regression Models")
-print("\nLinear Regression Model (Original Features):")
-print(f"R-squared: {r2_linear:.4f}")
-print(f"Adjusted R-squared: {adj_r2_linear:.4f}")
-print(f"MSE: {mse_linear:.4f}")
-print(f"RMSE: {rmse_linear:.4f}")
-
-print("\nReduced Factor Analysis Regression Model (3 Factor Scores):")
-print(f"R-squared: {r2_factors_reduced:.4f}")
-print(f"Adjusted R-squared: {adj_r2_factors_reduced:.4f}")
-print(f"MSE: {mse_factors_reduced:.4f}")
-print(f"RMSE: {rmse_factors_reduced:.4f}")
-```
-
+#### Comparison of Model Performance of the Reduced FA Model and the Full OLS Model
 
 When reducing the number of factors from 10 to 3, the R-squared and Adjusted R-squared values for the Factor Analysis model decrease significantly (from ~0.48 to ~0.35). This indicates a trade-off: while reducing dimensionality successfully addresses multicollinearity, retaining too few factors can lead to information loss and reduced predictive accuracy. Lower MSE and RMSE values still suggest better predictive performance for the full OLS model in this specific comparison, as it retains more information.
 
 ## Summary: Comparing OLS, PCA, and Factor Analysis Models {#sec-summary-comparison}
+
+Multicollinearity is a common issue in regression models that can lead to unstable and difficult-to-interpret coefficients. Both Principal Component Analysis (PCA) and Factor Analysis (FA) are powerful techniques for addressing multicollinearity and reducing dimensionality.
+
+*   **PCA** is a standard method for addressing multicollinearity by transforming correlated variables into uncorrelated principal components. These components can be effectively used in linear regression and other models like Random Forest. While PCA components are not always easy to interpret directly in terms of original variables, they excel at data compression and reducing model complexity.
+*   **Factor Analysis** provides a way to simplify data by identifying underlying latent structures (factors) that explain correlations among variables. It also results in uncorrelated factors, making it suitable for regression problems affected by multicollinearity. Interpretation of factors relies on factor loadings.
+
+The choice between PCA and Factor Analysis depends on the specific goals: PCA for dimensionality reduction and variance explanation, FA for discovering latent constructs. Both are valuable tools in the data scientist's toolkit for handling complex, highly correlated datasets.
+
 
 ### Interpretation of the Regression Models
 
@@ -969,7 +751,7 @@ print(f"RMSE: {rmse_rf_pca:.4f}")
 ```
 
 
-##### Random Forest Regressor with Extracted Factors (from FA)
+### Random Forest Regressor with Extracted Factors (from FA)
 Finally, a Random Forest Regressor is trained using the extracted factors from Factor Analysis (using the 3 factors from the reduced model for this example to illustrate potential impact of reduction).
 
 ```{python}
@@ -1001,7 +783,7 @@ print(f"MSE: {mse_rf_fa:.4f}")
 print(f"RMSE: {rmse_rf_fa:.4f}")
 ```
 
-##### Comparison of the Random Forest Models {#sec-rf-comparison}
+### Comparison of the Random Forest Models {#sec-rf-comparison}
 ```{python}
 # Print comparison of Random Forest models
 print("\nComparison of Random Forest Models:")
@@ -1022,15 +804,8 @@ print(f"RMSE: {rmse_rf_fa:.4f}")
 ```
 
 
-In this example, for Random Forest, using all PCA components results in identical performance to the original data, suggesting PCA successfully preserved information for this non-linear model. However, using the reduced set of 3 factors from Factor Analysis led to a decrease in R-squared and an increase in MSE/RMSE compared to using the original variables. This highlights that while dimensionality reduction can be beneficial, choosing too few components or factors can lead to information loss, negatively impacting predictive performance.
+In this example, for Random Forest, using the reduced set of 3 factors from PCA and FA led to a decrease in R-squared and an increase in MSE/RMSE compared to using the original variables. This highlights that while dimensionality reduction can be beneficial, choosing too few components or factors can lead to information loss, negatively impacting predictive performance.
 
-#### Multicollinearity: Conclusion and Recommendation
-Multicollinearity is a common issue in regression models that can lead to unstable and difficult-to-interpret coefficients. Both Principal Component Analysis (PCA) and Factor Analysis (FA) are powerful techniques for addressing multicollinearity and reducing dimensionality.
-
-*   **PCA** is a standard method for addressing multicollinearity by transforming correlated variables into uncorrelated principal components. These components can be effectively used in linear regression and other models like Random Forest. While PCA components are not always easy to interpret directly in terms of original variables, they excel at data compression and reducing model complexity.
-*   **Factor Analysis** provides a way to simplify data by identifying underlying latent structures (factors) that explain correlations among variables. It also results in uncorrelated factors, making it suitable for regression problems affected by multicollinearity. Interpretation of factors relies on factor loadings.
-
-The choice between PCA and Factor Analysis depends on the specific goals: PCA for dimensionality reduction and variance explanation, FA for discovering latent constructs. Both are valuable tools in the data scientist's toolkit for handling complex, highly correlated datasets.
 
 ## Videos: Principal Component Analysis (PCA)
 
