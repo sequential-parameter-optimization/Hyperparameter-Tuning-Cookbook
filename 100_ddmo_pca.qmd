@@ -14,13 +14,8 @@ jupyter: python3
 The concepts of Principal Component Analysis (PCA) and Factor Analysis (FA) are both  dimensionality reduction techniques. They operate on different assumptions and serve distinct purposes.
 PCA aims to transform correlated variables into a smaller set of uncorrelated principal components that capture maximum variance, whereas Factor Analysis seeks to explain the correlations between observed variables in terms of a smaller number of unobserved, underlying factors. 
 
-::: {#def-multicoll}
-###### Multicollinearity and Multicorrelation
-
-Multicorrelation is a general term that describes correlation between multiple variables. Multicollinearity is a specific problem in regression models caused by strong correlations between independent variables, making model interpretation difficult.
-:::
-
 After loading and preprocessing the data in @sec-data-preprocessing, we will explore these methods to reduce dimensions and address multicollinearity. In @sec-fit-ols we will conduct linear regression on the extracted components or factors.
+@sec-collinearity-diagnostics provides diagnostics for multicollinearity, including the coefficient table, eigenvalues, condition indices, and the KMO measure. 
 @sec-pca explains how PCA is applied to the data, while @sec-fa discusses Factor Analysis. Both methods are used to mitigate multicollinearity issues in regression models. @sec-other-models shows how the reduced dimensions can be used in other machine learning models, such as Random Forests.
 
 The following packages are used in this chapter:
@@ -147,6 +142,8 @@ print(model.summary())
 
 Despite the positive model fit, many predictors show non-significant coefficients (P>|t| much larger than 0.05), suggesting they contribute little to the model.
 
+## Collinearity Diagnostics {#sec-collinearity-diagnostics}
+
 ### The Coefficient Table
 The coefficient table provides further evidence of multicollinearity. The function `compute_coefficients_table()`  from the `spotpython` package is used here for comprehensive diagnostics.
 
@@ -161,7 +158,7 @@ print(coeffs_table)
 
 For most predictors, the partial correlations (Partial r) decrease significantly compared to the zero-order correlations (Zero-Order r), which suggests multicollinearity. Tolerance values (1 minus the proportion of variance explained by other predictors) are low, indicating that approximately 70%-90% of a given predictor's variance can be explained by other predictors. Tolerances close to 0 signify high multicollinearity. A Variance Inflation Factor (VIF) greater than 2 is typically considered problematic, and in this table, the smallest VIF is already greater than 2, confirming serious multicollinearity.
 
-### Collinearity Diagnostics (Eigenvalues and Condition Indices)
+### Eigenvalues and Condition Indices
 
 Eigenvalues indicate how many factors or components can be meaningfully extracted. An eigenvalue greater than 1 suggests that the factor/component explains more variance than a single variable.
 
@@ -210,7 +207,7 @@ print("\nCondition Index:")
 print(condition_index_df)
 ```
 
-####  Kayser-Meyer-Olkin (KMO) Measure
+###  Kayser-Meyer-Olkin (KMO) Measure
 
 The KMO (Kaiser-Meyer-Olkin) measure is a metric for assessing the suitability of data for Factor Analysis. A KMO value of 0.6 or higher is generally considered acceptable, while a value below 0.5 indicates that the data is not suitable for Factor Analysis.
 
@@ -225,6 +222,13 @@ A KMO measure of 0.835 indicates that the data is well-suited for Factor Analysi
 
 ## Addressing Multicollinearity with Principal Component Analysis (PCA) {#sec-pca}
 
+::: {#def-multicoll}
+###### Multicollinearity and Multicorrelation
+
+Multicorrelation is a general term that describes correlation between multiple variables. Multicollinearity is a specific problem in regression models caused by strong correlations between independent variables, making model interpretation difficult.
+:::
+
+
 ### Introduction to PCA
 
 Principal Component Analysis (PCA) is a popular unsupervised dimensionality reduction technique. It transforms a set of possibly correlated variables into a set of linearly uncorrelated variables called principal components. The first principal component accounts for as much of the variability in the data as possible, and each succeeding component accounts for as much of the remaining variability as possible. PCA is primarily used for data compression and simplifying complex datasets.
@@ -238,9 +242,30 @@ Principal Component Analysis (PCA) is a popular unsupervised dimensionality redu
 *   **Improved Model Performance:** Performing regression on the most important principal components often leads to better generalization and improved model performance on new data.
 *   **Interpretation of Feature Importance:** PCA provides insights into the importance of original features through the variance explained by each principal component, which can identify combinations of variables best representing the data.
 
+### Scree Plot
+
+::: {#def-scree-plot}
+#### Scree Plot
+A scree plot is a graphical representation of the eigenvalues of a covariance or correlation matrix in descending order. It is used to determine the number of significant components or factors in dimensionality reduction techniques.
+
+Mathematically, the eigenvalues $\lambda_1, \lambda_2, \dots, \lambda_p$ are plotted against their corresponding component or factor indices $i = 1, 2, \dots, p$, where $p$ is the total number of components or factors.
+
+The eigenvalues are defined as:
+
+$$
+\lambda_i = \text{Var}(\mathbf{z}_i),
+$$
+
+where $\mathbf{z}_i$ is the $i$-th principal component or factor, and $\text{Var}(\mathbf{z}_i)$ is its variance.
+
+The scree plot is constructed by plotting the points $(i, \lambda_i)$ for $i = 1, 2, \dots, p$. The "elbow" in the plot, where the eigenvalues start to level off, indicates the optimal number of components or factors to retain.
+::: 
+
+
+
 ### Loading Scores (for PCA)
 
-Loading scores in the context of Principal Component Analysis (PCA) or Factor Analysis (FA) represent the correlation or relationship between the original variables and the principal components (or factors). 
+Loading scores in the context of Principal Component Analysis (PCA) represent the correlation or relationship between the original variables and the principal components. 
 
 ::: {#def-loading_scores}
 #### Loading Scores
@@ -271,73 +296,37 @@ Loading scores are used in Principal Component Analysis (PCA).
 
 @sec-loading-scores-vs-factor-loadings explains the difference between loading scores in PCA and factor loadings in FA. 
 
-### Scree Plot
 
-::: {#def-scree-plot}
-#### Scree Plot
-A scree plot is a graphical representation of the eigenvalues of a covariance or correlation matrix in descending order. It is used to determine the number of significant components or factors in dimensionality reduction techniques.
-
-Mathematically, the eigenvalues $\lambda_1, \lambda_2, \dots, \lambda_p$ are plotted against their corresponding component or factor indices $i = 1, 2, \dots, p$, where $p$ is the total number of components or factors.
-
-The eigenvalues are defined as:
-
-$$
-\lambda_i = \text{Var}(\mathbf{z}_i),
-$$
-
-where $\mathbf{z}_i$ is the $i$-th principal component or factor, and $\text{Var}(\mathbf{z}_i)$ is its variance.
-
-The scree plot is constructed by plotting the points $(i, \lambda_i)$ for $i = 1, 2, \dots, p$. The "elbow" in the plot, where the eigenvalues start to level off, indicates the optimal number of components or factors to retain.
-::: 
 
 ### PCA for Car Sales Example
 
 #### Computing the Principal Components
 The Principal Component Analysis (PCA) is applied only to the features (`X_encoded`), not to the target variable. We will use `sklearn.decomposition.PCA` to perform PCA.
-We will use the `pca_analysis` function from `spotpython.utils` to perform PCA on the encoded features. The function will return the top k features most influential on PC1 and PC2, which can help in understanding the data structure and relationships. It is implemented as follows:
 
 ```{python}
-def pca_analysis(
-    df,
-    df_name="",
-    k=10,
-    scaler=StandardScaler(),
-    max_scree=None,
-    figsize=(12, 6),
-) -> tuple:
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+def get_pca(df):
     """
-    Perform PCA analysis on a DataFrame with specified scaling.
+    Scale the numeric data and perform PCA.
 
     Args:
-        df (pd.DataFrame):
-            The input data frame to perform PCA on.
-        df_name (str):
-            The name of the data frame.
-        k (int):
-            The number of top features to select based on their influence on PC1.
-        scaler (obj):
-            An instance of a Scaler from sklearn (e.g., StandardScaler()).
-        max_scree (int):
-            The maximum number of principal components to plot in the scree plot. Default is None, which means all components will be plotted.
-        figsize (tuple):
-            The size of the figure for the plots (width, height).
+        df (pd.DataFrame): Input DataFrame.
 
     Returns:
-        tuple: Two pd.Index objects containing the names of the top k features most influential on PC1 and PC2, respectively.
-
-    Examples:
-        >>> import pandas as pd
-        >>> from spotpython.utils import pca_analysis
-        >>> df = pd.DataFrame({
-        ...     "A": [1, 2, 3],
-        ...     "B": [1, 2, 3],
-        ...     "C": [4, 5, 6]
-        ... })
-        >>> pca_analysis(df)
+        tuple: A tuple containing the PCA object, scaled data, feature names, sample names, and PCA-transformed data.
     """
-    # Scale the data
-    scaled_data = scaler.fit_transform(df)
-    feature_names = df.columns
+    # Select only numeric columns
+    numeric_df = df.select_dtypes(include=[np.number])
+    
+    # Scale the numeric data
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(numeric_df)
+    feature_names = numeric_df.columns
     sample_names = df.index
 
     # Perform PCA
@@ -345,7 +334,20 @@ def pca_analysis(
     pca.fit(scaled_data)
     pca_data = pca.transform(scaled_data)
 
-    # Scree plot
+    return pca, scaled_data, feature_names, sample_names, pca_data
+```
+
+```{python}
+def plot_pca_scree(pca, df_name="", max_scree=None, figsize=(12, 6)):
+    """
+    Plot the scree plot for PCA.
+
+    Args:
+        pca (PCA): Fitted PCA object.
+        df_name (str): Name of the dataset.
+        max_scree (int): Maximum number of principal components to plot.
+        figsize (tuple): Size of the figure.
+    """
     per_var = np.round(pca.explained_variance_ratio_ * 100, decimals=1)
     full_labels = ["PC" + str(x) for x in range(1, len(per_var) + 1)]
 
@@ -356,50 +358,107 @@ def pca_analysis(
     else:
         scree_labels = full_labels
 
-    plt.figure(figsize=figsize)  # Set the figure size for the scree plot
-    plt.bar(x=range(1, len(per_var) + 1), height=per_var, tick_label=scree_labels)
+    plt.figure(figsize=figsize)
+    plt.plot(range(1, len(per_var) + 1), per_var, marker='o', linestyle='--')
+    plt.xticks(range(1, len(per_var) + 1), scree_labels)
     plt.ylabel("Percentage of Explained Variance")
     plt.xlabel("Principal Component")
     plt.title(f"Scree Plot. {df_name}")
+    plt.grid(True)
     plt.show()
+```
 
-    plt.figure(figsize=figsize)  # Set the figure size for the PCA plot
-    pca_df = pd.DataFrame(pca_data, index=sample_names, columns=full_labels)
+```{python}
+def plot_pca1vs2(pca, pca_data, df_name="", figsize=(12, 6)):
+    """
+    Plot the first two principal components.
 
-    plt.scatter(pca_df.PC1, pca_df.PC2)
-    plt.title(f"PCA Graph. {df_name}")
-    plt.xlabel("PC1 - {0}%".format(per_var[0]))
-    plt.ylabel("PC2 - {0}%".format(per_var[1]))
+    Args:
+        pca (PCA): Fitted PCA object.
+        pca_data (array-like): PCA-transformed data.
+        df_name (str): Name of the dataset.
+        figsize (tuple): Size of the figure.
+    """
+    pca_df = pd.DataFrame(pca_data, columns=["PC" + str(i + 1) for i in range(pca_data.shape[1])])
 
+    plt.figure(figsize=figsize)
+    plt.scatter(pca_df["PC1"], pca_df["PC2"])
     for sample in pca_df.index:
         plt.annotate(sample, (pca_df.PC1.loc[sample], pca_df.PC2.loc[sample]))
-
+    plt.title(f"PCA Graph. {df_name}")
+    plt.xlabel(f"PC1 - {np.round(pca.explained_variance_ratio_[0] * 100, 1)}%")
+    plt.ylabel(f"PC2 - {np.round(pca.explained_variance_ratio_[1] * 100, 1)}%")
+    # add grid
+    plt.grid(True)
     plt.show()
 
-    # Determine top k features influencing PC1 and PC2
+def get_pca_topk(pca, feature_names, k=10):
+    """
+    Get the top k features influencing PC1 and PC2.
+
+    Args:
+        pca (PCA): Fitted PCA object.
+        feature_names (list): List of feature names.
+        k (int): Number of top features to select.
+
+    Returns:
+        tuple: Two lists containing the names of the top k features most influential on PC1 and PC2.
+    """
     loading_scores_pc1 = pd.Series(pca.components_[0], index=feature_names)
     loading_scores_pc2 = pd.Series(pca.components_[1], index=feature_names)
 
     sorted_loading_scores_pc1 = loading_scores_pc1.abs().sort_values(ascending=False)
     sorted_loading_scores_pc2 = loading_scores_pc2.abs().sort_values(ascending=False)
 
-    top_k_features_pc1 = sorted_loading_scores_pc1.head(k).index
-    top_k_features_pc2 = sorted_loading_scores_pc2.head(k).index
+    top_k_features_pc1 = sorted_loading_scores_pc1.head(k).index.tolist()
+    top_k_features_pc2 = sorted_loading_scores_pc2.head(k).index.tolist()
 
     return top_k_features_pc1, top_k_features_pc2
 ```
 
 ```{python}
-pca_analysis(
-    df=X_encoded,
-    df_name="Car Sales Data",
-    k=10,
-    scaler=StandardScaler(),
-    max_scree=10,
-    figsize=(12, 6)
-)
+# Step 1: Perform PCA and scale the data
+pca, scaled_data, feature_names, sample_names, pca_data = get_pca(df=X_encoded)
+
+# Step 2: Plot the scree plot
+plot_pca_scree(pca, df_name="Car Sales Data", max_scree=10)
+
+# Step 3: Plot the first two principal components
+plot_pca1vs2(pca, pca_data, df_name="Car Sales Data")
+
+# Step 4: Get the top k features influencing PC1 and PC2
+top_k_features_pc1, top_k_features_pc2 = get_pca_topk(pca, feature_names, k=10)
+print("Top 10 features influencing PC1:", top_k_features_pc1)
+print("Top 10 features influencing PC2:", top_k_features_pc2)
 ```
 
+#### Loading Scores for PCA (10 Components)
+
+```{python}
+#| label: fig-pca_loading_scores-10
+#| fig.cap: "PCA Loading Scores Heatmap showing the influence of original features on the principal components."
+#| fig.width: 10
+#| fig.height: 8
+#| fig.align: center
+#| fig.show: true
+loading_scores = pd.DataFrame(pca.components_.T, columns=[f"PC{i+1}" for i in range(pca.n_components_)], index=X_encoded.columns)
+print("Loading Scores for PCA:\n", loading_scores)
+# Plot the loading scores heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(
+    loading_scores, annot=True, fmt=".2f", cmap="coolwarm",
+    cbar_kws={"label": "Loading Score"}, linewidths=0.5
+)
+plt.title("PCA Loading Scores Heatmap")
+plt.xlabel("Principal Components")
+plt.ylabel("Original Features")
+plt.tight_layout()
+plt.show()
+```
+
+
+
+#### Using Three Principal Components only
 
 Next, we apply PCA to the encoded features. 
 For this example, we select three principal components, similar to the Factor Analysis example below.
@@ -442,10 +501,10 @@ plt.show()
 
 The scree plot and cumulative explained variance help in determining the optimal number of components. Here, 10 components explain 100% of the variance, as we've chosen to extract all possible components.
 
-#### Plotting the Loading Scores
+#### Plotting the Loading Scores (3 Components)
 
 ```{python}
-#| label: fig-pca_loading_scores
+#| label: fig-pca_loading_scores-3
 #| fig.cap: "PCA Loading Scores Heatmap showing the influence of original features on the principal components."
 #| fig.width: 10
 #| fig.height: 8
@@ -461,133 +520,6 @@ plt.xlabel("Principal Components")
 plt.ylabel("Original Features")
 plt.tight_layout()
 plt.show()
-```
-
-## Refactoring: 2nd try
-
-```{python}
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
-def get_pca(df):
-    """
-    Scale the numeric data and perform PCA.
-
-    Args:
-        df (pd.DataFrame): Input DataFrame.
-
-    Returns:
-        tuple: A tuple containing the PCA object, scaled data, feature names, sample names, and PCA-transformed data.
-    """
-    # Select only numeric columns
-    numeric_df = df.select_dtypes(include=[np.number])
-    
-    # Scale the numeric data
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(numeric_df)
-    feature_names = numeric_df.columns
-    sample_names = df.index
-
-    # Perform PCA
-    pca = PCA()
-    pca.fit(scaled_data)
-    pca_data = pca.transform(scaled_data)
-
-    return pca, scaled_data, feature_names, sample_names, pca_data
-
-def plot_pca_scree(pca, df_name="", max_scree=None, figsize=(12, 6)):
-    """
-    Plot the scree plot for PCA.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        df_name (str): Name of the dataset.
-        max_scree (int): Maximum number of principal components to plot.
-        figsize (tuple): Size of the figure.
-    """
-    per_var = np.round(pca.explained_variance_ratio_ * 100, decimals=1)
-    full_labels = ["PC" + str(x) for x in range(1, len(per_var) + 1)]
-
-    # Limit the number of PCs in the scree plot
-    if max_scree is not None:
-        per_var = per_var[:max_scree]
-        scree_labels = full_labels[:max_scree]
-    else:
-        scree_labels = full_labels
-
-    plt.figure(figsize=figsize)
-    plt.bar(x=range(1, len(per_var) + 1), height=per_var, tick_label=scree_labels)
-    plt.ylabel("Percentage of Explained Variance")
-    plt.xlabel("Principal Component")
-    plt.title(f"Scree Plot. {df_name}")
-    plt.show()
-
-def plot_pca1vs2(pca, pca_data, df_name="", figsize=(12, 6)):
-    """
-    Plot the first two principal components.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        pca_data (array-like): PCA-transformed data.
-        df_name (str): Name of the dataset.
-        figsize (tuple): Size of the figure.
-    """
-    pca_df = pd.DataFrame(pca_data, columns=["PC" + str(i + 1) for i in range(pca_data.shape[1])])
-
-    plt.figure(figsize=figsize)
-    plt.scatter(pca_df["PC1"], pca_df["PC2"])
-    plt.title(f"PCA Graph. {df_name}")
-    plt.xlabel(f"PC1 - {np.round(pca.explained_variance_ratio_[0] * 100, 1)}%")
-    plt.ylabel(f"PC2 - {np.round(pca.explained_variance_ratio_[1] * 100, 1)}%")
-    plt.show()
-
-def get_pca_topk(pca, feature_names, k=10):
-    """
-    Get the top k features influencing PC1 and PC2.
-
-    Args:
-        pca (PCA): Fitted PCA object.
-        feature_names (list): List of feature names.
-        k (int): Number of top features to select.
-
-    Returns:
-        tuple: Two lists containing the names of the top k features most influential on PC1 and PC2.
-    """
-    loading_scores_pc1 = pd.Series(pca.components_[0], index=feature_names)
-    loading_scores_pc2 = pd.Series(pca.components_[1], index=feature_names)
-
-    sorted_loading_scores_pc1 = loading_scores_pc1.abs().sort_values(ascending=False)
-    sorted_loading_scores_pc2 = loading_scores_pc2.abs().sort_values(ascending=False)
-
-    top_k_features_pc1 = sorted_loading_scores_pc1.head(k).index.tolist()
-    top_k_features_pc2 = sorted_loading_scores_pc2.head(k).index.tolist()
-
-    return top_k_features_pc1, top_k_features_pc2
-```
-
-```{python}
-# Load the car sales dataset
-# df = pd.read_csv("data/car_sales.csv")  # Replace with the actual file path
-
-# Drop non-informative columns or preprocess categorical variables
-# df = df.drop(columns=["CarName"])  # Replace "CarName" with the actual column name containing strings
-
-# Step 1: Perform PCA and scale the data
-pca, scaled_data, feature_names, sample_names, pca_data = get_pca(df=X_encoded)
-
-# Step 2: Plot the scree plot
-plot_pca_scree(pca, df_name="Car Sales Data", max_scree=10)
-
-# Step 3: Plot the first two principal components
-plot_pca1vs2(pca, pca_data, df_name="Car Sales Data")
-
-# Step 4: Get the top k features influencing PC1 and PC2
-top_k_features_pc1, top_k_features_pc2 = get_pca_topk(pca, feature_names, k=10)
-print("Top 10 features influencing PC1:", top_k_features_pc1)
-print("Top 10 features influencing PC2:", top_k_features_pc2)
 ```
 
 
@@ -671,6 +603,28 @@ if actual_factors < n_factors:
 factor_columns = [f"Factor{i+1}" for i in range(actual_factors)]
 ```
 
+
+### Scree Plot for Factor Analysis
+
+
+@fig-scree_plot_fa shows the eigenvalues for each factor extracted from Factor Analysis. The scree plot helps in determining the number of factors to retain by identifying the "elbow" point where the eigenvalues start to level off, indicating diminishing returns in explained variance.
+
+```{python}
+#| label: fig-scree_plot_fa
+#| fig-cap: "Scree plot for Factor Analysis showing the eigenvalues for each factor."
+plt.figure(figsize=(10, 6))
+ev_fa, _ = fa.get_eigenvalues()
+plt.plot(range(1, len(ev_fa) + 1), ev_fa, marker='o', linestyle='--')
+plt.title('Scree Plot for Factor Analysis')
+plt.xlabel('Number of Factors')
+plt.ylabel('Eigenvalue')
+plt.grid(True)
+plt.xticks(range(1, len(ev_fa) + 1))
+plt.show()
+```
+
+
+
 ### Factor Loadings
 
 Factor Loadings indicate how strongly each original variable is correlated with the extracted factors. High absolute values suggest that the variable has a significant influence on, or is strongly associated with, that factor. Loadings help in interpreting the meaning of each underlying factor.
@@ -712,28 +666,27 @@ plt.tight_layout()
 plt.show()
 ```
 
-### Scree Plot for Factor Analysis
-
-
-@fig-scree_plot_fa shows the eigenvalues for each factor extracted from Factor Analysis. The scree plot helps in determining the number of factors to retain by identifying the "elbow" point where the eigenvalues start to level off, indicating diminishing returns in explained variance.
-
-```{python}
-#| label: fig-scree_plot_fa
-#| fig-cap: "Scree plot for Factor Analysis showing the eigenvalues for each factor."
-plt.figure(figsize=(10, 6))
-ev_fa, _ = fa.get_eigenvalues()
-plt.plot(range(1, len(ev_fa) + 1), ev_fa, marker='o', linestyle='--')
-plt.title('Scree Plot for Factor Analysis')
-plt.xlabel('Number of Factors')
-plt.ylabel('Eigenvalue')
-plt.grid(True)
-plt.xticks(range(1, len(ev_fa) + 1))
-plt.show()
-```
-
-
 ### Factor Scores
 The factor scores are the transformed values of the original variables based on the extracted factors. These scores represent the values of the latent factors for each observation and can be used as new features in regression models, similar to principal components in PCA.
+
+::: {#def-factor_scores}
+#### Factor Scores
+A **factor score** represents the value of a latent factor for a given observation, calculated as a linear combination of the observed variables weighted by the factor score coefficients.
+
+Mathematically, the factor score for the $i$-th factor and the $j$-th observation is defined as:
+
+$$
+F_{ji} = w_{i1} x_{j1} + w_{i2} x_{j2} + \cdots + w_{ip} x_{jp} = \sum_{k=1}^p w_{ik} x_{jk},
+$$
+
+where
+
+* $F_{ji}$ is the factor score for factor $i$ and observation $j$,  
+* $w_{ik}$ is the factor score coefficient for variable $k$ on factor $i$,  
+* $x_{jk}$ is the standardized value of variable $k$ for observation $j$, and 
+* $p$ is the number of observed variables.
+::: 
+
 
 ```{python}
 # Factor scores for each row (shape: [n_samples, actual_factors])
