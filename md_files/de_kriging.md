@@ -1,5 +1,6 @@
 ---
 lang: de
+eval: false
 ---
 
 # Lernmodul: Eine Einführung in Kriging
@@ -96,7 +97,7 @@ Der Parametervektor $\vec{\theta} = \{\theta_1, \theta_2,..., \theta_k\}^T$ ist 
 
 Die Tatsache, dass $\vec{\theta}$ ein Vektor ist – mit einem separaten Wert für jede Eingabedimension – ist ein entscheidendes Merkmal, das dem Kriging immense Leistungsfähigkeit verleiht, insbesondere bei mehrdimensionalen Problemen. Dies ist als **anisotrope Modellierung** bekannt. Indem die Korrelationslänge für jede Variable unterschiedlich sein kann, kann sich das Modell an Funktionen anpassen, die sich entlang verschiedener Achsen unterschiedlich verhalten. Zum Beispiel könnte eine Funktion sehr schnell auf Temperaturänderungen, aber sehr langsam auf Druckänderungen reagieren. Ein anisotropes Kriging-Modell kann dieses Verhalten erfassen, indem es ein großes $\theta$ für die Temperatur und ein kleines $\theta$ für den Druck lernt.
 
-Diese Fähigkeit hat eine tiefgreifende Konsequenz: **automatische Relevanzbestimmung**. Während des Modellanpassungsprozesses (den wir in @sec-mle diskutieren werden) findet der Optimierungsalgorithmus die $\vec{\theta}$-Werte, die die Daten am besten erklären. Wenn eine bestimmte Eingangsvariable $x_j$ wenig oder keinen Einfluss auf die Ausgabe $y$ hat, wird das Modell einen sehr kleinen Wert für $\theta_j$ lernen. Ein kleines $\theta_j$ macht den Term $\theta_j|x_j^{(i)} - x_j|^{p_j}$ nahe null, was die Korrelation effektiv unempfindlich gegenüber Änderungen in dieser Dimension macht. Daher kann ein Ingenieur nach der Anpassung des Modells den optimierten $\vec{\theta}$-Vektor inspizieren, um eine Sensitivitätsanalyse durchzuführen. Die Dimensionen mit den größten $\theta_j$-Werten sind die einflussreichsten Treiber der Systemantwort. Dies verwandelt das Surrogatmodell von einem einfachen Black-Box-Approximator in ein Werkzeug zur Generierung wissenschaftlicher und technischer Erkenntnisse. Der in @sec-kriging-example-006 bereitgestellte und in @sec-example-de besprochene Python-Code, als eindimensionales Beispiel, vereinfacht dies durch die Verwendung eines einzelnen skalaren `theta`, aber das Verständnis seiner Rolle als Vektor ist entscheidend, um den Nutzen des Kriging in realen Anwendungen zu schätzen [@bart23icode].
+Diese Fähigkeit hat eine tiefgreifende Konsequenz: **automatische Relevanzbestimmung**. Während des Modellanpassungsprozesses (den wir in @sec-mle diskutieren werden) findet der Optimierungsalgorithmus die $\vec{\theta}$-Werte, die die Daten am besten erklären. Wenn eine bestimmte Eingangsvariable $x_j$ wenig oder keinen Einfluss auf die Ausgabe $y$ hat, wird das Modell einen sehr kleinen Wert für $\theta_j$ lernen. Ein kleines $\theta_j$ macht den Term $\theta_j|x_j^{(i)} - x_j|^{p_j}$ nahe null, was die Korrelation effektiv unempfindlich gegenüber Änderungen in dieser Dimension macht. Daher kann ein Ingenieur nach der Anpassung des Modells den optimierten $\vec{\theta}$-Vektor inspizieren, um eine Sensitivitätsanalyse durchzuführen. Die Dimensionen mit den größten $\theta_j$-Werten sind die einflussreichsten Treiber der Systemantwort. Dies verwandelt das Surrogatmodell von einem einfachen Black-Box-Approximator in ein Werkzeug zur Generierung wissenschaftlicher und technischer Erkenntnisse. Der im [Hyperparameter Tuning Cookbook](https://sequential-parameter-optimization.github.io/Hyperparameter-Tuning-Cookbook/006_num_gp.html#sec-kriging-example-006) bereitgestellte und in @sec-example-de besprochene Python-Code, als eindimensionales Beispiel, vereinfacht dies durch die Verwendung eines einzelnen skalaren `theta`, aber das Verständnis seiner Rolle als Vektor ist entscheidend, um den Nutzen des Kriging in realen Anwendungen zu schätzen [@bart23icode].
 
 #### Hyperparameter $\vec{p}$: Der Glattheitsparameter
 
@@ -122,6 +123,12 @@ Da die Korrelation eines Punktes mit sich selbst perfekt ist, sind die diagonale
 **Code-Analyse (`build_Psi`):** Die bereitgestellte Python-Funktion `build_Psi` implementiert diese Berechnung effizient.
 
 ```python
+from scipy.spatial.distance import pdist, squareform, cdist
+from numpy.linalg import cholesky
+import numpy as np
+from numpy import sqrt, spacing, exp, multiply, eye
+from numpy.linalg import solve
+from scipy.spatial.distance import pdist, squareform, cdist
 def build_Psi(X, theta, eps=sqrt(spacing(1))):
     D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))
     Psi = exp(-D)
@@ -223,6 +230,7 @@ wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und a
 **Code-Analyse (`mu_hat` und `f_predict`):** Der bereitgestellte Python-Code implementiert diesen Vorhersageprozess direkt.
 
 ```python
+Psi = build_Psi(X, theta)
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1, 1)
 mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
@@ -264,7 +272,7 @@ Dieselbe mathematische Operation – das Hinzufügen eines Wertes zur Diagonale 
 
 ## Eine vollständige exemplarische Vorgehensweise: Kriging der Sinusfunktion {#sec-example-de}
 
-Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel aus @sec-kriging-example-006 anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
+Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel aus dem [Hyperparameter Tuning Cookbook](https://sequential-parameter-optimization.github.io/Hyperparameter-Tuning-Cookbook/006_num_gp.html#sec-kriging-example-006) anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
 
 ### Schritt-für-Schritt-Codeausführung und Interpretation
 
@@ -358,6 +366,15 @@ Für den angehenden Praktiker ist dies nur der Anfang. Die Welt des Kriging und 
 * Eine interaktive Webseite zum Thema **Kriging** ist hier zu finden: [Kriging Interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_kriging_interactive.html).
 
 * Eine interaktive Webseite zum Thema **MLE** ist hier zu finden: [MLE Interaktiv](https://advm1.gm.fh-koeln.de/~bartz/bart21i/de_mle_interactive.html).
+:::
+
+:::{.callout-note}
+#### Audiomaterial
+
+* Ein Audio zum Thema *Kriging** ist hier zu finden: [Cholesky Audio](https://advm1.gm.fh-koeln.de/~bartz/bart21i/audio/numerischeMatheKriging.m4a).
+* Ein Audio zum Thema *Stochastische Prozesses** ist hier zu finden: [Cholesky Audio](https://advm1.gm.fh-koeln.de/~bartz/bart21i/audio/stochastischeProzesse.m4a).
+
+
 :::
 
 :::{.callout-note}
