@@ -673,7 +673,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./100_ddmo_pca.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Multicollinearity and Principle Component Analysis (PCA)</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Addressing Multicollinearity: Principle Component Analysis (PCA) and Factor Analysis (FA)</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -1097,7 +1097,7 @@ window.Quarto = {
 <section id="the-ground-truth-model" class="level3" data-number="48.1.1">
 <h3 data-number="48.1.1" class="anchored" data-anchor-id="the-ground-truth-model"><span class="header-section-number">48.1.1</span> The Ground Truth Model</h3>
 <p>Definition of the (unknown) differential equation:</p>
-<div id="2ca765dc" class="cell" data-execution_count="2">
+<div id="e2dd023b" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
@@ -1132,7 +1132,7 @@ window.Quarto = {
 <span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Setting the parameters for the ode</p>
-<div id="ca194fb0" class="cell" data-execution_count="3">
+<div id="22b0322e" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">10</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>loc <span class="op">=</span> <span class="dv">250</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>sigma <span class="op">=</span> <span class="dv">100</span></span>
@@ -1141,7 +1141,7 @@ window.Quarto = {
 <ul>
 <li>Generating the data</li>
 </ul>
-<div id="b1096433" class="cell" data-execution_count="4">
+<div id="5e410248" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>frequencies <span class="op">=</span> np.linspace(a, b, <span class="dv">1000</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>eq <span class="op">=</span> functools.partial(ode, loc<span class="op">=</span>loc, sigma<span class="op">=</span>sigma, R<span class="op">=</span>R)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>amplitudes <span class="op">=</span> eq(frequencies)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1149,7 +1149,7 @@ window.Quarto = {
 <ul>
 <li>Now we have the ground truth for the full frequency range and can take a look at the first 10 values:</li>
 </ul>
-<div id="6dd939a1" class="cell" data-execution_count="5">
+<div id="fba713f1" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'Frequency'</span>: frequencies[:<span class="dv">10</span>], <span class="st">'Amplitude'</span>: amplitudes[:<span class="dv">10</span>]})</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1169,7 +1169,7 @@ window.Quarto = {
 <ul>
 <li>We generate the training data as a subset of the full frequency range and add some noise:</li>
 </ul>
-<div id="ccb27c19" class="cell" data-execution_count="6">
+<div id="22dd08b7" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Make training data</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> np.linspace(a, <span class="dv">2</span><span class="op">*</span>b<span class="op">/</span><span class="dv">3</span>, <span class="dv">10</span>)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> eq(t) <span class="op">+</span>  <span class="fl">0.2</span> <span class="op">*</span> np.random.randn(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1177,7 +1177,7 @@ window.Quarto = {
 <ul>
 <li>Plot of the training data and the ground truth:</li>
 </ul>
-<div id="0c27f8fc" class="cell" data-execution_count="7">
+<div id="477fa41f" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plt.plot(frequencies, amplitudes)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.plot(t, A, <span class="st">'o'</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plt.legend([<span class="st">'Equation (ground truth)'</span>, <span class="st">'Training data'</span>])</span>
@@ -1207,7 +1207,7 @@ window.Quarto = {
 <section id="sec-pinn-hyperdict" class="level3" data-number="48.1.3">
 <h3 data-number="48.1.3" class="anchored" data-anchor-id="sec-pinn-hyperdict"><span class="header-section-number">48.1.3</span> The New <code>pinn_hyperdict.py</code> File</h3>
 <p>Modifying the <code>pin_hyperdict.py</code> file is very easy. We simply have to change the classname <code>MyHyperDict</code> to <code>PINNHyperDict</code> and the <code>filename</code> from <code>"my_hyper_dict.json"</code> to <code>"pinn_hyper_dict.json"</code>. The file is shown below.</p>
-<div id="1b5c9349" class="cell" data-execution_count="8">
+<div id="d46635e5" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data <span class="im">import</span> base</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pathlib</span>
