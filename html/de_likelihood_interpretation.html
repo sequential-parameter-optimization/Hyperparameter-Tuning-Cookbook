@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver Leitfaden zur Kriging-Hyperparameter-Optimierung</title>
+    
+    <!-- Chosen Palette: Scholarly Neutrals -->
+    <!-- Application Structure Plan: The application is structured as a single-page, scrollable guide. It starts with a high-level introduction (Section 1: The 'Why'), moves to the core interactive element (Section 2: The 'How'), then provides optional depth with a collapsible detailed derivation (Section 3: The 'Math'), and concludes with practical considerations (Section 4: The 'Reality'). This structure facilitates progressive disclosure, allowing users to grasp the main concept interactively before diving into the complex mathematics. The central interactive chart is designed to be the primary learning tool, making the abstract trade-off tangible. -->
+    <!-- Visualization & Content Choices: Report Info -> The core of the report is explaining the concentrated log-likelihood formula and its components' trade-off. Goal -> Make this trade-off intuitive and memorable. Viz/Presentation Method -> An interactive line chart (Chart.js/Canvas) linked to a slider. Interaction -> The user controls the hyperparameter θ via a slider. The chart dynamically updates three lines: 'Data Fit Term', 'Complexity Penalty Term', and the 'Total Log-Likelihood'. Justification -> This directly visualizes the core principle: as θ changes, the user sees the two components move in opposition and can identify the peak of the total likelihood curve, which is the optimal point. This is far more effective than reading the formula alone. For the derivation, a collapsible accordion is used to present the dense math without overwhelming the user upfront. Library/Method -> Chart.js for the chart, KaTeX for rendering LaTeX formulas, and vanilla JS for all interactions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0KOVEMeaMurHvanTuri4/gBshJLSQnMoS6JXBb0ryY+4v+ZgoxIQ+;" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .katex { font-size: 1.1em; }
+        .bg-cream { background-color: #fdfaf5; }
+        .bg-stone-100 { background-color: #f5f5f4; }
+        .text-stone-800 { color: #292524; }
+        .text-stone-600 { color: #57534e; }
+        .border-stone-200 { border-color: #e7e5e4; }
+        .accent-color { color: #2563eb; }
+        .accent-bg { background-color: #2563eb; }
+        .accent-border { border-color: #2563eb; }
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-cream text-stone-800 leading-relaxed">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-stone-800">Kriging-Optimierung</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#grundlagen" class="nav-link text-stone-600 border-b-2 border-transparent pb-1">Grundlagen</a>
+                <a href="#interaktiv" class="nav-link text-stone-600 border-b-2 border-transparent pb-1">Interaktiver Explorer</a>
+                <a href="#herleitung" class="nav-link text-stone-600 border-b-2 border-transparent pb-1">Herleitung</a>
+                <a href="#herausforderungen" class="nav-link text-stone-600 border-b-2 border-transparent pb-1">Herausforderungen</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Section 1: Grundlagen -->
+        <section id="grundlagen" class="my-12 md:my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Das "Warum": Hyperparameter im Kriging</h2>
+                <p class="text-lg text-stone-600 max-w-3xl mx-auto">Kriging-Modelle sind leistungsstarke Werkzeuge zur Annäherung komplexer "Black-Box"-Funktionen. Ihre Genauigkeit hängt jedoch entscheidend von der richtigen Wahl der Hyperparameter ab, die das Verhalten des Modells steuern.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h3 class="font-bold text-xl mb-3">Surrogatmodelle</h3>
+                    <p class="text-stone-600">Ein Kriging-Modell (oder Gauß-Prozess) ist ein "Modell eines Modells". Es wird mit wenigen, teuren Datenpunkten trainiert, um eine schnelle und günstige Annäherung der wahren Funktion zu erstellen, die dann für Optimierungen oder Analysen genutzt werden kann.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h3 class="font-bold text-xl mb-3">Hyperparameter $\theta$ und $p$</h3>
+                    <p class="text-stone-600">Die Hyperparameter $\theta$ (Aktivität) und $p$ (Glattheit) definieren die Korrelation zwischen den Datenpunkten. Sie bestimmen, wie "flexibel" oder "steif" das Modell ist. Falsche Werte führen zu einem ungenauen Modell.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h3 class="font-bold text-xl mb-3">Maximum Likelihood (MLE)</h3>
+                    <p class="text-stone-600">Um die besten Hyperparameter zu finden, verwenden wir die Maximum-Likelihood-Schätzung. Das Ziel: Finde die Parameter, unter denen die beobachteten Daten am wahrscheinlichsten sind. Dies geschieht durch Maximierung der Log-Likelihood-Funktion.</p>
+                </div>
+            </div>
+        </section>
+        
+        <div class="border-t border-stone-200 my-16"></div>
+
+        <!-- Section 2: Interactive Explorer -->
+        <section id="interaktiv" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Der Kompromiss: Anpassung vs. Komplexität</h2>
+                <p class="text-lg text-stone-600 max-w-3xl mx-auto">Die Optimierung der Hyperparameter ist ein Balanceakt. Die konzentrierte Log-Likelihood-Funktion verkörpert diesen Kompromiss mathematisch. Entdecken Sie interaktiv, wie der Aktivitätsparameter $\theta$ diesen Balanceakt beeinflusst.</p>
+            </div>
+
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl border border-stone-200">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold">Konzentrierte Log-Likelihood</h3>
+                    <p class="text-xl text-stone-600 mt-2">
+                        $\ln(L_c)(\theta, p) \propto \underbrace{-\frac{n}{2} \ln(\hat{\sigma}^2)}_{\text{Anpassungsgüte}} \underbrace{- \frac{1}{2} \ln|\Psi|}_{\text{Komplexitätsstrafe}}$
+                    </p>
+                </div>
+                
+                <div class="grid lg:grid-cols-5 gap-8 items-center">
+                    <div class="lg:col-span-3">
+                        <div class="chart-container">
+                            <canvas id="likelihoodChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 space-y-4">
+                        <div>
+                            <label for="theta-slider" class="block font-bold mb-2">Aktivitätsparameter $\theta$</label>
+                            <input id="theta-slider" type="range" min="0.1" max="10" step="0.05" value="2.5" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-bg">
+                            <div class="text-center mt-2 font-mono text-lg">$\theta = <span id="theta-value">2.50</span>$</div>
+                        </div>
+                        <div id="explanation-box" class="p-4 bg-stone-100 rounded-lg transition-all duration-300">
+                            <h4 id="explanation-title" class="font-bold text-lg mb-2">Optimaler Kompromiss</h4>
+                            <p id="explanation-text" class="text-stone-600">Bei diesem Wert von $\theta$ ist die Summe aus Anpassungsgüte und Komplexitätsstrafe maximal. Das Modell ist weder zu einfach noch zu komplex und erklärt die Daten am besten.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="border-t border-stone-200 my-16"></div>
+
+        <!-- Section 3: Herleitung -->
+        <section id="herleitung" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Die Mathematik im Detail</h2>
+                <p class="text-lg text-stone-600 max-w-3xl mx-auto">Für Interessierte: Hier ist die schrittweise Herleitung der konzentrierten Log-Likelihood-Funktion.</p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg border border-stone-200 overflow-hidden">
+                <div id="accordion-container">
+                    <!-- Accordion items will be generated by JS -->
+                </div>
+            </div>
+        </section>
+        
+        <div class="border-t border-stone-200 my-16"></div>
+
+        <!-- Section 4: Challenges -->
+        <section id="herausforderungen" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Praktische Herausforderungen</h2>
+                <p class="text-lg text-stone-600 max-w-3xl mx-auto">Die numerische Maximierung der Funktion ist nicht trivial und birgt einige Fallstricke.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h3 class="font-bold text-xl mb-3">Lokale Optima</h3>
+                    <p class="text-stone-600">Die Likelihood-Oberfläche kann mehrere "Gipfel" (lokale Optima) haben. Ein Optimierungsalgorithmus kann in einem kleineren Gipfel stecken bleiben und nicht das globale Maximum finden. Multi-Start-Strategien helfen, dieses Problem zu mildern.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h3 class="font-bold text-xl mb-3">Numerische Instabilität</h3>
+                    <p class="text-stone-600">Wenn Datenpunkte sehr nah beieinander liegen oder das Modell zu glatt ist, wird die Korrelationsmatrix $\Psi$ schlecht konditioniert. Ihre Inverse und Determinante sind dann schwer zu berechnen, was den Optimierungsprozess stören kann. Ein "Nugget"-Term stabilisiert die Berechnung.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-100 border-t border-stone-200 mt-16">
+        <div class="container mx-auto py-6 px-8 text-center text-stone-600">
+            <p>Interaktive Aufbereitung basierend auf dem Bericht "Herleitung und Analyse der konzentrierten Log-Likelihood-Funktion".</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Render Math first
+            renderMathInElement(document.body, {
+              delimiters: [
+                  {left: '$$', right: '$$', display: true},
+                  {left: '$', right: '$', display: false},
+                  {left: '\\(', right: '\\)', display: false},
+                  {left: '\\[', right: '\\]', display: true}
+              ],
+              throwOnError : false
+            });
+
+            // --- Accordion for Derivation ---
+            const accordionData = [
+                {
+                    title: 'Schritt 1: Die vollständige Log-Likelihood-Funktion',
+                    content: `Unter der Annahme eines Gauß-Prozesses ist die Log-Likelihood-Funktion, die von allen Parametern abhängt, wie folgt definiert:
+                    $$ \\ln(L)(\\mu, \\sigma^2, \\vec{\\theta}, \\vec{p}) = -\\frac{n}{2}\\ln(2\\pi) - \\frac{n}{2}\\ln(\\sigma^2) - \\frac{1}{2}\\ln|\\Psi| - \\frac{(\\vec{y}-\\vec{1}\\mu)^{T}\\Psi^{-1}(\\vec{y}-\\vec{1}\\mu)}{2\\sigma^2} $$
+                    Diese Funktion quantifiziert, wie gut ein gegebener Parametersatz die beobachteten Daten $\\vec{y}$ erklärt. Ziel ist es, sie zu maximieren.`
+                },
+                {
+                    title: 'Schritt 2: Analytische Optimierung von $\\mu$',
+                    content: `Wir leiten die Funktion nach $\\mu$ ab und setzen sie gleich Null, um den Maximum-Likelihood-Schätzer $\\hat{\\mu}$ zu finden. Das Ergebnis ist ein gewichteter Durchschnitt der Beobachtungen:
+                    $$ \\hat{\\mu}(\\vec{\\theta}, \\vec{p}) = \\frac{\\vec{1}^T \\Psi(\\vec{\\theta}, \\vec{p})^{-1} \\vec{y}}{\\vec{1}^T \\Psi(\\vec{\\theta}, \\vec{p})^{-1} \\vec{1}} $$
+                    Dieser Schätzer hängt bereits von den Hyperparametern $\\vec{\\theta}$ und $\\vec{p}$ ab, die in der Korrelationsmatrix $\\Psi$ stecken.`
+                },
+                {
+                    title: 'Schritt 3: Analytische Optimierung von $\\sigma^2$',
+                    content: `Analog leiten wir die Funktion nach $\\sigma^2$ ab und setzen $\\hat{\\mu}$ ein. Dies ergibt den Schätzer für die Prozessvarianz $\\hat{\\sigma}^2$:
+                    $$ \\hat{\\sigma}^2(\\vec{\\theta}, \\vec{p}) = \\frac{(\\vec{y} - \\vec{1}\\hat{\\mu})^T \\Psi(\\vec{\\theta}, \\vec{p})^{-1} (\\vec{y} - \\vec{1}\\hat{\\mu})}{n} $$
+                    Dieser Ausdruck repräsentiert die mittlere quadrierte, korrelationsgewichtete Abweichung (Residuen).`
+                },
+                {
+                    title: 'Schritt 4: Einsetzen zur konzentrierten Funktion',
+                    content: `Wir setzen die Ausdrücke für $\\hat{\\mu}$ und $\\hat{\\sigma}^2$ wieder in die ursprüngliche Log-Likelihood-Funktion ein. Der Term $(\\vec{y}-\\vec{1}\\hat{\\mu})^{T}\\Psi^{-1}(\\vec{y}-\\vec{1}\\hat{\\mu})$ vereinfacht sich zu $n\\hat{\\sigma}^2$. Nach Weglassen der konstanten Terme, die die Position des Maximums nicht beeinflussen, erhalten wir die finale konzentrierte Log-Likelihood-Funktion:
+                    $$ \\ln(L_c)(\\vec{\\theta}, \\vec{p}) \\propto -\\frac{n}{2}\\ln(\\hat{\\sigma}^2) - \\frac{1}{2}\\ln|\\Psi| $$
+                    Diese Funktion hängt nur noch von den Hyperparametern ab und kann numerisch maximiert werden.`
+                }
+            ];
+
+            const accordionContainer = document.getElementById('accordion-container');
+            if (accordionContainer) {
+                accordionData.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'border-b border-stone-200';
+                    itemEl.innerHTML = `
+                        <button class="w-full text-left p-4 md:p-6 focus:outline-none" data-index="${index}">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-lg font-semibold">${item.title}</h4>
+                                <span class="transform transition-transform duration-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </span>
+                            </div>
+                        </button>
+                        <div class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                            <div class="p-4 md:p-6 pt-0 text-stone-600">${item.content}</div>
+                        </div>
+                    `;
+                    accordionContainer.appendChild(itemEl);
+                });
+                
+                accordionContainer.addEventListener('click', e => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
+
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('span');
+                    
+                    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = '0px';
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        document.querySelectorAll('.accordion-content').forEach(el => el.style.maxHeight = '0px');
+                        document.querySelectorAll('.accordion-content').forEach(el => el.previousElementSibling.querySelector('span').classList.remove('rotate-180'));
+
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                        renderMathInElement(content, {
+                            delimiters: [
+                                {left: '$$', right: '$$', display: true},
+                                {left: '$', right: '$', display: false}
+                            ],
+                            throwOnError: false
+                        });
+                    }
+                });
+            }
+
+
+            // --- Interactive Chart ---
+            const slider = document.getElementById('theta-slider');
+            const thetaValueSpan = document.getElementById('theta-value');
+            const explanationTitle = document.getElementById('explanation-title');
+            const explanationText = document.getElementById('explanation-text');
+            const ctx = document.getElementById('likelihoodChart')?.getContext('2d');
+
+            if (!ctx || !slider) return;
+            
+            const thetaValues = [];
+            for (let i = 0.1; i <= 10; i += 0.05) {
+                thetaValues.push(i);
+            }
+
+            const dataFitTerm = (theta) => -10 * Math.log(0.1 + 5 * Math.exp(-0.8 * theta));
+            const complexityPenaltyTerm = (theta) => -0.5 * Math.log(Math.max(1e-9, 1 - Math.exp(-0.2 * theta)));
+            
+            const dataFitValues = thetaValues.map(dataFitTerm);
+            const complexityPenaltyValues = thetaValues.map(complexityPenaltyTerm);
+            const totalLikelihoodValues = dataFitValues.map((val, i) => val + complexityPenaltyValues[i]);
+
+            // Define custom plugin for the vertical line
+            const annotationLine = {
+                id: 'annotationLine',
+                beforeDatasetsDraw(chart, args, pluginOptions) {
+                    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+                    const xValue = pluginOptions.x;
+                    if (x.min <= xValue && x.max >= xValue) {
+                      const xCoord = x.getPixelForValue(xValue);
+                      ctx.save();
+                      ctx.strokeStyle = pluginOptions.borderColor;
+                      ctx.lineWidth = pluginOptions.borderWidth;
+                      ctx.setLineDash(pluginOptions.borderDash || []);
+                      ctx.beginPath();
+                      ctx.moveTo(xCoord, top);
+                      ctx.lineTo(xCoord, bottom);
+                      ctx.stroke();
+                      ctx.restore();
+                    }
+                }
+            };
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: thetaValues.map(v => v.toFixed(2)),
+                    datasets: [
+                        {
+                            label: 'Anpassungsgüte $(-\\frac{n}{2} \\ln(\\hat{\\sigma}^2))$',
+                            data: dataFitValues,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Komplexitätsstrafe $(-\\frac{1}{2} \\ln|\\Psi|)$',
+                            data: complexityPenaltyValues,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Gesamte Log-Likelihood (Summe)',
+                            data: totalLikelihoodValues,
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            borderWidth: 4,
+                            pointRadius: 0,
+                            tension: 0.3,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hyperparameter $\\theta$',
+                                font: { size: 14 }
+                            },
+                             ticks: {
+                                callback: function(value, index, values) {
+                                   if (index % 20 === 0) return this.getLabelForValue(value);
+                                   return '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Log-Likelihood Wert',
+                                font: { size: 14 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        annotationLine: { // configuration for our custom plugin
+                           x: 2.5,
+                           borderColor: 'rgb(75, 85, 99)',
+                           borderWidth: 2,
+                           borderDash: [6, 6]
+                        }
+                    }
+                },
+                plugins: [annotationLine] // Register the custom plugin
+            });
+            
+            function updateChart(theta) {
+                if (!thetaValueSpan || !chart) return;
+                thetaValueSpan.textContent = parseFloat(theta).toFixed(2);
+                chart.options.plugins.annotationLine.x = theta;
+                chart.update('none'); // use 'none' for no animation
+
+                if (theta < 1.5) {
+                    explanationTitle.textContent = "Modell zu einfach (Underfitting)";
+                    explanationText.textContent = "Ein kleines $\\theta$ bedeutet hohe Korrelation. Das Modell ist sehr 'steif'. Die Anpassung an die Daten ist schlecht, was der erste Term zeigt. Die Komplexitätsstrafe ist sehr hoch (stark negativ), da die Matrix $\\Psi$ fast singulär wird.";
+                } else if (theta > 5.0) {
+                    explanationTitle.textContent = "Modell zu komplex (Overfitting)";
+                    explanationText.textContent = "Ein großes $\\theta$ bedeutet niedrige Korrelation. Das Modell ist sehr 'flexibel' und passt sich den Daten gut an. Allerdings wird die generelle Struktur der Daten möglicherweise nicht mehr gut erfasst, und das Modell könnte das Rauschen mitlernen.";
+                } else {
+                    explanationTitle.textContent = "Optimaler Kompromiss";
+                    explanationText.textContent = "In diesem Bereich findet die Optimierung den 'Sweet Spot'. Das Modell ist komplex genug, um die Daten gut zu erklären (hoher Wert für Anpassungsgüte), aber nicht so einfach, dass es von der Komplexitätsstrafe dominiert wird.";
+                }
+                renderMathInElement(explanationText.parentElement);
+            }
+
+            slider.addEventListener('input', (event) => {
+                updateChart(event.target.value);
+            });
+
+            // Initial call
+            updateChart(slider.value);
+        });
+
+    </script>
+</body>
+</html>

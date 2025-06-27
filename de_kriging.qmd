@@ -94,6 +94,7 @@ Der Parametervektor $\vec{\theta} = \{\theta_1, \theta_2,..., \theta_k\}^T$ ist 
 
 *   Ein **großes $\theta_j$** zeigt an, dass die Funktion sehr empfindlich auf Änderungen in der $j$-ten Variablen reagiert. Die Korrelation wird sehr schnell abfallen, wenn sich die Punkte in dieser Dimension voneinander entfernen, was zu einer „schmalen“ Basisfunktion führt. Dies impliziert, dass die zugrunde liegende Funktion entlang dieser Achse sehr „aktiv“ ist oder sich schnell ändert.
 *   Ein **kleines $\theta_j$** zeigt an, dass die Funktion relativ unempfindlich auf Änderungen in der $j$-ten Variablen reagiert. Die Korrelation wird langsam abfallen, was zu einer „breiten“ Basisfunktion führt, die ihren Einfluss über einen größeren Bereich ausdehnt.
+Da die Korrelation auch über größere Distanzen hinweg hoch bleibt, bedeutet dies, dass das Modell davon ausgeht, dass Punkte, die in der $j$-ten Dimension weiter voneinander entfernt sind, immer noch stark korreliert sind. und dass der Einfluss eines Datenpunktes sich über einen großen Bereich im Eingaberaum erstreckt, bevor die Korrelation signifikant abnimmt. Das Modell geht also davon aus, dass sich die zugrunde liegende Funktion entlang dieser Achse sehr "langsam" ändert oder "inaktiv" ist.
 
 Die Tatsache, dass $\vec{\theta}$ ein Vektor ist – mit einem separaten Wert für jede Eingabedimension – ist ein entscheidendes Merkmal, das dem Kriging immense Leistungsfähigkeit verleiht, insbesondere bei mehrdimensionalen Problemen. Dies ist als **anisotrope Modellierung** bekannt. Indem die Korrelationslänge für jede Variable unterschiedlich sein kann, kann sich das Modell an Funktionen anpassen, die sich entlang verschiedener Achsen unterschiedlich verhalten. Zum Beispiel könnte eine Funktion sehr schnell auf Temperaturänderungen, aber sehr langsam auf Druckänderungen reagieren. Ein anisotropes Kriging-Modell kann dieses Verhalten erfassen, indem es ein großes $\theta$ für die Temperatur und ein kleines $\theta$ für den Druck lernt.
 
@@ -262,6 +263,101 @@ Genau das macht der Python-Code. Die Zeile `U = cholesky(Psi).T` führt die Zerl
 #### Der Nugget: Von numerischer Stabilität zur Rauschmodellierung
 
 Die Cholesky-Zerlegung funktioniert nur, wenn die Matrix $\Psi$ streng positiv definit ist. Ein Problem tritt auf, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen. In diesem Fall wird ihre Korrelation nahe 1 sein, was die entsprechenden Zeilen und Spalten in $\Psi$ nahezu identisch macht. Dies führt dazu, dass die Matrix schlecht konditioniert oder fast singulär wird, was zum Scheitern der Cholesky-Zerlegung führen kann.
+
+::: {.callout-note}
+#### Naheliegende Punkte führen zu numerischen Problemen
+
+Die Aussage, dass ein Problem auftritt, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen, und deren Korrelation dann nahe 1 ist, was die entsprechenden Zeilen und Spalten in der $\Psi$-Matrix nahezu identisch macht, ist ein wichtiger Aspekt der numerischen Stabilität und Modellierung beim Kriging.
+
+Die $\Psi$-Matrix (sprich: Psi) ist die Korrelationsmatrix der Trainingsdaten mit sich selbst. Jedes Element $\Psi_{ij}$ quantifiziert die Korrelation zwischen zwei bekannten Trainingspunkten $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$. Diese Korrelation wird durch die Kriging-Basisfunktion (oder den Gauß'schen Kernel) definiert:
+
+$$
+\psi(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\left(-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}\right)
+$$
+
+Hierbei ist $k$ die Anzahl der Eingabedimensionen, $\theta_l$ der Aktivitätshyperparameter für die $l$-te Dimension und $p_l$ der Glattheitsparameter. Die diagonalen Elemente $\Psi_{ii}$ sind immer 1, da die Korrelation eines Punktes mit sich selbst perfekt ist.
+
+Das Kriging-Modell basiert auf dem Prinzip der Lokalität. Dieses besagt, dass Punkte, die im Eingaberaum nahe beieinander liegen, erwartungsgemäß ähnliche Ausgabewerte haben und somit hoch korreliert sind.
+
+Wenn nun zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ im Eingaberaum sehr nahe beieinander liegen, bedeutet dies, dass die Abstände $|x_l^{(i)} - x_l^{(j)}|$ für alle Dimensionen $l$ sehr klein sind. Infolgedessen wird der Term in der Summe $-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}$ ebenfalls sehr klein (nahe Null) sein. Da $\exp(x)$ für $x \approx 0$ gegen 1 geht, wird die Korrelation $\psi(\vec{x}^{(i)}, \vec{x}^{(j)})$ einen Wert nahe 1 annehmen.
+
+Lassen Sie uns diesen Sachverhalt an einem hypothetischen numerischen Beispiel in einem 3-dimensionalen Raum ($k=3$) verdeutlichen. Nehmen wir an, wir verwenden den Gauß'schen Kernel mit $p_l = 2$ für alle Dimensionen und die Aktivitätshyperparameter $\vec{\theta} = [1.0, 1.0, 1.0]$.
+
+Betrachten wir drei Trainingspunkte:
+
+*   $\vec{x}^{(1)} = [1.0, 2.0, 3.0]$
+*   $\vec{x}^{(2)} = [1.0001, 2.0002, 3.0003]$ (Dieser Punkt ist extrem nahe an $\vec{x}^{(1)}$)
+*   $\vec{x}^{(3)} = [5.0, 6.0, 7.0]$ (Dieser Punkt ist weit entfernt von $\vec{x}^{(1)}$ und $\vec{x}^{(2)}$)
+
+Wir berechnen die Korrelationen:
+
+1.  **Korrelation zwischen $\vec{x}^{(1)}$ und $\vec{x}^{(2)}$:**
+    Die quadrierten Abstände sind:
+    $$
+    |x_1^{(1)} - x_1^{(2)}|^2 = |1.0 - 1.0001|^2 = (-0.0001)^2 = 0.00000001
+    $$
+    $$
+    |x_2^{(1)} - x_2^{(2)}|^2 = |2.0 - 2.0002|^2 = (-0.0002)^2 = 0.00000004
+    $$
+    $$
+    |x_3^{(1)} - x_3^{(2)}|^2 = |3.0 - 3.0003|^2 = (-0.0003)^2 = 0.00000009
+    $$
+
+    Die Summe der gewichteten quadrierten Abstände (da $\theta_l=1.0$):
+    $1.0 \cdot 0.00000001 + 1.0 \cdot 0.00000004 + 1.0 \cdot 0.00000009 = 0.00000014$
+
+    Die Korrelation ist:
+    $\psi(\vec{x}^{(1)}, \vec{x}^{(2)}) = \exp(-0.00000014) \approx \mathbf{0.99999986}$
+
+    **Wie man sieht, ist die Korrelation extrem nahe 1.**
+
+2.  **Korrelation zwischen $\vec{x}^{(1)}$ und $\vec{x}^{(3)}$:**
+    Die quadrierten Abstände sind:
+    $$
+    |x_1^{(1)} - x_1^{(3)}|^2 = |1.0 - 5.0|^2 = (-4.0)^2 = 16.0
+    $$
+    $$|x_2^{(1)} - x_2^{(3)}|^2 = |2.0 - 6.0|^2 = (-4.0)^2 = 16.0
+    $$
+    $$
+    |x_3^{(1)} - x_3^{(3)}|^2 = |3.0 - 7.0|^2 = (-4.0)^2 = 16.0
+    $$
+
+    Die Summe der gewichteten quadrierten Abstände:
+    $1.0 \cdot 16.0 + 1.0 \cdot 16.0 + 1.0 \cdot 16.0 = 48.0$
+
+    Die Korrelation ist:
+    $\psi(\vec{x}^{(1)}, \vec{x}^{(3)}) = \exp(-48.0) \approx \mathbf{1.39 \times 10^{-21}}$
+
+    **Diese Korrelation ist praktisch Null, was zeigt, dass weit entfernte Punkte unkorreliert sind.**
+
+Wenn wir eine $\Psi$-Matrix für diese drei Punkte aufstellen (und die Diagonalelemente $\Psi_{ii}=1$ sind, plus ein winziges `eps` für numerische Stabilität):
+
+$$
+\Psi =
+\begin{pmatrix}
+  \Psi_{11} & \Psi_{12} & \Psi_{13} \\
+  \Psi_{21} & \Psi_{22} & \Psi_{23} \\
+  \Psi_{31} & \Psi_{32} & \Psi_{33}
+\end{pmatrix}
+$$
+
+Setzen wir die berechneten Werte ein (unter Vernachlässigung des `eps`-Terms für Klarheit in diesem Schritt):
+
+$$
+\Psi \approx
+\begin{pmatrix}
+  1.0 & 0.99999986 & 1.39 \times 10^{-21} \\
+  0.99999986 & 1.0 & 1.39 \times 10^{-21} \\
+  1.39 \times 10^{-21} & 1.39 \times 10^{-21} & 1.0
+\end{pmatrix}
+$$
+
+Man sieht deutlich, dass die **erste und zweite Zeile (und Spalte)** der Matrix **nahezu identisch** sind, da $\Psi_{11} \approx \Psi_{21}$ und $\Psi_{12} \approx \Psi_{22}$ und $\Psi_{13} \approx \Psi_{23}$ (wobei letztere beide nahezu Null sind).
+
+Wenn Zeilen oder Spalten einer Matrix nahezu identisch sind, bedeutet dies, dass die Matrix **schlecht konditioniert** oder **fast singulär** ist. Eine schlecht konditionierte Matrix ist für numerische Operationen, insbesondere für die Inversion ($\Psi^{-1}$), problematisch. Die Inversion einer solchen Matrix ist ein rechenintensiver und numerisch anfälliger Schritt sowohl im Maximum-Likelihood-Schätzprozess zur Modellkalibrierung als auch bei der finalen Vorhersage. Dies kann zum **Scheitern der Cholesky-Zerlegung** führen, einer häufig verwendeten Methode zur effizienten und stabilen Matrixinversion im Kriging.
+
+:::
+
 
 Dieses Problem wird gelöst, indem ein kleiner positiver Wert zur Diagonale der Korrelationsmatrix addiert wird: $\Psi_{new} = \Psi + \lambda I$, wobei $I$ die Identitätsmatrix ist. Diese kleine Addition, oft als **Nugget** bezeichnet, stellt sicher, dass die Matrix gut konditioniert und invertierbar bleibt. Im bereitgestellten Code dient die Variable `eps` diesem Zweck.
 

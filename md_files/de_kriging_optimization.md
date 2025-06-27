@@ -1,5 +1,6 @@
 ---
 lang: de
+eval: true
 ---
 
 # Lernmodul: Erweiterung des Kriging-Modells: Numerische Optimierung der Hyperparameter
@@ -77,34 +78,42 @@ Für dieses 1D-Beispiel ($k=1$) und mit $p_j=2$ (quadratische euklidische Distan
 ```{python}
 def build_Psi(X, theta, eps=sqrt(spacing(1))):
     """
-    Berechnet die Korrelationsmatrix Psi basierend auf paarweisen quadratischen
-    euklidischen Distanzen zwischen Eingabelokationen, skaliert mit theta.
-    Fügt ein kleines Epsilon zur Diagonalen für numerische Stabilität hinzu (Nugget-Effekt).
+    Berechnet die Korrelationsmatrix Psi basierend auf paarweisen
+    quadratischen euklidischen Distanzen zwischen Eingabelokationen,
+    skaliert mit theta.
+    Fügt ein kleines Epsilon zur Diagonalen für numerische Stabilität
+    hinzu (Nugget-Effekt).
     Hinweis: p_j ist implizit 2 aufgrund der 'sqeuclidean'-Metrik.
     """
-    # Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument von cdist/pdist ist
+    # Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument
+    # von cdist/pdist ist
     if not isinstance(theta, np.ndarray) or theta.ndim == 0:
         theta = np.array([theta])
 
     D = squareform(pdist(X, metric='sqeuclidean', w=theta))
     Psi = exp(-D)
-    # Ein kleiner Wert wird zur Diagonalen hinzugefügt für numerische Stabilität (Nugget)
-    # Korrektur: X.shape für die Anzahl der Zeilen der Identitätsmatrix
+    # Ein kleiner Wert wird zur Diagonalen hinzugefügt für
+    # numerische Stabilität (Nugget)
+    # Korrektur: X.shape für die Anzahl der Zeilen der
+    # Identitätsmatrix
     Psi += multiply(eye(X.shape[0]), eps)
     return Psi
 
 def build_psi(X_train, x_predict, theta):
     """
-    Berechnet den Korrelationsvektor (oder Matrix) psi zwischen neuen Vorhersageorten
-    und Trainingsdatenlokationen.
+    Berechnet den Korrelationsvektor (oder Matrix) psi zwischen
+    neuen Vorhersageorten und Trainingsdatenlokationen.
     """
-    # Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument von cdist/pdist ist
+    # Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument
+    # von cdist/pdist ist
     if not isinstance(theta, np.ndarray) or theta.ndim == 0:
         theta = np.array([theta])
 
     D = cdist(x_predict, X_train, metric='sqeuclidean', w=theta)
     psi = exp(-D)
-    return psi.T # Transponieren, um konsistent mit der Literatur zu sein (n x m oder n x 1)
+    return psi.T 
+    # Transponieren, um konsistent mit der Literatur zu sein
+    # (n x m oder n x 1)
 ```
 
 ### Zielfunktion für die Hyperparameter-Optimierung (Negative Log-Likelihood)
@@ -119,8 +128,10 @@ def neg_log_likelihood(params, X_train, y_train):
     y_train: (n, 1)-Vektor der Trainings-Ausgabewerte
     """
     theta = params
-    # Für dieses Beispiel ist p implizit auf 2 festgelegt (durch 'sqeuclidean' in build_Psi)
-    # Falls p optimiert würde, müsste es hier aus 'params' extrahiert und an build_Psi übergeben werden
+    # Für dieses Beispiel ist p implizit auf 2 festgelegt
+    # (durch 'sqeuclidean' in build_Psi).
+    # Falls p optimiert würde, müsste es hier aus 'params' extrahiert
+    # und an build_Psi übergeben werden
     n = X_train.shape[0]
 
     # 1. Korrelationsmatrix Psi aufbauen
@@ -129,10 +140,12 @@ def neg_log_likelihood(params, X_train, y_train):
     # 2. mu_hat berechnen (MLE des Mittelwerts)
     # Verwendung der Cholesky-Zerlegung für stabile Inversion
     try:
-        # numpy.cholesky gibt L (untere Dreiecksmatrix) zurück, daher transponieren für U (obere)
+        # numpy.cholesky gibt L (untere Dreiecksmatrix) zurück,
+        # daher transponieren für U (obere)
         U = cholesky(Psi).T
     except np.linalg.LinAlgError:
-        # Bei Fehlern (z.B. wenn Psi nicht positiv definit ist, durch schlechte theta-Werte)
+        # Bei Fehlern (z.B. wenn Psi nicht positiv definit ist,
+        # durch schlechte theta-Werte)
         # einen sehr großen Wert zurückgeben, um diese Parameter zu bestrafen
         return 1e15
 
@@ -148,14 +161,18 @@ def neg_log_likelihood(params, X_train, y_train):
     # 3. sigma_hat_sq berechnen (MLE der Prozessvarianz)
     y_minus_mu_one = y_train - one * mu_hat
     # Korrekte Berechnung: (y-1*mu_hat).T @ Psi_inv @ (y-1*mu_hat) / n
-    sigma_hat_sq = (y_minus_mu_one.T @ solve(U, solve(U.T, y_minus_mu_one))) / n
+    sigma_hat_sq = (y_minus_mu_one.T @ \
+                    solve(U, solve(U.T, y_minus_mu_one))) / n
     sigma_hat_sq = sigma_hat_sq.item()
 
-    if sigma_hat_sq < 1e-10: # Sicherstellen, dass sigma_hat_sq nicht-negativ und nicht zu klein ist
+    if sigma_hat_sq < 1e-10: # Sicherstellen, dass sigma_hat_sq
+        # nicht-negativ und nicht zu klein ist
         return 1e15 # Sehr großen Wert zurückgeben zur Bestrafung
 
-    # 4. Log-Determinante von Psi mittels Cholesky-Zerlegung für Stabilität berechnen
-    # ln(|Psi|) = 2 * Summe(ln(L_ii)) wobei L die untere Dreiecksmatrix der Cholesky-Zerlegung ist
+    # 4. Log-Determinante von Psi mittels Cholesky-Zerlegung für
+    # Stabilität berechnen.
+    # ln(|Psi|) = 2 * Summe(ln(L_ii)) wobei L die untere
+    # Dreiecksmatrix der Cholesky-Zerlegung ist
     log_det_Psi = 2 * np.sum(np.log(np.diag(U.T))) # U.T ist L
 
     # 5. Negative konzentrierte Log-Likelihood berechnen
@@ -167,11 +184,12 @@ def neg_log_likelihood(params, X_train, y_train):
 
 ### Datenpunkte für das Sinusfunktions-Beispiel
 
-Das Beispiel verwendet eine 1D-Sinusfunktion, gemessen an acht gleichmäßig verteilten x-Lokationen.
+Das Beispiel verwendet eine 1D-Sinusfunktion, gemessen an `n_train` gleichmäßig verteilten x-Lokationen.
 
 ```{python}
-n_train = 8 # Anzahl der Stichprobenlokationen
-X_train = np.linspace(0, 2 * np.pi, n_train, endpoint=False).reshape(-1, 1) # x-Lokationen generieren
+n_train = 4 # Anzahl der Stichprobenlokationen
+X_train = np.linspace(0, 2 * np.pi, n_train,\
+                      endpoint=False).reshape(-1, 1)
 y_train = np.sin(X_train) # Zugehörige y-Werte (Sinus von x)
 
 # --- Originale Vorhersage-Einrichtung (festes theta=1.0) ---
@@ -179,15 +197,19 @@ theta_fixed = np.array([1.0])
 Psi_fixed = build_Psi(X_train, theta_fixed)
 U_fixed = cholesky(Psi_fixed).T
 one_fixed = np.ones(n_train).reshape(-1, 1)
-mu_hat_fixed = (one_fixed.T @ solve(U_fixed, solve(U_fixed.T, y_train))) / \
-               (one_fixed.T @ solve(U_fixed, solve(U_fixed.T, one_fixed)))
+mu_hat_fixed = (one_fixed.T @ solve(U_fixed,\
+                solve(U_fixed.T, y_train)))\
+                / (one_fixed.T @ solve(U_fixed,\
+               solve(U_fixed.T, one_fixed)))
 mu_hat_fixed = mu_hat_fixed.item()
 
 m_predict = 100 # Anzahl der neuen Lokationen für die Vorhersage
-x_predict = np.linspace(0, 2 * np.pi, m_predict, endpoint=True).reshape(-1, 1)
+x_predict = np.linspace(0, 2 * np.pi, m_predict,\
+                        endpoint=True).reshape(-1, 1)
 psi_fixed = build_psi(X_train, x_predict, theta_fixed)
 f_predict_fixed = mu_hat_fixed * np.ones(m_predict).reshape(-1, 1) + \
-                  psi_fixed.T @ solve(U_fixed, solve(U_fixed.T, y_train - one_fixed * mu_hat_fixed))
+                  psi_fixed.T @ solve(U_fixed, solve(U_fixed.T,\
+                  y_train - one_fixed * mu_hat_fixed))
 ```
 
 
@@ -195,46 +217,56 @@ f_predict_fixed = mu_hat_fixed * np.ones(m_predict).reshape(-1, 1) + \
 
 ```{python}
 initial_theta_guess = np.array([1.0]) # Startwert für Theta
-# Suchbereiche für Theta (z.B. von 1e-3 bis 1e2 auf linearer Skala, wie in den Quellen empfohlen)
-# SciPy minimize erwartet Suchbereiche als Tupel von (min, max) für jeden Parameter
+# Suchbereiche für Theta (z.B. von 1e-3 bis 1e2 auf linearer Skala)
+# SciPy minimize erwartet Suchbereiche als Tupel von (min, max)
+# für jeden Parameter
 bounds = [(0.001, 100.0)] # Für Theta
 print("\n--- Starte Hyperparameter-Optimierung für Theta ---")
-# 'L-BFGS-B' wird verwendet, da es Beschränkungen (bounds) unterstützt und gut für kontinuierliche Optimierung ist.
-result = minimize(neg_log_likelihood, initial_theta_guess, args=(X_train, y_train),
+# 'L-BFGS-B' wird verwendet, da es Beschränkungen (bounds) unterstützt
+# und gut für kontinuierliche Optimierung ist.
+result = minimize(neg_log_likelihood, initial_theta_guess,\
+                  args=(X_train, y_train),
                   method='L-BFGS-B', bounds=bounds)
 
-optimized_theta = result.x
-optimized_nll = result.fun
+opt_theta = result.x
+opt_nll = result.fun
 
 print(f"Optimierung erfolgreich: {result.success}")
-print(f"Optimales Theta: {optimized_theta[0]:.4f}")  # Extract the first element if it's a single value
-print(f"Minimaler Negativer Log-Likelihood: {optimized_nll:.4f}")
+# Extract the first element if it's a single value
+print(f"Optimales Theta: {opt_theta[0]:.4f}")
+print(f"Minimaler Negativer Log-Likelihood: {opt_nll:.4f}")
 ```
 
 ### Vorhersage mit optimiertem Theta
 
 ```{python}
-Psi_optimized = build_Psi(X_train, optimized_theta)
-U_optimized = cholesky(Psi_optimized).T
-one_optimized = np.ones(n_train).reshape(-1, 1)
-mu_hat_optimized = (one_optimized.T @ solve(U_optimized, solve(U_optimized.T, y_train))) / \
-                   (one_optimized.T @ solve(U_optimized, solve(U_optimized.T, one_optimized)))
-mu_hat_optimized = mu_hat_optimized.item()
+Psi_opt = build_Psi(X_train, opt_theta)
+U_opt = cholesky(Psi_opt).T
+one_opt = np.ones(n_train).reshape(-1, 1)
+mu_hat_opt = (one_opt.T @ solve(U_opt, solve(U_opt.T, y_train))) / \
+                   (one_opt.T @ solve(U_opt, solve(U_opt.T, one_opt)))
+mu_hat_opt = mu_hat_opt.item()
 
-psi_optimized = build_psi(X_train, x_predict, optimized_theta)
-f_predict_optimized = mu_hat_optimized * np.ones(m_predict).reshape(-1, 1) + \
-                      psi_optimized.T @ solve(U_optimized, solve(U_optimized.T, y_train - one_optimized * mu_hat_optimized))
+psi_opt = build_psi(X_train, x_predict, opt_theta)
+f_predict_opt = mu_hat_opt * np.ones(m_predict).reshape(-1, 1) + \
+                      psi_opt.T @ solve(U_opt, solve(U_opt.T, y_train\
+                      - one_opt * mu_hat_opt))
 ```
 
 ### Visualisierung der Ergebnisse
 
 ```{python}
 plt.figure(figsize=(10, 6))
-plt.plot(x_predict, np.sin(x_predict), color="grey", linestyle='--', label="Wahre Sinusfunktion")
-plt.plot(X_train, y_train, "bo", markersize=8, label=f"Messpunkte ({n_train} Punkte)")
-plt.plot(x_predict, f_predict_fixed, color="red", linestyle=':', label=f"Kriging-Vorhersage (Fixes Theta={theta_fixed[0]:.1f})")
-plt.plot(x_predict, f_predict_optimized, color="orange", label=f"Kriging-Vorhersage (Optimiertes Theta={optimized_theta[0]:.2f})")
-plt.title(f"Kriging-Vorhersage der Sinusfunktion mit {n_train} Punkten\nOptimierung des Aktivitätsparameters Theta")
+plt.plot(x_predict, np.sin(x_predict), color="grey", linestyle='--',\
+            label="Wahre Sinusfunktion")
+plt.plot(X_train, y_train, "bo", markersize=8,\
+            label=f"Messpunkte ({n_train} Punkte)")
+plt.plot(x_predict, f_predict_fixed, color="red", linestyle=':',\
+     label=f"Kriging-Vorhersage (Fixes Theta={theta_fixed[0]:.1f})")
+plt.plot(x_predict, f_predict_opt, color="orange",\
+     label=f"Kriging-Vorhersage (Optimiertes Theta={opt_theta[0]:.2f})")
+plt.title(f"Kriging-Vorhersage der Sinusfunktion mit {n_train} Punkten\
+            \nOptimierung des Aktivitätsparameters Theta")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.legend(loc='upper right')
