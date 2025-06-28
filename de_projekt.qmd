@@ -11,8 +11,8 @@ Um die gestellte Aufgabe zu lösen, erstellen wir eine Python-Klasse `KrigingReg
 **1. Die `KrigingRegressor`-Klasse**
 Diese Klasse kapselt die Logik für das Kriging-Modell, einschließlich der Berechnung der Korrelationsmatrizen, der Maximum-Likelihood-Schätzung für den globalen Mittelwert $\hat{\mu}$ und die Prozessvarianz $\hat{\sigma}^2$, der konzentrierten Log-Likelihood-Funktion zur Hyperparameter-Optimierung sowie der Vorhersagefunktion. Die Optimierung des Aktivitätsparameters $\vec{\theta}$ erfolgt über die Maximierung der konzentrierten Log-Likelihood-Funktion, wobei intern die negative Log-Likelihood minimiert wird. Der Glattheitsparameter $\vec{p}$ wird implizit auf $p_j=2$ gesetzt, da die quadrierte euklidische Distanz verwendet wird. Es wird ein kleiner Nugget-Term (`eps`) zur Diagonalen der Korrelationsmatrix hinzugefügt, um die numerische Stabilität zu gewährleisten.
 
-**2. Die Black-Box-Funktion `f(x) = x² + 1`**
-Diese Funktion simuliert ein teures oder undurchsichtiges System, dessen interne Funktionsweise dem Optimierungsalgorithmus nicht bekannt ist.
+**2. Die Black-Box-Funktion `f(x)`**
+Diese Funktion simuliert ein teures oder undurchsichtiges System, dessen interne Funktionsweise dem Optimierungsalgorithmus nicht bekannt ist. Im weiteren Schritt wird ein Server zur Beantwortung der Auswertungen bereitgestellt, der die Black-Box-Funktion ausführt. In diesem Beispiel verwenden wir eine analytische Funktion, die eine gewisse Komplexität aufweist, um die Black-Box zu simulieren.
 
 **3. Initialer Stichprobenplan `X`**
 Für einen "optimalen" Versuchsplan wird Latin Hypercube Sampling (LHS) verwendet, da dies eine raumfüllende Eigenschaft aufweist. Dies stellt sicher, dass der Eingaberaum effizient erkundet wird. Die Eingabedaten werden intern auf den Bereich $$ skaliert, um die Konsistenz der $\theta$-Werte über verschiedene Probleme hinweg zu gewährleisten.
@@ -135,8 +135,16 @@ class KrigingRegressor:
 
     def fit(self, X, y):
         """Fit das Kriging-Modell an die Trainingsdaten.
-        
-        // ...existing docstring...
+        Args:
+            X (array-like): Eingabedaten der Form (n_samples, n_features)
+            y (array-like): Zielwerte der Form (n_samples,)
+
+        Returns:
+            self: Das gefittete Kriging-Modell
+
+        Notes:
+            Diese Methode optimiert die Hyperparameter Theta, indem sie die negative Log-Likelihood minimiert.        
+
         """
         self.X_train_ = X
         self.y_train_ = y.reshape(-1, 1)

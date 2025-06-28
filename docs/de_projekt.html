@@ -1102,11 +1102,11 @@ window.Quarto = {
 
 <p>Um die gestellte Aufgabe zu lösen, erstellen wir eine Python-Klasse <code>KrigingRegressor</code> für das Kriging-Modell, eine Black-Box-Funktion <code>f(x)</code>, eine Funktion zur Erstellung des initialen Stichprobenplans und implementieren dann den sequenziellen Optimierungsablauf.</p>
 <p><strong>1. Die <code>KrigingRegressor</code>-Klasse</strong> Diese Klasse kapselt die Logik für das Kriging-Modell, einschließlich der Berechnung der Korrelationsmatrizen, der Maximum-Likelihood-Schätzung für den globalen Mittelwert <span class="math inline">\(\hat{\mu}\)</span> und die Prozessvarianz <span class="math inline">\(\hat{\sigma}^2\)</span>, der konzentrierten Log-Likelihood-Funktion zur Hyperparameter-Optimierung sowie der Vorhersagefunktion. Die Optimierung des Aktivitätsparameters <span class="math inline">\(\vec{\theta}\)</span> erfolgt über die Maximierung der konzentrierten Log-Likelihood-Funktion, wobei intern die negative Log-Likelihood minimiert wird. Der Glattheitsparameter <span class="math inline">\(\vec{p}\)</span> wird implizit auf <span class="math inline">\(p_j=2\)</span> gesetzt, da die quadrierte euklidische Distanz verwendet wird. Es wird ein kleiner Nugget-Term (<code>eps</code>) zur Diagonalen der Korrelationsmatrix hinzugefügt, um die numerische Stabilität zu gewährleisten.</p>
-<p><strong>2. Die Black-Box-Funktion <code>f(x) = x² + 1</code></strong> Diese Funktion simuliert ein teures oder undurchsichtiges System, dessen interne Funktionsweise dem Optimierungsalgorithmus nicht bekannt ist.</p>
+<p><strong>2. Die Black-Box-Funktion <code>f(x)</code></strong> Diese Funktion simuliert ein teures oder undurchsichtiges System, dessen interne Funktionsweise dem Optimierungsalgorithmus nicht bekannt ist. Im weiteren Schritt wird ein Server zur Beantwortung der Auswertungen bereitgestellt, der die Black-Box-Funktion ausführt. In diesem Beispiel verwenden wir eine analytische Funktion, die eine gewisse Komplexität aufweist, um die Black-Box zu simulieren.</p>
 <p><strong>3. Initialer Stichprobenplan <code>X</code></strong> Für einen “optimalen” Versuchsplan wird Latin Hypercube Sampling (LHS) verwendet, da dies eine raumfüllende Eigenschaft aufweist. Dies stellt sicher, dass der Eingaberaum effizient erkundet wird. Die Eingabedaten werden intern auf den Bereich $$ skaliert, um die Konsistenz der <span class="math inline">\(\theta\)</span>-Werte über verschiedene Probleme hinweg zu gewährleisten.</p>
 <p><strong>4. Sequenzieller Optimierungsablauf</strong> Der Prozess beginnt mit einem initialen Stichprobenplan. In jeder Iteration wird das Kriging-Modell mit den verfügbaren Daten gefittet. Anschließend wird eine Optimierung auf dem Surrogatmodell (dem gefitteten Kriging-Modell) durchgeführt, um den nächsten vielversprechenden Punkt im Designraum zu finden. Dieser Punkt wird der Black-Box-Funktion übergeben, und die erhaltene Beobachtung wird zum Trainingsdatensatz hinzugefügt. Dieser iterative Prozess wird bis zu einer maximalen Anzahl von Funktionsauswertungen fortgesetzt.</p>
 <p>Hier ist der entsprechende Python-Code:</p>
-<div id="0b3a5f12" class="cell" data-execution_count="1">
+<div id="d27655a4" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.spatial.distance <span class="im">import</span> pdist, squareform, cdist</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy.linalg <span class="im">import</span> cholesky, solve, LinAlgError</span>
@@ -1219,60 +1219,68 @@ window.Quarto = {
 <span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> fit(<span class="va">self</span>, X, y):</span>
 <span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Fit das Kriging-Modell an die Trainingsdaten.</span></span>
-<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
-<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a><span class="co">        // ...existing docstring...</span></span>
-<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.X_train_ <span class="op">=</span> X</span>
-<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.y_train_ <span class="op">=</span> y.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Optimierung der Hyperparameter</span></span>
-<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>        initial_theta <span class="op">=</span> np.array([<span class="va">self</span>.initial_theta])</span>
-<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> minimize(<span class="va">self</span>._neg_log_likelihood, </span>
-<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>                        initial_theta,</span>
-<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>                        args<span class="op">=</span>(<span class="va">self</span>.X_train_, <span class="va">self</span>.y_train_),</span>
-<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>                        method<span class="op">=</span><span class="st">'L-BFGS-B'</span>, </span>
-<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>                        bounds<span class="op">=</span><span class="va">self</span>.bounds)</span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a><span class="co">            X (array-like): Eingabedaten der Form (n_samples, n_features)</span></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a><span class="co">            y (array-like): Zielwerte der Form (n_samples,)</span></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a><span class="co">            self: Das gefittete Kriging-Modell</span></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a><span class="co">        Notes:</span></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a><span class="co">            Diese Methode optimiert die Hyperparameter Theta, indem sie die negative Log-Likelihood minimiert.        </span></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.X_train_ <span class="op">=</span> X</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.y_train_ <span class="op">=</span> y.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
 <span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.opt_theta_ <span class="op">=</span> result.x</span>
-<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Berechne optimale Parameter für Vorhersagen</span></span>
-<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a>        Psi_opt <span class="op">=</span> <span class="va">self</span>._build_Psi(<span class="va">self</span>.X_train_, <span class="va">self</span>.opt_theta_)</span>
-<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.U_ <span class="op">=</span> cholesky(Psi_opt).T</span>
-<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>        n_train <span class="op">=</span> <span class="va">self</span>.X_train_.shape[<span class="dv">0</span>]</span>
-<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>        one <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Optimierung der Hyperparameter</span></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>        initial_theta <span class="op">=</span> np.array([<span class="va">self</span>.initial_theta])</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> minimize(<span class="va">self</span>._neg_log_likelihood, </span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a>                        initial_theta,</span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>                        args<span class="op">=</span>(<span class="va">self</span>.X_train_, <span class="va">self</span>.y_train_),</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>                        method<span class="op">=</span><span class="st">'L-BFGS-B'</span>, </span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>                        bounds<span class="op">=</span><span class="va">self</span>.bounds)</span>
 <span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.mu_hat_ <span class="op">=</span> (one.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, <span class="va">self</span>.y_train_))) <span class="op">/</span> <span class="op">\</span></span>
-<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>                      (one.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, one)))</span>
-<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.mu_hat_ <span class="op">=</span> <span class="va">self</span>.mu_hat_.item()</span>
-<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span></span>
-<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict(<span class="va">self</span>, X):</span>
-<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Vorhersage für neue Datenpunkte.</span></span>
-<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
-<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
-<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a><span class="co">            X (array-like): Eingabedaten für Vorhersage der Form (n_samples, n_features)</span></span>
-<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a><span class="co">            </span></span>
-<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
-<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a><span class="co">            array: Vorhergesagte Werte</span></span>
-<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>        n_train <span class="op">=</span> <span class="va">self</span>.X_train_.shape[<span class="dv">0</span>]</span>
-<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>        one <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Fix: Use self._build_psi instead of build_psi</span></span>
-<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>        psi <span class="op">=</span> <span class="va">self</span>._build_psi(<span class="va">self</span>.X_train_, X, <span class="va">self</span>.opt_theta_)</span>
-<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.mu_hat_ <span class="op">*</span> np.ones(X.shape[<span class="dv">0</span>]).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
-<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>            psi.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, </span>
-<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.y_train_ <span class="op">-</span> one <span class="op">*</span> <span class="va">self</span>.mu_hat_))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.opt_theta_ <span class="op">=</span> result.x</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Berechne optimale Parameter für Vorhersagen</span></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>        Psi_opt <span class="op">=</span> <span class="va">self</span>._build_Psi(<span class="va">self</span>.X_train_, <span class="va">self</span>.opt_theta_)</span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.U_ <span class="op">=</span> cholesky(Psi_opt).T</span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>        n_train <span class="op">=</span> <span class="va">self</span>.X_train_.shape[<span class="dv">0</span>]</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>        one <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.mu_hat_ <span class="op">=</span> (one.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, <span class="va">self</span>.y_train_))) <span class="op">/</span> <span class="op">\</span></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>                      (one.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, one)))</span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.mu_hat_ <span class="op">=</span> <span class="va">self</span>.mu_hat_.item()</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict(<span class="va">self</span>, X):</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Vorhersage für neue Datenpunkte.</span></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="co">            X (array-like): Eingabedaten für Vorhersage der Form (n_samples, n_features)</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a><span class="co">            </span></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a><span class="co">            array: Vorhergesagte Werte</span></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>        n_train <span class="op">=</span> <span class="va">self</span>.X_train_.shape[<span class="dv">0</span>]</span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>        one <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Fix: Use self._build_psi instead of build_psi</span></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>        psi <span class="op">=</span> <span class="va">self</span>._build_psi(<span class="va">self</span>.X_train_, X, <span class="va">self</span>.opt_theta_)</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.mu_hat_ <span class="op">*</span> np.ones(X.shape[<span class="dv">0</span>]).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>            psi.T <span class="op">@</span> solve(<span class="va">self</span>.U_, solve(<span class="va">self</span>.U_.T, </span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.y_train_ <span class="op">-</span> one <span class="op">*</span> <span class="va">self</span>.mu_hat_))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="die-black-box-funktion" class="level1" data-number="64">
 <h1 data-number="64"><span class="header-section-number">64</span> 2. Die Black-Box-Funktion</h1>
-<div id="36d278d4" class="cell" data-execution_count="2">
+<div id="75497bff" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> f_black_box(x):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Analytische Black-Box-Funktion: f(x)"""</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span>x<span class="op">**</span><span class="dv">2</span><span class="op">*</span>np.cos(x) <span class="op">+</span> <span class="dv">1</span> <span class="op">+</span> x<span class="op">**</span><span class="dv">2</span><span class="op">*</span>np.sin(x)</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="f2223935" class="cell" data-execution_count="3">
+<div id="ad18e878" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Funktion zur Erstellung des initialen Stichprobenplans (Latin Hypercube Sampling)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_initial_design(n_points, dimensionality, x_range):</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Erstellt einen raumfüllenden initialen Versuchsplan mittels Latin Hypercube Sampling.</span></span>
@@ -1303,7 +1311,7 @@ window.Quarto = {
 </section>
 <section id="hauptskript-für-die-sequentielle-optimierung" class="level1" data-number="65">
 <h1 data-number="65"><span class="header-section-number">65</span> Hauptskript für die sequentielle Optimierung</h1>
-<div id="75cb1be6" class="cell" data-execution_count="4">
+<div id="be7ec000" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>) <span class="co"># Für Reproduzierbarkeit der Zufallszahlen</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Definition des Suchraums für die Black-Box-Funktion</span></span>
@@ -1334,7 +1342,7 @@ Zugehöriger y_train:
 </div>
 </div>
 <pre><code># --- Schritt 2: KrigingRegressor-Modell initialisieren ---</code></pre>
-<div id="70429173" class="cell" data-execution_count="5">
+<div id="a66eb337" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bounds für log10(theta), z.B. 10^-3 bis 10^2</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>theta_bounds_log10 <span class="op">=</span> [(<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">2.0</span>)] </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>M_1 <span class="op">=</span> KrigingRegressor(initial_theta<span class="op">=</span><span class="fl">1.0</span>, bounds<span class="op">=</span>theta_bounds_log10)</span>
@@ -1434,7 +1442,7 @@ Geschätzter globaler Mittelwert (mu_hat): 3.5178</code></pre>
 <section id="schritt-4-surrogat-basierte-optimierung-zur-suche-des-nächsten-infill-punktes" class="level1" data-number="66">
 <h1 data-number="66"><span class="header-section-number">66</span> — Schritt 4: Surrogat-basierte Optimierung zur Suche des nächsten Infill-Punktes —</h1>
 <p>Definiere die Zielfunktion für die innere Optimierung (Minimierung des Surrogats)</p>
-<div id="0ed62a31" class="cell" data-execution_count="6">
+<div id="55a83150" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> surrogate_objective(x_val):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Stelle sicher, dass x_val im richtigen Format (2D-Array) für predict ist</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    x_val_reshaped <span class="op">=</span> np.atleast_2d(x_val) </span>
@@ -1443,7 +1451,7 @@ Geschätzter globaler Mittelwert (mu_hat): 3.5178</code></pre>
 </section>
 <section id="suchgrenzen-für-die-optimierung-auf-dem-surrogatmodell" class="level1" data-number="67">
 <h1 data-number="67"><span class="header-section-number">67</span> Suchgrenzen für die Optimierung auf dem Surrogatmodell</h1>
-<div id="ad21cdac" class="cell" data-execution_count="7">
+<div id="b0298be9" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>surrogate_search_bounds <span class="op">=</span> [(x_lower_bound, x_upper_bound)] <span class="op">*</span> dimensionality</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Optimierung auf dem Surrogatmodell, um den nächsten Infill-Punkt zu finden..."</span>)</span>
@@ -1486,7 +1494,7 @@ Aktueller y_train:
 </section>
 <section id="fitte-das-finale-modell-mit-allen-verfügbaren-n_max_evaluations-punkten" class="level1" data-number="68">
 <h1 data-number="68"><span class="header-section-number">68</span> Fitte das finale Modell mit allen verfügbaren N_max_evaluations Punkten</h1>
-<div id="661236fd" class="cell" data-execution_count="8">
+<div id="4cde2777" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>M_1.fit(X_train_current, y_train_current)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualisierung der Ergebnisse</span></span>
