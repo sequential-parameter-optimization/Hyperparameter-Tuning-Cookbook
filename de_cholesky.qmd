@@ -67,9 +67,9 @@ Dies ist der Kernalgorithmus der Cholesky-Zerlegung, der sich auf größere Matr
 
 ### Beispiel mit $\Psi$
 
-Betrachten wir die Korrelationsmatrix $\Psi$ aus den Quellen:
+Betrachten wir die Korrelationsmatrix $\Psi$:
 $$
-\Psi = \begin{pmatrix} 1 & e^{-1}\ e^{-1} & 1 \end{pmatrix}
+\Psi = \begin{pmatrix} 1 & e^{-1}\\ e^{-1} & 1 \end{pmatrix}
 $$
 Um die Cholesky-Zerlegung $\Psi = LDL^T$ (oder $U^TDU$) zu berechnen, setzen wir:
 $$
