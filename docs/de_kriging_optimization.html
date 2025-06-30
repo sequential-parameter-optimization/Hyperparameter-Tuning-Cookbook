@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.31">
+<meta name="generator" content="quarto-1.7.32">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -65,7 +65,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./a_01_intro_to_notebooks.html" rel="next">
+<link href="./de_kriging_optimization_python_class.html" rel="next">
 <link href="./de_cholesky.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -73,7 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-23a3edf7f3c1ed1fc827cae2f6dd4de5.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -137,7 +137,8 @@ window.Quarto = {
 
 <meta name="twitter:title" content="61&nbsp; Lernmodul: Erweiterung des Kriging-Modells: Numerische Optimierung der Hyperparameter – Hyperparameter Tuning Cookbook">
 <meta name="twitter:description" content="">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="de_kriging_optimization_files/figure-html/cell-8-output-1.png">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="citation_title" content="[61]{.chapter-number}&nbsp; [Lernmodul: Erweiterung des Kriging-Modells: Numerische Optimierung der Hyperparameter]{.chapter-title}">
 <meta name="citation_fulltext_html_url" content="https://arxiv.org/abs/2307.10262">
 <meta name="citation_doi" content="10.48550/arXiv.2307.10262">
@@ -974,6 +975,18 @@ window.Quarto = {
  <span class="menu-text"><span class="chapter-number">61</span>&nbsp; <span class="chapter-title">Lernmodul: Erweiterung des Kriging-Modells: Numerische Optimierung der Hyperparameter</span></span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./de_kriging_optimization_python_class.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">62</span>&nbsp; <span class="chapter-title">Lernmodul: Erweiterung des Kriging-Modells zu einer Klasse (Python Code)</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./de_projekt.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">63</span>&nbsp; <span class="chapter-title">Lernmodul: Kriging Projekt</span></span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -1143,7 +1156,7 @@ window.Quarto = {
 <h2 data-number="61.5" class="anchored" data-anchor-id="erweiterung-des-sinusfunktions-beispiels-mit-hyperparameter-optimierung"><span class="header-section-number">61.5</span> Erweiterung des Sinusfunktions-Beispiels mit Hyperparameter-Optimierung</h2>
 <p>Wir erweitern nun den Beispielcode aus dem “Lernmodul: Eine Einführung in Kriging” (Kriging-Anpassung an eine Sinusfunktion mit 8 Punkten), um den Aktivitätsparameter <span class="math inline">\(\theta\)</span> numerisch zu optimieren.</p>
 <p>Die Hauptänderung besteht in der Definition einer neuen Zielfunktion, <code>neg_log_likelihood</code>, die von <code>scipy.optimize.minimize</code> minimiert wird. Diese Funktion nimmt die zu optimierenden Parameter (hier <code>theta</code>) entgegen und berechnet die negative konzentrierte Log-Likelihood basierend auf den Trainingsdaten.</p>
-<div id="fbd4a200" class="cell" data-execution_count="1">
+<div id="5e6e6ecd" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> (exp, multiply, eye, linspace, spacing, sqrt)</span>
@@ -1157,42 +1170,50 @@ window.Quarto = {
 \psi(x^{(i)}, x) = \exp(- \sum_{j=1}^k \theta_j |x_j^{(i)} - x_j|^{p_j}).
 \]</span></p>
 <p>Für dieses 1D-Beispiel (<span class="math inline">\(k=1\)</span>) und mit <span class="math inline">\(p_j=2\)</span> (quadratische euklidische Distanz implizit durch <code>pdist</code>-Nutzung) und <span class="math inline">\(\theta_j = \theta\)</span> (ein einzelner Wert) vereinfacht es sich.</p>
-<div id="af7b7ccb" class="cell" data-execution_count="2">
+<div id="023b4f89" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_Psi(X, theta, eps<span class="op">=</span>sqrt(spacing(<span class="dv">1</span>))):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Berechnet die Korrelationsmatrix Psi basierend auf paarweisen quadratischen</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">    euklidischen Distanzen zwischen Eingabelokationen, skaliert mit theta.</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Fügt ein kleines Epsilon zur Diagonalen für numerische Stabilität hinzu (Nugget-Effekt).</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Hinweis: p_j ist implizit 2 aufgrund der 'sqeuclidean'-Metrik.</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument von cdist/pdist ist</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(theta, np.ndarray) <span class="kw">or</span> theta.ndim <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        theta <span class="op">=</span> np.array([theta])</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> squareform(pdist(X, metric<span class="op">=</span><span class="st">'sqeuclidean'</span>, w<span class="op">=</span>theta))</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">=</span> exp(<span class="op">-</span>D)</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ein kleiner Wert wird zur Diagonalen hinzugefügt für numerische Stabilität (Nugget)</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Korrektur: X.shape für die Anzahl der Zeilen der Identitätsmatrix</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">+=</span> multiply(eye(X.shape[<span class="dv">0</span>]), eps)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Psi</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_psi(X_train, x_predict, theta):</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Berechnet den Korrelationsvektor (oder Matrix) psi zwischen neuen Vorhersageorten</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">    und Trainingsdatenlokationen.</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument von cdist/pdist ist</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(theta, np.ndarray) <span class="kw">or</span> theta.ndim <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        theta <span class="op">=</span> np.array([theta])</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> cdist(x_predict, X_train, metric<span class="op">=</span><span class="st">'sqeuclidean'</span>, w<span class="op">=</span>theta)</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    psi <span class="op">=</span> exp(<span class="op">-</span>D)</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> psi.T <span class="co"># Transponieren, um konsistent mit der Literatur zu sein (n x m oder n x 1)</span></span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Berechnet die Korrelationsmatrix Psi basierend auf paarweisen</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">    quadratischen euklidischen Distanzen zwischen Eingabelokationen,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">    skaliert mit theta.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Fügt ein kleines Epsilon zur Diagonalen für numerische Stabilität</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">    hinzu (Nugget-Effekt).</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">    Hinweis: p_j ist implizit 2 aufgrund der 'sqeuclidean'-Metrik.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># von cdist/pdist ist</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(theta, np.ndarray) <span class="kw">or</span> theta.ndim <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        theta <span class="op">=</span> np.array([theta])</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> squareform(pdist(X, metric<span class="op">=</span><span class="st">'sqeuclidean'</span>, w<span class="op">=</span>theta))</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">=</span> exp(<span class="op">-</span>D)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ein kleiner Wert wird zur Diagonalen hinzugefügt für</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># numerische Stabilität (Nugget)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Korrektur: X.shape für die Anzahl der Zeilen der</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Identitätsmatrix</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">+=</span> multiply(eye(X.shape[<span class="dv">0</span>]), eps)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Psi</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_psi(X_train, x_predict, theta):</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">    Berechnet den Korrelationsvektor (oder Matrix) psi zwischen</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">    neuen Vorhersageorten und Trainingsdatenlokationen.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sicherstellen, dass theta ein 1D-Array für das 'w'-Argument</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># von cdist/pdist ist</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(theta, np.ndarray) <span class="kw">or</span> theta.ndim <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        theta <span class="op">=</span> np.array([theta])</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> cdist(x_predict, X_train, metric<span class="op">=</span><span class="st">'sqeuclidean'</span>, w<span class="op">=</span>theta)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    psi <span class="op">=</span> exp(<span class="op">-</span>D)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> psi.T </span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Transponieren, um konsistent mit der Literatur zu sein</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (n x m oder n x 1)</span></span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="zielfunktion-für-die-hyperparameter-optimierung-negative-log-likelihood" class="level3" data-number="61.5.2">
 <h3 data-number="61.5.2" class="anchored" data-anchor-id="zielfunktion-für-die-hyperparameter-optimierung-negative-log-likelihood"><span class="header-section-number">61.5.2</span> Zielfunktion für die Hyperparameter-Optimierung (Negative Log-Likelihood)</h3>
-<div id="31f541ab" class="cell" data-execution_count="3">
+<div id="8d57d9c7" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neg_log_likelihood(params, X_train, y_train):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Berechnet die negative konzentrierte Log-Likelihood für das Kriging-Modell.</span></span>
@@ -1202,125 +1223,162 @@ window.Quarto = {
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">    y_train: (n, 1)-Vektor der Trainings-Ausgabewerte</span></span>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    theta <span class="op">=</span> params</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Für dieses Beispiel ist p implizit auf 2 festgelegt (durch 'sqeuclidean' in build_Psi)</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Falls p optimiert würde, müsste es hier aus 'params' extrahiert und an build_Psi übergeben werden</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> X_train.shape[<span class="dv">0</span>]</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Korrelationsmatrix Psi aufbauen</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">=</span> build_Psi(X_train, theta)</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. mu_hat berechnen (MLE des Mittelwerts)</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verwendung der Cholesky-Zerlegung für stabile Inversion</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="co"># numpy.cholesky gibt L (untere Dreiecksmatrix) zurück, daher transponieren für U (obere)</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>        U <span class="op">=</span> cholesky(Psi).T</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> np.linalg.LinAlgError:</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Bei Fehlern (z.B. wenn Psi nicht positiv definit ist, durch schlechte theta-Werte)</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># einen sehr großen Wert zurückgeben, um diese Parameter zu bestrafen</span></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1e15</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    one <span class="op">=</span> np.ones(n).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Stabile Berechnung von Psi_inv @ y und Psi_inv @ one</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    Psi_inv_y <span class="op">=</span> solve(U, solve(U.T, y_train))</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    Psi_inv_one <span class="op">=</span> solve(U, solve(U.T, one))</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Berechnung von mu_hat</span></span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    mu_hat <span class="op">=</span> (one.T <span class="op">@</span> Psi_inv_y) <span class="op">/</span> (one.T <span class="op">@</span> Psi_inv_one)</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    mu_hat <span class="op">=</span> mu_hat.item() <span class="co"># Skalaren Wert extrahieren</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Für dieses Beispiel ist p implizit auf 2 festgelegt</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (durch 'sqeuclidean' in build_Psi).</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Falls p optimiert würde, müsste es hier aus 'params' extrahiert</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># und an build_Psi übergeben werden</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> X_train.shape[<span class="dv">0</span>]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Korrelationsmatrix Psi aufbauen</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    Psi <span class="op">=</span> build_Psi(X_train, theta)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. mu_hat berechnen (MLE des Mittelwerts)</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verwendung der Cholesky-Zerlegung für stabile Inversion</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># numpy.cholesky gibt L (untere Dreiecksmatrix) zurück,</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># daher transponieren für U (obere)</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        U <span class="op">=</span> cholesky(Psi).T</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> np.linalg.LinAlgError:</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Bei Fehlern (z.B. wenn Psi nicht positiv definit ist,</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># durch schlechte theta-Werte)</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="co"># einen sehr großen Wert zurückgeben, um diese Parameter zu bestrafen</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1e15</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    one <span class="op">=</span> np.ones(n).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Stabile Berechnung von Psi_inv @ y und Psi_inv @ one</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    Psi_inv_y <span class="op">=</span> solve(U, solve(U.T, y_train))</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    Psi_inv_one <span class="op">=</span> solve(U, solve(U.T, one))</span>
 <span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. sigma_hat_sq berechnen (MLE der Prozessvarianz)</span></span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    y_minus_mu_one <span class="op">=</span> y_train <span class="op">-</span> one <span class="op">*</span> mu_hat</span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Korrekte Berechnung: (y-1*mu_hat).T @ Psi_inv @ (y-1*mu_hat) / n</span></span>
-<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    sigma_hat_sq <span class="op">=</span> (y_minus_mu_one.T <span class="op">@</span> solve(U, solve(U.T, y_minus_mu_one))) <span class="op">/</span> n</span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    sigma_hat_sq <span class="op">=</span> sigma_hat_sq.item()</span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> sigma_hat_sq <span class="op">&lt;</span> <span class="fl">1e-10</span>: <span class="co"># Sicherstellen, dass sigma_hat_sq nicht-negativ und nicht zu klein ist</span></span>
-<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1e15</span> <span class="co"># Sehr großen Wert zurückgeben zur Bestrafung</span></span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. Log-Determinante von Psi mittels Cholesky-Zerlegung für Stabilität berechnen</span></span>
-<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ln(|Psi|) = 2 * Summe(ln(L_ii)) wobei L die untere Dreiecksmatrix der Cholesky-Zerlegung ist</span></span>
-<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>    log_det_Psi <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.<span class="bu">sum</span>(np.log(np.diag(U.T))) <span class="co"># U.T ist L</span></span>
-<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 5. Negative konzentrierte Log-Likelihood berechnen</span></span>
-<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ln(L) = - (n/2) * ln(sigma_hat_sq) - (1/2) * ln(|Psi|)</span></span>
-<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Zu minimieren ist -ln(L)</span></span>
-<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>    nll <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> n <span class="op">*</span> np.log(sigma_hat_sq) <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> log_det_Psi</span>
-<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> nll</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Berechnung von mu_hat</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    mu_hat <span class="op">=</span> (one.T <span class="op">@</span> Psi_inv_y) <span class="op">/</span> (one.T <span class="op">@</span> Psi_inv_one)</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    mu_hat <span class="op">=</span> mu_hat.item() <span class="co"># Skalaren Wert extrahieren</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. sigma_hat_sq berechnen (MLE der Prozessvarianz)</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>    y_minus_mu_one <span class="op">=</span> y_train <span class="op">-</span> one <span class="op">*</span> mu_hat</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Korrekte Berechnung: (y-1*mu_hat).T @ Psi_inv @ (y-1*mu_hat) / n</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>    sigma_hat_sq <span class="op">=</span> (y_minus_mu_one.T <span class="op">@</span> <span class="op">\</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>                    solve(U, solve(U.T, y_minus_mu_one))) <span class="op">/</span> n</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>    sigma_hat_sq <span class="op">=</span> sigma_hat_sq.item()</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> sigma_hat_sq <span class="op">&lt;</span> <span class="fl">1e-10</span>: <span class="co"># Sicherstellen, dass sigma_hat_sq</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        <span class="co"># nicht-negativ und nicht zu klein ist</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1e15</span> <span class="co"># Sehr großen Wert zurückgeben zur Bestrafung</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. Log-Determinante von Psi mittels Cholesky-Zerlegung für</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Stabilität berechnen.</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ln(|Psi|) = 2 * Summe(ln(L_ii)) wobei L die untere</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Dreiecksmatrix der Cholesky-Zerlegung ist</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>    log_det_Psi <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.<span class="bu">sum</span>(np.log(np.diag(U.T))) <span class="co"># U.T ist L</span></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 5. Negative konzentrierte Log-Likelihood berechnen</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ln(L) = - (n/2) * ln(sigma_hat_sq) - (1/2) * ln(|Psi|)</span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Zu minimieren ist -ln(L)</span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>    nll <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> n <span class="op">*</span> np.log(sigma_hat_sq) <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> log_det_Psi</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> nll</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="datenpunkte-für-das-sinusfunktions-beispiel" class="level3" data-number="61.5.3">
 <h3 data-number="61.5.3" class="anchored" data-anchor-id="datenpunkte-für-das-sinusfunktions-beispiel"><span class="header-section-number">61.5.3</span> Datenpunkte für das Sinusfunktions-Beispiel</h3>
-<p>Das Beispiel verwendet eine 1D-Sinusfunktion, gemessen an acht gleichmäßig verteilten x-Lokationen.</p>
-<div id="54ba23a0" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>n_train <span class="op">=</span> <span class="dv">8</span> <span class="co"># Anzahl der Stichprobenlokationen</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, n_train, endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="co"># x-Lokationen generieren</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> np.sin(X_train) <span class="co"># Zugehörige y-Werte (Sinus von x)</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Originale Vorhersage-Einrichtung (festes theta=1.0) ---</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>theta_fixed <span class="op">=</span> np.array([<span class="fl">1.0</span>])</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>Psi_fixed <span class="op">=</span> build_Psi(X_train, theta_fixed)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>U_fixed <span class="op">=</span> cholesky(Psi_fixed).T</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>one_fixed <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>mu_hat_fixed <span class="op">=</span> (one_fixed.T <span class="op">@</span> solve(U_fixed, solve(U_fixed.T, y_train))) <span class="op">/</span> <span class="op">\</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>               (one_fixed.T <span class="op">@</span> solve(U_fixed, solve(U_fixed.T, one_fixed)))</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>mu_hat_fixed <span class="op">=</span> mu_hat_fixed.item()</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>m_predict <span class="op">=</span> <span class="dv">100</span> <span class="co"># Anzahl der neuen Lokationen für die Vorhersage</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>x_predict <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, m_predict, endpoint<span class="op">=</span><span class="va">True</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>psi_fixed <span class="op">=</span> build_psi(X_train, x_predict, theta_fixed)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>f_predict_fixed <span class="op">=</span> mu_hat_fixed <span class="op">*</span> np.ones(m_predict).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>                  psi_fixed.T <span class="op">@</span> solve(U_fixed, solve(U_fixed.T, y_train <span class="op">-</span> one_fixed <span class="op">*</span> mu_hat_fixed))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Das Beispiel verwendet eine 1D-Sinusfunktion, gemessen an <code>n_train</code> gleichmäßig verteilten x-Lokationen.</p>
+<div id="11c34410" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>n_train <span class="op">=</span> <span class="dv">4</span> <span class="co"># Anzahl der Stichprobenlokationen</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, n_train,<span class="op">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                      endpoint<span class="op">=</span><span class="va">False</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> np.sin(X_train) <span class="co"># Zugehörige y-Werte (Sinus von x)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Originale Vorhersage-Einrichtung (festes theta=1.0) ---</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>theta_fixed <span class="op">=</span> np.array([<span class="fl">1.0</span>])</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>Psi_fixed <span class="op">=</span> build_Psi(X_train, theta_fixed)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>U_fixed <span class="op">=</span> cholesky(Psi_fixed).T</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>one_fixed <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>mu_hat_fixed <span class="op">=</span> (one_fixed.T <span class="op">@</span> solve(U_fixed,<span class="op">\</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>                solve(U_fixed.T, y_train)))<span class="op">\</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>                <span class="op">/</span> (one_fixed.T <span class="op">@</span> solve(U_fixed,<span class="op">\</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>               solve(U_fixed.T, one_fixed)))</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>mu_hat_fixed <span class="op">=</span> mu_hat_fixed.item()</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>m_predict <span class="op">=</span> <span class="dv">100</span> <span class="co"># Anzahl der neuen Lokationen für die Vorhersage</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>x_predict <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, m_predict,<span class="op">\</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>                        endpoint<span class="op">=</span><span class="va">True</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>psi_fixed <span class="op">=</span> build_psi(X_train, x_predict, theta_fixed)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>f_predict_fixed <span class="op">=</span> mu_hat_fixed <span class="op">*</span> np.ones(m_predict).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>                  psi_fixed.T <span class="op">@</span> solve(U_fixed, solve(U_fixed.T,<span class="op">\</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>                  y_train <span class="op">-</span> one_fixed <span class="op">*</span> mu_hat_fixed))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="optimierung-von-theta" class="level3" data-number="61.5.4">
 <h3 data-number="61.5.4" class="anchored" data-anchor-id="optimierung-von-theta"><span class="header-section-number">61.5.4</span> Optimierung von Theta</h3>
-<div id="1063f029" class="cell" data-execution_count="5">
+<div id="04e27ac3" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>initial_theta_guess <span class="op">=</span> np.array([<span class="fl">1.0</span>]) <span class="co"># Startwert für Theta</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Suchbereiche für Theta (z.B. von 1e-3 bis 1e2 auf linearer Skala, wie in den Quellen empfohlen)</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># SciPy minimize erwartet Suchbereiche als Tupel von (min, max) für jeden Parameter</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [(<span class="fl">0.001</span>, <span class="fl">100.0</span>)] <span class="co"># Für Theta</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Starte Hyperparameter-Optimierung für Theta ---"</span>)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 'L-BFGS-B' wird verwendet, da es Beschränkungen (bounds) unterstützt und gut für kontinuierliche Optimierung ist.</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> minimize(neg_log_likelihood, initial_theta_guess, args<span class="op">=</span>(X_train, y_train),</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                  method<span class="op">=</span><span class="st">'L-BFGS-B'</span>, bounds<span class="op">=</span>bounds)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>optimized_theta <span class="op">=</span> result.x</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>optimized_nll <span class="op">=</span> result.fun</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Suchbereiche für Theta (z.B. von 1e-3 bis 1e2 auf linearer Skala)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># SciPy minimize erwartet Suchbereiche als Tupel von (min, max)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># für jeden Parameter</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [(<span class="fl">0.001</span>, <span class="fl">100.0</span>)] <span class="co"># Für Theta</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Starte Hyperparameter-Optimierung für Theta ---"</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 'L-BFGS-B' wird verwendet, da es Beschränkungen (bounds) unterstützt</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># und gut für kontinuierliche Optimierung ist.</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> minimize(neg_log_likelihood, initial_theta_guess,<span class="op">\</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                  args<span class="op">=</span>(X_train, y_train),</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>                  method<span class="op">=</span><span class="st">'L-BFGS-B'</span>, bounds<span class="op">=</span>bounds)</span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Optimierung erfolgreich: </span><span class="sc">{</span>result<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Optimales Theta: </span><span class="sc">{</span>optimized_theta[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)  <span class="co"># Extract the first element if it's a single value</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Minimaler Negativer Log-Likelihood: </span><span class="sc">{</span>optimized_nll<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>opt_theta <span class="op">=</span> result.x</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>opt_nll <span class="op">=</span> result.fun</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Optimierung erfolgreich: </span><span class="sc">{</span>result<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the first element if it's a single value</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Optimales Theta: </span><span class="sc">{</span>opt_theta[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Minimaler Negativer Log-Likelihood: </span><span class="sc">{</span>opt_nll<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+--- Starte Hyperparameter-Optimierung für Theta ---
+Optimierung erfolgreich: True
+Optimales Theta: 0.3157
+Minimaler Negativer Log-Likelihood: -1.4767</code></pre>
+</div>
 </div>
 </section>
 <section id="vorhersage-mit-optimiertem-theta" class="level3" data-number="61.5.5">
 <h3 data-number="61.5.5" class="anchored" data-anchor-id="vorhersage-mit-optimiertem-theta"><span class="header-section-number">61.5.5</span> Vorhersage mit optimiertem Theta</h3>
-<div id="4282ebaa" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Psi_optimized <span class="op">=</span> build_Psi(X_train, optimized_theta)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>U_optimized <span class="op">=</span> cholesky(Psi_optimized).T</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>one_optimized <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>mu_hat_optimized <span class="op">=</span> (one_optimized.T <span class="op">@</span> solve(U_optimized, solve(U_optimized.T, y_train))) <span class="op">/</span> <span class="op">\</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                   (one_optimized.T <span class="op">@</span> solve(U_optimized, solve(U_optimized.T, one_optimized)))</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>mu_hat_optimized <span class="op">=</span> mu_hat_optimized.item()</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>psi_optimized <span class="op">=</span> build_psi(X_train, x_predict, optimized_theta)</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>f_predict_optimized <span class="op">=</span> mu_hat_optimized <span class="op">*</span> np.ones(m_predict).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>                      psi_optimized.T <span class="op">@</span> solve(U_optimized, solve(U_optimized.T, y_train <span class="op">-</span> one_optimized <span class="op">*</span> mu_hat_optimized))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="f281918e" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Psi_opt <span class="op">=</span> build_Psi(X_train, opt_theta)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>U_opt <span class="op">=</span> cholesky(Psi_opt).T</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>one_opt <span class="op">=</span> np.ones(n_train).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>mu_hat_opt <span class="op">=</span> (one_opt.T <span class="op">@</span> solve(U_opt, solve(U_opt.T, y_train))) <span class="op">/</span> <span class="op">\</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                   (one_opt.T <span class="op">@</span> solve(U_opt, solve(U_opt.T, one_opt)))</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>mu_hat_opt <span class="op">=</span> mu_hat_opt.item()</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>psi_opt <span class="op">=</span> build_psi(X_train, x_predict, opt_theta)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>f_predict_opt <span class="op">=</span> mu_hat_opt <span class="op">*</span> np.ones(m_predict).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span> <span class="op">\</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                      psi_opt.T <span class="op">@</span> solve(U_opt, solve(U_opt.T, y_train<span class="op">\</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                      <span class="op">-</span> one_opt <span class="op">*</span> mu_hat_opt))</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="visualisierung-der-ergebnisse" class="level3" data-number="61.5.6">
 <h3 data-number="61.5.6" class="anchored" data-anchor-id="visualisierung-der-ergebnisse"><span class="header-section-number">61.5.6</span> Visualisierung der Ergebnisse</h3>
-<div id="4adad625" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, np.sin(x_predict), color<span class="op">=</span><span class="st">"grey"</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">"Wahre Sinusfunktion"</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plt.plot(X_train, y_train, <span class="st">"bo"</span>, markersize<span class="op">=</span><span class="dv">8</span>, label<span class="op">=</span><span class="ss">f"Messpunkte (</span><span class="sc">{</span>n_train<span class="sc">}</span><span class="ss"> Punkte)"</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, f_predict_fixed, color<span class="op">=</span><span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">':'</span>, label<span class="op">=</span><span class="ss">f"Kriging-Vorhersage (Fixes Theta=</span><span class="sc">{</span>theta_fixed[<span class="dv">0</span>]<span class="sc">:.1f}</span><span class="ss">)"</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, f_predict_optimized, color<span class="op">=</span><span class="st">"orange"</span>, label<span class="op">=</span><span class="ss">f"Kriging-Vorhersage (Optimiertes Theta=</span><span class="sc">{</span>optimized_theta[<span class="dv">0</span>]<span class="sc">:.2f}</span><span class="ss">)"</span>)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="ss">f"Kriging-Vorhersage der Sinusfunktion mit </span><span class="sc">{</span>n_train<span class="sc">}</span><span class="ss"> Punkten</span><span class="ch">\n</span><span class="ss">Optimierung des Aktivitätsparameters Theta"</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"x"</span>)</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"y"</span>)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>plt.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="5842fa63" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, np.sin(x_predict), color<span class="op">=</span><span class="st">"grey"</span>, linestyle<span class="op">=</span><span class="st">'--'</span>,<span class="op">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">"Wahre Sinusfunktion"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>plt.plot(X_train, y_train, <span class="st">"bo"</span>, markersize<span class="op">=</span><span class="dv">8</span>,<span class="op">\</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="ss">f"Messpunkte (</span><span class="sc">{</span>n_train<span class="sc">}</span><span class="ss"> Punkte)"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, f_predict_fixed, color<span class="op">=</span><span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">':'</span>,<span class="op">\</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>     label<span class="op">=</span><span class="ss">f"Kriging-Vorhersage (Fixes Theta=</span><span class="sc">{</span>theta_fixed[<span class="dv">0</span>]<span class="sc">:.1f}</span><span class="ss">)"</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>plt.plot(x_predict, f_predict_opt, color<span class="op">=</span><span class="st">"orange"</span>,<span class="op">\</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>     label<span class="op">=</span><span class="ss">f"Kriging-Vorhersage (Optimiertes Theta=</span><span class="sc">{</span>opt_theta[<span class="dv">0</span>]<span class="sc">:.2f}</span><span class="ss">)"</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="ss">f"Kriging-Vorhersage der Sinusfunktion mit </span><span class="sc">{</span>n_train<span class="sc">}</span><span class="ss"> Punkten</span><span class="op">\</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="ss">            </span><span class="ch">\n</span><span class="ss">Optimierung des Aktivitätsparameters Theta"</span>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"x"</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"y"</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>plt.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="In die Zwischenablage kopieren" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="de_kriging_optimization_files/figure-html/cell-8-output-1.png" width="832" height="541" class="figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="ergebnisse-und-diskussion" class="level3" data-number="61.5.7">
@@ -1784,8 +1842,8 @@ Jupyter-Notebook
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./a_01_intro_to_notebooks.html" class="pagination-link" aria-label="Introduction to Jupyter Notebook">
-        <span class="nav-page-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Introduction to Jupyter Notebook</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./de_kriging_optimization_python_class.html" class="pagination-link" aria-label="Lernmodul: Erweiterung des Kriging-Modells zu einer Klasse (Python Code)">
+        <span class="nav-page-text"><span class="chapter-number">62</span>&nbsp; <span class="chapter-title">Lernmodul: Erweiterung des Kriging-Modells zu einer Klasse (Python Code)</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

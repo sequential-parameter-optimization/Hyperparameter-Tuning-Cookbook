@@ -70,7 +70,7 @@ spot_2.surrogate.plot()
 
 ## Example With Modified p
 
-* We can use set `p` to a value other than `2` to obtain a different Kriging model.
+* We can use set `p_val` to a value other than `2` to obtain a different Kriging model.
 
 ```{python}
 surrogate_control = surrogate_control_init(n_p=1,
@@ -95,24 +95,24 @@ spot_2_p1.print_results()
 spot_2_p1.surrogate.plot()
 ```
 
-### Taking a Look at the `p` Values
+### Taking a Look at the `p_val` Values
 
-#### `p` Values from the `spot` Model
+#### `p_val` Values from the `spot` Model
 
-* We can check, which `p` values the `spot` model has used:
-* The `p` values from the surrogate can be printed as follows:
+* We can check, which `p_val` values the `spot` model has used:
+* The `p_val` values from the surrogate can be printed as follows:
 
 ```{python}
-spot_2_p1.surrogate.p
+spot_2_p1.surrogate.p_val
 ```
 
 * Since the surrogate from the isotropic setting was stored as `spot_2`, we can also take a look at the `theta` value from this model:
 
 ```{python}
-spot_2.surrogate.p
+spot_2.surrogate.p_val
 ```
 
-## Optimization of the `p` Values
+## Optimization of the `p_val` Values
 
 ```{python}
 surrogate_control = surrogate_control_init(n_p=1,
@@ -136,10 +136,10 @@ spot_2_pm.surrogate.plot()
 ```
 
 ```{python}
-spot_2_pm.surrogate.p
+spot_2_pm.surrogate.p_val
 ```
 
-## Optimization of Multiple `p` Values
+## Optimization of Multiple `p_val` Values
 
 ```{python}
 surrogate_control = surrogate_control_init(n_p=2,
@@ -163,7 +163,7 @@ spot_2_pmo.surrogate.plot()
 ```
 
 ```{python}
-spot_2_pmo.surrogate.p
+spot_2_pmo.surrogate.p_val
 ```
 
 
@@ -175,7 +175,7 @@ spot_2_pmo.surrogate.p
 
 * Describe the function.
   * The input dimension is `2`. The search range is  $-5 \leq x_1 \leq 10$ and $0 \leq x_2 \leq 15$.
-* Compare the results from `spotpython` runs with different options for `p`.
+* Compare the results from `spotpython` runs with different options for `p_val`.
 * Modify the termination criterion: instead of the number of evaluations (which is specified via `fun_evals`), the time should be used as the termination criterion. This can be done as follows (`max_time=1` specifies a run time of one minute):
 
 ```{python}
@@ -194,14 +194,14 @@ max_time=1,
 
 * Describe the function.
   *  The input dimension is `2`. The search range is  $-5 \leq x_1 \leq 5$ and $-5 \leq x_2 \leq 5$.
-* Compare the results from `spotpython` runs with different options for `p`.
+* Compare the results from `spotpython` runs with different options for `p_val`.
 * Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.
 
 ###  `fun_wingwt`
 
 * Describe the function.
   *  The input dimension is `10`. The search ranges are between 0 and 1 (values are mapped internally to their natural bounds).
-* Compare the results from `spotpython` runs with different options for `p`.
+* Compare the results from `spotpython` runs with different options for `p_val`.
 * Modify the termination criterion (`max_time` instead of `fun_evals`) as described for `fun_branin`.
 
 

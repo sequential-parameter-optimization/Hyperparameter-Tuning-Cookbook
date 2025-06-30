@@ -94,6 +94,7 @@ Der Parametervektor $\vec{\theta} = \{\theta_1, \theta_2,..., \theta_k\}^T$ ist 
 
 *   Ein **großes $\theta_j$** zeigt an, dass die Funktion sehr empfindlich auf Änderungen in der $j$-ten Variablen reagiert. Die Korrelation wird sehr schnell abfallen, wenn sich die Punkte in dieser Dimension voneinander entfernen, was zu einer „schmalen“ Basisfunktion führt. Dies impliziert, dass die zugrunde liegende Funktion entlang dieser Achse sehr „aktiv“ ist oder sich schnell ändert.
 *   Ein **kleines $\theta_j$** zeigt an, dass die Funktion relativ unempfindlich auf Änderungen in der $j$-ten Variablen reagiert. Die Korrelation wird langsam abfallen, was zu einer „breiten“ Basisfunktion führt, die ihren Einfluss über einen größeren Bereich ausdehnt.
+Da die Korrelation auch über größere Distanzen hinweg hoch bleibt, bedeutet dies, dass das Modell davon ausgeht, dass Punkte, die in der $j$-ten Dimension weiter voneinander entfernt sind, immer noch stark korreliert sind. und dass der Einfluss eines Datenpunktes sich über einen großen Bereich im Eingaberaum erstreckt, bevor die Korrelation signifikant abnimmt. Das Modell geht also davon aus, dass sich die zugrunde liegende Funktion entlang dieser Achse sehr "langsam" ändert oder "inaktiv" ist.
 
 Die Tatsache, dass $\vec{\theta}$ ein Vektor ist – mit einem separaten Wert für jede Eingabedimension – ist ein entscheidendes Merkmal, das dem Kriging immense Leistungsfähigkeit verleiht, insbesondere bei mehrdimensionalen Problemen. Dies ist als **anisotrope Modellierung** bekannt. Indem die Korrelationslänge für jede Variable unterschiedlich sein kann, kann sich das Modell an Funktionen anpassen, die sich entlang verschiedener Achsen unterschiedlich verhalten. Zum Beispiel könnte eine Funktion sehr schnell auf Temperaturänderungen, aber sehr langsam auf Druckänderungen reagieren. Ein anisotropes Kriging-Modell kann dieses Verhalten erfassen, indem es ein großes $\theta$ für die Temperatur und ein kleines $\theta$ für den Druck lernt.
 
@@ -233,8 +234,10 @@ wobei $\hat{y}(\vec{x})$ die Vorhersage an einem neuen Punkt $\vec{x}$ ist und a
 Psi = build_Psi(X, theta)
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1, 1)
-mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
-f_predict = mu_hat * np.ones(m).reshape(-1, 1) + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
+mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / \
+         (one.T @ solve(U, solve(U.T, one)))
+f_predict = mu_hat * np.ones(m).reshape(-1, 1) \
+            + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
 ```
 
 *   `mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))`: Dies ist eine direkte und numerisch stabile Implementierung der Formel für $\hat{\mu}$, siehe @eq-mu-hat-de. Anstatt `Psi_inv` explizit zu berechnen, wird der auf Cholesky basierende Löser verwendet, der im nächsten Abschnitt detailliert wird. Der Ausdruck `solve(U, solve(U.T, y_train))` ist äquivalent zu `Psi_inv @ y_train`.
@@ -261,6 +264,101 @@ Genau das macht der Python-Code. Die Zeile `U = cholesky(Psi).T` führt die Zerl
 
 Die Cholesky-Zerlegung funktioniert nur, wenn die Matrix $\Psi$ streng positiv definit ist. Ein Problem tritt auf, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen. In diesem Fall wird ihre Korrelation nahe 1 sein, was die entsprechenden Zeilen und Spalten in $\Psi$ nahezu identisch macht. Dies führt dazu, dass die Matrix schlecht konditioniert oder fast singulär wird, was zum Scheitern der Cholesky-Zerlegung führen kann.
 
+::: {.callout-note}
+#### Naheliegende Punkte führen zu numerischen Problemen
+
+Die Aussage, dass ein Problem auftritt, wenn zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ sehr nahe beieinander liegen, und deren Korrelation dann nahe 1 ist, was die entsprechenden Zeilen und Spalten in der $\Psi$-Matrix nahezu identisch macht, ist ein wichtiger Aspekt der numerischen Stabilität und Modellierung beim Kriging.
+
+Die $\Psi$-Matrix (sprich: Psi) ist die Korrelationsmatrix der Trainingsdaten mit sich selbst. Jedes Element $\Psi_{ij}$ quantifiziert die Korrelation zwischen zwei bekannten Trainingspunkten $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$. Diese Korrelation wird durch die Kriging-Basisfunktion (oder den Gauß'schen Kernel) definiert:
+
+$$
+\psi(\vec{x}^{(i)}, \vec{x}^{(j)}) = \exp\left(-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}\right)
+$$
+
+Hierbei ist $k$ die Anzahl der Eingabedimensionen, $\theta_l$ der Aktivitätshyperparameter für die $l$-te Dimension und $p_l$ der Glattheitsparameter. Die diagonalen Elemente $\Psi_{ii}$ sind immer 1, da die Korrelation eines Punktes mit sich selbst perfekt ist.
+
+Das Kriging-Modell basiert auf dem Prinzip der Lokalität. Dieses besagt, dass Punkte, die im Eingaberaum nahe beieinander liegen, erwartungsgemäß ähnliche Ausgabewerte haben und somit hoch korreliert sind.
+
+Wenn nun zwei Trainingspunkte $\vec{x}^{(i)}$ und $\vec{x}^{(j)}$ im Eingaberaum sehr nahe beieinander liegen, bedeutet dies, dass die Abstände $|x_l^{(i)} - x_l^{(j)}|$ für alle Dimensionen $l$ sehr klein sind. Infolgedessen wird der Term in der Summe $-\sum_{l=1}^{k} \theta_l |x_l^{(i)} - x_l^{(j)}|^{p_l}$ ebenfalls sehr klein (nahe Null) sein. Da $\exp(x)$ für $x \approx 0$ gegen 1 geht, wird die Korrelation $\psi(\vec{x}^{(i)}, \vec{x}^{(j)})$ einen Wert nahe 1 annehmen.
+
+Lassen Sie uns diesen Sachverhalt an einem hypothetischen numerischen Beispiel in einem 3-dimensionalen Raum ($k=3$) verdeutlichen. Nehmen wir an, wir verwenden den Gauß'schen Kernel mit $p_l = 2$ für alle Dimensionen und die Aktivitätshyperparameter $\vec{\theta} = [1.0, 1.0, 1.0]$.
+
+Betrachten wir drei Trainingspunkte:
+
+*   $\vec{x}^{(1)} = [1.0, 2.0, 3.0]$
+*   $\vec{x}^{(2)} = [1.0001, 2.0002, 3.0003]$ (Dieser Punkt ist extrem nahe an $\vec{x}^{(1)}$)
+*   $\vec{x}^{(3)} = [5.0, 6.0, 7.0]$ (Dieser Punkt ist weit entfernt von $\vec{x}^{(1)}$ und $\vec{x}^{(2)}$)
+
+Wir berechnen die Korrelationen:
+
+1.  **Korrelation zwischen $\vec{x}^{(1)}$ und $\vec{x}^{(2)}$:**
+    Die quadrierten Abstände sind:
+    $$
+    |x_1^{(1)} - x_1^{(2)}|^2 = |1.0 - 1.0001|^2 = (-0.0001)^2 = 0.00000001
+    $$
+    $$
+    |x_2^{(1)} - x_2^{(2)}|^2 = |2.0 - 2.0002|^2 = (-0.0002)^2 = 0.00000004
+    $$
+    $$
+    |x_3^{(1)} - x_3^{(2)}|^2 = |3.0 - 3.0003|^2 = (-0.0003)^2 = 0.00000009
+    $$
+
+    Die Summe der gewichteten quadrierten Abstände (da $\theta_l=1.0$):
+    $1.0 \cdot 0.00000001 + 1.0 \cdot 0.00000004 + 1.0 \cdot 0.00000009 = 0.00000014$
+
+    Die Korrelation ist:
+    $\psi(\vec{x}^{(1)}, \vec{x}^{(2)}) = \exp(-0.00000014) \approx \mathbf{0.99999986}$
+
+    **Wie man sieht, ist die Korrelation extrem nahe 1.**
+
+2.  **Korrelation zwischen $\vec{x}^{(1)}$ und $\vec{x}^{(3)}$:**
+    Die quadrierten Abstände sind:
+    $$
+    |x_1^{(1)} - x_1^{(3)}|^2 = |1.0 - 5.0|^2 = (-4.0)^2 = 16.0
+    $$
+    $$|x_2^{(1)} - x_2^{(3)}|^2 = |2.0 - 6.0|^2 = (-4.0)^2 = 16.0
+    $$
+    $$
+    |x_3^{(1)} - x_3^{(3)}|^2 = |3.0 - 7.0|^2 = (-4.0)^2 = 16.0
+    $$
+
+    Die Summe der gewichteten quadrierten Abstände:
+    $1.0 \cdot 16.0 + 1.0 \cdot 16.0 + 1.0 \cdot 16.0 = 48.0$
+
+    Die Korrelation ist:
+    $\psi(\vec{x}^{(1)}, \vec{x}^{(3)}) = \exp(-48.0) \approx \mathbf{1.39 \times 10^{-21}}$
+
+    **Diese Korrelation ist praktisch Null, was zeigt, dass weit entfernte Punkte unkorreliert sind.**
+
+Wenn wir eine $\Psi$-Matrix für diese drei Punkte aufstellen (und die Diagonalelemente $\Psi_{ii}=1$ sind, plus ein winziges `eps` für numerische Stabilität):
+
+$$
+\Psi =
+\begin{pmatrix}
+  \Psi_{11} & \Psi_{12} & \Psi_{13} \\
+  \Psi_{21} & \Psi_{22} & \Psi_{23} \\
+  \Psi_{31} & \Psi_{32} & \Psi_{33}
+\end{pmatrix}
+$$
+
+Setzen wir die berechneten Werte ein (unter Vernachlässigung des `eps`-Terms für Klarheit in diesem Schritt):
+
+$$
+\Psi \approx
+\begin{pmatrix}
+  1.0 & 0.99999986 & 1.39 \times 10^{-21} \\
+  0.99999986 & 1.0 & 1.39 \times 10^{-21} \\
+  1.39 \times 10^{-21} & 1.39 \times 10^{-21} & 1.0
+\end{pmatrix}
+$$
+
+Man sieht deutlich, dass die **erste und zweite Zeile (und Spalte)** der Matrix **nahezu identisch** sind, da $\Psi_{11} \approx \Psi_{21}$ und $\Psi_{12} \approx \Psi_{22}$ und $\Psi_{13} \approx \Psi_{23}$ (wobei letztere beide nahezu Null sind).
+
+Wenn Zeilen oder Spalten einer Matrix nahezu identisch sind, bedeutet dies, dass die Matrix **schlecht konditioniert** oder **fast singulär** ist. Eine schlecht konditionierte Matrix ist für numerische Operationen, insbesondere für die Inversion ($\Psi^{-1}$), problematisch. Die Inversion einer solchen Matrix ist ein rechenintensiver und numerisch anfälliger Schritt sowohl im Maximum-Likelihood-Schätzprozess zur Modellkalibrierung als auch bei der finalen Vorhersage. Dies kann zum **Scheitern der Cholesky-Zerlegung** führen, einer häufig verwendeten Methode zur effizienten und stabilen Matrixinversion im Kriging.
+
+:::
+
+
 Dieses Problem wird gelöst, indem ein kleiner positiver Wert zur Diagonale der Korrelationsmatrix addiert wird: $\Psi_{new} = \Psi + \lambda I$, wobei $I$ die Identitätsmatrix ist. Diese kleine Addition, oft als **Nugget** bezeichnet, stellt sicher, dass die Matrix gut konditioniert und invertierbar bleibt. Im bereitgestellten Code dient die Variable `eps` diesem Zweck.
 
 Obwohl es als numerischer „Hack“ beginnen mag, hat dieser Nugget-Term eine tiefgreifende und starke statistische Interpretation: Er modelliert Rauschen in den Daten. Dies führt zu zwei unterschiedlichen Arten von Kriging-Modellen:
@@ -274,9 +372,178 @@ Dieselbe mathematische Operation – das Hinzufügen eines Wertes zur Diagonale 
 
 Dieser letzte Teil fasst die gesamte vorangegangene Theorie zusammen, indem er sie auf das bereitgestellte Python-Codebeispiel aus dem [Hyperparameter Tuning Cookbook](https://sequential-parameter-optimization.github.io/Hyperparameter-Tuning-Cookbook/006_num_gp.html#sec-kriging-example-006) anwendet. Wir werden das Skript Schritt für Schritt durchgehen und die Eingaben, Prozesse und Ausgaben in jeder Phase interpretieren, um eine konkrete Veranschaulichung des Kriging in Aktion zu geben.
 
+Zunächst zeigen wir den gesamten Code, gefolgt von einer detaillierten Erklärung jedes Schrittes.
+
+
+
+```{python}
+#| eval: true
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy import (array, zeros, power, ones, exp, multiply, eye,
+                  linspace, spacing, sqrt, arange, append, ravel)
+from numpy.linalg import cholesky, solve
+from scipy.spatial.distance import squareform, pdist, cdist
+
+# --- 1. Kriging Basis Functions (Defining the Correlation) ---
+# The core of Kriging uses a specialized basis function for correlation:
+# psi(x^(i), x) = exp(- sum_{j=1}^k theta_j |x_j^(i) - x_j|^p_j)
+# For this 1D example (k=1), and with p_j=2
+# (squared Euclidean distance implicit from pdist usage)
+# and theta_j = theta (a single value), it simplifies.
+
+def build_Psi(X, theta, eps=sqrt(spacing(1))):
+    """
+    Computes the correlation matrix Psi based on pairwise squared Euclidean distances
+    between input locations, scaled by theta.
+    Adds a small epsilon to the diagonal for numerical stability (nugget effect).
+    """
+    # Calculate pairwise squared Euclidean distances (D) between points in X
+    D = squareform(pdist(X, metric='sqeuclidean', out=None, w=theta))
+    # Compute Psi = exp(-D)
+    Psi = exp(-D)
+    # Add a small value to the diagonal for numerical stability (nugget)
+    # This is often done in Kriging implementations, though a regression method
+    # with a 'nugget' parameter (Lambda) is explicitly mentioned for noisy data later.
+    # The source code snippet for build_Psi explicitly includes
+    # `multiply(eye(X.shape), eps)`.
+    # FIX: Use X.shape to get the number of rows for the identity matrix
+    Psi += multiply(eye(X.shape[0]), eps) # Corrected line
+    return Psi
+
+def build_psi(X_train, x_predict, theta):
+    """
+    Computes the correlation vector (or matrix) psi between new prediction locations
+    and training data locations.
+    """
+    # Calculate pairwise squared Euclidean distances (D) between prediction points
+    # (x_predict)
+    # and training points (X_train).
+    # `cdist` computes distances between each pair of the two collections of inputs.
+    D = cdist(x_predict, X_train, metric='sqeuclidean', out=None, w=theta)
+    # Compute psi = exp(-D)
+    psi = exp(-D)
+    return psi.T
+    # Return transpose to be consistent with literature (n x m or n x 1)
+```
+
+```{python}
+#| eval: true
+# --- 2. Data Points for the Sinusoid Function Example ---
+# The example uses a 1D sinusoid measured at eight equally spaced x-locations.
+n = 8 # Number of sample locations
+X_train = np.linspace(0, 2 * np.pi, n, endpoint=False).reshape(-1, 1)
+y_train = np.sin(X_train) # Corresponding y-values (sine of x)
+print("--- Training Data (X_train, y_train) ---")
+print("x values:\n", np.round(X_train, 2))
+print("y values:\n", np.round(y_train, 2))
+print("-" * 40)
+```
+
+```{python}
+#| eval: true
+# Visualize the data points
+plt.figure(figsize=(8, 5))
+plt.plot(X_train, y_train, "bo", label=f"Measurements ({n} points)")
+plt.title(f"Sin(x) evaluated at {n} points")
+plt.xlabel("x")
+plt.ylabel("sin(x)")
+plt.grid(True)
+plt.legend()
+plt.show()
+```
+
+```{python}
+#| eval: true
+# --- 3. Calculating the Correlation Matrix (Psi) ---
+# Psi is based on pairwise squared distances between input locations.
+# theta is set to 1.0 for this 1D example.
+theta = np.array([1.0])
+Psi = build_Psi(X_train, theta)
+print("\n--- Computed Correlation Matrix (Psi) ---")
+print("Dimensions of Psi:", Psi.shape) # Should be (8, 8)
+print("First 5x5 block of Psi:\n", np.round(Psi[:5,:5], 2))
+print("-" * 40)
+```
+
+```{python}
+#| eval: true
+# --- 4. Selecting New Locations (for Prediction) ---
+# We want to predict at m = 100 new locations in the interval [0, 2*pi].
+m = 100 # Number of new locations
+x_predict = np.linspace(0, 2 * np.pi, m, endpoint=True).reshape(-1, 1)
+print("\n--- New Locations for Prediction (x_predict) ---")
+print(f"Number of prediction points: {m}")
+print("First 5 prediction points:\n", np.round(x_predict[:5], 2).flatten())
+print("-" * 40)
+```
+
+```{python}
+#| eval: true
+# --- 5. Computing the psi Vector ---
+# This vector contains correlations between each of the n observed data points
+# and each of the m new prediction locations.
+psi = build_psi(X_train, x_predict, theta)
+print("\n--- Computed Prediction Correlation Matrix (psi) ---")
+print("Dimensions of psi:", psi.shape) # Should be (8, 100)
+print("First 5x5 block of psi:\n", np.round(psi[:5,:5], 2))
+print("-" * 40)
+```
+
+```{python}
+#| eval: true
+# --- 6. Predicting at New Locations (Kriging Prediction) ---
+# The Maximum Likelihood Estimate (MLE) for y_hat is calculated using the formula:
+# y_hat(x) = mu_hat + psi.T @ Psi_inv @ (y - 1 * mu_hat)
+# Matrix inversion is efficiently performed using Cholesky factorization.
+# Step 6a: Cholesky decomposition of Psi
+U = cholesky(Psi).T
+# Note: `cholesky` in numpy returns lower triangular L,
+# we need U (upper) so transpose L.
+# Step 6b: Calculate mu_hat (estimated mean)
+one = np.ones(n).reshape(-1, 1) # Vector of ones
+mu_hat = (one.T @ solve(U, solve(U.T, y_train))) \
+         / (one.T @ solve(U, solve(U.T, one)))
+mu_hat = mu_hat.item() # Extract scalar value
+print("\n--- Kriging Prediction Calculation ---")
+print(f"Estimated mean (mu_hat): {np.round(mu_hat, 4)}")
+```
+
+```{python}
+#| eval: true
+# Step 6c: Calculate predictions f (y_hat) at new locations
+# f = mu_hat * ones(m) + psi.T @ Psi_inv @ (y - one * mu_hat)
+f_predict = mu_hat * np.ones(m).reshape(-1, 1) \
+            + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
+print(f"Dimensions of predicted values (f_predict): {f_predict.shape}")
+# Should be (100, 1)
+print("First 5 predicted f values:\n", np.round(f_predict[:5], 2).flatten())
+print("-" * 40)
+```
+
+```{python}
+#| eval: true
+# --- 7. Visualization ---
+# Plot the original sinusoid function, the measured points, and the Kriging predictions.
+plt.figure(figsize=(10, 6))
+plt.plot(x_predict, f_predict, color="orange", label="Kriging Prediction")
+plt.plot(x_predict, np.sin(x_predict), color="grey", linestyle='--', \
+        label="True Sinusoid Function")
+plt.plot(X_train, y_train, "bo", markersize=8, label="Measurements")
+plt.title(f"Kriging prediction of sin(x) with {n} points. (theta: {theta})")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend(loc='upper right')
+plt.grid(True)
+plt.show()
+```
+
+
+
 ### Schritt-für-Schritt-Codeausführung und Interpretation
 
 Das Beispiel zielt darauf ab, die Funktion $y = \sin(x)$ unter Verwendung einer kleinen Anzahl von Stichprobenpunkten zu modellieren. Dies ist ein klassisches „Spielzeugproblem“, das nützlich ist, um zu visualisieren, wie sich das Modell verhält.
+
 
 #### Schritt 1: Datengenerierung
 
@@ -325,8 +592,10 @@ Dieser Schritt berechnet die $8 \times 100$ Korrelationsmatrix $\vec{\psi}$. Die
 ```python
 U = cholesky(Psi).T
 one = np.ones(n).reshape(-1, 1)
-mu_hat = (one.T @ solve(U, solve(U.T, y_train))) / (one.T @ solve(U, solve(U.T, one)))
-f_predict = mu_hat * np.ones(m).reshape(-1, 1) + psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
+mu_hat = (one.T @ solve(U, solve(U.T, y_train))) /
+         (one.T @ solve(U, solve(U.T, one)))
+f_predict = mu_hat * np.ones(m).reshape(-1, 1) +
+            psi.T @ solve(U, solve(U.T, y_train - one * mu_hat))
 ```
 
 Dies ist der entscheidende Schritt, in dem die tatsächlichen Vorhersagen gemacht werden.
