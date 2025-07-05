@@ -6,9 +6,159 @@ execute:
   warning: false
 ---
 
-# Expected Improvement {#sec-expected-improvement}
+# Infill Criteria {#sec-expected-improvement}
 
 This chapter describes, analyzes, and compares different infill criterion. An infill criterion defines how the next point $x_{n+1}$ is selected from the surrogate model $S$. Expected improvement is a popular infill criterion in Bayesian optimization.
+
+
+## Expected Improvement
+
+Expected Improvement (EI) is one of the most influential and widely-used infill criteria in surrogate-based optimization, particularly in Bayesian optimization. An infill criterion defines how the next evaluation point $x_{n+1}$ is selected from the surrogate model $S$, balancing the fundamental trade-off between **exploitation** (sampling where the surrogate predicts good values) and **exploration** (sampling where the surrogate is uncertain).
+
+The concept of Expected Improvement was formalized by @Jones1998 and builds upon the theoretical foundation established by @mockus1978toward. It provides an elegant mathematical framework that naturally combines both exploitation and exploration in a single criterion, making it particularly well-suited for expensive black-box optimization problems.
+
+### The Philosophy Behind Expected Improvement
+
+The core idea of Expected Improvement is deceptively simple yet mathematically sophisticated. Rather than simply choosing the point where the surrogate model predicts the best value (pure exploitation) or the point with the highest uncertainty (pure exploration), EI asks a more nuanced question:
+
+> "What is the expected value of improvement over the current best observation if we evaluate the objective function at point $x$?"
+
+This approach naturally balances exploitation and exploration because:
+
+- Points near the current best solution have a reasonable chance of improvement (exploitation)
+- Points in unexplored regions with high uncertainty may yield surprising improvements (exploration)
+- The mathematical expectation provides a principled way to combine these considerations
+
+### Mathematical Definition
+
+#### Setup and Notation
+
+Consider a Gaussian Process (Kriging) surrogate model fitted to $n$ observations $\{(x^{(i)}, y^{(i)})\}_{i=1}^n$, where $y^{(i)} = f(x^{(i)})$ are the expensive function evaluations. Let $f_{best} = \min_{i=1,\ldots,n} y^{(i)}$ be the best (minimum) observed value so far.
+
+At any unobserved point $x$, the Gaussian Process provides:
+
+- A predictive mean: $\hat{f}(x) = \mu(x)$
+- A predictive standard deviation: $s(x) = \sigma(x)$
+
+The GP assumes that the true function value $f(x)$ follows a normal distribution:
+$$
+f(x) \sim \mathcal{N}(\mu(x), \sigma^2(x))
+$$
+
+#### The Improvement Function
+
+The **improvement** at point $x$ is defined as:
+$$
+I(x) = \max(f_{best} - f(x), 0)
+$$
+
+This represents how much better the function value at $x$ is compared to the current best. Note that $I(x) = 0$ if $f(x) \geq f_{best}$ (no improvement).
+
+
+::: {#def-exp-improvement}
+### Expected Improvement Formula
+
+The Expected Improvement is the expectation of the improvement function:
+$$
+EI(x) = \mathbb{E}[I(x)] = \mathbb{E}[\max(f_{best} - f(x), 0)]
+$$
+
+:::
+
+Since $f(x)$ is normally distributed under the GP model, this expectation has a closed-form solution:
+
+$$
+EI(x) = \begin{cases}
+(f_{best} - \mu(x)) \Phi\left(\frac{f_{best} - \mu(x)}{\sigma(x)}\right) + \sigma(x) \phi\left(\frac{f_{best} - \mu(x)}{\sigma(x)}\right) & \text{if } \sigma(x) > 0 \\
+0 & \text{if } \sigma(x) = 0
+\end{cases}
+$$
+
+where:
+
+- $\Phi(\cdot)$ is the cumulative distribution function (CDF) of the standard normal distribution
+- $\phi(\cdot)$ is the probability density function (PDF) of the standard normal distribution
+- $Z = \frac{f_{best} - \mu(x)}{\sigma(x)}$ is the standardized improvement
+
+#### Alternative Formulation
+
+The Expected Improvement can also be written as:
+$$
+EI(x) = \sigma(x) \left[ Z \Phi(Z) + \phi(Z) \right]
+$$
+
+where $Z = \frac{f_{best} - \mu(x)}{\sigma(x)}$ is the standardized improvement.
+
+### Understanding the Components
+
+The EI formula elegantly combines two terms:
+
+1. **Exploitation Term**: $(f_{best} - \mu(x)) \Phi(Z)$
+   - Larger when $\mu(x)$ is small (good predicted value)
+   - Weighted by the probability that $f(x) < f_{best}$
+
+2. **Exploration Term**: $\sigma(x) \phi(Z)$
+   - Larger when $\sigma(x)$ is large (high uncertainty)
+   - Represents the potential for discovering unexpectedly good values
+
+## EI: Implementation in spotpython
+
+The spotpython package implements Expected Improvement in its Kriging class. Here's how it works in practice:
+
+### Key Implementation Details
+
+1. **Negative Expected Improvement**: In optimization contexts, spotpython often returns the **negative** Expected Improvement because many optimization algorithms are designed to minimize rather than maximize objectives.
+
+2. **Logarithmic Transformation**: To handle numerical issues and improve optimization stability, spotpython often works with $\log(EI)$:
+   ```python
+   ExpImp = np.log10(EITermOne + EITermTwo + self.eps)
+   return float(-ExpImp)  # Negative for minimization
+   ```
+
+3. **Numerical Stability**: A small epsilon value (`self.eps`) is added to prevent numerical issues when EI becomes very small.
+
+### Code Example from the Kriging Class
+
+```python
+def _pred(self, x: np.ndarray) -> Tuple[float, float, float]:
+    """Computes Kriging prediction including Expected Improvement."""
+    # ... [prediction calculations] ...
+    
+    # Compute Expected Improvement
+    if self.return_ei:
+        yBest = np.min(y)  # Current best observation
+        
+        # First term: (f_best - mu) * Phi(Z)
+        EITermOne = (yBest - f) * (0.5 + 0.5 * erf((1 / np.sqrt(2)) * ((yBest - f) / s)))
+        
+        # Second term: sigma * phi(Z)
+        EITermTwo = s * (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((yBest - f) ** 2 / SSqr))
+        
+        # Expected Improvement (in log scale)
+        ExpImp = np.log10(EITermOne + EITermTwo + self.eps)
+        
+        return float(f), float(s), float(-ExpImp)  # Return negative EI
+```
+
+## Practical Advantages of Expected Improvement
+
+1. **Automatic Balance**: EI naturally balances exploitation and exploration without requiring manual tuning of weights or parameters.
+2. **Scale Invariance**: EI is relatively invariant to the scale of the objective function.
+3. **Theoretical Foundation**: EI has strong theoretical justification from decision theory and information theory.
+4. **Efficient Optimization**: The smooth, differentiable nature of EI makes it suitable for gradient-based optimization of the acquisition function.
+5. **Proven Performance**: EI has been successfully applied across numerous domains and consistently performs well in practice.
+
+## Connection to the Hyperparameter Tuning Cookbook
+
+In the context of hyperparameter tuning, Expected Improvement plays a crucial role in:
+
+- **Sequential Model-Based Optimization**: EI guides the selection of which hyperparameter configurations to evaluate next
+- **Efficient Resource Utilization**: By balancing exploration and exploitation, EI helps find good hyperparameters with fewer expensive model training runs
+- **Automated Optimization**: EI provides a principled, automatic way to navigate the hyperparameter space without manual intervention
+
+The implementation in `spotpython` makes Expected Improvement accessible for practical hyperparameter optimization tasks, providing both the theoretical rigor of Bayesian optimization and the computational efficiency needed for real-world applications.
+
+
 
 ## Example: `Spot` and the 1-dim Sphere Function
 
