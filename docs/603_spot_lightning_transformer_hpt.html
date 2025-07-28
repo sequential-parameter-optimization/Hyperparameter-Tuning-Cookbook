@@ -1114,6 +1114,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>_L_out</code>: the number of output features. Since we want to predict a single value, <code>_L_out</code> is set to 1.</li>
 </ul>
 <p>The method <code>set_hyperparameter</code> allows the user to modify default hyperparameter settings. Here we set the <code>initialization</code> method to <code>["Default"]</code>. No other initializations are used in this experiment. The <code>HyperLight</code> class is used to define the objective function <code>fun</code>. It connects the <code>PyTorch</code> and the <code>spotpython</code> methods and is provided by <code>spotpython</code>. Finally, a <code>Spot</code> object is created.</p>
+<p>Note, the <code>divergence_threshold</code> is set to 25,000, which is based on some pre-experiments with the <code>Diabetes</code> data set.</p>
 <div id="setup" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.data.diabetes <span class="im">import</span> Diabetes</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperdict.light_hyper_dict <span class="im">import</span> LightHyperDict</span>
@@ -1135,33 +1136,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    scaler<span class="op">=</span>TorchStandardScaler(),</span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    core_model_name<span class="op">=</span><span class="st">"light.regression.NNTransformerRegressor"</span>,</span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    hyperdict<span class="op">=</span>LightHyperDict,</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            ])</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"epochs"</span>, [<span class="dv">5</span>, <span class="dv">7</span>])</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"nhead"</span>, [<span class="dv">1</span>, <span class="dv">2</span>])</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"dim_feedforward_mult"</span>, [<span class="dv">1</span>, <span class="dv">1</span>])</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>)</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    method<span class="op">=</span><span class="st">"regression"</span>,</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    min_Lambda<span class="op">=</span><span class="fl">1e-3</span>,</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    max_Lambda<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control, surrogate_control<span class="op">=</span>surrogate_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    divergence_threshold<span class="op">=</span><span class="dv">25_000</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    _L_in<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    _L_out<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"optimizer"</span>, [</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adadelta"</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adagrad"</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adam"</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>                <span class="st">"AdamW"</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Adamax"</span>,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>            ])</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"epochs"</span>, [<span class="dv">5</span>, <span class="dv">7</span>])</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"nhead"</span>, [<span class="dv">1</span>, <span class="dv">2</span>])</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>set_hyperparameter(fun_control, <span class="st">"dim_feedforward_mult"</span>, [<span class="dv">1</span>, <span class="dv">1</span>])</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>design_control <span class="op">=</span> design_control_init(init_size<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>surrogate_control <span class="op">=</span> surrogate_control_init(</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    method<span class="op">=</span><span class="st">"regression"</span>,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    min_Lambda<span class="op">=</span><span class="fl">1e-3</span>,</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    max_Lambda<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun,fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control, surrogate_control<span class="op">=</span>surrogate_control)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_07_25_22_09_00_0
-Created spot_tensorboard_path: runs/spot_logs/603_p040025_2025-07-25_22-09-00 for SummaryWriter()
+<pre><code>Moving TENSORBOARD_PATH: runs/ to TENSORBOARD_PATH_OLD: runs_OLD/runs_2025_07_28_21_01_35_0
+Created spot_tensorboard_path: runs/spot_logs/603_p040025_2025-07-28_21-01-35 for SummaryWriter()
 module_name: light
 submodule_name: regression
 model_name: NNTransformerRegressor</code></pre>
@@ -1214,26 +1216,26 @@ d_model: 128, dim_feedforward: 256</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>train_model result: {'val_loss': 20721.58984375, 'hp_metric': 20721.58984375}
-spotpython tuning: 20721.58984375 [##--------] 20.17% </code></pre>
+spotpython tuning: 20721.58984375 [##--------] 20.22% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>d_model: 128, dim_feedforward: 256</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>train_model result: {'val_loss': 20814.5, 'hp_metric': 20814.5}
-spotpython tuning: 20721.58984375 [####------] 40.30% 
+spotpython tuning: 20721.58984375 [####------] 40.68% 
 d_model: 128, dim_feedforward: 256</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>train_model result: {'val_loss': 20745.078125, 'hp_metric': 20745.078125}
-spotpython tuning: 20721.58984375 [######----] 60.66% </code></pre>
+spotpython tuning: 20721.58984375 [######----] 61.55% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>d_model: 128, dim_feedforward: 256</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>train_model result: {'val_loss': 20634.806640625, 'hp_metric': 20634.806640625}
-spotpython tuning: 20634.806640625 [########--] 81.04% </code></pre>
+spotpython tuning: 20634.806640625 [########--] 83.52% </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>d_model: 128, dim_feedforward: 256</code></pre>

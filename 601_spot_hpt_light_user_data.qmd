@@ -81,6 +81,7 @@ for batch in dataloader:
 Similar to the setting from @sec-basic-setup-601, the hyperparameter tuning setup is defined. Instead of using the `Diabetes` data set, the user data set is used. The `data_set` parameter is set to the user data set. The `fun_control` dictionary is set up via the `fun_control_init` function.
 
 Note, that we have modified the `fun_evals` parameter to 12 and the `init_size` to 7 to reduce the computational time for this example.
+The `divergence_threshold` is set to 5,000, which is based on some pre-experiments with the user data set.
 
 ```{python}
 #| label: 601_user_data_setup
@@ -98,6 +99,7 @@ fun_control = fun_control_init(
     data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
     hyperdict=LightHyperDict,
+    divergence_threshold=5_000,
     _L_in=10,
     _L_out=1)
 

@@ -15,6 +15,8 @@ import warnings
 warnings.filterwarnings("ignore")
 ```
 
+Note, the `divergence_threshold` is set to 3,000, which is based on some pre-experiments with the user data set.
+
 ```{python}
 #| label: configure_spot
 from spotpython.data.diabetes import Diabetes
@@ -38,6 +40,7 @@ fun_control = fun_control_init(
     data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
     hyperdict=LightHyperDict,
+    divergence_threshold=3_000,
     _L_in=10,
     _L_out=1)
 

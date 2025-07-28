@@ -44,6 +44,8 @@ import my_hyper_dict
 
 In the following code, we do not specify the ResNet model in the `fun_control` dictionary. It will be added in a second step as the user specified model.
 
+Note, the `divergence_threshold` is set to 5,000, which is based on some pre-experiments with the `Diabetes` data set.
+
 ```{python}
 #| label: 606_user-user-spotpython_setup
 
@@ -64,6 +66,7 @@ fun_control = fun_control_init(
     fun_evals=inf,
     max_time=1,
     data_set = data_set,
+    divergence_threshold=5_000,
     _L_in=10,
     _L_out=1)
 

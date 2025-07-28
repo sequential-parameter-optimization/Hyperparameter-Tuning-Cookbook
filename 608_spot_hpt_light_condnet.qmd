@@ -20,6 +20,8 @@ warnings.filterwarnings("ignore")
 * We use the `Diabetes` dataset to illustrate the hyperparameter tuning process of a `CondNet` model using the `spotpython` package.
 * The CondNet model is a conditional neural network that can be used to model conditional distributions [[LINK]](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/light/regression/nn_condnet_regressor/).
 
+Note, the `divergence_threshold` is set to 5,000, which is based on some pre-experiments with the `Diabetes` data set.
+
 ```{python}
 #| label: 608_cond_net_setup
 from spotpython.data.diabetes import Diabetes
@@ -46,6 +48,7 @@ fun_control = fun_control_init(
     data_set = data_set,
     core_model_name="light.regression.NNCondNetRegressor",
     hyperdict=LightHyperDict,
+    divergence_threshold=5_000,
     _L_in=input_dim - cond_dim,
     _L_out=1,
     _L_cond=cond_dim,)

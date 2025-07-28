@@ -7,69 +7,163 @@ execute:
 jupyter: python3
 ---
 
-# Introduction to Sequential Parameter Optimization
+# Introduction to Sequential Parameter Optimization {#sec-spot-intro}
+
+The following libraries are used in this document:
 
 
 ```{python}
 import numpy as np
 from math import inf
-from spotpython.fun.objectivefunctions import Analytical
-from spotpython.spot import Spot
 from scipy.optimize import shgo
 from scipy.optimize import direct
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
+from spotpython.fun.objectivefunctions import Analytical
+from spotpython.spot import Spot
+from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init)
 ```
 
 This document describes the `Spot` features. The official `spotpython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotpython/](https://sequential-parameter-optimization.github.io/spotpython/).
 
-## An Initial Example
+## An Initial Example: Optimization of the One-dimensional Sphere Function
 
-The `spotpython` package provides several classes of objective functions. We will use an analytical objective function, i.e., a function that can be described by a (closed) formula:
+### The Objective Function: Sphere
+
+The `spotpython` package provides several classes of objective functions. We will use the `sphere`-function, which is an analytical objective function. Analytical functions can be described by a (closed) formula:
 $$
 f(x) = x^2.
 $$
 
 ```{python}
+#| label: fig-sphere-fun
+#| fig-cap: "The sphere function $f(x) = x^2$ in the range [-1, 1]."
 fun = Analytical().fun_sphere
-```
-
-```{python}
-x = np.linspace(-1,1,100).reshape(-1,1)
+x = np.linspace(-1, 1, 100).reshape(-1,1)
 y = fun(x)
 plt.figure()
 plt.plot(x,y, "k")
+plt.grid()
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.title("Sphere Function")
 plt.show()
 ```
 
+The optimal solution of the sphere function is $x^* = 0$ with $f(x^*) = 0$.
+
+### The `Spot` Method as an Optimization Algorithm Using a Surrogate Model
+
+
+`pyspot` implements the `Spot` method.
+The `Spot` method uses a surrogate model to approximate the objective function and to find the optimal solution by performing an optimization on the surrogate model. In this example, `Spot` uses ten initial design points, which are sampled from a Latin Hypercube Sampling (LHS) design. The `Spot` method will then build a surrogate model based on these initial design points and the corresponding objective function values. The surrogate model is then used to find the optimal solution.
+As a default, `Spot` uses a Kriging surrogate model, which is a Gaussian process model. As a default, ten initial design points are sampled from a Latin Hypercube Sampling (LHS) design. Also as a default, 15 function evaluations are performed, i.e., the final surrogate model is built based on 15 points.
+
+The specification of the `lower` and `upper` bounds of the input space is mandatory via the `fun_control` dictionary, is passed to the `Spot` method.
+For convenience, `spotpython` provides an initialization method `fun_control_init()` to create the `fun_control` dictionary.
+After the `Spot` method is initialized, the `run()` method is called to start the optimization process. The `run()` method will perform the optimization on the surrogate model and return the optimal solution. Finally, the `print_results()` method is called to print the results of the optimization process, i.e., the best objective function value ("min y") and the corresponding input value ("x0").
 ```{python}
-from spotpython.utils.init import fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init
-spot_1 = Spot(fun=fun,
-                   fun_control=fun_control_init(
-                        lower = np.array([-10]),
-                        upper = np.array([100]),
-                        fun_evals = 7,
-                        fun_repeats = 1,
-                        max_time = inf,
-                        noise = False,
-                        tolerance_x = np.sqrt(np.spacing(1)),
-                        var_type=["num"],
-                        infill_criterion = "y",
-                        n_points = 1,
-                        seed=123,
-                        log_level = 50),
-                   design_control=design_control_init(
-                        init_size=5,
-                        repeats=1),
-                   surrogate_control=surrogate_control_init(
-                        method="interpolation",
-                        min_theta=-4,
-                        max_theta=3,
-                        n_theta=1,
-                        model_optimizer=differential_evolution,
-                        model_fun_evals=10000))
-spot_1.run()
+fun_control=fun_control_init(lower = np.array([-1]),
+                             upper = np.array([1]))
+S = Spot(fun=fun, fun_control=fun_control)
+S.run()
+S.print_results()
 ```
+
+`spotpython` provides a method `plot_progress()` to visualize the search progress. The parameter `log_y` is used to plot the objective function values on a logarithmic scale. The black points represent the ten initial design points, whereas the remainin g five red points represent the points found by the surrogate model based optimization.
+
+```{python}
+S.plot_progress(log_y=True)
+```
+
+
+## A Second Example: Optimization of a User-Specified Multi-dimensional Function
+
+Users can easily specify their own objective functions. The following example shows how to use the `Spot` method to optimize a user-specified two-dimensional function.
+Here we will use the 2-dimensional Branin function, which is a well-known test function in optimization. The Branin function is defined as follows:
+$$
+f(x) = a (x2 - bx1^2 + cx1 - r)^2 + s(1-t) \cos(x1) + s
+$$
+where:
+
+* $a = 1$,
+* $b = 5.1/(4\pi^2)$,
+* $c = 5/\pi$,
+* $r = 6$,
+* $s = 10$, and
+* $t = 1/(8\pi)$.
+
+The input space is defined as $x_1 \in [-5, 10]$ and $x_2 \in [0, 15]$.
+The user specified Branin function can be implemented as follows (note, that the function is vectorized, i.e., it can handle multiple input points at once and that the `**kwargs` argument is mandatory for compatibility with `spotpython` to pass additional parameters to the function, if needed):
+
+```{python}
+def user_fun(X, **kwargs):
+    x1 = X[:, 0]
+    x2 = X[:, 1]
+    a = 1
+    b = 5.1 / (4 * np.pi**2)
+    c = 5 / np.pi
+    r = 6
+    s = 10
+    t = 1 / (8 * np.pi)
+    y = a * (x2 - b * x1**2 + c * x1 - r)**2 + s * (1 - t) * np.cos(x1) + s
+    return y
+```
+
+The Branin function has its global minimum at three points:
+$f(x^*) = 0.397887$, at $x^* = (-\pi, 12.275)$, $(\pi, 2.275)$ and $(9.42478, 2.475)$.
+It can be visualized as shown in @fig-branin-fun.
+```{python}
+#| label: fig-branin-fun
+#| fig-cap: "The Branin function $f(x)$ in the range $x1 \\in [-5, 10]$ and $x2 \\in [0, 15]$."
+x1 = np.linspace(-5, 10, 100)
+x2 = np.linspace(0, 15, 100)
+X1, X2 = np.meshgrid(x1, x2)
+Z = user_fun(np.array([X1.ravel(), X2.ravel()]).T)
+Z = Z.reshape(X1.shape)
+plt.figure(figsize=(8, 6))
+plt.contourf(X1, X2, Z, levels=30, cmap='jet')
+plt.colorbar(label='f(x)')
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.title('Branin Function')
+plt.scatter([-np.pi, np.pi, 9.42478], [12.275, 2.275, 2.475], color='white', label='Global Minima')
+plt.legend()
+plt.show()
+```
+
+The default `Spot` class assumes a noisy objective function, because many real-world applications have noisy objective functions. Here, we will set the `noise` parameter to `False` in the `fun_control` dictionary, because the Branin function is a deterministic function. Accordingly, the `interpolation` surrogate method is used, which is suitable for deterministic functions. Therefore, we need to specify the `interpolation` method in the `surrogate_control` dictionary. Furthermore, since the Branin is harder to optimize than the sphere function, we will increase the number of function evaluations to 25 and the number of initial design points to 15.
+
+```{python}
+fun_control = fun_control_init(
+              lower = np.array( [-5, 0]),
+              upper = np.array([10, 15]),
+              fun_evals = 25,
+              noise = False,
+              seed=123
+)
+
+design_control=design_control_init(init_size=15)
+surrogate_control=surrogate_control_init(method="interpolation")
+
+S = Spot(fun=user_fun,
+                 fun_control=fun_control,
+                 design_control=design_control,
+                 surrogate_control=surrogate_control)
+S.run()
+S.print_results()
+S.plot_progress(log_y=True)
+```
+
+The resulting surrogate used by `Spot` can be visualized as shown in @fig-spot-branin-surrogate.
+
+```{python}
+#| label: fig-spot-branin-surrogate
+#| fig-cap: "Visualization of the surrogate model of the Branin function."
+S.surrogate.plot()
+```
+
+
 
 ## Organization
 

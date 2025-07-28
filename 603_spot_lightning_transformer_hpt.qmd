@@ -46,6 +46,8 @@ The method `set_hyperparameter` allows the user to modify default hyperparameter
 The `HyperLight` class is used to define the objective function `fun`. It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.
 Finally, a `Spot` object is created.
 
+Note, the `divergence_threshold` is set to 25,000, which is based on some pre-experiments with the `Diabetes` data set.
+
 ```{python}
 #| label: 603_setup
 from spotpython.data.diabetes import Diabetes
@@ -68,6 +70,7 @@ fun_control = fun_control_init(
     scaler=TorchStandardScaler(),
     core_model_name="light.regression.NNTransformerRegressor",
     hyperdict=LightHyperDict,
+    divergence_threshold=25_000,
     _L_in=10,
     _L_out=1)
 
