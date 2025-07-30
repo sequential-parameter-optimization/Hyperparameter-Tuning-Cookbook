@@ -22,6 +22,9 @@ import matplotlib.pyplot as plt
 from spotpython.fun.objectivefunctions import Analytical
 from spotpython.spot import Spot
 from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init, optimizer_control_init)
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
 ```
 
 This document describes the `Spot` features. The official `spotpython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotpython/](https://sequential-parameter-optimization.github.io/spotpython/).
@@ -163,6 +166,38 @@ The resulting surrogate used by `Spot` can be visualized as shown in @fig-spot-b
 S.surrogate.plot()
 ```
 
+## A Third Example: Hyperparameter Tuning of a Neural Network
+
+`spotpython` provides several `PyTorch` neural networks, which can be used out-of-the-box for hyperparameter tuning. We will use the `Diabetes` dataset, which is a regression dataset with 10 input features and one output feature.
+
+Similar to the steps from above, we define the `fun_control` dictionary.
+
+* The `core_model_name` parameter specifies the neural network model to be used. In this case, we will use the `NNLinearRegressor`, which is a simple linear regression model implemented in `spotpython`.
+* The `hyperdict` parameter specifies the hyperparameter dictionary to be used. In this case, we will use the `LightHyperDict`, which is a hyperparameter dictionary for light-weight models.
+* `_L_in` and `_L_out` specify the number of input and output features of the neural network, respectively. In this case, we will use 10 input features and 1 output feature, which are required for the `Diabetes` dataset.
+
+Sometimes, very bad configurations appear in the initial design, leading to an unnecessarily long optimization process. An example is illustrated in @fig-divergence-threshold. To avoid this, we can set a divergence threshold in the `fun_control` dictionary. The `divergence_threshold` parameter is used to stop the optimization process if the objective function value exceeds a certain threshold. This is useful to avoid long optimization processes if the objective function is not well-behaved. We have set the `divergence_threshold=5_000`.
+
+![TensorBoard visualization of the spotpython process.](figures_static/007_divergence_threshold.png){width="80%" #fig-divergence-threshold}
+
+
+```{python}
+fun_control = fun_control_init(
+    PREFIX="nn_02",
+    max_time=1,
+    data_set = Diabetes(),
+    core_model_name="light.regression.NNLinearRegressor",
+    hyperdict=LightHyperDict,
+    divergence_threshold=5_000,
+    _L_in=10,
+    _L_out=1)
+
+S = Spot(fun=HyperLight().fun,
+         fun_control=fun_control)
+S.run()
+S.print_results()
+S.plot_progress(log_y=True)
+```
 
 
 ## Organization
