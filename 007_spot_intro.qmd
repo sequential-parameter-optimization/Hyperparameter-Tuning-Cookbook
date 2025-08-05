@@ -229,32 +229,50 @@ For each of these steps, the user can specify a dictionary of control parameters
 3. `optimizer_control`
 4. `surrogate_control`
 
-Each of these dictionaries has an initialzaion method, e.g., `fun_control_init()`. The initialization methods set the default values for the control parameters.
+Each of these dictionaries has an initialization method, e.g., `fun_control_init()`. The initialization methods set the default values for the control parameters.
 
 :::: {.callout-important}
 #### Important:
 
 * The specification of an lower bound in `fun_control` is mandatory.
 
-::: 
+:::
+
+## Summary: Basic Attributes and Methods of the `Spot` Object
+
+The `Spot` class organizes the surrogate based optimization process into the
+
+* `fun` object with dictionry `fun_control`,
+* `design` object with dictionary `design_control`,
+* `optimizer` object with dictionary `optimizer_control`, and
+* `surrogate` object with dictionary `surrogate_control`.
+
+| Object | Description | Example |
+| -- | -- | -- |
+| `fun` | [fun_rosen](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/fun/objectivefunctions/#spotpython.fun.objectivefunctions.Analytical.fun_rosen) | `fun = Analytical().fun_sphere`|
+| `design` | [SpaceFilling](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/design/spacefilling/) | `design = SpaceFilling(k=15)` |
+| `optimizer` | Can be any of `dual_annealing`, `direct`, `shgo`, `basinhopping`, or `differential_evolution`. see, e.g., [differential_evolution](hhttps://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html#scipy.optimize.differential_evolution) | `optimizer=dual_annealing`|
+| `surrogate` | Can be any `sklearn` regressor, e.g., [GaussianProcessRegressor](https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html#sklearn.gaussian_process.GaussianProcessRegressor) | `surrogate=GaussianProcessRegressor()`|
+
+| Dictionary | Code Reference | Example |
+| -- | -- | -- |
+| `fun_control` | [fun_control_init](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.fun_control_init) | `fun_control=fun_control_init(lower=np.array([-1, -1]),upper=np.array([1, 1]))`|
+| `design_control` | [design_control_init()](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.design_control_init) | `design_control=design_control_init()`|
+| `optimizer_control` | [optimizer_control_init](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.optimizer_control_init) | `optimizer_control_init(max_iter=1000`|
+| `surrogate_control` |  [surrogate_control_init](https://sequential-parameter-optimization.github.io/spotPython/reference/spotpython/utils/init/#spotpython.utils.init.surrogate_control_init) |`surrogate_control=surrogate_control_init()`
+
+
+Based on the definition of the `fun`, `design`, `optimizer`, and `surrogate` objects, 
+and their corresponding control parameter dictionaries, `fun_control`, `design_control`, `optimizer_control`, and `surrogate_control`,
+the `Spot` object can be build as follows:
+
 
 ```{python}
-from spotpython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init
 fun_control=fun_control_init(lower=np.array([-1, -1]),
                             upper=np.array([1, 1]))
 design_control=design_control_init()
 optimizer_control=optimizer_control_init()
 surrogate_control=surrogate_control_init()
-```
-
-## The Spot Object
-
-Based on the definition of the `fun`, `design`, `optimizer`, and `surrogate` objects, 
-and their corresponding control parameter dictionaries, `fun_control`, `design_control`, `optimizer_control`, and `surrogate_control`,
-the `spot` object can be build as follows:
-
-```{python}
-from spotpython.spot import Spot
 spot_tuner = Spot(fun=fun,
                        fun_control=fun_control,
                        design_control=design_control,
@@ -289,38 +307,6 @@ spot_tuner.plot_progress()
 spot_tuner.surrogate.plot()
 ```
 
-## Run With a Specific Start Design
-
-To pass a specific start design, use the `X_start` argument of the `run` method.
-
-```{python}
-spot_x0 = Spot(fun=fun,
-                    fun_control=fun_control_init(
-                        lower = np.array([-10]),
-                        upper = np.array([100]),
-                        fun_evals = 7,
-                        fun_repeats = 1,
-                        max_time = inf,
-                        noise = False,
-                        tolerance_x = np.sqrt(np.spacing(1)),
-                        var_type=["num"],
-                        infill_criterion = "y",
-                        n_points = 1,
-                        seed=123,
-                        log_level = 50),
-                    design_control=design_control_init(
-                        init_size=5,
-                        repeats=1),
-                    surrogate_control=surrogate_control_init(
-                        method="interpolation",
-                        min_theta=-4,
-                        max_theta=3,
-                        n_theta=1,
-                        model_optimizer=differential_evolution,
-                        model_fun_evals=10000))
-spot_x0.run(X_start=np.array([0.5, -0.5]))
-spot_x0.plot_progress()
-```
 
 ## Init: Build Initial Design
 
