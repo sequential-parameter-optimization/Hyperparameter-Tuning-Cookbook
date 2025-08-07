@@ -22,7 +22,7 @@ from scipy.optimize import direct
 from scipy.optimize import differential_evolution
 from scipy.optimize import dual_annealing
 from scipy.optimize import basinhopping
-from spotpython.utils.init import fun_control_init, design_control_init, optimizer_control_init, surrogate_control_init
+from spotpython.utils.init import fun_control_init, design_control_init, optimizer_control_init
 ```
 
 ## The Objective Function Branin
@@ -78,16 +78,13 @@ fun_control=fun_control_init(
                     fun_evals = 20,
                     PREFIX = "04_DE_"
                     )
-surrogate_control=surrogate_control_init(
-                    n_theta=len(lower))
 ```
 
 :::
 
 ```{python}
 spot_de = Spot(fun=fun,
-                    fun_control=fun_control,
-                    surrogate_control=surrogate_control)
+                    fun_control=fun_control)
 spot_de.run()
 ```
 
@@ -142,8 +139,7 @@ We can run spotpython with the `dual_annealing` optimizer as follows:
 ```{python}
 spot_da = Spot(fun=fun,
                     fun_control=fun_control,
-                    optimizer=dual_annealing,
-                    surrogate_control=surrogate_control)
+                    optimizer=dual_annealing)
 spot_da.run()
 spot_da.print_results()
 spot_da.plot_progress(log_y=True)
@@ -166,8 +162,7 @@ We can run spotpython with the `direct` optimizer as follows:
 ```{python}
 spot_di = Spot(fun=fun,
                     fun_control=fun_control,
-                    optimizer=direct,
-                    surrogate_control=surrogate_control)
+                    optimizer=direct)
 spot_di.run()
 spot_di.print_results()
 spot_di.plot_progress(log_y=True)
@@ -189,8 +184,7 @@ We can run spotpython with the `direct` optimizer as follows:
 ```{python}
 spot_sh = Spot(fun=fun,
                     fun_control=fun_control,
-                    optimizer=shgo,
-                    surrogate_control=surrogate_control)
+                    optimizer=shgo)
 spot_sh.run()
 spot_sh.print_results()
 spot_sh.plot_progress(log_y=True)
@@ -214,8 +208,7 @@ We can run spotpython with the `direct` optimizer as follows:
 ```{python}
 spot_bh = Spot(fun=fun,
                     fun_control=fun_control,
-                    optimizer=basinhopping,
-                    surrogate_control=surrogate_control)
+                    optimizer=basinhopping)
 spot_bh.run()
 spot_bh.print_results()
 spot_bh.plot_progress(log_y=True)

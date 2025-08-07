@@ -229,7 +229,7 @@ y_train = y
 
 ```{python}
 S = Kriging(name='kriging',
-            n_theta=1,
+            isotropic=True,
             method="interpolation")
 S.fit(X_train, y_train)
 
@@ -248,7 +248,7 @@ _ = plt.title("Sphere: Gaussian process regression on noisy dataset")
 
 ```{python}
 S_nug = Kriging(name='kriging',
-            n_theta=1,
+            isotropic=True,
             method="regression")
 S_nug.fit(X_train, y_train)
 X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)

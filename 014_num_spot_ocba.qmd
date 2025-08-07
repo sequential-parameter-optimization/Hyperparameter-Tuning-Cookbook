@@ -196,7 +196,7 @@ A surrogate without nugget is fitted to these data:
 S = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="interpolation")
 S.fit(X_train, y_train)
 
@@ -217,7 +217,7 @@ In comparison to the surrogate without nugget, we fit a surrogate with nugget to
 S_nug = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="regression")
 S_nug.fit(X_train, y_train)
 X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)

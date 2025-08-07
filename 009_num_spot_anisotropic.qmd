@@ -39,11 +39,11 @@ fun_control = fun_control_init(PREFIX=PREFIX,
                                upper = np.array([1, 1]))
 ```
 
-Although the default `spot` surrogate model is an isotropic Kriging model, we will explicitly set the `n_theta` parameter to a value of `1`, so that the same theta value is used for both dimensions.
+The default `Spot` surrogate model is an anisotropic Kriging model. We will explicitly set the `isotropic` parameter to a value of `False`, so that the same theta value is used for both dimensions.
 This is done to illustrate the difference between isotropic and anisotropic Kriging models.
 
 ```{python}
-surrogate_control=surrogate_control_init(n_theta=1)
+surrogate_control=surrogate_control_init(isotropic=True)
 ```
 
 ```{python}
@@ -66,13 +66,11 @@ spot_2.plot_progress(log_y=True)
 
 ## Example With Anisotropic Kriging
 
-As described in @sec-spot-2d-sphere-iso, the default parameter setting of `spotpython`'s Kriging surrogate uses the same `theta` value for every dimension. This is referred to as "using an isotropic kernel".  If different `theta` values are used for each dimension, then an anisotropic kernel is used. To enable anisotropic models in `spotpython`, the number of `theta` values should be larger than one. We can use `surrogate_control=surrogate_control_init(n_theta=2)` to enable this behavior (`2` is the problem dimension).
+As described in @sec-spot-2d-sphere-iso, the default parameter setting of `spotpython`'s Kriging surrogate uses different `theta` value for every dimension. This is referred to as "using an anisotropic kernel".  To enable isotropic models in `spotpython`, the command `surrogate_control=surrogate_control_init(isotropic=True)` can be used. In this case, the same `theta` value is used for every dimension.
 
 ```{python}
-surrogate_control = surrogate_control_init(n_theta=2)
 spot_2_anisotropic = Spot(fun=fun,
-                    fun_control=fun_control,
-                    surrogate_control=surrogate_control)
+                    fun_control=fun_control)
 spot_2_anisotropic.run()
 ```
 
@@ -216,7 +214,7 @@ fun_control = fun_control_init(
               lower = np.array([-5, -5]),
               upper = np.array([10, 10]),
               show_progress=True)
-surrogate_control = surrogate_control_init(n_theta=1)
+surrogate_control = surrogate_control_init(isotropic=True)
 spot_rosen = Spot(fun=fun_rosen,
                   fun_control=fun_control,
                   surrogate_control=surrogate_control)
@@ -287,19 +285,17 @@ fun_rosen = Analytical().fun_rosen
 
 
 Here we will use problem dimension $k=2$, which can be specified by the `lower` bound arrays.
-The size of the `lower` bound array determines the problem dimension. 
+The size of the `lower` bound array determines the problem dimension. The default anisotropic kernel is used, so no `isotropic` parameter is set.
 
-We can also add interpreable labels to the dimensions, which will be used in the plots. 
+We can also add interpretable labels to the dimensions, which will be used in the plots. 
 ```{python}
 fun_control = fun_control_init(
               PREFIX="ROSEN",
               lower = np.array([-5, -5]),
               upper = np.array([10, 10]),
               show_progress=True)
-surrogate_control = surrogate_control_init(n_theta=2)
 spot_rosen = Spot(fun=fun_rosen,
-                  fun_control=fun_control,
-                  surrogate_control=surrogate_control)
+                  fun_control=fun_control)
 spot_rosen.run()
 ```
 

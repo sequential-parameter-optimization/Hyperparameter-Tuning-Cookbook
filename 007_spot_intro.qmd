@@ -25,9 +25,90 @@ from spotpython.utils.init import (fun_control_init, design_control_init, surrog
 from spotpython.data.diabetes import Diabetes
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.eda import print_exp_table, print_res_table
 ```
 
-This document describes the `Spot` features. The official `spotpython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotpython/](https://sequential-parameter-optimization.github.io/spotpython/).
+This presents an introduction to `spotpythons`'s `Spot` class. The official `spotpython` documentation can be found here: [https://sequential-parameter-optimization.github.io/spotpython/](https://sequential-parameter-optimization.github.io/spotpython/).
+
+
+## Surrogate Model Based Optimization {#sec-spot}
+
+Surrogate model based optimization methods are common approaches in simulation and optimization. The sequential parameter optimization toolbox (SPOT) was developed because there is a great need for sound statistical analysis of simulation and optimization algorithms [@BLP05 ]. SPOT includes methods for tuning based on classical regression and analysis of variance techniques.
+It presents tree-based models such as classification and regression trees and random forests as well as Bayesian optimization (Gaussian process models, also known as Kriging). Combinations of different meta-modeling approaches are possible. SPOT comes with a sophisticated surrogate model based optimization method, that can handle discrete and continuous inputs. Furthermore, any model implemented in `scikit-learn` can be used out-of-the-box as a surrogate in `spotpython`.
+
+SPOT implements key techniques such as exploratory fitness landscape analysis and sensitivity analysis. It can be used to understand the performance of various algorithms, while simultaneously giving insights into their algorithmic behavior.
+
+The `spot` loop consists of the following steps:
+
+1. Init: Build initial design $X$  using the `design` method, e.g., Latin Hypercube Sampling (LHS).
+2. Evaluate initial design on real objective $f$: $y = f(X)$ using the `fun` method, e.g., `fun_sphere`.
+3. Build surrogate: $S = S(X,y)$, using the `fit` method of the surrogate model, e.g., `Kriging`.
+4. Optimize on surrogate: $X_0 =  \text{optimize}(S)$, using the `optimizer` method, e.g., `differential_evolution`.
+5. Evaluate on real objective: $y_0 = f(X_0)$, using the `fun` method from above.
+6. Impute (Infill) new points: $X = X \cup X_0$, $y = y \cup y_0$, using  `Spot`'s `infill` method.
+7. Goto 3.
+
+
+<!-- \begin{algorithm}
+    \caption{Surrogate-Based Optimization}
+    \label{alg:spot}
+    \begin{algorithmic}[1]
+        \State \textbf{Init:} Build initial design $X$
+        \State \textbf{Evaluate} initial design on real objective $f$: $y = f(X)$
+        \While{stopping criterion not met}
+            \State \textbf{Build surrogate:} $S = S(X,y)$
+            \State \textbf{Optimize on surrogate:} $X_0 =  \text{optimize}(S)$
+            \State \textbf{Evaluate on real objective:} $y_0 = f(X_0)$
+            \State \textbf{Impute (Infill) new points:} $X = X \cup X_0$, $y = y \cup y_0$
+        \EndWhile
+    \end{algorithmic} 
+\end{algorithm} -->
+
+
+## Advantages of the `spotpython` Approach
+
+* Neural networks and many ML algorithms are non-deterministic, so results are noisy (i.e., depend on the the initialization of the weights). Enhanced noise handling strategies, OCBA (description from HPT-book).
+
+* Optimal Computational Budget Allocation (OCBA) is a very efficient solution to solve the "general ranking and selection problem" if the objective function is noisy. It allocates function evaluations in an uneven manner to identify the best solutions and to reduce the total optimization costs. [Chen10a, Bart11b]
+Given a total number of optimization samples $N$ to be allocated to 
+$k$ competing solutions whose performance is depicted by random variables with means
+$\bar{y}_i$ ($i=1, 2, \ldots, k$), and finite variances $\sigma_i^2$, respectively, as 
+$N \to \infty$, the \gls{APCS} can be asymptotically maximized when
+\begin{align}
+\frac{N_i}{N_j} & = \left( \frac{ \sigma_i / \delta_{b,i}}{\sigma_j/ \delta_{b,j}} \right)^2, i,j \in \{ 1, 2, \ldots, k\}, \text{ and }
+i \neq j \neq b,\\
+N_b &= \sigma_b \sqrt{ 
+\sum_{i=1, i\neq b}^k \frac{N_i^2}{\sigma_i^2}
+},
+\end{align}
+where $N_i$ is the number of replications allocated to solution $i$, $\delta_{b,i} = \bar{y}_b - \bar{y}_i$,
+and $\bar{y}_b \leq \min_{i\neq b} \bar{y}_i$ [@Chen10a, @Bart11a].
+
+
+* Surrogate-based optimization: Better than grid search and random search (Reference to HPT-book)
+* Visualization
+* Importance based on the Kriging model
+* Sensitivity analysis.  Exploratory fitness landscape analysis. Provides XAI methods (feature importance, integrated gradients, etc.)
+* Uncertainty quantification
+* Flexible, modular meta-modeling handling. `spotpython` comes with a Kriging model, which can be replaced by any model implemented in `scikit-learn`.
+* Enhanced metric handling, especially for categorical hyperparameters (any `sklearn` metric can be used). Default is..
+* Integration with `TensorBoard`: Visualization of the hyperparameter tuning process, of the training steps, the model graph. Parallel coordinates plot, scatter plot matrix, and more.
+* Reproducibility. Results are stored as pickle files. The results can be loaded and visualized at any time and be transferred between different machines and operating systems.
+* Handles `scikit-learn` models and `PyTorch` models out-of-the-box. The user has to add a simple wrapper for passing the hyperparameters to use a `PyTorch` model in `spotpython`.
+* Compatible with `Lightning`.
+* User can add own models as plain python code.
+* User can add own data sets in various formats.
+* Flexible data handling and data preprocessing.
+* Many examples online (hyperparameter-tuning-cookbook).
+* `spotpython` uses a robust optimizer that can even deal with hyperparameter-settings that cause crashes of the algorithms to be tuned.
+* even if the optimum is not found, HPT with `spotpython` prevents the user from choosing bad hyperparameters in a systematic way (design of experiments).
+
+
+## Disadvantages of the spotpython Approach
+
+* Time consuming
+* Surrogate can be misguiding
+
 
 ## An Initial Example: Optimization of the One-dimensional Sphere Function
 
@@ -77,6 +158,10 @@ S.print_results()
 
 ```{python}
 S.plot_progress(log_y=True)
+```
+
+```{python}
+S.surrogate_control
 ```
 
 
@@ -149,13 +234,13 @@ fun_control = fun_control_init(
 design_control=design_control_init(init_size=15)
 surrogate_control=surrogate_control_init(method="interpolation")
 
-S = Spot(fun=user_fun,
+S_2 = Spot(fun=user_fun,
                  fun_control=fun_control,
                  design_control=design_control,
                  surrogate_control=surrogate_control)
-S.run()
-S.print_results()
-S.plot_progress(log_y=True)
+S_2.run()
+S_2.print_results()
+S_2.plot_progress(log_y=True)
 ```
 
 The resulting surrogate used by `Spot` can be visualized as shown in @fig-spot-branin-surrogate.
@@ -163,14 +248,21 @@ The resulting surrogate used by `Spot` can be visualized as shown in @fig-spot-b
 ```{python}
 #| label: fig-spot-branin-surrogate
 #| fig-cap: "Visualization of the surrogate model of the Branin function."
-S.surrogate.plot()
+S_2.plot_contour()
 ```
+
+
+
+```{python}
+S_2.surrogate_control
+```
+
 
 ## A Third Example: Hyperparameter Tuning of a Neural Network
 
 `spotpython` provides several `PyTorch` neural networks, which can be used out-of-the-box for hyperparameter tuning. We will use the `Diabetes` dataset, which is a regression dataset with 10 input features and one output feature.
 
-Similar to the steps from above, we define the `fun_control` dictionary.
+Similar to the steps from above, we define the `fun_control` dictionary. The hyperparameter tuning of neural networks requires a few additional parameters in the `fun_control` dictionary, e.g., for selecting the neural network model, the hyperparameter dictionary, and the number of input and output features of the neural network. The `fun_control` dictionary is initialized using the `fun_control_init()` method. The following parameters are used:
 
 * The `core_model_name` parameter specifies the neural network model to be used. In this case, we will use the `NNLinearRegressor`, which is a simple linear regression model implemented in `spotpython`.
 * The `hyperdict` parameter specifies the hyperparameter dictionary to be used. In this case, we will use the `LightHyperDict`, which is a hyperparameter dictionary for light-weight models.
@@ -183,7 +275,7 @@ Sometimes, very bad configurations appear in the initial design, leading to an u
 
 ```{python}
 fun_control = fun_control_init(
-    PREFIX="nn_02",
+    PREFIX="S_3",
     max_time=1,
     data_set = Diabetes(),
     core_model_name="light.regression.NNLinearRegressor",
@@ -192,11 +284,37 @@ fun_control = fun_control_init(
     _L_in=10,
     _L_out=1)
 
-S = Spot(fun=HyperLight().fun,
+S_3 = Spot(fun=HyperLight().fun,
          fun_control=fun_control)
-S.run()
-S.print_results()
-S.plot_progress(log_y=True)
+S_3.surrogate_control
+```
+
+```{python}
+S_3.run()
+S_3.print_results()
+S_3.plot_progress(log_y=True)
+```
+
+Results can be printed using `Spot`'s `print_results()` method. The results include the best objective function value, the corresponding input values, and the number of function evaluations.
+
+```{python}
+results = S_3.print_results()
+```
+
+```{python}
+S_3.surrogate_control
+```
+
+A formatted table of the results can be printed using the `print_res_table()` method:
+
+```{python}
+print_res_table(S_3)
+```
+
+The fitness landscape can be visualized using the `plot_important_hyperparameter_contour()` method:
+
+```{python}
+S_3.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
 
@@ -560,86 +678,6 @@ set_factor_hyperparameter_values(fun_control, "leaf_model", ['LinearRegression',
 print("After modification:")
 ```
 
-
-# Introduction to spotpython {#sec-spot}
-
-Surrogate model based optimization methods are common approaches in simulation and optimization. SPOT was developed because there is a great need for sound statistical analysis of simulation and optimization algorithms. SPOT includes methods for tuning based on classical regression and analysis of variance techniques.
-It presents tree-based models such as classification and regression trees and random forests as well as Bayesian optimization (Gaussian process models, also known as Kriging). Combinations of different meta-modeling approaches are possible. SPOT comes with a sophisticated surrogate model based optimization method, that can handle discrete and continuous inputs. Furthermore, any model implemented in `scikit-learn` can be used out-of-the-box as a surrogate in `spotpython`.
-
-SPOT implements key techniques such as exploratory fitness landscape analysis and sensitivity analysis. It can be used to understand the performance of various algorithms, while simultaneously giving insights into their algorithmic behavior.
-
-The `spot` loop consists of the following steps:
-
-1. Init: Build initial design $X$
-2. Evaluate initial design on real objective $f$: $y = f(X)$
-3. Build surrogate: $S = S(X,y)$
-4. Optimize on surrogate: $X_0 =  \text{optimize}(S)$
-5. Evaluate on real objective: $y_0 = f(X_0)$
-6. Impute (Infill) new points: $X = X \cup X_0$, $y = y \cup y_0$.
-7. Goto 3.
-
-
-<!-- \begin{algorithm}
-    \caption{Surrogate-Based Optimization}
-    \label{alg:spot}
-    \begin{algorithmic}[1]
-        \State \textbf{Init:} Build initial design $X$
-        \State \textbf{Evaluate} initial design on real objective $f$: $y = f(X)$
-        
-        \While{stopping criterion not met}
-            \State \textbf{Build surrogate:} $S = S(X,y)$
-            \State \textbf{Optimize on surrogate:} $X_0 =  \text{optimize}(S)$
-            \State \textbf{Evaluate on real objective:} $y_0 = f(X_0)$
-            \State \textbf{Impute (Infill) new points:} $X = X \cup X_0$, $y = y \cup y_0$
-        \EndWhile
-    \end{algorithmic} 
-\end{algorithm} -->
-
-
-## Advantages of the spotpython approach
-
-* Neural networks and many ML algorithms are non-deterministic, so results are noisy (i.e., depend on the the initialization of the weights). Enhanced noise handling strategies, OCBA (description from HPT-book).
-
-* Optimal Computational Budget Allocation (OCBA) is a very efficient solution to solve the "general ranking and selection problem" if the objective function is noisy. It allocates function evaluations in an uneven manner to identify the best solutions and to reduce the total optimization costs. [Chen10a, Bart11b]
-Given a total number of optimization samples $N$ to be allocated to 
-$k$ competing solutions whose performance is depicted by random variables with means
-$\bar{y}_i$ ($i=1, 2, \ldots, k$), and finite variances $\sigma_i^2$, respectively, as 
-$N \to \infty$, the \gls{APCS} can be asymptotically maximized when
-\begin{align}
-\frac{N_i}{N_j} & = \left( \frac{ \sigma_i / \delta_{b,i}}{\sigma_j/ \delta_{b,j}} \right)^2, i,j \in \{ 1, 2, \ldots, k\}, \text{ and }
-i \neq j \neq b,\\
-N_b &= \sigma_b \sqrt{ 
-\sum_{i=1, i\neq b}^k \frac{N_i^2}{\sigma_i^2}
-},
-\end{align}
-where $N_i$ is the number of replications allocated to solution $i$, $\delta_{b,i} = \bar{y}_b - \bar{y}_i$,
-and $\bar{y}_b \leq \min_{i\neq b} \bar{y}_i$ [@Chen10a, @Bart11a].
-
-
-* Surrogate-based optimization: Better than grid search and random search (Reference to HPT-book)
-* Visualization
-* Importance based on the Kriging model
-* Sensitivity analysis.  Exploratory fitness landscape analysis. Provides XAI methods (feature importance, integrated gradients, etc.)
-* Uncertainty quantification
-* Flexible, modular meta-modeling handling. spotpython come with a Kriging model, which can be replaced by any model implemented in `scikit-learn`.
-* Enhanced metric handling, especially for categorical hyperparameters (any sklearn metric can be used). Default is..
-* Integration with TensorBoard: Visualization of the hyperparameter tuning process, of the training steps, the model graph. Parallel coordinates plot, scatter plot matrix, and more.
-* Reproducibility. Results are stored as pickle files. The results can be loaded and visualized at any time and be transferred between different machines and operating systems.
-* Handles scikit-learn models and pytorch models out-of-the-box. The user has to add a simple wrapper for passing the hyperparemeters to use a pytorch model in spotpython.
-* Compatible with Lightning.
-* User can add own models as plain python code.
-* User can add own data sets in various formats.
-* Flexible data handling and data preprocessing.
-* Many examples online (hyperparameter-tuning-cookbook).
-* spotpython uses a robust optimizer that can even deal with hyperparameter-settings that cause crashes of the algorithms to be tuned.
-* even if the optimum is not found, HPT with spotpython prevents the user from choosing bad hyperparameters in a systematic way (design of experiments).
-
-
-## Disadvantages of the spotpython approach
-
-* Time consuming
-* Surrogate can be misguiding
-* no parallelization implement yet
 
 
 

@@ -937,11 +937,9 @@ fun_control = fun_control_init(
               var_name = ["time", "temperature", "catalyst"],
               fun_evals= 50
 )
-surrogate_control = surrogate_control_init(n_theta=3)
 design_control=design_control_init(init_size=15)
 S = Spot(fun=fun_desirability,         
          fun_control=fun_control,
-         surrogate_control=surrogate_control,
          design_control=design_control)
 S.run()
 ```

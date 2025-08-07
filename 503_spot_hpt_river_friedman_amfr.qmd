@@ -117,7 +117,6 @@ design_control = design_control_init(
 
 surrogate_control = surrogate_control_init(
     method="regression",
-    n_theta=2,
     min_Lambda=1e-3,
     max_Lambda=10,
 )
