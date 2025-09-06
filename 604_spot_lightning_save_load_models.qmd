@@ -1,6 +1,7 @@
 ---
 title: Saving and Loading
 jupyter: python3
+eval: true
 ---
 
 
@@ -21,11 +22,10 @@ The `fun_control` dictionary is sufficient.
 
 
 ```{python}
-#| label: code-optimization-experiment-604
+#| label: code-optimization-experiment-604_1
 import os
 import pprint
-from spotpython.utils.file import load_experiment
-from spotpython.utils.file import get_experiment_filename
+from spotpython.utils.file import load_experiment, load_result, get_experiment_filename
 import numpy as np
 from math import inf
 from spotpython.spot import Spot
@@ -35,9 +35,12 @@ from spotpython.utils.init import (
     surrogate_control_init,
     optimizer_control_init)
 from spotpython.fun.objectivefunctions import Analytical
+
+PREFIX="branin"
+
 fun = Analytical().fun_branin
 fun_control = fun_control_init(
-            PREFIX="branin",            
+            PREFIX=PREFIX,
             lower = np.array([0, 0]),
             upper = np.array([10, 10]),
             fun_evals=8,
@@ -52,6 +55,7 @@ fun_control = fun_control_init(
             seed=123,
             log_level=20,
             show_models=False,
+            save_experiment=True,
             show_progress=True)
 design_control = design_control_init(
             init_size=5,
@@ -68,48 +72,49 @@ surrogate_control = surrogate_control_init(
 optimizer_control = optimizer_control_init(
             max_iter=1000,
             seed=125)
-spot_tuner = Spot(fun=fun,
+S = Spot(fun=fun,
             fun_control=fun_control,
             design_control=design_control,
             surrogate_control=surrogate_control,
             optimizer_control=optimizer_control)
-spot_tuner.run()
-PREFIX = fun_control["PREFIX"]
-filename = get_experiment_filename(PREFIX)
-spot_tuner.save_experiment(filename=filename)
-print(f"filename: {filename}")
+S.run()
 ```
 
 ```{python}
-#| label: code-reload-optimization-experiment-604
-(spot_tuner_1, fun_control_1, design_control_1,
-    surrogate_control_1, optimizer_control_1) = load_experiment(filename)
+#| label: code-reload-optimization-experiment-604_2
+S_exp = load_experiment(PREFIX=PREFIX)
 ```
+
+```{python}
+#| label: code-reload-optimization-experiment-604_3
+S_res = load_result(PREFIX=PREFIX)
+```
+
 
 The progress of the original experiment is shown in @fig-plot-progress-604a and the reloaded experiment in @fig-plot-progress-604b.
 
 ```{python}
-#| label: fig-plot-progress-604a
+#| label: fig-plot-progress-604a_1
 #| fig-cap: Progress of the original experiment
-spot_tuner.plot_progress(log_y=True)
+S.plot_progress(log_y=True)
 ```
 
 ```{python}
-#| label: fig-plot-progress-604b
+#| label: fig-plot-progress-604b_2
 #| fig-cap: Progress of the reloaded experiment
-spot_tuner_1.plot_progress(log_y=True)
+S_res.plot_progress(log_y=True)
 ```
 
 The results from the original experiment are shown in @tbl-results-604a and the reloaded experiment in @tbl-results-604b.
 
 ```{python}
-#| label: tbl-results-604a
-spot_tuner.print_results()
+#| label: tbl-results-604a_1
+S.print_results()
 ```
 
 ```{python}
 #| label: tbl-results-604b
-spot_tuner_1.print_results()
+S_res.print_results()
 ```
 
 ### Getting the Tuned Hyperparameters
@@ -118,9 +123,9 @@ The tuned hyperparameters can be obtained as a dictionary with the following cod
 Since `spotpython` is used as an optimizer, the numerical levels of the hyperparameters are identical to the optimized values of the underlying optimization problem, here: the Branin function.
 
 ```{python}
-#| label: code-get-tuned-optimization-604
+#| label: code-get-tuned-optimization-604_11
 from spotpython.hyperparameters.values import get_tuned_hyperparameters
-get_tuned_hyperparameters(spot_tuner=spot_tuner)
+get_tuned_hyperparameters(spot_tuner=S_res)
 ```
 
 ::: {.callout-note}
@@ -137,7 +142,7 @@ Furthermore, a data set has to be selected and added to the `fun_control` dictio
 Here, we will use the `Diabetes` data set.
 
 ```{python}
-#| label: warnings-off-604
+#| label: warnings-off-604_12
 #| echo: false
 import warnings
 warnings.filterwarnings("ignore")
@@ -156,14 +161,14 @@ The `Diabetes` data set is has the following properties:
 * Targets: integer $25 - 346$
 
 ```{python}
-#| label: code-diabetes-data-set-604
+#| label: code-diabetes-data-set-604_13
 #| eval: true
 from spotpython.data.diabetes import Diabetes
 data_set = Diabetes()
 ```
 
 ```{python}
-#| label: code-hyperparameter-tuning-604
+#| label: code-hyperparameter-tuning-604_14
 
 from spotpython.hyperdict.light_hyper_dict import LightHyperDict
 from spotpython.fun.hyperlight import HyperLight
@@ -199,12 +204,12 @@ design_control = design_control_init(init_size=10)
 print_exp_table(fun_control)
 ```
 
-In contrast to the default setttin, where `sava_experiment` is set to `False`,
+In contrast to the default settting, where `sava_experiment` is set to `False`,
 here the `fun_control` dictionary is initialized `save_experiment=True`.
 Alternatively, an existing `fun_control` dictionary can be updated with `{"save_experiment": True}` as shown in the following code.
 
 ```{python}
-#| label: 604_save_experiment
+#| label: 604_save_experiment_15
 fun_control.update({"save_experiment": True})
 ```
 
@@ -214,8 +219,8 @@ Alternatively, the spot object and the corresponding dictionaries can be saved w
 Therefore, the `spot` object has to be created as shown in the following code.
 
 ```{python}
-spot_tuner = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
-spot_tuner.save_experiment(path="userExperiment", overwrite=False)
+S_diabetes = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
+S_diabetes.save_experiment(path="userExperiment", overwrite=False)
 ```
 
 Here, we have added a `path` argument to specify the directory where the experiment is saved.
@@ -224,7 +229,7 @@ It can also be used for performing the tuning run.
 Here, we will execute the tuning run on the local machine, which can be done with the following code.
 
 ```{python}
-res = spot_tuner.run()
+S_diabetes_res = S_diabetes.run()
 ```
 
 After the tuning run is finished, a pickle file with the name `spot_604_experiment.pickle` is stored in the local directory.
@@ -234,42 +239,42 @@ Alternatively, the filename (`filename`) can be used as an argument.
 
 ```{python}
 #| label: code-reload-hyper-experiment-37
-from spotpython.utils.file import load_experiment
-(spot_tuner_1, fun_control_1, design_control_1,
-    surrogate_control_1, optimizer_control_1) = load_experiment(PREFIX=PREFIX)
+from spotpython.utils.file import load_experiment, load_result
+S_diabetes_load_exp = load_experiment(PREFIX=PREFIX)
+S_diabetes_load_res = load_result(PREFIX=PREFIX)
 ```
 
 For comparison, the tuned hyperparameters of the original experiment are shown first: 
 
 ```{python}
 #| label: code-get-tuned-hyperparameters-fun-ctrl604a
-get_tuned_hyperparameters(spot_tuner, fun_control)
+get_tuned_hyperparameters(S_diabetes, fun_control)
 ```
 
 Second, the tuned hyperparameters of the reloaded experiment are shown:
 
 ```{python}
 #| label: code-get-tuned-hyperparameters-fun-ctrl604b
-get_tuned_hyperparameters(spot_tuner_1, fun_control_1)
+get_tuned_hyperparameters(S_diabetes_load_res)
 ```
 
 Note: The numerical levels of the hyperparameters are used as keys in the dictionary.
 If the `fun_control` dictionary is used, the names of the hyperparameters are used as keys in the dictionary. 
 
 ```{python}
-get_tuned_hyperparameters(spot_tuner_1, fun_control_1)
+get_tuned_hyperparameters(S_diabetes_load_res, fun_control=S_diabetes_load_exp.fun_control)
 ```
 
 Plot the progress of the original experiment are identical to the reloaded experiment.
 
 ```{python}
 #| label: fig-plot-progress-604aa
-spot_tuner.plot_progress()
+S_diabetes.plot_progress()
 ```
 
 ```{python}
 #| label: fig-plot-progress-604bb
-spot_tuner_1.plot_progress()
+S_diabetes_load_res.plot_progress()
 ```
 
 ::: {.callout-note}
@@ -292,7 +297,7 @@ Important: The `config` dictionary from `get_tuned_architecture` can be passed t
 
 ```{python}
 from spotpython.hyperparameters.values import get_tuned_architecture
-config = get_tuned_architecture(spot_tuner)
+config = get_tuned_architecture(S_diabetes)
 pprint.pprint(config)
 ```
 
@@ -344,8 +349,8 @@ torch.save(model_loaded, "model.pt")
 mymodel = torch.load("model.pt")
 ```
 
+Show all attributes of the model:
 ```{python}
-# show all attributes of the model
 vars(mymodel)
 ```
 
