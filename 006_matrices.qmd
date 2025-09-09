@@ -420,6 +420,273 @@ print("Psi:\n", Psi)
 print("Psi Inverse:\n", Psi_inv)
 ```
 
+## Nyström Approximation
+
+### What's the Big Idea?
+
+Imagine you have a huge, detailed map of a country. Working with the full, high-resolution map is slow and takes up a lot of computer memory. The Nyström method is like creating a smaller-scale summary map by only looking at a few key, representative locations.
+
+In machine learning, we often work with a **kernel matrix** (or Gram matrix), which tells us how similar every pair of data points is to each other. For very large datasets, this matrix can become massive, making it computationally expensive to store and process.
+
+The Nyström method provides an efficient way to create a **low-rank approximation** of this large kernel matrix. In simple terms, it finds a "simpler" version of the matrix that captures its most important properties without needing to compute or store the whole thing.
+
+---
+
+### How Does It Work?
+
+The core idea is to select a small, random subset of the columns of the full kernel matrix and use them to reconstruct the entire matrix. Let's say our full kernel matrix is $K$.
+
+1. **Sample:** Randomly select $l$ columns from the $n$ total columns of $K$. Let $C$ be the $n \times l$ matrix of these sampled columns.
+2. **Intersect:** Take the rows of $C$ corresponding to the sampled column indices to form the $l \times l$ matrix $W$.
+3. **Approximate:** Using $C$ and $W$, calculate the Nyström approximation $\tilde{K}$ of $K$:
+    $$
+    \tilde{K} \approx C W^{+} C^T
+    $$
+    where $W^{+}$ is the pseudoinverse of $W$.
+
+---
+
+### Example
+
+Suppose we have 4 data points and the full kernel matrix $K$ is:
+$$
+K = \begin{pmatrix}
+9 & 6 & 3 & 1 \\
+6 & 4 & 2 & 0.5 \\
+3 & 2 & 1 & 0.25 \\
+1 & 0.5 & 0.25 & 0.1
+\end{pmatrix}
+$$
+
+Let's approximate it by sampling 2 columns ($l=2$):
+
+1. **Sample:** Pick the 1st and 3rd columns:
+    $$
+    C = \begin{pmatrix}
+    9 & 3 \\
+    6 & 2 \\
+    3 & 1 \\
+    1 & 0.25
+    \end{pmatrix}
+    $$
+2. **Intersect:** Take the 1st and 3rd rows from $C$ to form $W$:
+    $$
+    W = \begin{pmatrix}
+    9 & 3 \\
+    3 & 1
+    \end{pmatrix}
+    $$
+3. **Approximate:** Suppose the pseudoinverse of $W$ is:
+    $$
+    W^{+} = \begin{pmatrix}
+    0.09 & -0.27 \\
+    -0.27 & 0.81
+    \end{pmatrix}
+    $$
+    Then,
+    $$
+    \tilde{K} = C W^{+} C^T = \begin{pmatrix}
+    9 & 6 & 3 & 0.675 \\
+    6 & 4 & 2 & 0.45 \\
+    3 & 2 & 1 & 0.225 \\
+    0.675 & 0.45 & 0.225 & 0.05
+    \end{pmatrix}
+    $$
+
+$\tilde{K}$ is a good approximation of the original $K$, especially in the top-left portion.
+
+---
+
+### Why Is This Useful?
+
+- **Speed:** The Nyström method is much faster than computing the full kernel matrix. The complexity is roughly $O(l^2 n)$ instead of $O(n^2 d)$ (where $d$ is the number of features).
+- **Scalability:** It allows kernel methods (like SVM or Kernel PCA) to be used on much larger datasets.
+- **Feature Mapping:** The method can be used to project new data points into the same feature space for prediction tasks.
+
+The quality of the approximation depends on the columns you sample. Uniform random sampling is common and often effective, but more advanced techniques exist to select more informative columns.
+
+### Applying the Nyström Approximation: How Nyström Approximation Helps Kriging
+
+Kriging can significantly benefit from the Nyström approximation, especially when dealing with large datasets.
+Kriging is a spatial interpolation method used to estimate values at unmeasured locations based on observed points. It relies on a **covariance matrix** (often denoted as **K**) that describes the spatial correlation between all observed data points.
+
+**The Problem with Standard Kriging:**
+
+The main computational challenge in Kriging is solving for the weights needed for prediction, which requires **inverting the covariance matrix K**. For `n` data points, **K** is an `n x n` matrix, and inverting it has computational complexity $O(n^3)$. This becomes impractical for large datasets.
+
+**The Nyström Solution:**
+
+Since the covariance matrix in Kriging is a type of kernel matrix, we can use the Nyström method to create a low-rank approximation, $\tilde{K}$. Instead of inverting the full matrix, we use the **Woodbury matrix identity** on the Nyström approximation, allowing us to efficiently compute $\tilde{K}^{-1}$ without forming the full matrix. This reduces computational complexity to roughly $O(l^2 n)$, where `l` is the number of sampled columns.
+
+In summary, Nyström makes Kriging feasible for large-scale problems by replacing expensive matrix inversion with a faster, memory-efficient approximation.
+
+---
+
+### Example: Predicting Temperature with Nyström-Kriging
+
+Suppose we have temperature readings from 100 weather stations (`n=100`) and want to predict the temperature at a new location.
+
+**Data:**
+
+* Observed Locations (X): 100 coordinate pairs
+* Observed Temperatures (y): 100 values
+* Prediction Location (x*): Coordinates of the new location
+
+#### Step 1: Nyström Approximation of the Covariance Matrix
+
+1. **Sample Representative Points:** Randomly select `l=10` stations as landmarks.
+2. **Compute C and W:**
+    - **C:** Covariance between all 100 stations and the 10 landmarks (`100x10` matrix)
+    - **W:** Covariance among the 10 landmarks (`10x10` matrix)
+
+Nyström approximation: $\tilde{K} = C W^{+} C^T$
+
+#### Step 2: Modeling and Prediction
+
+Standard Kriging prediction:
+$$
+y(x^*) = \mathbf{k}^{*T} \mathbf{K}^{-1} \mathbf{y}
+$$
+where $\mathbf{k}^{*T}$ is the covariance vector between the prediction location and all observed locations.
+
+Nyström-Kriging prediction:
+$$
+y(x^*) \approx \mathbf{k}^{*T} (\text{fast\_approx\_inverse}(\mathbf{C}, \mathbf{W})) \mathbf{y}
+$$
+
+**Prediction Steps:**
+
+1. Calculate $\mathbf{k}^{*T}$: Covariance between new location and all stations.
+2. Approximate the inverse term using the Woodbury identity with **C** and **W**.
+3. Make the prediction: Take the dot product of $\mathbf{k}^{*T}$ and the weights vector.
+
+This yields an accurate prediction efficiently, enabling rapid mapping for large regions.
+
+### Details: Woodbury Matrix Identity for Avoiding the Big Inversion
+
+First, what is the **Woodbury matrix identity**? It's a mathematical rule that tells you how to find the inverse of a matrix that's been modified slightly. Its most useful form is for a "low-rank update":
+
+$$
+(A + UCV)^{-1} = A^{-1} - A^{-1}U(C^{-1} + VA^{-1}U)^{-1}VA^{-1}
+$$
+
+This looks complicated, but the core idea is simple:
+
+- If you have a matrix $A$ that is **easy to invert** (like a diagonal matrix).
+- And you add a low-rank matrix to it (the $UCV$ part, where $C$ is small).
+- You can find the new inverse without directly inverting the big $(A + UCV)$ matrix. Instead, you only need to invert the much smaller matrix in the middle of the formula: $(C^{-1} + VA^{-1}U)$.
+
+**How does this apply to the Nyström approximation?**
+
+In many machine learning and Kriging applications, we don't just need the kernel matrix $\tilde{K}$, but a "regularized" version, $(\lambda I + \tilde{K})$, where $\lambda I$ is a diagonal matrix that helps prevent overfitting. We need to find the inverse of this:
+
+$$
+(\lambda I + \tilde{K})^{-1}
+$$
+
+Substituting the Nyström formula $\tilde{K} = C W^{+} C^T$, we get:
+
+$$
+(\lambda I + C W^{+} C^T)^{-1}
+$$
+
+This expression fits the Woodbury identity perfectly!
+
+- $A = \lambda I$ (very easy to invert: $A^{-1} = \frac{1}{\lambda}I$)
+- $U = C$ (our $n \times l$ matrix)
+- $C$ (middle matrix) $= W^{+}$ (our small $l \times l$ matrix)
+- $V = C^T$ (our $l \times n$ matrix)
+
+By plugging these into the Woodbury formula, we get an expression for the inverse that only requires inverting a small $l \times l$ matrix. This means we never have to build the full $n \times n$ matrix $\tilde{K}$ or invert it directly. This is the source of the massive speed-up.
+
+---
+
+### The Example: Step-by-Step
+
+Let's reuse our 4-point example and show both the slow way and the fast Woodbury way.
+
+**Recall our matrices:**
+
+- $C = \begin{pmatrix} 9 & 3 \\ 6 & 2 \\ 3 & 1 \\ 1 & 0.25 \end{pmatrix}$
+- $W^{+} = \begin{pmatrix} 0.09 & -0.27 \\ -0.27 & 0.81 \end{pmatrix}$
+- Let's use a regularization value $\lambda = 0.1$.
+
+#### Method 1: The Slow Way (Forming the full matrix)
+
+1. **Construct $\tilde{K}$:** First, we explicitly calculate the full $4 \times 4$ Nyström approximation $\tilde{K} = C W^{+} C^T$.
+
+    $$
+    \tilde{K} = \begin{pmatrix}
+    9 & 6 & 3 & 0.675 \\
+    6 & 4 & 2 & 0.45 \\
+    3 & 2 & 1 & 0.225 \\
+    0.675 & 0.45 & 0.225 & 0.05
+    \end{pmatrix}
+    $$
+
+2. **Add the regularization:** Now we compute $(\lambda I + \tilde{K})$.
+
+    $$
+    (\lambda I + \tilde{K}) = \begin{pmatrix}
+    9.1 & 6 & 3 & 0.675 \\
+    6 & 4.1 & 2 & 0.45 \\
+    3 & 2 & 1.1 & 0.225 \\
+    0.675 & 0.45 & 0.225 & 0.15
+    \end{pmatrix}
+    $$
+
+3. **Invert the $4 \times 4$ matrix:** This is the expensive step. The result is:
+
+    $$
+    (\lambda I + \tilde{K})^{-1} \approx
+    \begin{pmatrix}
+    9.85 & -14.78 & -0.07 & 0.27 \\
+    -14.78 & 22.22 & 0.09 & -0.41 \\
+    -0.07 & 0.09 & 0.91 & -0.03 \\
+    0.27 & -0.41 & -0.03 & 6.67
+    \end{pmatrix}
+    $$
+
+This works for our tiny $4 \times 4$ example, but it would be computationally infeasible if $n$ was 10,000.
+
+#### Method 2: The Fast Way (Using Woodbury Identity)
+
+We use the Woodbury formula to get the same result without ever creating a $4 \times 4$ matrix. The formula simplifies to:
+
+$$
+(\lambda I + \tilde{K})^{-1} = \frac{1}{\lambda}I - \frac{1}{\lambda^2} C \left(W + \frac{1}{\lambda}C^T C\right)^{-1} C^T
+$$
+
+1. **Compute the small $2 \times 2$ pieces:**
+    - $C^T C = \begin{pmatrix} 127 & 42.25 \\ 42.25 & 14.0625 \end{pmatrix}$
+    - $W = \begin{pmatrix} 9 & 3 \\ 3 & 1 \end{pmatrix}$
+    - The matrix to invert is $W + \frac{1}{0.1}C^T C = W + 10 \cdot (C^T C)$, which is:
+      $$
+      \begin{pmatrix} 9 & 3 \\ 3 & 1 \end{pmatrix} +
+      \begin{pmatrix} 1270 & 422.5 \\ 422.5 & 140.625 \end{pmatrix} =
+      \begin{pmatrix} 1279 & 425.5 \\ 425.5 & 141.625 \end{pmatrix}
+      $$
+
+2. **Invert the small $2 \times 2$ matrix:** This is the only inversion we need, and it's extremely fast.
+
+    $$
+    (W + \frac{1}{\lambda}C^T C)^{-1} \approx
+    \begin{pmatrix}
+    0.22 & -0.66 \\
+    -0.66 & 1.99
+    \end{pmatrix}
+    $$
+
+3. **Combine the results:** Now we plug this small inverse back into the full formula. The rest is just matrix multiplication, no more inversions.
+
+    - First, calculate the middle term: $M = \frac{1}{\lambda^2} C (\dots)^{-1} C^T$. This will result in a $4 \times 4$ matrix.
+    - Then, calculate the final result: $\frac{1}{\lambda}I - M$.
+
+After performing these multiplications, you will get the **exact same $4 \times 4$ inverse matrix** as in the slow method.
+
+The crucial difference is that the most expensive operation—the matrix inversion—was performed on a tiny $2 \times 2$ matrix instead of a $4 \times 4$ one. For a large-scale problem, this is the difference between a calculation that takes seconds and one that could take hours or even be impossible.
+
+
 
 
 ## Jupyter Notebook
