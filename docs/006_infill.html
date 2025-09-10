@@ -20,7 +20,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -1054,10 +1074,10 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#balancing-exploitation-and-exploration" id="toc-balancing-exploitation-and-exploration" class="nav-link active" data-scroll-target="#balancing-exploitation-and-exploration"><span class="header-section-number">11.0.1</span> Balancing Exploitation and Exploration</a></li>
-  <li><a href="#expected-improvement-ei" id="toc-expected-improvement-ei" class="nav-link" data-scroll-target="#expected-improvement-ei"><span class="header-section-number">11.0.2</span> Expected Improvement (EI)</a></li>
-  <li><a href="#expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" id="toc-expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" class="nav-link" data-scroll-target="#expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation"><span class="header-section-number">11.0.3</span> Expected Improvement in the Hyperparameter Tuning Cookbook (Python Implementation)</a></li>
-  <li><a href="#jupyter-notebook" id="toc-jupyter-notebook" class="nav-link" data-scroll-target="#jupyter-notebook"><span class="header-section-number">11.1</span> Jupyter Notebook</a></li>
+  <li><a href="#balancing-exploitation-and-exploration" id="toc-balancing-exploitation-and-exploration" class="nav-link active" data-scroll-target="#balancing-exploitation-and-exploration"><span class="header-section-number">11.1</span> Balancing Exploitation and Exploration</a></li>
+  <li><a href="#expected-improvement-ei" id="toc-expected-improvement-ei" class="nav-link" data-scroll-target="#expected-improvement-ei"><span class="header-section-number">11.2</span> Expected Improvement (EI)</a></li>
+  <li><a href="#expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" id="toc-expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" class="nav-link" data-scroll-target="#expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation"><span class="header-section-number">11.3</span> Expected Improvement in the Hyperparameter Tuning Cookbook (Python Implementation)</a></li>
+  <li><a href="#jupyter-notebook" id="toc-jupyter-notebook" class="nav-link" data-scroll-target="#jupyter-notebook"><span class="header-section-number">11.4</span> Jupyter Notebook</a></li>
   </ul>
 </nav>
     </div>
@@ -1083,40 +1103,64 @@ window.Quarto = {
 </header>
 
 
-<p>In the context of computer experiments and surrogate modeling, a <strong>sampling plan</strong> refers to the set of input values, often denoted as <span class="math inline">\(X\)</span>, at which a computer code is evaluated. The primary objective of a sampling plan is to efficiently explore the input space to understand the behavior of the computer code and to construct a surrogate model that accurately represents that behavior. Historically, Response Surface Methodology (RSM) provided methods for designing such plans, often based on rectangular grids or factorial designs. More recently, Design and Analysis of Computer Experiments (DACE) has emerged as a more flexible and powerful approach for this purpose.</p>
-<p>A <strong>surrogate model</strong>, or <span class="math inline">\(\hat{f}\)</span>, is built to approximate the expensive response of a black-box function <span class="math inline">\(f(x)\)</span>. Since evaluating <span class="math inline">\(f\)</span> is costly, only a sparse set of samples is used to construct <span class="math inline">\(\hat{f}\)</span>, which can then provide inexpensive predictions for any point in the design space. However, as a surrogate model is inherently an approximation of the true function, its accuracy and predictive capabilities can be significantly improved by incorporating new data points, known as <strong>infill points</strong>. Infill points are strategically chosen to either reduce uncertainty, improve predictions in specific regions of interest, or enhance the model’s ability to identify optima or trends.</p>
-<p>The process of updating a surrogate model with infill points is iterative. It typically involves: * <strong>Identifying Regions of Interest</strong>: Analyzing the current surrogate model to determine areas where it is inaccurate, has high uncertainty, or predicts promising results (e.g., potential optima). * <strong>Selecting Infill Points</strong>: Choosing new data points based on specific criteria that balance different objectives. * <strong>Evaluating the True Function</strong>: Running the actual simulation or experiment at the selected infill points to obtain their corresponding outputs. * <strong>Updating the Surrogate Model</strong>: Retraining or updating the surrogate model using the new, augmented dataset. * <strong>Repeating</strong>: Iterating this process until the model meets predefined accuracy criteria or the computational budget is exhausted.</p>
-<section id="balancing-exploitation-and-exploration" class="level3" data-number="11.0.1">
-<h3 data-number="11.0.1" class="anchored" data-anchor-id="balancing-exploitation-and-exploration"><span class="header-section-number">11.0.1</span> Balancing Exploitation and Exploration</h3>
-<p>A crucial aspect of selecting infill points is navigating the inherent trade-off between <strong>exploitation</strong> and <strong>exploration</strong>. * <strong>Exploitation</strong> refers to sampling near predicted optima to refine the solution. This strategy aims to rapidly converge on a good solution by focusing computational effort where the surrogate model suggests the best values might lie. * <strong>Exploration</strong> involves sampling in regions of high uncertainty to improve the global accuracy of the model. This approach ensures that the model is well-informed across the entire design space, preventing it from getting stuck in local optima.</p>
-<p>Forrester emphasizes that effective infill criteria are designed to combine both exploitation and exploration.</p>
+<p>In the context of computer experiments and surrogate modeling, a sampling plan refers to the set of input values, often denoted as <span class="math inline">\(X\)</span>, at which a computer code is evaluated. The primary objective of a sampling plan is to efficiently explore the input space to understand the behavior of the computer code and to construct a surrogate model that accurately represents that behavior. Historically, Response Surface Methodology (RSM) provided methods for designing such plans, often based on rectangular grids or factorial designs. More recently, Design and Analysis of Computer Experiments (DACE) has emerged as a more flexible and powerful approach for this purpose.</p>
+<p>A surrogate model, or <span class="math inline">\(\hat{f}\)</span>, is built to approximate the expensive response of a black-box function <span class="math inline">\(f(x)\)</span>. Since evaluating <span class="math inline">\(f\)</span> is costly, only a sparse set of samples is used to construct <span class="math inline">\(\hat{f}\)</span>, which can then provide inexpensive predictions for any point in the design space. However, as a surrogate model is inherently an approximation of the true function, its accuracy and predictive capabilities can be significantly improved by incorporating new data points, known as infill points. Infill points are strategically chosen to either reduce uncertainty, improve predictions in specific regions of interest, or enhance the model’s ability to identify optima or trends.</p>
+<p>The process of updating a surrogate model with infill points is iterative. It typically involves:</p>
+<ul>
+<li><strong>Identifying Regions of Interest</strong>: Analyzing the current surrogate model to determine areas where it is inaccurate, has high uncertainty, or predicts promising results (e.g., potential optima).</li>
+<li><strong>Selecting Infill Points</strong>: Choosing new data points based on specific criteria that balance different objectives.</li>
+<li><strong>Evaluating the True Function</strong>: Running the actual simulation or experiment at the selected infill points to obtain their corresponding outputs.</li>
+<li><strong>Updating the Surrogate Model</strong>: Retraining or updating the surrogate model using the new, augmented dataset.</li>
+<li><strong>Repeating</strong>: Iterating this process until the model meets predefined accuracy criteria or the computational budget is exhausted.</li>
+</ul>
+<section id="balancing-exploitation-and-exploration" class="level2" data-number="11.1">
+<h2 data-number="11.1" class="anchored" data-anchor-id="balancing-exploitation-and-exploration"><span class="header-section-number">11.1</span> Balancing Exploitation and Exploration</h2>
+<p>A crucial aspect of selecting infill points is navigating the inherent trade-off between exploitation and exploration.</p>
+<div id="def-exploitation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 11.1 (Exploitation)</strong></span> Exploitation refers to sampling near predicted optima to refine the solution. This strategy aims to rapidly converge on a good solution by focusing computational effort where the surrogate model suggests the best values might lie.</p>
+</div>
+<div id="def-exploration" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 11.2 (Exploration)</strong></span> Exploration involves sampling in regions of high uncertainty to improve the global accuracy of the model. This approach ensures that the model is well-informed across the entire design space, preventing it from getting stuck in local optima.</p>
+</div>
+<p><span class="citation" data-cites="Forr08a">Forrester, Sóbester, and Keane (<a href="references.html#ref-Forr08a" role="doc-biblioref">2008</a>)</span> emphasizes that effective infill criteria are designed to combine both exploitation and exploration.</p>
 </section>
-<section id="expected-improvement-ei" class="level3" data-number="11.0.2">
-<h3 data-number="11.0.2" class="anchored" data-anchor-id="expected-improvement-ei"><span class="header-section-number">11.0.2</span> Expected Improvement (EI)</h3>
-<p><strong>Expected Improvement (EI)</strong> is one of the most influential and widely-used infill criteria, particularly within <strong>Bayesian optimization</strong>. Formalized by Jones (1998) and building upon the work of Mockus (1978), EI provides a mathematically elegant framework that naturally balances exploitation and exploration. Rather than simply picking the point with the best predicted value (pure exploitation) or the point with the highest uncertainty (pure exploration), EI asks a more nuanced question: “How much improvement over the current best solution can we <em>expect</em> to gain by evaluating the true function at a new point <span class="math inline">\(x\)</span>?”.</p>
-<section id="mathematical-formulation" class="level4" data-number="11.0.2.1">
-<h4 data-number="11.0.2.1" class="anchored" data-anchor-id="mathematical-formulation"><span class="header-section-number">11.0.2.1</span> Mathematical Formulation</h4>
+<section id="expected-improvement-ei" class="level2" data-number="11.2">
+<h2 data-number="11.2" class="anchored" data-anchor-id="expected-improvement-ei"><span class="header-section-number">11.2</span> Expected Improvement (EI)</h2>
+<p>Expected Improvement (EI) is one of the most influential and widely-used infill criteria. Formalized by <span class="citation" data-cites="Jones1998">Jones, Schonlau, and Welch (<a href="references.html#ref-Jones1998" role="doc-biblioref">1998</a>)</span> and building upon the work of <span class="citation" data-cites="mockus1978toward">Močkus (<a href="references.html#ref-mockus1978toward" role="doc-biblioref">1974</a>)</span>, EI provides a mathematically elegant framework that naturally balances exploitation and exploration. Rather than simply picking the point with the best predicted value (pure exploitation) or the point with the highest uncertainty (pure exploration), EI asks a more nuanced question: “How much improvement over the current best solution can we <em>expect</em> to gain by evaluating the true function at a new point <span class="math inline">\(x\)</span>?”.</p>
 <p>The Expected Improvement, <span class="math inline">\(EI(x)\)</span>, can be calculated using the following formula:</p>
-<p><span class="math display">\[ EI(x) = \sigma(x) \left[ Z \Phi(Z) + \phi(Z) \right] \]</span></p>
-<p>where: * <span class="math inline">\(\mu(x)\)</span> (or <span class="math inline">\(\hat{y}(x)\)</span>) is the Kriging prediction (mean of the stochastic process) at a new, unobserved point <span class="math inline">\(x\)</span>. * <span class="math inline">\(\sigma(x)\)</span> (or <span class="math inline">\(\hat{s}(x)\)</span>) is the estimated standard deviation (square root of the variance <span class="math inline">\(\hat{s}^2(x)\)</span>) of the prediction at point <span class="math inline">\(x\)</span>. * <span class="math inline">\(f_{best}\)</span> (or <span class="math inline">\(y_{min}\)</span>) is the best (minimum, for minimization problems) observed function value found so far. * <span class="math inline">\(Z = \frac{f_{best} - \mu(x)}{\sigma(x)}\)</span> is the standardized improvement. * <span class="math inline">\(\Phi(Z)\)</span> is the cumulative distribution function (CDF) of the standard normal distribution. * <span class="math inline">\(\phi(Z)\)</span> is the probability density function (PDF) of the standard normal distribution.</p>
+<p><span class="math display">\[
+EI(x) = \sigma(x) \left[ Z \Phi(Z) + \phi(Z) \right]
+\]</span> where:</p>
+<ul>
+<li><span class="math inline">\(\mu(x)\)</span> (or <span class="math inline">\(\hat{y}(x)\)</span>) is the Kriging prediction (mean of the stochastic process) at a new, unobserved point <span class="math inline">\(x\)</span>.</li>
+<li><span class="math inline">\(\sigma(x)\)</span> (or <span class="math inline">\(\hat{s}(x)\)</span>) is the estimated standard deviation (square root of the variance <span class="math inline">\(\hat{s}^2(x)\)</span>) of the prediction at point <span class="math inline">\(x\)</span>.</li>
+<li><span class="math inline">\(f_{best}\)</span> (or <span class="math inline">\(y_{min}\)</span>) is the best (minimum, for minimization problems) observed function value found so far.</li>
+<li><span class="math inline">\(Z = \frac{f_{best} - \mu(x)}{\sigma(x)}\)</span> is the standardized improvement.</li>
+<li><span class="math inline">\(\Phi(Z)\)</span> is the cumulative distribution function (CDF) of the standard normal distribution.</li>
+<li><span class="math inline">\(\phi(Z)\)</span> is the probability density function (PDF) of the standard normal distribution.</li>
+</ul>
 <p>If <span class="math inline">\(\sigma(x) = 0\)</span> (meaning there is no uncertainty at point <span class="math inline">\(x\)</span>, typically because it’s an already sampled point), then <span class="math inline">\(EI(x) = 0\)</span>, reflecting the intuition that no further improvement can be expected at a known point. A maximization of Expected Improvement as an infill criterion will eventually lead to the global optimum.</p>
+<p>The elegance of the EI formula lies in its combination of two distinct terms:</p>
+<ul>
+<li><strong>Exploitation Term</strong>: <span class="math inline">\((f_{best} - \mu(x)) \Phi(Z)\)</span>. This part of the formula contributes more when the predicted value <span class="math inline">\(\mu(x)\)</span> is significantly lower (better) than the current best observed value <span class="math inline">\(f_{best}\)</span>. It is weighted by the probability <span class="math inline">\(\Phi(Z)\)</span> that the true function value at <span class="math inline">\(x\)</span> will indeed be an improvement over <span class="math inline">\(f_{best}\)</span>.</li>
+<li><strong>Exploration Term</strong>: <span class="math inline">\(\sigma(x) \phi(Z)\)</span>. This term becomes larger when there is high uncertainty (<span class="math inline">\(\sigma(x)\)</span> is large) in the model’s prediction at <span class="math inline">\(x\)</span>. It accounts for the potential of discovering unexpectedly good values in areas that have not been thoroughly explored, even if the current mean prediction there is not the absolute best.</li>
+</ul>
+<p>Expected Improvement offers several significant practical benefits:</p>
+<ul>
+<li><strong>Automatic Balance</strong>: It inherently balances exploitation and exploration without requiring any manual adjustment of weights or parameters.</li>
+<li><strong>Scale Invariance</strong>: EI is relatively insensitive to the scaling of the objective function, making it robust across various problem types.</li>
+<li><strong>Theoretical Foundation</strong>: It is underpinned by a strong theoretical basis derived from decision theory and information theory.</li>
+<li><strong>Efficient Optimization</strong>: The smooth and differentiable nature of the EI function allows for efficient optimization using gradient-based algorithms to find the next infill point.</li>
+<li><strong>Proven Performance</strong>: EI has demonstrated consistent and strong performance in numerous real-world applications across various domains.</li>
+</ul>
 </section>
-<section id="understanding-the-components" class="level4" data-number="11.0.2.2">
-<h4 data-number="11.0.2.2" class="anchored" data-anchor-id="understanding-the-components"><span class="header-section-number">11.0.2.2</span> Understanding the Components</h4>
-<p>The elegance of the EI formula lies in its combination of two distinct terms: * <strong>Exploitation Term</strong>: <span class="math inline">\((f_{best} - \mu(x)) \Phi(Z)\)</span>. This part of the formula contributes more when the predicted value <span class="math inline">\(\mu(x)\)</span> is significantly lower (better) than the current best observed value <span class="math inline">\(f_{best}\)</span>. It is weighted by the probability <span class="math inline">\(\Phi(Z)\)</span> that the true function value at <span class="math inline">\(x\)</span> will indeed be an improvement over <span class="math inline">\(f_{best}\)</span>. * <strong>Exploration Term</strong>: <span class="math inline">\(\sigma(x) \phi(Z)\)</span>. This term becomes larger when there is high uncertainty (<span class="math inline">\(\sigma(x)\)</span> is large) in the model’s prediction at <span class="math inline">\(x\)</span>. It accounts for the potential of discovering unexpectedly good values in areas that have not been thoroughly explored, even if the current mean prediction there is not the absolute best.</p>
+<section id="expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" class="level2" data-number="11.3">
+<h2 data-number="11.3" class="anchored" data-anchor-id="expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation"><span class="header-section-number">11.3</span> Expected Improvement in the Hyperparameter Tuning Cookbook (Python Implementation)</h2>
+<p>Within the context of the Hyperparameter Tuning Cookbook, Expected Improvement serves a critical role in Sequential Model-Based Optimization. It systematically guides the selection of which hyperparameter configurations to evaluate next, facilitating the efficient utilization of computational resources. By intelligently balancing the need to exploit promising regions and explore uncertain areas, EI helps identify optimal hyperparameters with a reduced number of expensive model training runs. This provides a principled and automated method for navigating complex hyperparameter spaces without extensive manual intervention.</p>
+<p>While the foundational concepts in <span class="citation" data-cites="Forr08a">Forrester, Sóbester, and Keane (<a href="references.html#ref-Forr08a" role="doc-biblioref">2008</a>)</span> are often illustrated with MATLAB code, the Hyperparameter Tuning Cookbook emphasizes and provides implementations in Python. The <code>spotpython</code> package, consistent with the Cookbook’s approach, provides a Python implementation of Expected Improvement within its Kriging class. For minimization problems, <code>spotpython</code> typically calculates and returns the negative Expected Improvement, aligning with standard optimization algorithm conventions. Furthermore, to enhance numerical stability and mitigate issues when EI values are very small, <code>spotpython</code> often works with a logarithmic transformation of EI and incorporates a small epsilon value.</p>
 </section>
-<section id="practical-advantages" class="level4" data-number="11.0.2.3">
-<h4 data-number="11.0.2.3" class="anchored" data-anchor-id="practical-advantages"><span class="header-section-number">11.0.2.3</span> Practical Advantages</h4>
-<p>Expected Improvement offers several significant practical benefits: * <strong>Automatic Balance</strong>: It inherently balances exploitation and exploration without requiring any manual adjustment of weights or parameters. * <strong>Scale Invariance</strong>: EI is relatively insensitive to the scaling of the objective function, making it robust across various problem types. * <strong>Theoretical Foundation</strong>: It is underpinned by a strong theoretical basis derived from decision theory and information theory. * <strong>Efficient Optimization</strong>: The smooth and differentiable nature of the EI function allows for efficient optimization using gradient-based algorithms to find the next infill point. * <strong>Proven Performance</strong>: EI has demonstrated consistent and strong performance in numerous real-world applications across various domains.</p>
-</section>
-</section>
-<section id="expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation" class="level3" data-number="11.0.3">
-<h3 data-number="11.0.3" class="anchored" data-anchor-id="expected-improvement-in-the-hyperparameter-tuning-cookbook-python-implementation"><span class="header-section-number">11.0.3</span> Expected Improvement in the Hyperparameter Tuning Cookbook (Python Implementation)</h3>
-<p>Within the context of the Hyperparameter Tuning Cookbook, Expected Improvement serves a critical role in <strong>Sequential Model-Based Optimization</strong>. It systematically guides the selection of which hyperparameter configurations to evaluate next, facilitating the efficient utilization of computational resources. By intelligently balancing the need to exploit promising regions and explore uncertain areas, EI helps identify optimal hyperparameters with a reduced number of expensive model training runs. This provides a principled and automated method for navigating complex hyperparameter spaces without extensive manual intervention.</p>
-<p>While the foundational concepts in Forrester’s “Engineering Design via Surrogate Modelling” are often illustrated with MATLAB code, the Hyperparameter Tuning Cookbook emphasizes and provides implementations in <strong>Python</strong>. The <code>spotpython</code> package, consistent with the Cookbook’s approach, provides a Python implementation of Expected Improvement within its Kriging class. For minimization problems, <code>spotpython</code> typically calculates and returns the <strong>negative</strong> Expected Improvement, aligning with standard optimization algorithm conventions. Furthermore, to enhance numerical stability and mitigate issues when EI values are very small, <code>spotpython</code> often works with a <strong>logarithmic transformation</strong> of EI and incorporates a small epsilon value.</p>
-</section>
-<section id="jupyter-notebook" class="level2" data-number="11.1">
-<h2 data-number="11.1" class="anchored" data-anchor-id="jupyter-notebook"><span class="header-section-number">11.1</span> Jupyter Notebook</h2>
+<section id="jupyter-notebook" class="level2" data-number="11.4">
+<h2 data-number="11.4" class="anchored" data-anchor-id="jupyter-notebook"><span class="header-section-number">11.4</span> Jupyter Notebook</h2>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1134,6 +1178,17 @@ Note
 </div>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-Forr08a" class="csl-entry" role="listitem">
+Forrester, Alexander, András Sóbester, and Andy Keane. 2008. <em><span class="nocase">Engineering Design via Surrogate Modelling</span></em>. Wiley.
+</div>
+<div id="ref-Jones1998" class="csl-entry" role="listitem">
+Jones, Donald R., Matthias Schonlau, and William J. Welch. 1998. <span>“Efficient Global Optimization of Expensive Black-Box Functions.”</span> <em>Journal of Global Optimization</em> 13 (4): 455–92.
+</div>
+<div id="ref-mockus1978toward" class="csl-entry" role="listitem">
+Močkus, J. 1974. <span>“<span class="nocase">On Bayesian Methods for Seeking the Extremum</span>.”</span> In <em>Optimization Techniques <span>IFIP</span> Technical Conference</em>, 400–404.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
