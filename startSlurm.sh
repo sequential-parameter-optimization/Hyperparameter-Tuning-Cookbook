@@ -11,6 +11,8 @@
 #----
 #SBATCH --partition=gpu
 
+nvidia-smi
+
 if [ -z "$1" ]; then
     echo "Usage: $0 <path_to_spot.pkl>"
     exit 1
