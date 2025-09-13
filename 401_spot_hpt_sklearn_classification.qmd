@@ -16,43 +16,30 @@ import os
 from math import inf
 import numpy as np
 import warnings
-from spotpython.spot import Spot
-from spotpython.plot.validation import plot_confusion_matrix
-from spotpython.utils.init import fun_control_init
-from spotpython.hyperparameters.values import set_control_key_value
-from spotpython.utils.eda import print_res_table
-from spotpython.hyperparameters.values import get_one_core_model_from_X
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import make_moons, make_circles, make_classification
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_moons, make_circles, make_classification
 from sklearn.preprocessing import StandardScaler
-from spotpython.hyperparameters.values import add_core_model_to_fun_control
-from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
+from sklearn.linear_model import RidgeCV, ElasticNet, LogisticRegression
 from sklearn.svm import SVC
-from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
-from spotpython.hyperparameters.values import modify_hyper_parameter_levels
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier
 from sklearn.metrics import mean_absolute_error, accuracy_score, roc_curve, roc_auc_score, log_loss, mean_squared_error
-from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
+
+from spotpython.hyperparameters.values import set_control_key_value
+from spotpython.plot.validation import plot_confusion_matrix, plot_roc
+from spotpython.spot import Spot
+from spotpython.hyperparameters.values import (get_one_core_model_from_X, add_core_model_to_fun_control, get_default_hyperparameters_as_array)
+from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
+from spotpython.hyperparameters.values import (modify_hyper_parameter_bounds, modify_hyper_parameter_levels, get_default_hyperparameters_as_array)
 from spotpython.fun.hypersklearn import HyperSklearn
-from spotpython.utils.init import design_control_init, surrogate_control_init
-from spotpython.utils.init import get_tensorboard_path
-from spotpython.utils.file import save_pickle, load_pickle
-from spotpython.utils.init import get_experiment_name
-from spotpython.hyperparameters.values import get_one_core_model_from_X
-from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
-from spotpython.plot.validation import plot_roc
+from spotpython.utils.eda import print_res_table
+from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init, get_tensorboard_path, get_experiment_name)
 from spotpython.utils.file import load_result
 
-from sklearn.linear_model import RidgeCV
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.linear_model import ElasticNet
 
 if not os.path.exists('./figures'):
     os.makedirs('./figures')
@@ -66,20 +53,17 @@ warnings.filterwarnings("ignore")
 Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size and the device that is used.
 
 ::: {.callout-caution}
-### Caution: Run time and initial design size should be increased for real experiments
+### Caution: Run time (and initial design size) should be increased for real experiments
 
 * MAX_TIME is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.
-* INIT_SIZE is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.
 
 :::
 
 
 ```{python}
 MAX_TIME = 1
-INIT_SIZE = 10
 PREFIX = "401_sklearn_classification"
 ```
-
 
 
 ## Step 2: Initialization of the Empty `fun_control` Dictionary
@@ -124,7 +108,11 @@ test.columns = [f"x{i}" for i in range(1, n_features+1)] + [target_column]
 train.head()
 ```
 
+@fig-401_plot_data shows the moons data used for the hyperparameter tuning example.
+
 ```{python}
+#| label: fig-401_plot_data
+#| fig-cap: "Moons data used for the hyperparameter tuning example."
 x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
 y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
 cm = plt.cm.RdBu
@@ -171,7 +159,7 @@ prep_model = StandardScaler
 fun_control.update({"prep_model": prep_model})
 ```
 
-Even more complicated pre-processing steps are possible, e.g., the follwing pipeline:
+Even more complicated pre-processing steps are possible, e.g., the following pipeline:
 
 ```{raw}
 categorical_columns = []
@@ -345,10 +333,6 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 ```{python}
 #| label: 401_run_spot
 design_control = design_control_init()
-set_control_key_value(control_dict=design_control,
-                        key="init_size",
-                        value=INIT_SIZE,
-                        replace=True)
 
 surrogate_control = surrogate_control_init(method="regression")
 
@@ -465,7 +449,7 @@ min(spot_tuner.y), max(spot_tuner.y)
 
 ```{python}
 #| label: 401_plot_important_contour
-spot_tuner.plot_important_hyperparameter_contour(filename=None)
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
 ### Parallel Coordinates Plot
