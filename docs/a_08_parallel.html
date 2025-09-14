@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -69,14 +69,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="./a_07_package.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-23a3edf7f3c1ed1fc827cae2f6dd4de5.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-58b8d76c6f3e5a567bac4a37e40b55a6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -119,7 +120,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -453,7 +454,9 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+      <a href="./index.html" class="sidebar-logo-link">
+      </a>
     <div class="sidebar-title mb-0 py-0">
       <a href="./">Hyperparameter Tuning Cookbook</a> 
         <div class="sidebar-tools-main tools-wide">
@@ -1127,7 +1130,7 @@ window.Quarto = {
 <h2 data-number="H.1" class="anchored" data-anchor-id="setup"><span class="header-section-number">H.1</span> Setup</h2>
 <p>To demonstrate the performance gain enabled by parallelization, we use a similar example to that in Section 47, where we perform hyperparameter tuning with <code>spotpython</code>and <code>PyTorch</code> Lightning on the Diabetes dataset using a ResNet model. We compare the time required with and without parallelization. First, we import the necessary libraries, including the wrapper function <code>make_parallel</code>. We then define the <code>fun_control</code> and <code>design_control</code> settings. For <code>design_control</code>, we deliberately choose an initial design size of <code>10</code> for demonstration purposes.</p>
 <div id="setup-a_08" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> inf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> multiprocessing</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -1139,10 +1142,10 @@ window.Quarto = {
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.init <span class="im">import</span> (fun_control_init, design_control_init)</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.hyperparameters.values <span class="im">import</span> set_hyperparameter</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.spot <span class="im">import</span> Spot</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.parallel <span class="im">import</span> make_parallel</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> spotpython.utils.parallel <span class="im">import</span> make_parallel</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="setup-a_08-spot" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> Diabetes()</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> Diabetes()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>fun_control <span class="op">=</span> fun_control_init(</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    fun_evals<span class="op">=</span><span class="dv">10</span>,</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    max_time<span class="op">=</span>inf,</span>
@@ -1167,7 +1170,7 @@ window.Quarto = {
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    init_size<span class="op">=</span><span class="dv">10</span></span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>fun <span class="op">=</span> HyperLight().fun</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>module_name: light
 submodule_name: regression
@@ -1181,12 +1184,12 @@ model_name: NNResNetRegressor</code></pre>
 <section id="sequential-execution" class="level3" data-number="H.2.1">
 <h3 data-number="H.2.1" class="anchored" data-anchor-id="sequential-execution"><span class="header-section-number">H.2.1</span> Sequential Execution</h3>
 <div id="run-a_08_sequential" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> time.perf_counter()</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> time.perf_counter()</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>spot_tuner <span class="op">=</span> Spot(fun<span class="op">=</span>fun, fun_control<span class="op">=</span>fun_control, design_control<span class="op">=</span>design_control)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> spot_tuner.run()</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>toc <span class="op">=</span> time.perf_counter()</span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>time_seq <span class="op">=</span> toc <span class="op">-</span> tic</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Time taken for sequential execution: </span><span class="sc">{</span>time_seq<span class="sc">:.2f}</span><span class="ss"> seconds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Time taken for sequential execution: </span><span class="sc">{</span>time_seq<span class="sc">:.2f}</span><span class="ss"> seconds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>train_model result: {'val_loss': 23811.58984375, 'hp_metric': 23811.58984375}</code></pre>
 </div>
@@ -1215,7 +1218,7 @@ model_name: NNResNetRegressor</code></pre>
 <pre><code>train_model result: {'val_loss': 23999.810546875, 'hp_metric': 23999.810546875}
 train_model result: {'val_loss': 24063.423828125, 'hp_metric': 24063.423828125}
 Experiment saved to 000_res.pkl
-Time taken for sequential execution: 115.42 seconds</code></pre>
+Time taken for sequential execution: 122.08 seconds</code></pre>
 </div>
 </div>
 </section>
@@ -1248,7 +1251,7 @@ Time taken for sequential execution: 115.42 seconds</code></pre>
 <li>Portions of code that remain sequential (Amdahl’s Law limitation)</li>
 </ul>
 <div id="run-a_08-parallel-comparison" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get available cores</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get available cores</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>available_cores <span class="op">=</span> multiprocessing.cpu_count()</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Available cores: </span><span class="sc">{</span>available_cores<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -1282,7 +1285,7 @@ Time taken for sequential execution: 115.42 seconds</code></pre>
 <span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">"time"</span>: [time_taken]</span>
 <span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    })], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Time taken with </span><span class="sc">{</span>num_cores<span class="sc">}</span><span class="ss"> cores: </span><span class="sc">{</span>time_taken<span class="sc">:.2f}</span><span class="ss"> seconds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Time taken with </span><span class="sc">{</span>num_cores<span class="sc">}</span><span class="ss"> cores: </span><span class="sc">{</span>time_taken<span class="sc">:.2f}</span><span class="ss"> seconds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Available cores: 24
 
@@ -1300,7 +1303,7 @@ train_model result: {'val_loss': 23983.15625, 'hp_metric': 23983.15625}
 train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
 train_model result: {'val_loss': 23442.49609375, 'hp_metric': 23442.49609375}
 Experiment saved to 000_res.pkl
-Time taken with 1 cores: 129.87 seconds
+Time taken with 1 cores: 130.95 seconds
 
 Testing with 2 cores...</code></pre>
 </div>
@@ -1316,7 +1319,7 @@ train_model result: {'val_loss': 23983.15625, 'hp_metric': 23983.15625}
 train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
 train_model result: {'val_loss': 23442.49609375, 'hp_metric': 23442.49609375}
 Experiment saved to 000_res.pkl
-Time taken with 2 cores: 90.38 seconds
+Time taken with 2 cores: 90.35 seconds
 
 Testing with 4 cores...</code></pre>
 </div>
@@ -1324,15 +1327,15 @@ Testing with 4 cores...</code></pre>
 <pre><code>train_model result: {'val_loss': 22085.53515625, 'hp_metric': 22085.53515625}
 train_model result: {'val_loss': 23528.212890625, 'hp_metric': 23528.212890625}
 train_model result: {'val_loss': 23442.49609375, 'hp_metric': 23442.49609375}
+train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
+train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
 train_model result: {'val_loss': 23811.58984375, 'hp_metric': 23811.58984375}
 train_model result: {'val_loss': 23563.298828125, 'hp_metric': 23563.298828125}
 train_model result: {'val_loss': 22435.96875, 'hp_metric': 22435.96875}
-train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
-train_model result: {'val_loss': 21815.44140625, 'hp_metric': 21815.44140625}
-train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
 train_model result: {'val_loss': 23983.15625, 'hp_metric': 23983.15625}
+train_model result: {'val_loss': 21815.44140625, 'hp_metric': 21815.44140625}
 Experiment saved to 000_res.pkl
-Time taken with 4 cores: 83.90 seconds
+Time taken with 4 cores: 82.37 seconds
 
 Testing with 8 cores...</code></pre>
 </div>
@@ -1342,13 +1345,13 @@ train_model result: {'val_loss': 23811.58984375, 'hp_metric': 23811.58984375}
 train_model result: {'val_loss': 23528.212890625, 'hp_metric': 23528.212890625}
 train_model result: {'val_loss': 22435.96875, 'hp_metric': 22435.96875}
 train_model result: {'val_loss': 23442.49609375, 'hp_metric': 23442.49609375}
-train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
 train_model result: {'val_loss': 23563.298828125, 'hp_metric': 23563.298828125}
 train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
+train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
 train_model result: {'val_loss': 23983.15625, 'hp_metric': 23983.15625}
 train_model result: {'val_loss': 21815.44140625, 'hp_metric': 21815.44140625}
 Experiment saved to 000_res.pkl
-Time taken with 8 cores: 82.67 seconds
+Time taken with 8 cores: 82.51 seconds
 
 Testing with 24 cores...</code></pre>
 </div>
@@ -1359,35 +1362,35 @@ train_model result: {'val_loss': 22085.53515625, 'hp_metric': 22085.53515625}
 train_model result: {'val_loss': 23442.49609375, 'hp_metric': 23442.49609375}
 train_model result: {'val_loss': 23811.58984375, 'hp_metric': 23811.58984375}
 train_model result: {'val_loss': 23528.212890625, 'hp_metric': 23528.212890625}
-train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
 train_model result: {'val_loss': 23000.837890625, 'hp_metric': 23000.837890625}
+train_model result: {'val_loss': 22507.580078125, 'hp_metric': 22507.580078125}
 train_model result: {'val_loss': 23983.15625, 'hp_metric': 23983.15625}
 train_model result: {'val_loss': 21815.44140625, 'hp_metric': 21815.44140625}
 Experiment saved to 000_res.pkl
-Time taken with 24 cores: 83.98 seconds</code></pre>
+Time taken with 24 cores: 84.41 seconds</code></pre>
 </div>
 </div>
 </section>
 <section id="results" class="level3" data-number="H.2.3">
 <h3 data-number="H.2.3" class="anchored" data-anchor-id="results"><span class="header-section-number">H.2.3</span> Results</h3>
-<div id="4875ddda" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Performance comparison across different numbers of cores:"</span>)</span>
+<div id="b2d86b02" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Performance comparison across different numbers of cores:"</span>)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>results_df[<span class="st">"speedup_vs_sequential"</span>] <span class="op">=</span> time_seq <span class="op">/</span> results_df[<span class="st">"time"</span>]</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>results_df[<span class="st">"efficiency"</span>] <span class="op">=</span> results_df[<span class="st">"speedup_vs_sequential"</span>] <span class="op">/</span> results_df[<span class="st">"number_of_cores"</span>]</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Performance comparison across different numbers of cores:
   number_of_cores        time  speedup_vs_sequential efficiency
-0               1  129.872693               0.888706   0.888706
-1               2   90.379460               1.277045   0.638523
-2               4   83.899665               1.375675   0.343919
-3               8   82.669545               1.396145   0.174518
-4              24   83.982655               1.374316   0.057263</code></pre>
+0               1  130.948045               0.932303   0.932303
+1               2   90.354918               1.351153   0.675576
+2               4   82.366456               1.482197   0.370549
+3               8   82.510751               1.479605   0.184951
+4              24   84.413749               1.446249    0.06026</code></pre>
 </div>
 </div>
 <div id="cell-run-a_08-parallel-comparison-plot" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">5</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">5</span>))</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Execution time vs number of cores</span></span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>ax1.plot(results_df[<span class="st">"number_of_cores"</span>], results_df[<span class="st">"time"</span>], marker<span class="op">=</span><span class="st">'o'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>)</span>
@@ -1409,7 +1412,7 @@ Performance comparison across different numbers of cores:
 <span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>ax2.grid(<span class="va">True</span>)</span>
 <span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1424,7 +1427,7 @@ Performance comparison across different numbers of cores:
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Operating-system Differences in Parallelization Methods
+<span class="screen-reader-only">Note</span>Operating-system Differences in Parallelization Methods
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1488,13 +1491,14 @@ Operating-system Differences in Parallelization Methods
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
