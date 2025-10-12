@@ -28,11 +28,7 @@ import random
 from PIL import Image
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
-%matplotlib inline 
-from IPython.display import set_matplotlib_formats
-set_matplotlib_formats('png', 'svg', 'pdf')
 import matplotlib
-matplotlib.rcParams['lines.linewidth'] = 2.0
 import seaborn as sns
 sns.reset_orig()
 
