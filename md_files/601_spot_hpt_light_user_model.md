@@ -36,6 +36,7 @@ The `my_regressor.py` file contains the model class, which is a subclass of `nn.
 The `my_hyperdict.json` file contains the hyperparameter settings as a dictionary, which are loaded via the `my_hyperdict.py` file.
 
 Note, that we have to add the path to the `userModel` directory to the `sys.path` list as shown below.
+The `divergence_threshold` is set to 3,000, which is based on some pre-experiments with the user data set.
 
 ```{python}
 #| label: 601_user_model_imports_sys
@@ -58,6 +59,7 @@ fun_control = fun_control_init(
     fun_evals=inf,
     max_time=1,
     data_set = Diabetes(),
+    divergence_threshold=3_000,
     _L_in=10,
     _L_out=1)
 

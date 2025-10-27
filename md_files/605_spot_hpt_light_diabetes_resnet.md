@@ -38,6 +38,8 @@ The `fun_control` dictionary contains
 The `HyperLight` class is used to define the objective function `fun`.
 It connects the `PyTorch` and the `spotpython` methods and is provided by `spotpython`.
 
+Note, the `divergence_threshold` is set to 5,000, which is based on some pre-experiments with the `Diabetes` data set.
+
 ```{python}
 #| label: 605_spotpython_setup
 
@@ -60,6 +62,7 @@ fun_control = fun_control_init(
     data_set = data_set,
     core_model_name="light.regression.NNResNetRegressor",
     hyperdict=LightHyperDict,
+    divergence_threshold=25_000,
     _L_in=10,
     _L_out=1)
 

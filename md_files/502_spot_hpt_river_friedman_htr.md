@@ -242,14 +242,13 @@ fun = HyperRiver().fun_oml_horizon
 
 ### Surrogate Model Setup
 
-The default surrogate model is the `Kriging` model, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/build/kriging/). We specify `noise` as `True` to include noise in the model. An `anisotropic` kernel is used, which allows different length scales for each dimension, by setting `n_theta = 2`. Furthermore, the interval for the `Lambda` value is set to `[1e-3, 1e2]`.
+The default surrogate model is the `Kriging` model, see [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/build/kriging/). We specify `noise` as `True` to include noise in the model. An `anisotropic` kernel is used, which allows different length scales for each dimension. Furthermore, the interval for the `Lambda` value is set to `[1e-3, 1e2]`.
 
 These parameters are set in the `surrogate_control` dictionary and therefore passed  to the `surrogate_control_init` function [[SOURCE]](https://sequential-parameter-optimization.github.io/spotpython/reference/spotpython/utils/init/#spotpython.utils.init.surrogate_control_init).
 
 ```{python}
 #| label: 024_surrogate_control_setup
 noise = True
-n_theta = 2
 min_Lambda = 1e-3
 max_Lambda = 10
 ```
@@ -295,7 +294,6 @@ design_control = design_control_init(
 
 surrogate_control = surrogate_control_init(
     method="regression",
-    n_theta=2,
     min_Lambda=1e-3,
     max_Lambda=10,
 )

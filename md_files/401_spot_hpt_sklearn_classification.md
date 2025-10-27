@@ -10,36 +10,59 @@ execute:
 
 This chapter is a tutorial for the Hyperparameter Tuning (HPT) of a `sklearn` SVC model on the Moons dataset.
 
+## Packages used in this Chapter
+```{python}
+import os
+from math import inf
+import numpy as np
+import warnings
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_moons, make_circles, make_classification
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import RidgeCV, ElasticNet, LogisticRegression
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier
+from sklearn.metrics import mean_absolute_error, accuracy_score, roc_curve, roc_auc_score, log_loss, mean_squared_error
+
+from spotpython.hyperparameters.values import set_control_key_value
+from spotpython.plot.validation import plot_confusion_matrix, plot_roc
+from spotpython.spot import Spot
+from spotpython.hyperparameters.values import (get_one_core_model_from_X, add_core_model_to_fun_control, get_default_hyperparameters_as_array)
+from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
+from spotpython.hyperparameters.values import (modify_hyper_parameter_bounds, modify_hyper_parameter_levels, get_default_hyperparameters_as_array)
+from spotpython.fun.hypersklearn import HyperSklearn
+from spotpython.utils.eda import print_res_table
+from spotpython.utils.init import (fun_control_init, design_control_init, surrogate_control_init, get_tensorboard_path, get_experiment_name)
+from spotpython.utils.file import load_result
+
+
+if not os.path.exists('./figures'):
+    os.makedirs('./figures')
+warnings.filterwarnings("ignore")
+
+```
+
+
 ## Step 1: Setup {#sec-setup-17}
 
 Before we consider the detailed experimental setup, we select the parameters that affect run time, initial design size and the device that is used.
 
 ::: {.callout-caution}
-### Caution: Run time and initial design size should be increased for real experiments
+### Caution: Run time (and initial design size) should be increased for real experiments
 
 * MAX_TIME is set to one minute for demonstration purposes. For real experiments, this should be increased to at least 1 hour.
-* INIT_SIZE is set to 5 for demonstration purposes. For real experiments, this should be increased to at least 10.
 
 :::
 
 
 ```{python}
 MAX_TIME = 1
-INIT_SIZE = 10
-PREFIX = "10"
-```
-
-
-
-```{python}
-#| echo: false
-import os
-from math import inf
-import numpy as np
-import warnings
-if not os.path.exists('./figures'):
-    os.makedirs('./figures')
-warnings.filterwarnings("ignore")
+PREFIX = "401_sklearn_classification"
 ```
 
 
@@ -49,9 +72,6 @@ warnings.filterwarnings("ignore")
 The `fun_control` dictionary is the central data structure that is used to control the optimization process. It is initialized as follows:
 
 ```{python}
-from spotpython.utils.init import fun_control_init
-from spotpython.hyperparameters.values import set_control_key_value
-from spotpython.utils.eda import print_res_table
 fun_control = fun_control_init(
     PREFIX=PREFIX,
     TENSORBOARD_CLEAN=True,
@@ -73,10 +93,6 @@ If you want to continue a hyperparameter tuning process, set `TENSORBOARD_CLEAN`
 Randomly generate classification data.
 
 ```{python}
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import make_moons, make_circles, make_classification
 n_features = 2
 n_samples = 500
 target_column = "y"
@@ -92,10 +108,11 @@ test.columns = [f"x{i}" for i in range(1, n_features+1)] + [target_column]
 train.head()
 ```
 
-```{python}
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
+@fig-401_plot_data shows the moons data used for the hyperparameter tuning example.
 
+```{python}
+#| label: fig-401_plot_data
+#| fig-cap: "Moons data used for the hyperparameter tuning example."
 x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
 y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
 cm = plt.cm.RdBu
@@ -128,7 +145,7 @@ fun_control.update({"data": None, # dataset,
 
 ## Step 4: Specification of the Preprocessing Model {#sec-specification-of-preprocessing-model-401}
 
-Data preprocesssing can be very simple, e.g., you can ignore it. Then you would choose the `prep_model` "None":
+Data preprocessing can be very simple, e.g., you can ignore it. Then you would choose the `prep_model` "None":
 
 ```{python}
 prep_model = None
@@ -138,12 +155,11 @@ fun_control.update({"prep_model": prep_model})
 A default approach for numerical data is the `StandardScaler` (mean 0, variance 1).  This can be selected as follows:
 
 ```{python}
-from sklearn.preprocessing import StandardScaler
 prep_model = StandardScaler
 fun_control.update({"prep_model": prep_model})
 ```
 
-Even more complicated pre-processing steps are possible, e.g., the follwing pipeline:
+Even more complicated pre-processing steps are possible, e.g., the following pipeline:
 
 ```{raw}
 categorical_columns = []
@@ -161,9 +177,6 @@ prep_model = ColumnTransformer(
 The selection of the algorithm (ML model) that should be tuned is done by specifying the its name from the `sklearn` implementation.  For example, the `SVC` support vector machine classifier is selected as follows:
 
 ```{python}
-from spotpython.hyperparameters.values import add_core_model_to_fun_control
-from spotpython.hyperdict.sklearn_hyper_dict import SklearnHyperDict
-from sklearn.svm import SVC
 add_core_model_to_fun_control(core_model=SVC,
                               fun_control=fun_control,
                               hyper_dict=SklearnHyperDict,
@@ -228,7 +241,6 @@ The hyperparameters of the `sklearn`  `SVC` model are described in the [sklearn 
 * For example, to change the `tol` hyperparameter of the `SVC` model to the interval [1e-5, 1e-3], the following code can be used:
 
 ```{python}
-from spotpython.hyperparameters.values import modify_hyper_parameter_bounds
 modify_hyper_parameter_bounds(fun_control, "tol", bounds=[1e-5, 1e-3])
 modify_hyper_parameter_bounds(fun_control, "probability", bounds=[0, 0])
 fun_control["core_model_hyper_dict"]["tol"]
@@ -240,7 +252,6 @@ fun_control["core_model_hyper_dict"]["tol"]
 Factors can be modified with the `modify_hyper_parameter_levels` function.  For example, to exclude the `sigmoid` kernel from the tuning, the `kernel` hyperparameter of the `SVC` model can be modified as follows:
 
 ```{python}
-from spotpython.hyperparameters.values import modify_hyper_parameter_levels
 modify_hyper_parameter_levels(fun_control, "kernel", ["poly", "rbf"])
 fun_control["core_model_hyper_dict"]["kernel"]
 ```
@@ -257,7 +268,6 @@ There are two metrics:
 2. `metric_sklearn` is used for the sklearn based evaluation.
 
 ```{python}
-from sklearn.metrics import mean_absolute_error, accuracy_score, roc_curve, roc_auc_score, log_loss, mean_squared_error
 fun_control.update({
                "metric_sklearn": log_loss,
                "weights": 1.0,
@@ -292,14 +302,12 @@ fun_control.update({
 The objective function is selected next. It implements an interface from `sklearn`'s training, validation, and  testing methods to `spotpython`.
 
 ```{python}
-from spotpython.fun.hypersklearn import HyperSklearn
 fun = HyperSklearn().fun_sklearn
 ```
 
 The following code snippet shows how to get the default hyperparameters as an array, so that they can be passed to the `Spot` function.
 
 ```{python}
-from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
 X_start = get_default_hyperparameters_as_array(fun_control)
 ```
 
@@ -323,16 +331,11 @@ The class `Spot` [[SOURCE]](https://github.com/sequential-parameter-optimization
 :::
 
 ```{python}
-from spotpython.utils.init import design_control_init, surrogate_control_init
+#| label: 401_run_spot
 design_control = design_control_init()
-set_control_key_value(control_dict=design_control,
-                        key="init_size",
-                        value=INIT_SIZE,
-                        replace=True)
 
-surrogate_control = surrogate_control_init(method="regression",
-                                           n_theta=2)
-from spotpython.spot import Spot
+surrogate_control = surrogate_control_init(method="regression")
+
 spot_tuner = Spot(fun=fun,
                    fun_control=fun_control,
                    design_control=design_control,
@@ -353,7 +356,6 @@ tensorboard --logdir="./runs"
 The TensorBoard path can be printed with the following command:
 
 ```{python}
-from spotpython.utils.init import get_tensorboard_path
 get_tensorboard_path(fun_control)
 ```
 :::
@@ -374,39 +376,36 @@ The TensorBoard plot illustrates how `spotpython` can be used as a microscope fo
 After the hyperparameter tuning run is finished, the results can be saved and reloaded with the following commands:
 
 ```{python}
-from spotpython.utils.file import save_pickle, load_pickle
-from spotpython.utils.init import get_experiment_name
-experiment_name = get_experiment_name(PREFIX)
-SAVE_AND_LOAD = False
-if SAVE_AND_LOAD == True:
-    save_pickle(spot_tuner, experiment_name)
-    spot_tuner = load_pickle(experiment_name)
+#| label: 401_save_and_load_exp
+spot_tuner = load_result(PREFIX=PREFIX)
 ```
 
-After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performace values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
+After the hyperparameter tuning run is finished, the progress of the hyperparameter tuning can be visualized. The black points represent the performance values (score or metric) of  hyperparameter configurations from the initial design, whereas the red points represents the  hyperparameter configurations found by the surrogate model based optimization.
 
 ```{python}
-spot_tuner.plot_progress(log_y=True, filename="./figures/" + experiment_name+"_progress.pdf")
+#| label: 401_progress_plot
+spot_tuner.plot_progress(log_y=True)
 ```
 
 Results can also be printed in tabular form.
 
 ```{python}
+#| label: 401_print_res_table
 print_res_table(spot_tuner)
 ```
 
 A histogram can be used to visualize the most important hyperparameters.
 
 ```{python}
-spot_tuner.plot_importance(threshold=0.0025, filename="./figures/" + experiment_name+"_importance.pdf")
+#| label: 401_importance_plot_1
+spot_tuner.plot_importance(threshold=0.0025)
 ```
 
 ## Get Default Hyperparameters
 
 The default hyperparameters, whihc will be used for a comparion with the tuned hyperparameters, can be obtained with the following commands:
 ```{python}
-from spotpython.hyperparameters.values import get_one_core_model_from_X
-from spotpython.hyperparameters.values import get_default_hyperparameters_as_array
+#| label: 401_get_default_model
 X_start = get_default_hyperparameters_as_array(fun_control)
 model_default = get_one_core_model_from_X(X_start, fun_control, default=True)
 model_default
@@ -417,7 +416,7 @@ model_default
 In a similar way, we can obtain the hyperparameters found by `spotpython`.
 
 ```{python}
-from spotpython.hyperparameters.values import get_one_core_model_from_X
+#| label: 401_get_spot_model
 X = spot_tuner.to_all_dim(spot_tuner.min_X.reshape(1,-1))
 model_spot = get_one_core_model_from_X(X, fun_control)
 ```
@@ -426,20 +425,22 @@ model_spot = get_one_core_model_from_X(X, fun_control)
 ### Plot: Compare Predictions
 
 ```{python}
-from spotpython.plot.validation import plot_roc
+#| label: 401_plot_roc
 plot_roc(model_list=[model_default, model_spot], fun_control= fun_control, model_names=["Default", "Spot"])
 ```
 
 ```{python}
-from spotpython.plot.validation import plot_confusion_matrix
+#| label: 401_plot_confusion_matrix_default
 plot_confusion_matrix(model=model_default, fun_control=fun_control, title = "Default")
 ```
 
 ```{python}
+# label: 401_plot_confusion_matrix
 plot_confusion_matrix(model=model_spot, fun_control=fun_control, title="SPOT")
 ```
 
 ```{python}
+#| label: 401_min_max
 min(spot_tuner.y), max(spot_tuner.y)
 ```
 
@@ -447,12 +448,14 @@ min(spot_tuner.y), max(spot_tuner.y)
 
 
 ```{python}
-spot_tuner.plot_important_hyperparameter_contour(filename=None)
+#| label: 401_plot_important_contour
+spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 ```
 
 ### Parallel Coordinates Plot
 
 ```{python}
+#| label: 401_parallel_plot
 spot_tuner.parallel_plot()
 ```
 
@@ -461,6 +464,7 @@ spot_tuner.parallel_plot()
 * Warning: this may take a while.
 
 ```{python}
+#| label: 401_all_combinations
 PLOT_ALL = False
 if PLOT_ALL:
     n = spot_tuner.k

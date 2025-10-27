@@ -263,7 +263,6 @@ fun_control = fun_control_init(
     tolerance_x = np.sqrt(np.spacing(1)),
     infill_criterion = "ei")
 surrogate_control = surrogate_control_init(
-    n_theta=2,
     method="interpolation",
     )
 ```
@@ -571,7 +570,7 @@ S_K = Kriging(name='kriging',
               seed=123,
               log_level=50,
               infill_criterion = "y",
-              n_theta=1,
+              isotropic=True,  # Use isotropic kernel
               method="interpolation",
               cod_type="norm")
 fun = Analytical().fun_sphere
@@ -656,7 +655,7 @@ import matplotlib.pyplot as plt
 X_train = np.array([1., 2., 3., 4., 12.]).reshape(-1,1)
 y_train = np.array([0., -1.75, -2, -0.5, 5.])
 
-S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation", cod_type="norm")
+S = Kriging(name='kriging',  seed=123, log_level=50, isotropic=True, method="interpolation", cod_type="norm")
 S.fit(X_train, y_train)
 
 X = np.linspace(start=0, stop=13, num=1000).reshape(-1, 1)
@@ -712,7 +711,7 @@ fun_control = fun_control_init(
     seed=123,)
 y_train = fun(X_train, fun_control=fun_control)
 
-S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation", cod_type="norm")
+S = Kriging(name='kriging',  seed=123, log_level=50, isotropic=True, method="interpolation", cod_type="norm")
 S.fit(X_train, y_train)
 
 X = np.linspace(start=0, stop=1, num=1000).reshape(-1, 1)
@@ -775,7 +774,7 @@ y_train = y
 S = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="interpolation")
 S.fit(X_train, y_train)
 
@@ -800,7 +799,7 @@ S.get_model_params()
 S = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="regression")
 S.fit(X_train, y_train)
 
@@ -850,7 +849,7 @@ y.shape
 X_train = X.reshape(-1,1)
 y_train = y
 
-S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation")
+S = Kriging(name='kriging',  seed=123, log_level=50, isotropic=True, method="interpolation")
 S.fit(X_train, y_train)
 
 X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
@@ -866,7 +865,7 @@ _ = plt.title("Cubed: Gaussian process regression on noisy dataset")
 ```
 
 ```{python}
-S = Kriging(name='kriging',  seed=123, log_level=0, n_theta=1, method="regression")
+S = Kriging(name='kriging',  seed=123, log_level=0, isotropic=True, method="regression")
 S.fit(X_train, y_train)
 
 X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
@@ -908,7 +907,7 @@ y.shape
 X_train = X.reshape(-1,1)
 y_train = y
 
-S = Kriging(name='kriging',  seed=123, log_level=50, n_theta=1, method="interpolation")
+S = Kriging(name='kriging',  seed=123, log_level=50, isotropic=True, method="interpolation")
 S.fit(X_train, y_train)
 
 X_axis = np.linspace(start=-13, stop=13, num=1000).reshape(-1, 1)
@@ -927,7 +926,7 @@ _ = plt.title("Gaussian process regression on noisy dataset")
 S = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="regression")
 S.fit(X_train, y_train)
 
@@ -950,7 +949,7 @@ _ = plt.title("Gaussian process regression with nugget on noisy dataset")
 S = Kriging(name='kriging',
             seed=123,
             log_level=50,
-            n_theta=1,
+            isotropic=True,
             method="regression",
             min_Lambda=0.1,
             max_Lambda=10)

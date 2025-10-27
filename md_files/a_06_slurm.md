@@ -12,17 +12,42 @@ jupyter: python3
 ## Introduction
 
 This chapter describes how to generate a `spotpython` configuration on a local machine and run the `spotpython` code on a remote machine using Slurm.
+We recommend using a jupyter notebook (`*.ipynb`) or a Quarto document (`*.qmd`) on the local machine to generate the configuration and analyze the results.
+
+## Packages important for this Chapter
+
+```{python}
+#| label: packages
+import argparse
+import pickle
+from math import inf
+import torch
+from spotpython.utils.file import load_result, load_and_run_spot_python_experiment
+from spotpython.data.manydataset import ManyToManyDataset
+from spotpython.data.diabetes import Diabetes
+from spotpython.hyperdict.light_hyper_dict import LightHyperDict
+from spotpython.fun.hyperlight import HyperLight
+from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
+from spotpython.spot import Spot
+from spotpython.hyperparameters.values import set_hyperparameter, get_tuned_architecture
+from torch.utils.data import TensorDataset
+from spotpython.utils.eda import print_res_table
+```
 
 
-## Prepare the Slurm Scripts on the Remote Machine
+## Prepare the Slurm Scripts for Runs on the Remote Machine
 
 Two scripts are required to run the `spotpython` code on the remote machine: 
 
 * `startSlurm.sh` and 
 * `startPython.py`.
 
-They should be saved in the same directory as the configuration (`pickle`) file.
+They should be saved in the same directory on the remote machine as the pickle-configuration (`pkl`) file.
 These two scripts must be generated only once and can be reused for different configurations.
+For convenience, the scripts are available as templates here:
+
+* [startSlurm.sh](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/startSlurm.sh)
+* [startPython.py](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/startPython.py)
 
 The `startSlurm.sh` script is a shell script that contains the following code:
 ```{python}
@@ -109,15 +134,6 @@ The configuration can be generated on a local machine using the following comman
 ```{python}
 #| label: generate-spotpython-config
 #| eval: false
-from spotpython.data.diabetes import Diabetes
-from spotpython.hyperdict.light_hyper_dict import LightHyperDict
-from spotpython.fun.hyperlight import HyperLight
-from spotpython.utils.init import (fun_control_init, surrogate_control_init, design_control_init)
-from spotpython.spot import Spot
-from spotpython.hyperparameters.values import set_hyperparameter, get_tuned_architecture
-from math import inf
-import torch
-from torch.utils.data import TensorDataset
 # generate data
 num_samples = 100_000
 input_dim = 100
@@ -125,7 +141,7 @@ X = torch.randn(num_samples, input_dim)  # random data for example
 Y = torch.randn(num_samples, 1)  # random target for example
 data_set = TensorDataset(X, Y)
 
-PREFIX="42"
+PREFIX="a06"
 
 
 fun_control = fun_control_init(
@@ -159,7 +175,14 @@ design_control = design_control_init(init_size=10)
 S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 ```
 
-The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `42_exp.pkl`.
+The configuration is saved as  a pickle-file that contains the full information. In our example, the filename is `a06_exp.pkl`.
+
+::: {.callout-warning}
+### Note on `save_experiment`
+
+The `fun_control` dictionary must be initialized with `save_experiment=True` to save the experiment/design configuration.
+
+:::
 
 
 ## Copy the Configuration to the Remote Machine
@@ -168,7 +191,7 @@ You can copy the configuration to the remote machine using the `scp` command. Th
 ```{python}
 #| label: copy-config-to-remote
 #| eval: false
-scp 42_exp.pkl user@144.33.22.1:
+scp a06_exp.pkl user@144.33.22.1:
 ```
 
 ## Run the `spotpython` Code on the Remote Machine
@@ -181,7 +204,7 @@ Login on the remote machine and run the following command to start the `spotpyth
 ssh user@144.33.22.1
 # change this to your conda environment!
 conda activate spot312 
-sbatch ./startSlurm.sh 42_exp.pkl
+sbatch ./startSlurm.sh a06_exp.pkl
 ```
 
 ## Copy the Results to the Local Machine
@@ -191,7 +214,7 @@ The following command copies the results to the local machine:
 ```{python}
 #| label: copy-results-to-local
 #| eval: false
-scp user@144.33.22.1:42_res.pkl .
+scp user@144.33.22.1:a06_res.pkl .
 ```
 
 ::: {.callout-note}
@@ -204,13 +227,12 @@ scp user@144.33.22.1:42_res.pkl .
 
 ## Analyze the Results on the Local Machine
 
-The file `42_res.pkl` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code. Note: `PREFIX` is the same as in the previous steps, i.e., `"42"`.
+The file `a06_res.pkl` contains the results of the `spotpython` code. You can analyze the results on the local machine using the following code. Note: `PREFIX` is the same as in the previous steps, i.e., `"a06"`.
 
 
 ```{python}
 #| label: spotgui
 #| eval: false
-from spotpython.utils.file import load_result
 spot_tuner = load_result(PREFIX)
 ```
 
@@ -228,7 +250,6 @@ spot_tuner.plot_progress(log_y=True, filename=None)
 ```{python}
 #| label: analyze-results-design-table
 #| eval: false
-from spotpython.utils.eda import print_res_table
 print_res_table(spot_tuner)
 ```
 
@@ -247,3 +268,19 @@ spot_tuner.plot_important_hyperparameter_contour(max_imp=3)
 #| eval: false
 get_tuned_architecture(spot_tuner)
 ```
+
+
+## Slurm Command Reference
+
+@tbl-slurm-commands summarizes commands used to manage jobs on a remote machine using Slurm.
+
+| Command | Description |
+| :---------|:-------------|
+| `sbatch startSlurm.sh a06_exp.pkl` | Submit a job to the Slurm scheduler. The job will run the `startSlurm.sh` script with the argument `a06_exp.pkl`. |
+| `squeue -u username` | Check the status of your jobs in the queue. Replace `username` with your actual username. |
+| `scancel job_id` | Cancel a job. Replace `job_id` with the actual job ID you want to cancel. |
+| `ssh user@remote_host` | Log in to a remote machine. Replace `user` with your username and `remote_host` with the hostname or IP address of the remote machine. |
+| `scp source_file user@remote_host:destination_path` | Copy a file to a remote machine. Replace `source_file` with the path to the file you want to copy, `user` with your username, `remote_host` with the hostname or IP address of the remote machine, and `destination_path` with the path where you want to copy the file on the remote machine. |
+| `module load conda` | Load the Conda module on the remote machine. This command may vary depending on the system configuration. |
+| `conda activate env_name` | Activate a Conda environment. Replace `env_name` with the name of your Conda environment. |
+: Slurm and related commands {#tbl-slurm-commands}

@@ -48,9 +48,9 @@ fun = Analytical().fun_sphere
 Here we will use problem dimension $k=3$, which can be specified by the `lower` bound arrays.
 The size of the `lower` bound array determines the problem dimension. If we select `-1.0 * np.ones(3)`, a three-dimensional function is created.
 
-In contrast to the one-dimensional case (@sec-visualizing-tensorboard-01), where only one `theta` value was used, we will use three different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.
-As default, `spotpython` sets the `n_theta` to the problem dimension. Therefore, the `n_theta` parameter can be omitted in this case. More specifically, if `n_theta` is larger than 1 or set to the string "anisotropic", then the $k$ theta values are used, where $k$ is the problem dimension. 
-The meaning of "anisotropic" is explained in @#sec-iso-aniso-kriging.
+In contrast to the one-dimensional case (@sec-visualizing-tensorboard-01), where only one `theta` value was used, we will use three different `theta` values (one for each dimension). This is done automatically, because the setting `isotropic=False` is the default in the `surrogate_control`.
+As default, `spotpython` uses separate theta values for each problem dimension.  More specifically, if `isotropic` is set to `True`, only one theta value is used for all dimensions. If `isotropic` is set to `False`, then the $k$ theta values are used, where $k$ is the problem dimension. 
+The meaning of "isotropic" is explained in @#sec-iso-aniso-kriging.
 
 The prefix is set to `"03"` to distinguish the results from the one-dimensional case.
 Again, TensorBoard can be used to monitor the progress of the optimization.
@@ -66,7 +66,7 @@ fun_control = fun_control_init(
               var_name=["Pressure", "Temp", "Lambda"],
               TENSORBOARD_CLEAN=True,
               tensorboard_log=True)
-surrogate_control = surrogate_control_init(n_theta=3)
+surrogate_control = surrogate_control_init()
 spot_3 = Spot(fun=fun,
                   fun_control=fun_control,
                   surrogate_control=surrogate_control)
@@ -244,7 +244,7 @@ fun_cubed = Analytical().fun_cubed
 ```
 
 * Here we will use problem dimension $k=3$, which can be specified by the `lower` bound arrays. The size of the `lower` bound array determines the problem dimension. If we select `-1.0 * np.ones(3)`, a three-dimensional function is created.
-* In contrast to the one-dimensional case, where only one `theta` value was used, we will use three different `theta` values (one for each dimension), i.e., we can set `n_theta=3` in the `surrogate_control`. However, this is not necessary, because by default, `n_theta` is set to the number of dimensions.
+* In contrast to the one-dimensional case, where only one `theta` value was used, we will use three different `theta` values (one for each dimension).
 * The prefix is set to `"03"` to distinguish the results from the one-dimensional case.
 * We will set the `fun_evals=20` to limit the number of function evaluations to 20 for this example.
 * The size of the initial design is set to `10` by default. It can be changed by setting `init_size=10` via `design_control_init` in the `design_control` dictionary.
@@ -266,7 +266,7 @@ fun_control = fun_control_init(
               tensorboard_log=True
               )
 
-surrogate_control = surrogate_control_init(n_theta=3)
+surrogate_control = surrogate_control_init()
 design_control = design_control_init(init_size=10)
 ```
 
@@ -350,7 +350,7 @@ fun_rosen = Analytical().fun_rosen
 
 * Here we will use problem dimension $k=2$, which can be specified by the `lower` bound arrays.
 * The size of the `lower` bound array determines the problem dimension. If we select `-5.0 * np.ones(2)`, a two-dimensional function is created.
-* In contrast to the one-dimensional case, where only one `theta` value is used, we will use $k$ different `theta` values (one for each dimension), i.e., we set `n_theta=3` in the `surrogate_control`.
+* In contrast to the one-dimensional case, where only one `theta` value is used, we will use $k$ different `theta` values (one for each dimension).
 * The prefix is set to `"ROSEN"`.
 * Again, TensorBoard can be used to monitor the progress of the optimization.
 
@@ -361,7 +361,7 @@ fun_control = fun_control_init(
               lower = -5.0*np.ones(2),
               upper = 10*np.ones(2),
               fun_evals=25)
-surrogate_control = surrogate_control_init(n_theta=2)
+surrogate_control = surrogate_control_init()
 spot_rosen = Spot(fun=fun_rosen,
                   fun_control=fun_control,
                   surrogate_control=surrogate_control)
