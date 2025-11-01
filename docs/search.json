@@ -5681,5 +5681,148 @@
       "Appendices",
       "References"
     ]
+  },
+  {
+    "objectID": "018_kriging_demo.html",
+    "href": "018_kriging_demo.html",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "",
+    "text": "24.1 High-level model and notation\nThis chapter xplains how the spotpython Kriging class implements standard formulas from Forrester et al. (Engineering Design via Surrogate Modelling), focusing on Chapters 2, 3, and 6 (Gaussian process/Kriging modelling, likelihood-based hyperparameter estimation, prediction, and expected improvement).",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#high-level-model-and-notation",
+    "href": "018_kriging_demo.html#high-level-model-and-notation",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "",
+    "text": "Training data: X ∈ R^{n×k}, y ∈ R^n.\nCorrelation model: R(i,j) = exp(-∑_d θ_d · (x_i,d − x_j,d)^2) for ordered/numeric variables; factor variables use a categorical distance with the same exp(-D) envelope. θ are in log10 in this code, internally exponentiated as 10^θ.\nNugget: λ ≥ 0 (also in log10 here, exponentiated as 10^λ). Interpolation uses eps (tiny) instead of λ; regression uses λ; reinterpolation uses a λ→ε adjustment during prediction variance.\nMean function: constant mean μ (ordinary Kriging).\nConcentrated likelihood (Forrester): given R (n×n) and residual variance σ^2 = (r^T R^{-1} r)/n with r = y − 1·μ and μ = (1^T R^{-1} y)/(1^T R^{-1} 1), the concentrated negative log-likelihood is n/2·log(σ^2) + 1/2·log|R| (constants dropped).",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#correlation-matrix-build-build_psi",
+    "href": "018_kriging_demo.html#correlation-matrix-build-build_psi",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.2 Correlation matrix build: build_Psi()",
+    "text": "24.2 Correlation matrix build: build_Psi()\n\nPsi is the correlation matrix R (without the nugget) from pairwise distances:\n\nOrdered/numeric variables use squared Euclidean dist weighted by 10^θ.\nFactor variables use a categorical metric (metric_factorial).\nFinal Psi = exp(−D).\n\nThe method returns the upper triangle; the full R is formed later as R = Psi + Psi^T + I (and + λI if applicable).\n\nCode mapping:\n\ndef build_Psi(self) -&gt; None:\n    n, k = self.X_.shape\n    theta10 = self._get_theta10_from_logtheta()  # 10**theta, isotropic expands to k\n    Psi = np.zeros((n, n), dtype=np.float64)\n\n    if self.ordered_mask.any():\n        X_ordered = self.X_[:, self.ordered_mask]\n        D_ordered = squareform(\n            pdist(X_ordered,\n            metric=\"sqeuclidean\",\n            w=theta10[self.ordered_mask]))\n        Psi += D_ordered\n\n    if self.factor_mask.any():\n        X_factor = self.X_[:, self.factor_mask]\n        D_factor = squareform(\n            pdist(X_factor, metric=self.metric_factorial,\n            w=theta10[self.factor_mask]))\n        Psi += D_factor\n\n    Psi = np.exp(-Psi)                 # R = exp(-D)\n    return np.triu(Psi, k=1)           # upper triangle only",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#likelihood-and-hyperparameters-likelihood",
+    "href": "018_kriging_demo.html#likelihood-and-hyperparameters-likelihood",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.3 Likelihood and hyperparameters: likelihood()",
+    "text": "24.3 Likelihood and hyperparameters: likelihood()\n\nInput x packs [log10 θ] plus, for regression/reinterpolation, log10 λ, and optionally p exponents (if enabled).\nThe method:\n\nForms R = (upper + transpose) + I + λI (with λ = 10^logλ; for interpolation λ := eps).\nCholesky factorization R = U U^T.\nμ = (1^T R^{-1} y)/(1^T R^{-1} 1) via triangular solves with U.\nσ^2 = (r^T R^{-1} r)/n with r = y − 1·μ.\n−log L = n/2·log(σ^2) + 1/2·log|R|, with log|R| = 2·∑ log diag(U).\n\n\nCode mapping (directly implements the standard concentrated likelihood):\n\ndef likelihood(self, x: np.ndarray) -&gt; Tuple[float, np.ndarray, np.ndarray]:\n    X = self.X_; y = self.y_.flatten()\n    self.theta = x[: self.n_theta]\n\n    if (self.method == \"regression\") or (self.method == \"reinterpolation\"):\n        lambda_ = 10.0**x[self.n_theta : self.n_theta + 1]   # nugget on linear scale\n        if self.optim_p:\n            self.p_val = x[self.n_theta + 1 : self.n_theta + 1 + self.n_p]\n    elif self.method == \"interpolation\":\n        lambda_ = self.eps\n        if self.optim_p:\n            self.p_val = x[self.n_theta : self.n_theta + self.n_p]\n\n    n = X.shape[0]; one = np.ones(n)\n    Psi_up = self.build_Psi()\n    Psi = Psi_up + Psi_up.T + np.eye(n) + np.eye(n) * lambda_  # R = corr + I + λI\n\n    U = np.linalg.cholesky(Psi)\n    LnDetPsi = 2.0 * np.sum(np.log(np.abs(np.diag(U))))        # log|R|\n\n    # R^{-1}y and R^{-1}1 via triangular solves\n    temp_y  = np.linalg.solve(U, y);   vy   = np.linalg.solve(U.T, temp_y)\n    temp_1  = np.linalg.solve(U, one); vone = np.linalg.solve(U.T, temp_1)\n\n    mu = (one @ vy) / (one @ vone)\n    resid = y - one * mu\n    tresid = np.linalg.solve(U, resid); tresid = np.linalg.solve(U.T, tresid)\n    SigmaSqr = (resid @ tresid) / n\n\n    negLnLike = (n / 2.0) * np.log(SigmaSqr) + 0.5 * LnDetPsi\n    return negLnLike, Psi, U",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#hyperparameter-optimization-max_likelihood",
+    "href": "018_kriging_demo.html#hyperparameter-optimization-max_likelihood",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.4 Hyperparameter optimization: max_likelihood()",
+    "text": "24.4 Hyperparameter optimization: max_likelihood()\n\nMinimizes the concentrated negative log-likelihood over [log10 θ, log10 λ, p] using differential evolution.\nObjective = likelihood(x)[0].\nBounds are assembled in fit() depending on method and options.\n\nCode mapping:\n\ndef max_likelihood(self, bounds: List[Tuple[float, float]]) -&gt; Tuple[np.ndarray, float]:\n    def objective(logtheta_loglambda_p_: np.ndarray) -&gt; float:\n        neg_ln_like, _, _ = self.likelihood(logtheta_loglambda_p_)\n        return neg_ln_like\n\n    result = differential_evolution(func=objective, bounds=bounds, seed=self.seed)\n    return result.x, result.fun",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#model-fitting-workflow-fit",
+    "href": "018_kriging_demo.html#model-fitting-workflow-fit",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.5 Model fitting workflow: fit()",
+    "text": "24.5 Model fitting workflow: fit()\n\nSets k, n, variable type masks; selects n_theta (1 if isotropic else k).\nBuilds bounds:\n\ninterpolation: k θ-bounds only.\nregression/reinterpolation: k θ-bounds + 1 λ-bound.\nIf optim_p: adds p-bounds (n_p entries).\n\nCalls max_likelihood to obtain best x = [log10 θ, log10 λ, p].\nStores:\n\ntheta = first n_theta entries of x.\nLambda = next 1 entry (for regression/reinterpolation) — kept on log10 scale in the model’s state; transformed to linear only inside likelihood/_pred.\np_val if enabled.\n\nComputes final Psi, U and negLnLike at the found hyperparameters.\n\nCode mapping:\n\ndef fit(self,\n        X: np.ndarray,\n        y: np.ndarray,\n        bounds: Optional[List[Tuple[float, float]]] = None) -&gt; \"Kriging\":\n    X = np.asarray(X); y = np.asarray(y).flatten()\n    self.X_, self.y_ = X, y\n    self.n, self.k = self.X_.shape\n    self._set_variable_types()\n    if self.n_theta is None: self._set_theta()\n    self.min_X = np.min(self.X_, axis=0); self.max_X = np.max(self.X_, axis=0)\n\n    if bounds is None:\n        if self.method == \"interpolation\":\n            bounds = [(self.min_theta, self.max_theta)] * self.k\n        else:\n            bounds = [(self.min_theta, self.max_theta)] * self.k + \n                      (self.min_Lambda, self.max_Lambda)]\n    if self.optim_p:\n        bounds += [(self.min_p, self.max_p)] * self.n_p\n\n    self.logtheta_loglambda_p_, _ = self.max_likelihood(bounds)\n\n    self.theta = self.logtheta_loglambda_p_[: self.n_theta]\n    if (self.method == \"regression\") or (self.method == \"reinterpolation\"):\n        self.Lambda = self.logtheta_loglambda_p_[self.n_theta : self.n_theta + 1]\n        if self.optim_p:\n            self.p_val = self.logtheta_loglambda_p_[self.n_theta + 1 : self.n_theta + 1 + self.n_p]\n    elif self.method == \"interpolation\":\n        self.Lambda = None\n        if self.optim_p:\n            self.p_val = self.logtheta_loglambda_p_[self.n_theta : self.n_theta + self.n_p]\n\n    self.negLnLike, self.Psi_, self.U_ = self.likelihood(self.logtheta_loglambda_p_)\n    self._update_log()\n    return self",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#correlation-vector-for-a-new-point-build_psi_vec",
+    "href": "018_kriging_demo.html#correlation-vector-for-a-new-point-build_psi_vec",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.6 Correlation vector for a new point: build_psi_vec()",
+    "text": "24.6 Correlation vector for a new point: build_psi_vec()\n\nFor a new x ∈ R^k, compute ψ(x) ∈ R^n with ψ_i = exp(−D(x, x_i)), using same distance construction and weights 10^θ as for R.\n\nCode mapping:\n\ndef build_psi_vec(self, x: np.ndarray) -&gt; None:\n    n = self.X_.shape[0]\n    theta10 = self._get_theta10_from_logtheta()\n    D = np.zeros(n)\n\n    if self.ordered_mask.any():\n        X_ordered = self.X_[:, self.ordered_mask]\n        x_ordered = x[self.ordered_mask]\n        D += cdist(x_ordered.reshape(1, -1), X_ordered, metric=\"sqeuclidean\", w=theta10[self.ordered_mask]).ravel()\n\n    if self.factor_mask.any():\n        X_factor = self.X_[:, self.factor_mask]\n        x_factor = x[self.factor_mask]\n        D += cdist(x_factor.reshape(1, -1), X_factor, metric=self.metric_factorial, w=theta10[self.factor_mask]).ravel()\n\n    psi = np.exp(-D)                  # ψ(x)\n    return psi",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#prediction-at-a-new-x-_pred-and-predict",
+    "href": "018_kriging_demo.html#prediction-at-a-new-x-_pred-and-predict",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.7 Prediction at a new x: _pred() and predict()",
+    "text": "24.7 Prediction at a new x: _pred() and predict()\n\nOrdinary Kriging predictor (Forrester):\n\nMean μ and R^{-1} reused (via stored U).\nPredictor: f(x) = μ + ψ(x)^T R^{-1} (y − 1·μ).\nPredictive variance s^2(x) depends on method:\n\ninterpolation/regression: s^2(x) = σ^2 [1 + λ − ψ(x)^T R^{-1} ψ(x)].\nreinterpolation: uses R_adj = R − λI + εI for the variance term, consistent with a reinterpolation/nugget-adjusted scheme.\n\n\nExpected improvement (EI): computed when requested using standard normal CDF/PDF via erf; the code returns negative EI for minimization.\n\nCode mapping:\n\ndef _pred(self, x: np.ndarray) -&gt; float:\n    y = self.y_.flatten()\n    # load θ, λ (λ transformed to linear scale), p\n    if (self.method == \"regression\") or (self.method == \"reinterpolation\"):\n        self.theta = self.logtheta_loglambda_p_[: self.n_theta]\n        lambda_ = 10.0**self.logtheta_loglambda_p_[self.n_theta : self.n_theta + 1]\n        if self.optim_p:\n            self.p_val = self.logtheta_loglambda_p_[self.n_theta + 1 : self.n_theta + 1 + self.n_p]\n    elif self.method == \"interpolation\":\n        self.theta = self.logtheta_loglambda_p_[: self.n_theta]\n        lambda_ = self.eps\n\n    U = self.U_; n = self.X_.shape[0]; one = np.ones(n)\n\n    # μ and R^{-1}r\n    y_tilde = np.linalg.solve(U, y); y_tilde = np.linalg.solve(U.T, y_tilde)\n    one_tilde = np.linalg.solve(U, one); one_tilde = np.linalg.solve(U.T, one_tilde)\n    mu = (one @ y_tilde) / (one @ one_tilde)\n\n    resid = y - one * mu\n    resid_tilde = np.linalg.solve(U, resid); resid_tilde = np.linalg.solve(U.T, resid_tilde)\n\n    psi = self.build_psi_vec(x)\n\n    # σ^2 and s^2(x)\n    SigmaSqr = (resid @ resid_tilde) / n\n    psi_tilde = np.linalg.solve(U, psi); psi_tilde = np.linalg.solve(U.T, psi_tilde)\n\n    if (self.method == \"interpolation\") or (self.method == \"regression\"):\n        SSqr = SigmaSqr * (1 + lambda_ - psi @ psi_tilde)   # s^2(x)\n    else:\n        Psi_adjusted = self.Psi_ - np.eye(n) * lambda_ + np.eye(n) * self.eps\n        Uint = np.linalg.cholesky(Psi_adjusted)\n        psi_tilde = np.linalg.solve(Uint, psi); psi_tilde = np.linalg.solve(Uint.T, psi_tilde)\n        SSqr = SigmaSqr * (1 - psi @ psi_tilde)\n\n    s = np.abs(SSqr) ** 0.5\n    f = mu + psi @ resid_tilde                                  # predictor\n\n    if self.return_ei:\n        yBest = np.min(y)\n        EITermOne = (yBest - f) * (0.5 + 0.5 * erf((1 / np.sqrt(2)) * ((yBest - f) / s)))\n        EITermTwo = s * (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((yBest - f) ** 2 / SSqr))\n        ExpImp = np.log10(EITermOne + EITermTwo + self.eps)     # numerically stable\n        return float(f), float(s), float(-ExpImp)               # negative EI\n    else:\n        return float(f), float(s)",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#batch-prediction-predict",
+    "href": "018_kriging_demo.html#batch-prediction-predict",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.8 Batch prediction: predict()",
+    "text": "24.8 Batch prediction: predict()\n\nEnsures X has shape (n_samples, k).\nDepending on return flags:\n\nreturn_val=“y”: returns predictions only.\nreturn_std or “s”: returns standard deviation(s).\n“ei” or “all”: computes negative EI (and optionally y, s).\n\n\nKey implementation detail: X reshaping to avoid 1D shape bugs.\n\ndef predict(self, X: np.ndarray, return_std=False, return_val: str = \"y\") -&gt; np.ndarray:\n    self.return_std = return_std\n    X = self._reshape_X(X)               # ensures (n_samples, k)\n    if return_std:\n        predictions, stds = zip(*[self._pred(x_i)[:2] for x_i in X])\n        return np.array(predictions), np.array(stds)\n    if return_val == \"s\":\n        predictions, stds = zip(*[self._pred(x_i)[:2] for x_i in X])\n        return np.array(stds)\n    elif return_val == \"all\":\n        self.return_std = True; self.return_ei = True\n        predictions, stds, eis = zip(*[self._pred(x_i) for x_i in X])\n        return np.array(predictions), np.array(stds), np.array(eis)\n    elif return_val == \"ei\":\n        self.return_ei = True\n        predictions, eis = zip(*[(self._pred(x_i)[0], self._pred(x_i)[2]) for x_i in X])\n        return np.array(eis)\n    else:\n        predictions = [self._pred(x_i)[0] for x_i in X]\n        return np.array(predictions)",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#method-variants-and-options",
+    "href": "018_kriging_demo.html#method-variants-and-options",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.9 Method variants and options",
+    "text": "24.9 Method variants and options\n\ninterpolation: Uses eps as tiny nugget; predictive variance s^2(x) = σ^2[1 + eps − ψ^T R^{-1} ψ].\nregression: Uses optimized λ; same variance as above with λ.\nreinterpolation: For prediction variance only, adjusts R by removing λ and adding ε before the variance backsolve; predictor mean still uses R with λ.\nisotropic: n_theta = 1; a single θ controls all ordered dimensions; code expands 10^θ to k when building distances.\nvariable types: ordered_mask includes numeric and int; factor_mask uses a categorical metric and still lives inside exp(−D).\nparameters in log10: θ, λ are optimized and stored on log10 scale; transformed to linear (10^·) only at the points where R and s^2 require them.",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#relation-to-forrester-ch.-236",
+    "href": "018_kriging_demo.html#relation-to-forrester-ch.-236",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.10 Relation to Forrester (Ch. 2/3/6)",
+    "text": "24.10 Relation to Forrester (Ch. 2/3/6)\n\nCorrelation form exp(−∑ θ_d (Δx_d)^2) and the ordinary Kriging predictor f(x) = μ + r^T R^{-1}(y−1μ) are textbook.\nConcentrated likelihood n/2 log(σ^2) + 1/2 log|R| is used for hyperparameter estimation.\nPredictive variance s^2(x) = σ^2(1 + λ − r^T R^{-1} r) reflects nugget (λ) for regression models; interpolation uses a tiny eps. The reinterpolation branch mirrors the “nugget-adjusted” variance computation.\nExpected Improvement (EI) follows the usual formula for minimization; the implementation uses erf for Φ and exp for φ, with a log10 stabilization.",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#practical-notes",
+    "href": "018_kriging_demo.html#practical-notes",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.11 Practical notes",
+    "text": "24.11 Practical notes\n\nBounds: fit() assembles bounds for [log θ] (k entries), [log λ] (1), and optionally p (n_p).\nStability: Cholesky factorization is used; ill-conditioning penalized by returning a large negLnLike if factorization fails.\nShape safety: predict() reshapes inputs; plot() uses a 1D grid reshaped to (n,1) accordingly.",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
+  },
+  {
+    "objectID": "018_kriging_demo.html#kriging-1d-demo-3bc-3c32-sx-and-ei-forrester-et-al.-2008-ch.-236",
+    "href": "018_kriging_demo.html#kriging-1d-demo-3bc-3c32-sx-and-ei-forrester-et-al.-2008-ch.-236",
+    "title": "24  Kriging with spotPython based on the Forrester et al. textbook",
+    "section": "24.12 Kriging 1D demo: 3bc, 3c3^2, s(x), and EI (Forrester et al., 2008, Ch. 2/3/6)",
+    "text": "24.12 Kriging 1D demo: 3bc, 3c3^2, s(x), and EI (Forrester et al., 2008, Ch. 2/3/6)\nThis notebook fits the provided Kriging implementation to a 1D function and visualizes:\n\nThe predictor f^ (x)\nThe estimated mean 3bc and variance 3c3^2 from the concentrated likelihood\nThe predictive standard deviation s(x)\nThe Expected Improvement (EI) curve (for minimization)\n\n\n%matplotlib inline\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom spotpython.surrogate.kriging import Kriging\n\n# 1D training data (noisy-free quadratic)\nrng = np.random.default_rng(0)\nX_train = np.linspace(-1.0, 1.0, 9).reshape(-1, 1)\ny_train = (X_train[:, 0]**2 + 0.1*X_train[:, 0]).astype(float)\n\n# Fit Kriging (regression with nugget optimization)\nmodel = Kriging(method=\"regression\", var_type=[\"num\"], seed=124)\nmodel.fit(X_train, y_train)\nprint(\"theta(log10):\", model.theta)\nprint(\"Lambda(log10):\", model.Lambda)\n\ntheta(log10): [-1.14274728]\nLambda(log10): [-8.99954829]\n\n\n\n# Compute \\u03bc and \\u03c3^2 as in likelihood() (Forrester Ch. 3)\ny = model.y_.flatten()\nn = model.X_.shape[0]\none = np.ones(n)\nU = model.U_\n\ntemp_y = np.linalg.solve(U, y)\ntemp_1 = np.linalg.solve(U, one)\nvy = np.linalg.solve(U.T, temp_y)\nv1 = np.linalg.solve(U.T, temp_1)\nmu = (one @ vy) / (one @ v1)\nresid = y - one * mu\ntresid = np.linalg.solve(U, resid)\ntresid = np.linalg.solve(U.T, tresid)\nsigma2 = (resid @ tresid) / n\nprint(f\"mu: {mu:.6f}, sigma^2: {sigma2:.6e}\")\n\nmu: 9.838641, sigma^2: 2.836785e+01\n\n\n\n# Prediction grid\nX_grid = np.linspace(X_train.min(), X_train.max(), 200).reshape(-1, 1)\n\n# Predict f^(x) and s(x)\ny_pred, s_pred = model.predict(X_grid, return_std=True)\n\n# EI: model.predict(..., return_val=\"all\") returns (y, s, -log10(EI))\ny_all, s_all, neg_log10_ei = model.predict(X_grid, return_val=\"all\")\nEI = 10.0 ** (-neg_log10_ei)\n\nfig, axs = plt.subplots(3, 1, figsize=(7, 10), sharex=True)\n\n# 1) Predictor with data\naxs[0].plot(X_grid[:, 0], y_pred, 'k', label='Kriging predictor f^')\naxs[0].scatter(X_train[:, 0], y_train, c='r', label='data')\naxs[0].set_ylabel('f^ (x)')\naxs[0].grid(True)\naxs[0].legend(loc='best')\n\n# 2) Predictive standard deviation\naxs[1].plot(X_grid[:, 0], s_pred, 'b')\naxs[1].set_ylabel('s(x)')\naxs[1].grid(True)\naxs[1].set_title(f\"mu={mu:.4f}, sigma^2={sigma2:.2e}\")\n\n# 3) Expected Improvement (minimization)\naxs[2].plot(X_grid[:, 0], EI, 'g')\naxs[2].set_xlabel('x')\naxs[2].set_ylabel('EI(x)')\naxs[2].grid(True)\n\nplt.tight_layout()\nplt.show()",
+    "crumbs": [
+      "Sequential Parameter Optimization Toolbox (SPOT)",
+      "<span class='chapter-number'>24</span>  <span class='chapter-title'>Kriging with spotPython based on the Forrester et al. textbook</span>"
+    ]
   }
 ]
