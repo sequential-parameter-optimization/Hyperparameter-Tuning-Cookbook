@@ -135,8 +135,8 @@ The configuration can be generated on a local machine using the following comman
 #| label: generate-spotpython-config
 #| eval: false
 # generate data
-num_samples = 100_000
-input_dim = 100
+num_samples = 10_000
+input_dim = 10
 X = torch.randn(num_samples, input_dim)  # random data for example
 Y = torch.randn(num_samples, 1)  # random target for example
 data_set = TensorDataset(X, Y)
@@ -153,7 +153,7 @@ fun_control = fun_control_init(
     strategy="auto",
     save_experiment=True,
     PREFIX=PREFIX,
-    fun_evals=50,
+    fun_evals=10,
     max_time=inf,
     data_set = data_set,
     core_model_name="light.regression.NNLinearRegressor",
@@ -164,13 +164,13 @@ fun_control = fun_control_init(
 fun = HyperLight().fun
 
 set_hyperparameter(fun_control, "optimizer", [ "Adadelta", "Adam", "Adamax"])
-set_hyperparameter(fun_control, "l1", [5,10])
-set_hyperparameter(fun_control, "epochs", [10,12])
-set_hyperparameter(fun_control, "batch_size", [4,11])
+set_hyperparameter(fun_control, "l1", [2,3])
+set_hyperparameter(fun_control, "epochs", [2,3])
+set_hyperparameter(fun_control, "batch_size", [2,5])
 set_hyperparameter(fun_control, "dropout_prob", [0.0, 0.025])
-set_hyperparameter(fun_control, "patience", [2,9])
+set_hyperparameter(fun_control, "patience", [2,4])
 
-design_control = design_control_init(init_size=10)
+design_control = design_control_init(init_size=5)
 
 S = Spot(fun=fun,fun_control=fun_control, design_control=design_control)
 ```
@@ -284,3 +284,13 @@ get_tuned_architecture(spot_tuner)
 | `module load conda` | Load the Conda module on the remote machine. This command may vary depending on the system configuration. |
 | `conda activate env_name` | Activate a Conda environment. Replace `env_name` with the name of your Conda environment. |
 : Slurm and related commands {#tbl-slurm-commands}
+
+
+## Jupyter Notebook
+
+:::{.callout-note}
+
+* The Jupyter-Notebook of this lecture is available on GitHub in the [Hyperparameter-Tuning-Cookbook Repository](https://github.com/sequential-parameter-optimization/Hyperparameter-Tuning-Cookbook/blob/main/a_06_slurm.ipynb)
+
+:::
+
